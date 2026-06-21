@@ -179,6 +179,8 @@ Do not destructively merge away provenance.
 8. CSV wins for historical completeness and offer evidence after CSV rows are loaded, profiled, and mapped.
 9. Heuristics by amount, supplier, or item may produce candidates, never silent truth.
 10. Source conflicts that cannot be resolved by priority must become explicit reconciliation issues.
+11. Recent operational lifecycle state means `now(America/Santiago) <= max(FechaCierre, FechaPublicacion) + 30 days` when those dates are available.
+12. If the same CSV `source_period` is re-downloaded with a different checksum, keep both raw files, recompute canonical state from the newer file, and emit reconciliation issues instead of silently overwriting history.
 
 ## Data Quality Rules
 
@@ -222,10 +224,17 @@ That does not conflict with a shared `mp` schema if the rule is interpreted corr
 - each isolated customer deployment owns its own `mp` schema
 - this does not introduce a cross-customer shared control plane
 
-## Operational Questions Still Open
+## Operational Defaults For This Backbone Change
 
-- What is the exact deduplication policy for future CSV execution when the same period is re-downloaded?
-- Which freshness thresholds should later drive alerts or health status in Gold?
+- High-frequency API jobs run every `1 hour`.
+- Lower-frequency API sweeps run every `24 hours`.
+- CSV jobs may run on-demand or daily, but health is measured against configured cadence, not a guessed source-publication SLA.
+- Gold pipeline freshness is cadence-relative:
+  - `healthy`: last success at or under `1.5x` expected cadence
+  - `degraded`: over `1.5x` and at or under `3x` expected cadence
+  - `stale`: over `3x` expected cadence
+- CSV reruns keep both raw files when checksum changes for the same source period.
+- Canonical and reconciliation refresh always run from raw lineage, never from destructive raw replacement.
 
 ## Related Documents
 

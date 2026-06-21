@@ -219,12 +219,31 @@ Timeline típico:
 ## Reconciliation Rules
 
 1. Reconcile by `CodigoExterno` — API and CSV share this natural key. It is immutable.
-2. API wins for recent lifecycle state (<30 days since cierre).
+2. API wins for recent lifecycle state when `now(America/Santiago) <= max(FechaCierre, FechaPublicacion) + 30 days`.
 3. CSV wins for historical completeness and provider/offer detail.
 4. When a field differs between API and CSV, log a reconciliation issue — do not choose silently.
 5. Preserve source attribution for every reconciled field.
 6. `Adjudicacion/*` from API and CSV offer rows must be cross-validated — they represent the same award from different angles.
 7. Never use `compra_agil.CodigoLicitacion` to join to `licitacion` — the connection is invalid.
+
+### Canonical Conflict Policy For Re-Downloaded CSV Periods
+
+When the same CSV period is re-downloaded with different row content:
+
+1. Keep both raw files if `file_checksum` differs.
+2. Treat the newer file as a new raw source event, not as an in-place overwrite.
+3. Re-run canonical normalization and reconciliation from the newer raw file.
+4. Preserve prior raw lineage and checksums for auditability.
+5. Emit a reconciliation issue when the newer file changes a previously published business-key result.
+6. Never silently delete the older raw file or older raw rows.
+
+### Refresh Cadence Default
+
+For the backbone phase:
+
+- high-frequency API sweeps cover active or recently changing processes every `1 hour`
+- broader API date and state sweeps run every `24 hours`
+- CSV download and profiling may run on-demand or on a daily schedule, but canonical health is measured against the configured job cadence rather than an assumed source-publication SLA
 
 ---
 
@@ -249,10 +268,8 @@ Timeline típico:
 
 ## Open Decisions
 
-- Refresh cadence: daily for near-closing only, or all active?
 - Store complete Items snapshot or only normalized projection + raw?
 - Should organism-based watchlists be first-class product workflows?
-- What is the exact canonical conflict policy when the same CSV period is re-downloaded with different row content?
 
 ---
 
@@ -265,5 +282,5 @@ Timeline típico:
 
 ---
 
-Last Updated: 2026-06-17
-Version: 1.0.0
+Last Updated: 2026-06-20
+Version: 1.1.0

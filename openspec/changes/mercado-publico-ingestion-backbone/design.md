@@ -38,6 +38,13 @@ This is a deliberate exception to Twenty's default `workspace_<id>` isolation mo
 - Treat the shared ingestion backbone as a core module with a clear interface and limited external surface.
 - Do not expose raw `mp` tables directly to user-facing UI or apps.
 
+### Static Schema Access Model
+
+- `workspace_<id>` CRM data remains on the existing metadata-driven TwentyORM path.
+- `mp` is a static-schema exception and must not require runtime metadata compilation or workspace schema generation.
+- `mp` objects are created through instance commands and accessed through dedicated backend module services and static-table query access patterns appropriate for a deployment-local schema.
+- This change must not generalize static-schema access patterns to tenant-owned CRM records.
+
 ### Data Layers
 
 #### Raw
@@ -51,6 +58,21 @@ Purpose:
 - Preserve full request payloads, downloaded file metadata, and row lineage.
 - Record request fingerprints, payload checksums, file checksums, params, status, timestamps, observed columns, schema fingerprints, and ingestion counters.
 
+Minimum object contract:
+
+- `mp.raw_api_payload`
+  - PK: surrogate `id`
+  - UK: `source + endpoint + request_fingerprint + payload_checksum`
+  - Required fields: `source`, `endpoint`, `request_fingerprint`, `payload_checksum`, `request_params`, `http_status`, `fetched_at`, `raw_payload`, `schema_fingerprint`
+- `mp.raw_csv_file`
+  - PK: surrogate `id`
+  - UK: `source_dataset + source_period + file_checksum`
+  - Required fields: `source_dataset`, `source_period`, `source_file_name`, `file_checksum`, `file_size_bytes`, `detected_encoding`, `detected_delimiter`, `quotechar`, `header_raw`, `observed_columns`, `column_count`, `schema_fingerprint`, `row_count`, `downloaded_at`
+- `mp.raw_csv_row`
+  - PK: surrogate `id`
+  - UK: `raw_csv_file_id + row_number + row_checksum`
+  - Required fields: `raw_csv_file_id`, `source_dataset`, `source_period`, `row_number`, `raw_row_text`, `raw_row_json`, `row_checksum`, `parse_status`, `parse_error`
+
 #### Staging
 
 - `mp.stg_api_v1_licitacion`
@@ -63,6 +85,12 @@ Purpose:
 Purpose:
 
 - Hold list snapshots, detail snapshots, parsed CSV row projections, and job execution traces before canonical refresh.
+
+Minimum object contract:
+
+- API staging rows keep source family, snapshot kind (`list` or `detail`), natural key, fetched timestamp, and selected projected fields.
+- CSV staging rows keep `raw_csv_row_id`, projected observed fields, and grain-safe identifiers such as `Codigo`, `IDItem`, `CodigoExterno`, `Codigoitem`, `CodigoProveedor`, and `Nombre de la Oferta` when present.
+- `mp.stg_job_run` keeps `job_name`, `job_run_id`, `status`, `started_at`, `finished_at`, counters, and `error_summary`.
 
 #### Canonical
 
@@ -84,6 +112,18 @@ Purpose:
 
 - Store normalized entities keyed by natural keys, preserve raw state fields, and retain source attribution.
 
+Minimum key and uniqueness contract:
+
+- `mp.licitacion`: UK `CodigoExterno`
+- `mp.licitacion_item`: UK `CodigoExterno + Codigoitem`
+- `mp.licitacion_oferta`: UK `CodigoExterno + Codigoitem + CodigoProveedor + Nombre de la Oferta`, subject to validation against real duplicate cases
+- `mp.licitacion_adjudicacion`: UK `CodigoExterno + Codigoitem + RutProveedor`, nullable item segment only if source proves process-level award only
+- `mp.orden_compra`: UK `Codigo`
+- `mp.orden_compra_item`: UK `IDItem`
+- `mp.compra_agil`: UK `codigo`
+- `mp.compra_agil_producto_solicitado`: UK `codigo + codigo_producto + ordinal`
+- `mp.compra_agil_cotizacion`: UK `codigo + rut_proveedor + id_cotizacion`
+
 #### Reconciliation
 
 - `mp.reconciliation_public_market_entities`
@@ -93,6 +133,17 @@ Purpose:
 
 - Store exact, candidate, unmatched, and manual-review-required links across licitaciones, OCs, Compra Agil, and CSV/API records.
 - Preserve mismatches as auditable events.
+
+Minimum object contract:
+
+- `mp.reconciliation_public_market_entities`
+  - PK: surrogate `id`
+  - UK: `entity_a_source + entity_a_type + entity_a_key + entity_b_source + entity_b_type + entity_b_key + match_type`
+  - Required fields: `match_confidence`, `matched_by`, `matched_at`, `review_status`
+- `mp.reconciliation_event`
+  - PK: surrogate `id`
+  - UK: logical mismatch fingerprint
+  - Required fields: `event_type`, `entity_type`, `entity_key`, `source_a`, `source_b`, `details`, `created_at`
 
 #### Gold / Read
 
@@ -171,7 +222,7 @@ The June 2026 observed CSV files provide concrete fixture requirements:
 - Licitacion identity:
   - exact-key reconciliation across API and CSV
 - Recent licitacion lifecycle state:
-  - API wins
+  - API wins when `now(America/Santiago) <= max(FechaCierre, FechaPublicacion) + 30 days`
 - Historical completeness and offer evidence:
   - CSV wins after CSV rows are loaded and profiled
 - Recent OC operational state:
@@ -195,6 +246,11 @@ The June 2026 observed CSV files provide concrete fixture requirements:
 - Compra Agil to OC exact linkage uses `id_orden_compra` or `id_oc` when present.
 - API wins for recent operational lifecycle state.
 - CSV wins for historical completeness and offer detail after CSV rows are loaded, profiled, and mapped.
+- If the same CSV `source_period` is re-downloaded with a different checksum:
+  - keep both raw files
+  - rerun canonical and reconciliation from the newer file
+  - do not mutate or delete older raw lineage
+  - emit a reconciliation event if business-key outcomes change
 - Heuristic matches may only emit:
   - `candidate_supplier_amount`
   - `candidate_item_amount`
@@ -223,6 +279,13 @@ Required in this phase:
 - `csv-canonical-refresh`
 - `reconciliation-refresh`
 
+## Job Execution Model
+
+- Use the existing backend queue and worker patterns already standard in the repository.
+- Do not introduce a separate Mercado Publico scheduler, control plane, or parallel job framework.
+- Mercado Publico jobs should remain enqueueable, observable, and retryable through the existing backend job infrastructure conventions.
+- Phase 1 keeps the execution model internal to `twenty-server`.
+
 ## Operational Defaults
 
 - API V1 dates are formatted as `ddmmaaaa`.
@@ -230,8 +293,17 @@ Required in this phase:
 - Compra Agil incremental polling also supports `cambio_desde` and `cambio_hasta`.
 - Compra Agil publication sweeps support `publicado_desde` and `publicado_hasta`.
 - Compra Agil pagination uses `tamano_pagina <= 50` and `numero_pagina >= 1`.
-- Active and published licitaciones sweep more frequently.
-- Broader V1 state and date sweeps run less frequently.
+- High-frequency jobs run every `1 hour`:
+  - `api-v1-licitaciones-by-state` for active operational states
+  - `api-v2-compra-agil-incremental`
+- Lower-frequency jobs run every `24 hours`:
+  - `api-v1-licitaciones-by-date`
+  - `api-v1-oc-by-date`
+  - `api-v1-oc-by-state`
+  - `api-v2-compra-agil-by-publication-window`
+  - `reconciliation-refresh`
+  - `csv-canonical-refresh`
+- CSV jobs may run on-demand or daily when source URLs and storage roots are configured.
 - Detail rehydrate triggers on:
   - first seen
   - state drift
@@ -240,6 +312,17 @@ Required in this phase:
   - Compra Agil OC linkage appearing after a previous null linkage
 - CSV files are profiled before parsing into staging.
 - CSV files do not fail only because unknown columns appear.
+- Gold health is cadence-relative:
+  - `healthy`: last success at or under `1.5x` expected cadence
+  - `degraded`: over `1.5x` and at or under `3x` expected cadence
+  - `stale`: over `3x` expected cadence
+
+## CSV File Lifecycle
+
+- `MERCADO_PUBLICO_CSV_STORAGE_ROOT` is an operational staging location, not by itself the audit contract.
+- The phase-1 audit contract is the persisted raw file metadata, raw row lineage, checksums, and profiling outcomes stored under `mp`.
+- Implementations may retain downloaded file bytes temporarily or longer, but they must not make auditability depend on indefinite filesystem retention alone.
+- If a local file retention or cleanup policy becomes an operational standard, that policy should be documented in `docs/operations/`.
 
 ## Explicitly Deferred In This Change
 
@@ -325,6 +408,32 @@ Every CSV row must persist:
 - `MERCADO_PUBLICO_API_TICKET`
 - `COMPRA_AGIL_API_TICKET`
 
+## Runtime Configuration
+
+The backbone must use typed Twenty config variables rather than ad hoc `process.env` reads in feature code.
+
+Required configuration variables:
+
+- `MERCADO_PUBLICO_API_TICKET` - sensitive
+- `COMPRA_AGIL_API_TICKET` - sensitive
+- `MERCADO_PUBLICO_API_V1_BASE_URL` - non-sensitive
+- `COMPRA_AGIL_API_BASE_URL` - non-sensitive
+- `MERCADO_PUBLICO_HTTP_TIMEOUT_MS` - non-sensitive
+- `MERCADO_PUBLICO_HTTP_MAX_RETRIES` - non-sensitive
+- `MERCADO_PUBLICO_HTTP_RETRY_BACKOFF_MS` - non-sensitive
+- `MERCADO_PUBLICO_QUOTA_TIMEZONE` - non-sensitive, default `America/Santiago`
+- `MERCADO_PUBLICO_CSV_STORAGE_ROOT` - non-sensitive
+- `MERCADO_PUBLICO_CSV_OC_SOURCE_URL` - non-sensitive
+- `MERCADO_PUBLICO_CSV_LICITACIONES_SOURCE_URL` - non-sensitive
+- `MERCADO_PUBLICO_CSV_DOWNLOAD_ENABLED` - non-sensitive
+
+Rules:
+
+- Register these variables in `TwentyConfig` with metadata and sensitivity flags.
+- Consume them through `TwentyConfigService`.
+- Use `SecureHttpClientService` for outbound HTTP clients.
+- Do not put feature-level `process.env` access in the Mercado Publico module.
+
 Rules:
 
 - Never log secrets.
@@ -366,6 +475,7 @@ Required fixtures:
 - `getCsvFileHealth()`
 
 These contracts should remain the primary behavior-oriented test surface where possible.
+In phase 1 they are implemented as internal backend service contracts inside `twenty-server`, not as new public GraphQL, REST, or MCP surfaces.
 
 ### Internal Read Contract Shapes
 
@@ -446,6 +556,7 @@ These contracts should remain the primary behavior-oriented test surface where p
 - Prime the codebase and review repo documentation, standards, ADRs, and established backend/data patterns.
 - Review `docs/business/mercado-publico-source-contract.md` and `docs/business/mercado-publico-ingestion-context.md` alongside existing business and architecture docs.
 - Review module, interface, adapter, migration, queue, config, and secure HTTP patterns already used in `twenty-server`.
+- Verify the untouched baseline with the smallest relevant repository gates and document any pre-existing failures before implementation starts.
 - Produce:
   - pattern inventory
   - blast-radius review
@@ -455,15 +566,16 @@ These contracts should remain the primary behavior-oriented test surface where p
 
 ### Phase 1: TDD and Verification Design
 
-- Convert critical behaviors into vertical-slice tests.
+- Convert critical behaviors into tracer-bullet and follow-on vertical-slice tests.
 - Prefer integration-style tests through public contracts and persisted outcomes.
 - Confirm which behaviors require DB-backed tests, source fixtures, local substitutes, or mocks.
 - Define the minimum red-green-refactor path before implementation begins.
 
 ### Phase 2: Layered Implementation
 
-- Database layer first: instance commands, schema objects, constraints, indexes, views.
-- Backend layer second: ingestion modules, source clients, CSV file profiling, normalization rules, reconciliation rules, read contracts, and job policies.
+- Foundation blockers first: instance commands, schema objects, typed config registration, and raw persistence seams.
+- First tracer-bullet slice next: one narrow end-to-end source path through ingestion, canonical refresh, and internal read output.
+- Source expansion and hardening after that: additional source jobs, normalization rules, reconciliation rules, internal service-layer read contracts, and job policies.
 - Frontend layer is explicitly out of scope for this change and should remain excluded.
 
 ### Phase 3: Validation and CI

@@ -10,11 +10,11 @@ This change establishes a deployment-local shared backbone inside `twenty-server
 
 This change should be executed in a phased, action-oriented way:
 
-1. Investigation only, with no implementation changes.
-2. Test design first, following TDD and fail-fast verification discipline.
-3. Minimal implementation by layer, with database and backend boundaries kept small and deep.
-4. Full validation, including the smallest relevant test gates first and CI when appropriate.
-5. Closeout with documentation and changelog review.
+1. Investigation and untouched-baseline verification only, with no implementation changes.
+2. Foundation blockers first: `mp` schema path, typed runtime config, fixture base, and raw persistence seams.
+3. First tracer-bullet slice next: one narrow end-to-end path from source ingestion to internal read contract.
+4. Source expansion and hardening after that, in dependency order.
+5. Full validation and closeout, including the smallest relevant test gates first and CI when appropriate.
 
 The intent is to keep blast radius explicit, implementation grounded in existing repository patterns, and source contracts durable enough that agents do not invent fields, joins, or CSV schemas during implementation.
 
@@ -90,3 +90,15 @@ The intent is to keep blast radius explicit, implementation grounded in existing
 ## Expected Outcome
 
 At the end of this change, the repository has a complete implementation-ready OpenSpec definition for the Mercado Publico ingestion backbone, aligned with the current repository architecture, the documented `mp` schema exception, the official source behavior captured in durable docs, and a verification plan that covers API, CSV, reconciliation, idempotency, quota, fixtures, and read contracts.
+
+## Recommended Issue Packaging
+
+If this change is later broken into tracker issues, the preferred mental model is a dependency-ordered slice map rather than a rigid Gantt plan:
+
+1. Foundation blockers
+2. First tracer-bullet slice
+3. Source expansion slices
+4. Cross-cutting hardening
+5. Validation and closeout
+
+Use AFK/HITL packaging and explicit `Blocked by` relationships where helpful, but do not force every issue to look like a product user story when the work is infrastructure- or data-backbone-oriented.

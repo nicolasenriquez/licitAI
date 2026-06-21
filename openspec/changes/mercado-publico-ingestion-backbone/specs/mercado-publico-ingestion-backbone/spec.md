@@ -149,6 +149,14 @@ The system SHALL execute CSV ingestion for Datos Abiertos licitaciones and orden
 - **AND** new or unknown columns do not cause data loss
 - **AND** raw column names are preserved exactly as observed
 
+#### Scenario: CSV re-download keeps prior raw lineage
+
+- **WHEN** the same CSV `source_period` is downloaded again with a different checksum
+- **THEN** the system stores a new raw file record instead of overwriting the old one
+- **AND** it preserves older raw rows for auditability
+- **AND** canonical and reconciliation refresh run from the newer raw file
+- **AND** changed business-key outcomes remain auditable through reconciliation events
+
 #### Scenario: CSV licitaciones does not assume one row per licitacion
 
 - **WHEN** licitaciones CSV rows share the same `CodigoExterno`
@@ -207,6 +215,7 @@ The system SHALL apply explicit source-priority and reconciliation rules during 
 #### Scenario: Recent licitacion state prefers API
 
 - **WHEN** API and CSV disagree on recent licitacion lifecycle state
+- **AND** `now(America/Santiago) <= max(FechaCierre, FechaPublicacion) + 30 days`
 - **THEN** API is preferred for recent operational state
 - **AND** the mismatch remains auditable
 
@@ -215,6 +224,13 @@ The system SHALL apply explicit source-priority and reconciliation rules during 
 - **WHEN** CSV contains historical completeness or offer evidence absent from API snapshots
 - **THEN** CSV is preserved as the preferred historical source for that evidence
 - **AND** the system does not silently discard that evidence
+
+#### Scenario: Historical state prefers CSV outside the recent window
+
+- **WHEN** API and CSV disagree on lifecycle state
+- **AND** the record is outside `max(FechaCierre, FechaPublicacion) + 30 days`
+- **THEN** CSV is preferred for historical completeness
+- **AND** the API disagreement remains auditable
 
 #### Scenario: API and CSV same licitacion key match
 
@@ -329,6 +345,38 @@ The system SHALL handle Mercado Publico tickets and quota without leaking secret
 - **AND** quota reset uses `America/Santiago`
 - **AND** the system records `last429At` when a rate limit response is observed
 
+### Requirement: Typed Runtime Configuration
+
+The system SHALL use typed Twenty config variables for Mercado Publico runtime configuration.
+
+#### Scenario: Runtime configuration uses typed config variables
+
+- **WHEN** the Mercado Publico module needs secrets, base URLs, HTTP settings, quota timezone, or CSV storage/source settings
+- **THEN** those values are defined as typed `TwentyConfig` variables
+- **AND** feature code consumes them through `TwentyConfigService`
+- **AND** feature code does not read ad hoc `process.env` variables directly
+
+### Requirement: Operational Cadence And Health
+
+The system SHALL use explicit job cadence defaults and cadence-relative health thresholds.
+
+#### Scenario: High-frequency jobs have explicit cadence
+
+- **WHEN** the backbone schedules active-process polling
+- **THEN** high-frequency jobs run every `1 hour`
+
+#### Scenario: Lower-frequency jobs have explicit cadence
+
+- **WHEN** the backbone schedules broader sweeps and canonical refresh
+- **THEN** lower-frequency jobs run every `24 hours`
+
+#### Scenario: Health status is cadence-relative
+
+- **WHEN** the system reports pipeline health
+- **THEN** `healthy` means last success at or under `1.5x` expected cadence
+- **AND** `degraded` means over `1.5x` and at or under `3x` expected cadence
+- **AND** `stale` means over `3x` expected cadence
+
 ### Requirement: Minimum Job Surface
 
 The system SHALL include API V1 date/state/detail jobs, API V2 Compra Agil jobs, CSV jobs, and reconciliation refresh in this phase.
@@ -376,6 +424,12 @@ The system SHALL include fixtures that make source behavior testable without liv
 ### Requirement: Internal Consumer Reads
 
 The system SHALL provide internal read contracts for downstream consumers without exposing raw persistence details.
+
+#### Scenario: Internal read contracts stay non-public in phase 1
+
+- **WHEN** this backbone is implemented in this phase
+- **THEN** detected-process and health reads are exposed through internal backend service contracts
+- **AND** the change does not add a new public GraphQL, REST, or MCP surface for Mercado Publico reads
 
 #### Scenario: Downstream consumer lists detected processes
 
