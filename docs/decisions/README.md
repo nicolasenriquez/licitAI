@@ -36,3 +36,4 @@ Zero-padded numeric prefix: `0001-<kebab-case-title>.md`. Numbers are sequential
 | 0002 | NestJS + TypeORM + PostgreSQL Backend Stack | Accepted (2026-06-20) |
 | 0003 | Metadata-Driven UI with Runtime GraphQL Schema Generation | Accepted (2026-06-20) |
 | 0004 | Per-Workspace PostgreSQL Schema Isolation | Accepted (2026-06-20) |
+| 0005 | Deployment-Local Mercado Publico Schema | Accepted (2026-06-20) |

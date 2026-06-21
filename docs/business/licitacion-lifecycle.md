@@ -95,7 +95,7 @@ Timeline típico:
 - `NumeroOferentes`: populated in CSV
 
 **API behavior:** `Adjudicacion/*` object is present in the response. Previously was `null`.
-**CSV behavior:** Offer rows change: winning offer gets `EsGanador="Si"`, others remain empty.
+**CSV behavior:** Offer rows expose selection through the observed `Oferta seleccionada` column. Keep the raw value and map it defensively.
 
 ### 3. cerrada → desierta
 
@@ -149,14 +149,14 @@ Timeline típico:
 └─────────────┘     └──────────────┘     └────────────────┘
 ```
 
-### licitacion → adjudicacion (1:1)
+### licitacion → adjudicacion
 
-- An adjudicación belongs to exactly one licitación.
+- An adjudicación belongs to a licitación, but CSV evidence can appear at item and offer grain.
 - Key: `adjudicacion.CodigoExterno = licitacion.CodigoExterno`.
 - Adjudicación data exists in two places in the API response:
   - `Adjudicacion/*` at the licitación level (process-level award).
   - `Items/Listado[]/Adjudicacion/*` at the item level (line-level awards).
-- In CSV: Adjudicación is embedded in offer rows (no separate entity).
+- In CSV: Adjudicación is embedded in offer rows and should be normalized after row-grain analysis.
 
 ### licitacion → orden_compra (1:N)
 
@@ -252,7 +252,7 @@ Timeline típico:
 - Refresh cadence: daily for near-closing only, or all active?
 - Store complete Items snapshot or only normalized projection + raw?
 - Should organism-based watchlists be first-class product workflows?
-- What is the exact deduplication strategy for CSV ingestion (first occurrence, latest date)?
+- What is the exact canonical conflict policy when the same CSV period is re-downloaded with different row content?
 
 ---
 
@@ -261,6 +261,7 @@ Timeline típico:
 - `docs/architecture/data-model.md` — entity catalog, key rules, source mappings
 - `docs/operations/data-operations.md` — ingestion rules, reconciliation, merge priority
 - `docs/business/quote-and-bid-workflow.md` — commercial lifecycle (DETECT → SUBMIT)
+- `docs/business/mercado-publico-source-contract.md` — source API and CSV ingestion contract
 
 ---
 

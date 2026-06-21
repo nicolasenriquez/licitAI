@@ -2,18 +2,18 @@
 
 ## Summary
 
-Create a deployment-local shared Mercado Publico ingestion backbone inside `twenty-server` backed by a static PostgreSQL schema `mp`. The backbone serves as a public procurement corpus shared across workspaces within a single installation without polluting per-workspace schemas or prematurely encoding business workflow decisions.
+Create a deployment-local shared Mercado Publico ingestion backbone inside `twenty-server` backed by a static PostgreSQL schema `mp`. The backbone serves as a public procurement corpus shared across workspaces within a single installation without polluting per-workspace schemas or prematurely encoding CRM workflow decisions.
 
-This change is API-executable and CSV-ready, but not yet CSV-executing.
+This change is API-executable and CSV-executable.
 
 ## Delivery Principles
 
-- Phase 0 is investigation only. No code implementation starts there.
-- Implementation should follow repository seams and existing module patterns discovered during investigation, not invented structure.
-- Tests should verify behavior through the module interface and public contracts, not internal wiring.
-- Architecture changes should prefer deeper modules with higher leverage and better locality over shallow pass-through abstractions.
-- Validation should start with the smallest relevant gates and expand only as needed.
-- Shared domain rules should live in repository files, especially `docs/business/mercado-publico-ingestion-context.md`, not only in OpenSpec text.
+- Phase 0 is investigation only. No application implementation starts there.
+- Implementation follows existing `twenty-server` patterns for modules, config, secure HTTP, jobs, instance commands, and tests.
+- Tests verify behavior through module interfaces, read contracts, persisted rows, and job outcomes.
+- Architecture changes should prefer deeper modules with better locality over shallow pass-through abstractions.
+- Validation starts with the smallest relevant gates and expands only as needed.
+- Shared domain and source rules live in repository files, especially `docs/business/mercado-publico-source-contract.md` and `docs/business/mercado-publico-ingestion-context.md`.
 
 ## Architectural Exception
 
@@ -21,10 +21,11 @@ This change is API-executable and CSV-ready, but not yet CSV-executing.
 
 This is a deliberate exception to Twenty's default `workspace_<id>` isolation model:
 
-- the exception is limited to public procurement reference corpus
+- the exception is limited to public procurement reference data
 - it must not be generalized to tenant-owned CRM data
 - it does not change the current deployment topology
 - a customer-isolated deployment still owns its own `mp` schema
+- the decision is recorded in `docs/decisions/0005-deployment-local-mercado-publico-schema.md`
 
 ## Architecture
 
@@ -34,7 +35,8 @@ This is a deliberate exception to Twenty's default `workspace_<id>` isolation mo
 - Share `mp` across workspaces within the same installation only.
 - Create all schema objects through instance commands.
 - Keep the current Twenty multi-tenant model unchanged.
-- Treat the shared ingestion backbone as a core module with a clear interface and limited external seam surface.
+- Treat the shared ingestion backbone as a core module with a clear interface and limited external surface.
+- Do not expose raw `mp` tables directly to user-facing UI or apps.
 
 ### Data Layers
 
@@ -45,69 +47,124 @@ This is a deliberate exception to Twenty's default `workspace_<id>` isolation mo
 - `mp.raw_csv_row`
 
 Purpose:
-- Preserve full request payloads and CSV lineage
-- Record request fingerprints, checksums, params, status, timestamps, and ingestion counters
+
+- Preserve full request payloads, downloaded file metadata, and row lineage.
+- Record request fingerprints, payload checksums, file checksums, params, status, timestamps, observed columns, schema fingerprints, and ingestion counters.
 
 #### Staging
 
 - `mp.stg_api_v1_licitacion`
 - `mp.stg_api_v1_orden_compra`
 - `mp.stg_api_v2_compra_agil`
-- `mp.stg_csv_contract`
+- `mp.stg_csv_licitacion`
+- `mp.stg_csv_orden_compra`
 - `mp.stg_job_run`
 
 Purpose:
-- Hold list snapshots, detail snapshots, CSV contract state, and job execution traces
+
+- Hold list snapshots, detail snapshots, parsed CSV row projections, and job execution traces before canonical refresh.
 
 #### Canonical
 
 - `mp.public_buyer`
+- `mp.public_supplier`
 - `mp.licitacion`
 - `mp.licitacion_item`
+- `mp.licitacion_oferta`
 - `mp.licitacion_adjudicacion`
 - `mp.orden_compra`
 - `mp.orden_compra_item`
 - `mp.compra_agil`
-- `mp.compra_agil_producto`
+- `mp.compra_agil_producto_solicitado`
 - `mp.compra_agil_cotizacion`
 - `mp.estado_dim`
+- `mp.modalidad_dim`
 
 Purpose:
-- Store normalized entities keyed by natural keys and source attribution
+
+- Store normalized entities keyed by natural keys, preserve raw state fields, and retain source attribution.
 
 #### Reconciliation
 
-- `mp.reconciliation_licitacion_oc`
+- `mp.reconciliation_public_market_entities`
 - `mp.reconciliation_event`
 
 Purpose:
-- Store exact and heuristic links across licitaciones, OCs, and Compra Agil
-- Preserve mismatches and manual review requirements as auditable events
+
+- Store exact, candidate, unmatched, and manual-review-required links across licitaciones, OCs, Compra Agil, and CSV/API records.
+- Preserve mismatches as auditable events.
 
 #### Gold / Read
 
 - `mp.gold_detected_process`
 - `mp.gold_pipeline_health`
 - `mp.gold_api_quota_usage`
+- `mp.gold_csv_file_health`
+- `mp.gold_conciliacion_licitacion_oc`
 
 Purpose:
-- Expose consumer-friendly internal read contracts without coupling consumers to raw or staging tables
+
+- Expose consumer-friendly internal read contracts without coupling consumers to raw or staging tables.
+
+## Source Contracts
+
+`docs/business/mercado-publico-source-contract.md` is the durable source contract. Implementation must follow it for:
+
+- API V1 `ddmmaaaa` date format.
+- API V1 list vs detail behavior.
+- API V1 licitacion and OC state codes.
+- Compra Agil V2 params, pagination, mutually exclusive `id`/`q`, and OC linkage.
+- CSV download/profiling/raw row metadata.
+- CSV partial UI-visible columns.
+- CSV header-as-operational-schema behavior.
+- Observed June 2026 CSV behavior for `latin-1`, `;`, `"` quotechar, comma decimals, null-like raw values, `1900-01-01` sentinel dates, and row grain.
+- Fixture requirements.
 
 ## Natural Keys
 
 - Licitacion: `CodigoExterno`
 - Orden de Compra: `Codigo`
 - Compra Agil: `codigo`
+- CSV OC header candidate: `Codigo`
+- CSV OC item candidate: `IDItem`
+- CSV licitacion header candidate: `CodigoExterno`
+- CSV licitacion item candidate: `CodigoExterno + Codigoitem`
+- CSV licitacion offer candidate: `CodigoExterno + Codigoitem + CodigoProveedor + Nombre de la Oferta`, subject to validation
 - Buyer: `CodigoOrganismo` or RUT with explicit source attribution
+- Supplier: RUT or source-specific supplier code with explicit source attribution
 
 ## Normalization Rules
 
-- Preserve the full raw payload for every external request.
+- Preserve the full raw payload for every external API request.
+- Preserve every downloaded CSV file record before parsing.
+- Preserve every CSV row as `raw_row_text` and parsed `raw_row_json` when parsing succeeds.
+- Preserve raw CSV column names exactly as observed, including misspellings, spaces, punctuation, and duplicate-suffixed names.
 - List endpoints store auditable snapshots.
 - Detail endpoints rehydrate canonical entities.
 - Never overwrite non-null canonical values with `null`.
 - Always preserve raw state code and raw state label alongside canonical state.
 - Preserve source attribution at field-family level when priority rules influence the canonical result.
+- Do not enforce raw CSV uniqueness on `CodigoExterno`.
+- Do not enforce raw CSV uniqueness on `Codigo`, `ID`, `IDItem`, or `Codigoitem`.
+- Do not drop unknown CSV columns.
+- Do not validate licitacion type against a single closed list; map unknown types to `unknown_raw_type`.
+- Treat `NA`, empty fields, and whitespace-only fields as raw values in raw storage; canonical projections may normalize them to null with explicit rules.
+- Treat `1900-01-01` as a sentinel date in canonical projections while retaining the raw value.
+- Convert comma decimals only in validated numeric canonical fields, never in raw storage.
+- Do not infer that every business date inside a monthly CSV belongs to the file month.
+
+## Observed CSV Grain
+
+The June 2026 observed CSV files provide concrete fixture requirements:
+
+- OC CSV observed grain is item-level. `Codigo` can repeat, while `IDItem` is the observed candidate item key.
+- OC `CodigoLicitacion` is nullable and must not be required.
+- OC Compra Agil detection in CSV is defensive: `EsCompraAgil = Si` and/or `CodigoAbreviadoTipoOC = AG`.
+- OC modality normalization should consider `CodigoTipo`, `CodigoAbreviadoTipoOC`, and `DescripcionTipoOC` together.
+- Licitaciones CSV observed grain is `licitacion + item + proveedor/oferta`. `CodigoExterno` and `Codigo` can repeat.
+- Licitaciones `Codigoitem` is the observed candidate item key.
+- Licitaciones supplier candidates include `CodigoProveedor` and `RutProveedor`.
+- Licitaciones CSV is historical and offer evidence; it is not the primary source for active opportunities.
 
 ## Source Priority Matrix
 
@@ -116,71 +173,85 @@ Purpose:
 - Recent licitacion lifecycle state:
   - API wins
 - Historical completeness and offer evidence:
-  - CSV wins when CSV execution lands
+  - CSV wins after CSV rows are loaded and profiled
 - Recent OC operational state:
   - API by code wins
+- Long-range OC completeness:
+  - CSV wins after CSV rows are loaded and profiled
 - Compra Agil to OC linkage:
   - `id_orden_compra` or `id_oc` wins over `codigo_orden_compra`
 - Raw provenance:
-  - both sources are preserved independently
+  - all sources are preserved independently
 - Heuristic item, amount, or supplier matching:
   - candidate only, never auto-promoted to exact truth
 
 ## Reconciliation Policy
 
 - Exact key joins take precedence over all heuristics.
+- API and CSV licitacion same-business-key match uses `CodigoExterno`.
+- API and CSV OC same-business-key match uses `Codigo`.
 - Licitacion to OC exact match uses `orden_compra.CodigoLicitacion = licitacion.CodigoExterno`.
 - Compra Agil must not join to licitacion through `CodigoLicitacion`.
 - Compra Agil to OC exact linkage uses `id_orden_compra` or `id_oc` when present.
 - API wins for recent operational lifecycle state.
-- CSV wins for historical completeness and offer detail when CSV execution lands.
+- CSV wins for historical completeness and offer detail after CSV rows are loaded, profiled, and mapped.
 - Heuristic matches may only emit:
-  - `candidate_item_amount_supplier`
+  - `candidate_supplier_amount`
+  - `candidate_item_amount`
   - `manual_review_required`
   - `unmatched`
 - Reconciliation mismatches must generate auditable `reconciliation_event` rows.
-- `reconciliation_event` must be idempotent by logical mismatch fingerprint so reruns do not create event noise.
+- `reconciliation_event` must be idempotent by logical mismatch fingerprint so reruns do not create repeated event noise.
 
 ## Job Catalog
 
 Required in this phase:
 
+- `api-v1-licitaciones-by-date`
 - `api-v1-licitaciones-by-state`
 - `api-v1-licitacion-detail-by-codigo`
+- `api-v1-oc-by-date`
 - `api-v1-oc-by-state`
 - `api-v1-oc-detail-by-codigo`
 - `api-v2-compra-agil-incremental`
-- `api-v2-compra-agil-detail-by-codigo`
-- `reconciliation-refresh`
-
-Deferred in this phase:
-
-- `api-v1-licitaciones-by-date`
-- `api-v1-oc-by-date`
 - `api-v2-compra-agil-by-publication-window`
+- `api-v2-compra-agil-detail-by-codigo`
+- `csv-licitaciones-download`
+- `csv-oc-download`
+- `csv-file-profile`
+- `csv-raw-load`
+- `csv-canonical-refresh`
+- `reconciliation-refresh`
 
 ## Operational Defaults
 
-- Compra Agil incremental polling uses `ttl_cambio_ms`.
+- API V1 dates are formatted as `ddmmaaaa`.
+- Compra Agil incremental polling supports `ttl_cambio_ms`.
+- Compra Agil incremental polling also supports `cambio_desde` and `cambio_hasta`.
+- Compra Agil publication sweeps support `publicado_desde` and `publicado_hasta`.
+- Compra Agil pagination uses `tamano_pagina <= 50` and `numero_pagina >= 1`.
 - Active and published licitaciones sweep more frequently.
-- Broader V1 state sweeps run less frequently.
+- Broader V1 state and date sweeps run less frequently.
 - Detail rehydrate triggers on:
   - first seen
   - state drift
   - unresolved reference
   - mismatch against canonical state
+  - Compra Agil OC linkage appearing after a previous null linkage
+- CSV files are profiled before parsing into staging.
+- CSV files do not fail only because unknown columns appear.
 
 ## Explicitly Deferred In This Change
 
-- CSV file download, decompression, parsing, and batch normalization execution
-- Historical completeness claims derived from CSV execution
-- API V1 by-date sweep jobs
 - Opportunity, Company, People, or UI projections
 - Cross-customer shared control plane behavior
+- Currency conversion without an official exchange-rate source
+- Automatic promotion of heuristic reconciliation candidates to exact truth
+- Product-facing historical completeness claims beyond loaded and profiled source files
 
 ## Traceability Requirements
 
-Every job run must persist:
+Every API job run must persist:
 
 - `job_id`
 - `source`
@@ -193,21 +264,61 @@ Every job run must persist:
 - `records_*`
 - `error_summary`
 
+Every CSV file run must persist:
+
+- `source_system`
+- `source_dataset`
+- `source_url`
+- `source_file_name`
+- `source_period`
+- `source_modality`
+- `downloaded_at`
+- `file_checksum`
+- `file_size_bytes`
+- `compression_type`
+- `detected_encoding`
+- `detected_delimiter`
+- `quotechar`
+- `header_raw`
+- `observed_columns`
+- `column_count`
+- `schema_fingerprint`
+- `row_count`
+- `ingestion_job_id`
+
+Every CSV row must persist:
+
+- `ingestion_job_id`
+- `source_dataset`
+- `source_file_name`
+- `source_period`
+- `row_number`
+- `raw_row_text`
+- `raw_row_json`
+- `row_checksum`
+- `parse_status`
+- `parse_error`
+- `created_at`
+
 ## Idempotency
 
-- Deduplicate raw payloads by request fingerprint plus payload checksum.
+- Deduplicate raw API payloads by request fingerprint plus payload checksum.
+- Deduplicate raw CSV files by source identity plus file checksum.
+- Deduplicate raw CSV rows by file checksum plus row number plus row checksum.
 - Deduplicate canonical entities by natural key.
 - Deduplicate reconciliation events by logical mismatch fingerprint.
-- Support safe reruns without duplicating canonical rows.
+- Support safe reruns without duplicating canonical rows, raw file entries, or reconciliation noise.
 
 ## Resilience
 
-- `401` / `403`: fail hard
-- `404`: soft miss, but auditable
-- `429` / `500` / `503` / timeout: `retryable_failed`
-- Apply bounded backoff
-- No infinite retry loops
-- Enforce daily operational quota with reset in `America/Santiago`
+- `400`: fail validation and record parameter error.
+- `401` / `403`: fail hard.
+- `404`: soft miss, but auditable.
+- `429` / `500` / `503` / timeout: `retryable_failed`.
+- Apply bounded backoff.
+- No infinite retry loops.
+- Enforce daily operational quota with reset in `America/Santiago`.
+- Record `last429At` and retry window when available.
 
 ## Secrets
 
@@ -215,9 +326,36 @@ Every job run must persist:
 - `COMPRA_AGIL_API_TICKET`
 
 Rules:
-- Never log secrets
-- Never store secrets in fixtures
-- Never serialize secrets into raw payload error structures
+
+- Never log secrets.
+- Never store secrets in fixtures.
+- Never serialize secrets into raw payload error structures.
+- Use environment or managed configuration only.
+
+## Fixture Contract
+
+Required fixtures:
+
+- API V1 licitacion list response.
+- API V1 licitacion detail response.
+- API V1 OC list response.
+- API V1 OC detail response.
+- API V2 Compra Agil list response.
+- API V2 Compra Agil detail response with OC linkage present.
+- API V2 Compra Agil detail response with OC linkage absent.
+- CSV licitaciones sample or anonymized real header plus at least one row.
+- CSV ordenes de compra sample or anonymized real header plus at least one row.
+- CSV latin-1 sample with accented text.
+- CSV semicolon delimiter sample.
+- CSV quotechar sample using `"`.
+- CSV comma-decimal numeric sample.
+- CSV null-like value sample covering `NA`, blank, and whitespace.
+- CSV `1900-01-01` sentinel date sample.
+- CSV OC sample where `Codigo` repeats and `IDItem` is unique.
+- CSV OC sample where `CodigoLicitacion` is blank.
+- CSV OC Compra Agil sample using `EsCompraAgil = Si` and/or `CodigoAbreviadoTipoOC = AG`.
+- CSV licitaciones sample where `CodigoExterno` repeats across `Codigoitem` and supplier/offer rows.
+- CSV licitaciones sample preserving exact observed unusual column names such as `Nombre producto genrico`, `DescripcionCriteriosRequisitosSociales.1`, and `Monto Estimado Adjudicado`.
 
 ## Internal Read Contracts
 
@@ -225,8 +363,9 @@ Rules:
 - `getDetectedProcessDetail(processType, processCode)`
 - `getPipelineHealth()`
 - `getApiQuotaUsage()`
+- `getCsvFileHealth()`
 
-These contracts should remain the primary test surface for downstream behavior-oriented tests where possible.
+These contracts should remain the primary behavior-oriented test surface where possible.
 
 ### Internal Read Contract Shapes
 
@@ -286,31 +425,45 @@ These contracts should remain the primary test surface for downstream behavior-o
   - `resetAt`
   - `last429At`
 
+`getCsvFileHealth()`
+
+- Returns at minimum:
+  - `sourceDataset`
+  - `sourcePeriod`
+  - `sourceFileName`
+  - `fileChecksum`
+  - `detectedEncoding`
+  - `detectedDelimiter`
+  - `schemaFingerprint`
+  - `rowCount`
+  - `parseStatus`
+  - `lastLoadedAt`
+
 ## Delivery Workflow
 
 ### Phase 0: Investigation
 
 - Prime the codebase and review repo documentation, standards, ADRs, and established backend/data patterns.
-- Review `docs/business/mercado-publico-ingestion-context.md` alongside the existing business and architecture docs.
-- Review module, interface, seam, and adapter patterns already used in `twenty-server`.
+- Review `docs/business/mercado-publico-source-contract.md` and `docs/business/mercado-publico-ingestion-context.md` alongside existing business and architecture docs.
+- Review module, interface, adapter, migration, queue, config, and secure HTTP patterns already used in `twenty-server`.
 - Produce:
   - pattern inventory
   - blast-radius review
-  - regression seam map
+  - regression check map
   - minimal implementation plan
-- Make no implementation changes in this phase.
+- Make no application implementation changes in this phase.
 
 ### Phase 1: TDD and Verification Design
 
 - Convert critical behaviors into vertical-slice tests.
-- Prefer integration-style tests through public contracts.
-- Confirm which seams require DB-backed tests, local substitutes, or mocks.
+- Prefer integration-style tests through public contracts and persisted outcomes.
+- Confirm which behaviors require DB-backed tests, source fixtures, local substitutes, or mocks.
 - Define the minimum red-green-refactor path before implementation begins.
 
 ### Phase 2: Layered Implementation
 
 - Database layer first: instance commands, schema objects, constraints, indexes, views.
-- Backend layer second: ingestion modules, normalization rules, reconciliation rules, read contracts, and job policies.
+- Backend layer second: ingestion modules, source clients, CSV file profiling, normalization rules, reconciliation rules, read contracts, and job policies.
 - Frontend layer is explicitly out of scope for this change and should remain excluded.
 
 ### Phase 3: Validation and CI
@@ -321,14 +474,14 @@ These contracts should remain the primary test surface for downstream behavior-o
 
 ### Phase 4: Closeout
 
-- Update any durable docs affected by the change.
+- Update any durable docs affected by the implementation.
 - Review whether `CHANGELOG.md` needs an `Unreleased` entry.
 - Record what was validated, what remains deferred, and which consumer-facing phases are intentionally postponed.
 
 ## Consumer Contract For Later Change
 
-- `gold_detected_process` becomes the source for future `Licitaciones` UI
-- Selection into `Opportunity`
-- Sync into `Companies` and `People`
+- `gold_detected_process` becomes the source for future `Licitaciones` UI.
+- Selection into `Opportunity`.
+- Sync into `Companies` and `People`.
 
 Those consumer behaviors are explicitly out of scope for this change.

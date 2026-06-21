@@ -17,7 +17,7 @@ Mercado Publico ingestion depends on understanding that API and CSV are compleme
 - Compra Agil is a separate process family from classical licitacion and must not be modeled as a subtype of licitacion.
 - Reconciliation must be explicit, auditable, and reversible.
 
-For the current backbone change, the implementation posture is API-executable and CSV-ready only. Historical CSV execution is intentionally deferred.
+For the current backbone change, the implementation posture is API-executable and CSV-executable. The backbone includes API V1 date and state jobs, API V2 Compra Agil jobs, CSV download/profiling/raw loading, canonical normalization, reconciliation, and gold/read contracts.
 
 ## Central Principle
 
@@ -85,7 +85,9 @@ Expected use:
 - offer evidence
 - reconciliation against API snapshots
 
-This source is important for long-range truth, but the current backbone change does not yet execute CSV ingestion.
+This source is important for long-range truth. The current backbone change executes the first CSV ingestion path: download, checksum, decompression when needed, encoding detection, delimiter detection, header capture, raw row preservation, schema fingerprinting, and canonical mapping for validated fields.
+
+Observed June 2026 CSV files add concrete parsing and grain evidence, including latin-1 encoding, semicolon delimiter, quotechar, comma decimals, sentinel dates, OC item grain, and licitacion item/supplier/offer grain. These details are maintained in `docs/business/mercado-publico-source-contract.md`.
 
 ## Relationship Rules
 
@@ -174,7 +176,7 @@ Do not destructively merge away provenance.
 5. Never infer licitacion linkage from Compra Agil using `CodigoLicitacion`.
 6. Use `id_orden_compra` or `id_oc` for exact Compra Agil to OC linkage.
 7. API wins for recent operational lifecycle state.
-8. CSV wins for historical completeness and offer evidence once CSV execution exists.
+8. CSV wins for historical completeness and offer evidence after CSV rows are loaded, profiled, and mapped.
 9. Heuristics by amount, supplier, or item may produce candidates, never silent truth.
 10. Source conflicts that cannot be resolved by priority must become explicit reconciliation issues.
 
@@ -196,19 +198,19 @@ Included now:
 
 - deployment-local shared `mp` schema
 - API-executable ingestion backbone
-- CSV-ready raw and staging contracts
+- CSV-executable raw ingestion and file profiling
 - canonical normalization
 - reconciliation storage and read contracts
 - operational traceability, idempotency, and quota handling
+- API V1 by-date and by-state jobs
+- API V2 Compra Agil incremental and detail jobs
+- API and CSV fixtures for behavior verification
 
 Deferred now:
 
-- CSV download
-- CSV decompression
-- CSV parsing
-- CSV batch normalization
-- historical completeness claims derived from executed CSV ingestion
 - CRM-facing projections such as Opportunities, Companies, People, or a Licitaciones UI
+- advanced CSV historical completeness claims beyond loaded and profiled files
+- heuristic auto-promotion to product truth without review
 
 ## Deployment Interpretation
 
@@ -222,7 +224,6 @@ That does not conflict with a shared `mp` schema if the rule is interpreted corr
 
 ## Operational Questions Still Open
 
-- Should broad `by-date` V1 sweeps be introduced after the state-based baseline stabilizes?
 - What is the exact deduplication policy for future CSV execution when the same period is re-downloaded?
 - Which freshness thresholds should later drive alerts or health status in Gold?
 
@@ -231,6 +232,7 @@ That does not conflict with a shared `mp` schema if the rule is interpreted corr
 - `docs/business/business-case.md`
 - `docs/business/licitacion-lifecycle.md`
 - `docs/business/quote-and-bid-workflow.md`
+- `docs/business/mercado-publico-source-contract.md`
 - `docs/architecture/data-model.md`
 - `docs/operations/data-operations.md`
 - `openspec/changes/mercado-publico-ingestion-backbone/`

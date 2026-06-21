@@ -16,6 +16,7 @@ Twenty uses PostgreSQL 16 with a multi-tenant schema-per-workspace architecture.
 | Core | `core` | Shared infrastructure: workspaces, users, billing, signing keys | Core modules (76) |
 | Metadata | metadata schema | Workspace-scoped definitions: objects, fields, views, roles, permissions | Metadata modules (72) |
 | Workspace data | `workspace_<id>` | Tenant CRM data: companies, contacts, deals, custom objects | TwentyORM runtime schema generation |
+| Mercado Publico | `mp` | Deployment-local public procurement corpus: raw source data, canonical entities, reconciliation, gold/read objects | Instance commands and Mercado Publico ingestion modules |
 | Analytics | ClickHouse | Event tracking and reporting (optional) | ClickHouse module |
 
 ## Database Management Commands
@@ -64,6 +65,7 @@ export class AddFieldFastInstanceCommand implements FastInstanceCommand {
 4. **Slow commands receive a full DataSource.** Use `dataSource.query()` or repository access for data migrations.
 5. **Generate after entity changes.** Any change to entity classes, field definitions, or relationships requires a new instance command.
 6. **Version and timestamp must be unique.** The timestamp (e.g., `1781600000000`) ensures deterministic ordering.
+7. **Keep `mp` deployment-local.** The `mp` schema is an exception for public Mercado Publico reference data. Do not store tenant-owned CRM records in it.
 
 ### Execution Flow
 
@@ -170,6 +172,7 @@ Use Helm chart with persistent volume snapshots. See `packages/twenty-docker/hel
 ## Current Assumptions
 
 - PostgreSQL 16 with per-workspace schema isolation remains the primary data store.
+- The `mp` schema is allowed only as a deployment-local public procurement corpus and does not change workspace data isolation.
 - Instance commands are immutable once committed to the repository.
 - Seed data is minimal bootstrap for development. Production data is populated through the application.
 - Soft deletes with 14-day retention are sufficient for recovery needs.

@@ -14,7 +14,7 @@ Twenty is a mature, production-grade open-source CRM with a 22-package Nx monore
 | Area | File Or Folder | What It Covers |
 | --- | --- | --- |
 | Product vision | `vision-product.md` | Why Twenty exists, who it serves, product register, and MVP scope. |
-| Business | `business/` | Procurement domain: business case, lifecycle, workflows, and market positioning for Mercado Publico / ChileCompra data ingestion. |
+| Business | `business/` | Procurement domain: business case, lifecycle, source contracts, workflows, and market positioning for Mercado Publico / ChileCompra data ingestion. |
 | Architecture | `architecture/` | Current state, target state, reference architecture, data model, security, and repository strategy. |
 | Design | `design/` | Design system, visual tokens, interaction patterns, and wireframe grammar. |
 | Governance | `governance/` | Ownership, decision boundaries, AI-assisted delivery rules, and domain operating model. |

@@ -18,8 +18,9 @@ Twenty isolates tenant data using PostgreSQL schemas:
 | `core` | Shared infrastructure | Workspace, User, UserWorkspace, BillingSubscription, AppToken, SigningKey |
 | `metadata` | Workspace-scoped definitions | ObjectMetadata, FieldMetadata, View, Role, PermissionFlag, PageLayout |
 | `workspace_<id>` | Tenant CRM data | Companies, Contacts, Deals, Tasks, Notes, custom objects. Shape is dynamic. |
+| `mp` | Deployment-local public procurement corpus | Mercado Publico raw, canonical, reconciliation, and gold/read data. Static schema exception for public reference data only. |
 
-**Key design**: Each request resolves the workspace from the auth context, then TwentyORM creates or fetches a per-workspace TypeORM DataSource connected to the `workspace_<id>` schema. Entity schemas are compiled at runtime from ObjectMetadata and FieldMetadata definitions.
+**Key design**: Each request resolves the workspace from the auth context, then TwentyORM creates or fetches a per-workspace TypeORM DataSource connected to the `workspace_<id>` schema. Entity schemas are compiled at runtime from ObjectMetadata and FieldMetadata definitions. The `mp` schema is a documented exception for deployment-local public Mercado Publico reference data; it must not be generalized to tenant-owned CRM records.
 
 ## Entity Inheritance Hierarchy
 
@@ -371,7 +372,8 @@ Twenty supports 27 field types via `FieldMetadataType` enum in `twenty-shared`:
 ## Current Assumptions
 
 - PostgreSQL per-workspace schema isolation remains the multi-tenant strategy.
-- Metadata-driven schema generation at runtime is the long-term design; static schemas are not planned.
+- Metadata-driven schema generation at runtime is the long-term design for CRM workspace data.
+- Static schemas are not planned for tenant-owned CRM data; `mp` is the only documented static PostgreSQL schema exception and is limited to deployment-local public procurement data.
 - TypeORM with the custom TwentyORM layer remains the ORM stack.
 - Instance commands are immutable once committed.
 - Field types are extensible but the current 27 types cover the known product scope.
