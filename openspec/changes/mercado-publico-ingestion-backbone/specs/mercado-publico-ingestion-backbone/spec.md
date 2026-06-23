@@ -356,30 +356,31 @@ The system SHALL use typed Twenty config variables for Mercado Publico runtime c
 - **AND** feature code consumes them through `TwentyConfigService`
 - **AND** feature code does not read ad hoc `process.env` variables directly
 
-### Requirement: Operational Cadence And Health
+### Requirement: Manual Execution And Run Observability
 
-The system SHALL use explicit job cadence defaults and cadence-relative health thresholds.
+The system SHALL support manual phase-1 execution and expose run observability without requiring scheduled automation.
 
-#### Scenario: High-frequency jobs have explicit cadence
+#### Scenario: Supported processes are manually triggerable in phase 1
 
-- **WHEN** the backbone schedules active-process polling
-- **THEN** high-frequency jobs run every `1 hour`
+- **WHEN** an operator manually triggers a supported Mercado Publico process
+- **THEN** the system executes it through the existing backend job infrastructure
+- **AND** it records a traceable job run outcome
 
-#### Scenario: Lower-frequency jobs have explicit cadence
+#### Scenario: Phase-1 execution surface remains internal
 
-- **WHEN** the backbone schedules broader sweeps and canonical refresh
-- **THEN** lower-frequency jobs run every `24 hours`
+- **WHEN** manual phase-1 execution is implemented
+- **THEN** the change does not add a new public GraphQL, REST, or MCP execution surface
+- **AND** the execution model remains internal to `twenty-server`
 
-#### Scenario: Health status is cadence-relative
+#### Scenario: Pipeline health reflects real run history without fixed scheduler cadence
 
 - **WHEN** the system reports pipeline health
-- **THEN** `healthy` means last success at or under `1.5x` expected cadence
-- **AND** `degraded` means over `1.5x` and at or under `3x` expected cadence
-- **AND** `stale` means over `3x` expected cadence
+- **THEN** it reports latest run status, last success timestamp, last failure timestamp, and lag since last success
+- **AND** it does not require fixed scheduled cadence in phase 1
 
 ### Requirement: Minimum Job Surface
 
-The system SHALL include API V1 date/state/detail jobs, API V2 Compra Agil jobs, CSV jobs, and reconciliation refresh in this phase.
+The system SHALL include API V1 date/state/detail jobs, API V2 Compra Agil jobs, CSV jobs, and reconciliation refresh in this phase as manually invocable processes.
 
 #### Scenario: Minimum operational job surface is present
 

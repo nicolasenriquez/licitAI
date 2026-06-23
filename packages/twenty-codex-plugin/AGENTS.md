@@ -1,5 +1,24 @@
 # Twenty Codex Plugin — Agent Guidance
 
+## Routing Contract
+
+This file is the local contract for the `packages/twenty-codex-plugin` surface during the workspace routing rollout.
+
+Stay in `packages/twenty-codex-plugin` when the task is about editing or validating the published Codex plugin package itself.
+
+Before substantive work in this surface, read:
+
+1. `../../AGENTS.md`
+2. `../../CONTEXT-MAP.md`
+3. `../AGENTS.md`
+4. `../CONTEXT.md`
+5. `AGENTS.md`
+6. `CONTEXT.md`
+7. `README.md`
+8. The specific skill or reference files relevant to the task
+
+Bounce back to `../../CONTEXT-MAP.md` when the prompt is really about repo-local `.codex` assets, root `docs/`, or active OpenSpec change work. Do not keep working from `packages/twenty-codex-plugin` when the task belongs elsewhere.
+
 This file is the canonical entry point for any agent (Codex, ChatGPT Developer Mode, or compatible) running with the Twenty plugin loaded. It encodes the boundaries, conventions, and operating rules that apply across all five bundled skills.
 
 Per-skill SKILL.md files own task-specific guidance. This file owns the cross-skill expectations.

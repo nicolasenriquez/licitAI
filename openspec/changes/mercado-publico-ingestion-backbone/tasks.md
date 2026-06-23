@@ -2,7 +2,7 @@
 
 ## Phase 0: Investigation Only
 
-- [ ] 0.1: Prime the codebase and read the relevant repository context for `twenty-server`, database commands, upgrade commands, message queue patterns, secure HTTP patterns, config/secret handling, CSV/file handling patterns, `docs/business/mercado-publico-source-contract.md`, `docs/business/mercado-publico-ingestion-context.md`, and docs/standards relevant to backend and data work.
+- [x] 0.1: Prime the codebase and read the relevant repository context for `twenty-server`, database commands, upgrade commands, message queue patterns, secure HTTP patterns, config/secret handling, CSV/file handling patterns, `docs/business/mercado-publico-source-contract.md`, `docs/business/mercado-publico-ingestion-context.md`, and docs/standards relevant to backend and data work.
   Footnote: This phase is intentionally non-implementing. Understand structure, entry points, current state, domain rules, and recent patterns before proposing code shape.
 
 - [ ] 0.2: Inventory existing module, interface, adapter, migration, queue, config, secure HTTP, file-storage, and fixture patterns already used in `twenty-server`.
@@ -101,8 +101,8 @@
 - [ ] 3.2: Register typed runtime configuration variables for tickets, base URLs, HTTP settings, quota timezone, and CSV storage/source settings.
   Footnote: Consume all runtime config through `TwentyConfigService` and do not add ad hoc `process.env` reads.
 
-- [ ] 3.3: Wire Mercado Publico job execution into the existing backend queue and worker patterns.
-  Footnote: Use repository-standard job infrastructure and do not introduce a separate Mercado Publico scheduler or control plane.
+- [ ] 3.3: Wire manual Mercado Publico job triggering and orchestration into the existing backend queue and worker patterns.
+  Footnote: Use repository-standard job infrastructure and do not introduce a separate Mercado Publico scheduler, control plane, or new public execution surface in phase 1.
 
 - [ ] 3.4: Implement the API V1 licitaciones client.
   Footnote: Keep request construction, date formatting, and raw response capture localized.
@@ -202,6 +202,9 @@
 
 - [ ] 3.36: Confirm that frontend work remains explicitly out of scope for this change.
   Footnote: If any consumer-facing UI need emerges, document it as deferred follow-up work instead of leaking it into this backbone implementation.
+
+- [ ] 3.37: Document the manual phase-1 operator runbook and optional local helper commands for one process per command.
+  Footnote: Keep this as an operational helper only. Do not redefine the repository-wide standard command surface.
 
 ## Phase 4: Validation and CI
 

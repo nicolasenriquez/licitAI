@@ -24,7 +24,7 @@ The intent is to keep blast radius explicit, implementation grounded in existing
 
 - Deployment-local shared Mercado Publico backbone inside `packages/twenty-server`
 - Deployment-local PostgreSQL persistence under static schema `mp`, shared across workspaces within the same installation
-- API-executable and CSV-executable ingestion contracts
+- Manually triggerable ingestion processes through existing internal backend infrastructure
 - Source coverage:
   - API V1 Licitaciones
   - API V1 Ordenes de Compra
@@ -50,6 +50,8 @@ The intent is to keep blast radius explicit, implementation grounded in existing
 - User-facing UI
 - Dashboard or Centro de Comando product surfaces
 - `Companies`, `People`, `Opportunities`, or future `Licitaciones` projection logic
+- Automatic scheduled execution of Mercado Publico jobs in phase 1
+- New public GraphQL, REST, or MCP trigger surfaces for pipeline execution
 - Automatic creation of CRM records from Mercado Publico data
 - Heuristic auto-promotion of uncertain matches to exact truth
 - Currency conversion without an official source
@@ -89,7 +91,7 @@ The intent is to keep blast radius explicit, implementation grounded in existing
 
 ## Expected Outcome
 
-At the end of this change, the repository has a complete implementation-ready OpenSpec definition for the Mercado Publico ingestion backbone, aligned with the current repository architecture, the documented `mp` schema exception, the official source behavior captured in durable docs, and a verification plan that covers API, CSV, reconciliation, idempotency, quota, fixtures, and read contracts.
+At the end of this change, the repository has a complete implementation-ready OpenSpec definition for the Mercado Publico ingestion backbone, aligned with the current repository architecture, the documented `mp` schema exception, the official source behavior captured in durable docs, and a verification plan that covers API, CSV, reconciliation, idempotency, quota, fixtures, read contracts, and manual phase-1 operation without requiring scheduled automation.
 
 ## Recommended Issue Packaging
 

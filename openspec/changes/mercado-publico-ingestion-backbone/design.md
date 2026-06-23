@@ -4,7 +4,7 @@
 
 Create a deployment-local shared Mercado Publico ingestion backbone inside `twenty-server` backed by a static PostgreSQL schema `mp`. The backbone serves as a public procurement corpus shared across workspaces within a single installation without polluting per-workspace schemas or prematurely encoding CRM workflow decisions.
 
-This change is API-executable and CSV-executable.
+This change is manually executable in phase 1, process by process, through existing internal backend infrastructure.
 
 ## Delivery Principles
 
@@ -282,28 +282,29 @@ Required in this phase:
 ## Job Execution Model
 
 - Use the existing backend queue and worker patterns already standard in the repository.
-- Do not introduce a separate Mercado Publico scheduler, control plane, or parallel job framework.
-- Mercado Publico jobs should remain enqueueable, observable, and retryable through the existing backend job infrastructure conventions.
+- Do not introduce a separate Mercado Publico scheduler, control plane, or parallel job framework in phase 1.
+- Mercado Publico jobs should remain manually triggerable, enqueueable, observable, and retryable through the existing backend job infrastructure conventions.
+- Phase 1 does not add a new public GraphQL, REST, or MCP execution surface for these jobs.
 - Phase 1 keeps the execution model internal to `twenty-server`.
 
-## Operational Defaults
+## Deferred Automation Defaults
 
 - API V1 dates are formatted as `ddmmaaaa`.
 - Compra Agil incremental polling supports `ttl_cambio_ms`.
 - Compra Agil incremental polling also supports `cambio_desde` and `cambio_hasta`.
 - Compra Agil publication sweeps support `publicado_desde` and `publicado_hasta`.
 - Compra Agil pagination uses `tamano_pagina <= 50` and `numero_pagina >= 1`.
-- High-frequency jobs run every `1 hour`:
+- If automation is introduced in a later phase, high-frequency jobs should run every `1 hour`:
   - `api-v1-licitaciones-by-state` for active operational states
   - `api-v2-compra-agil-incremental`
-- Lower-frequency jobs run every `24 hours`:
+- If automation is introduced in a later phase, lower-frequency jobs should run every `24 hours`:
   - `api-v1-licitaciones-by-date`
   - `api-v1-oc-by-date`
   - `api-v1-oc-by-state`
   - `api-v2-compra-agil-by-publication-window`
   - `reconciliation-refresh`
   - `csv-canonical-refresh`
-- CSV jobs may run on-demand or daily when source URLs and storage roots are configured.
+- In phase 1, CSV jobs run on demand when source URLs and storage roots are configured.
 - Detail rehydrate triggers on:
   - first seen
   - state drift
@@ -577,6 +578,7 @@ In phase 1 they are implemented as internal backend service contracts inside `tw
 - First tracer-bullet slice next: one narrow end-to-end source path through ingestion, canonical refresh, and internal read output.
 - Source expansion and hardening after that: additional source jobs, normalization rules, reconciliation rules, internal service-layer read contracts, and job policies.
 - Frontend layer is explicitly out of scope for this change and should remain excluded.
+- Provide an optional local operator helper with one command per manual process, without changing the repository-wide standard command surface.
 
 ### Phase 3: Validation and CI
 

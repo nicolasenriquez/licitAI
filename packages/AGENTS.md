@@ -1,0 +1,44 @@
+# Packages Surface Contract
+
+## Purpose
+
+Define when work should stay inside `packages/` during the workspace routing rollout.
+
+## Stay In `packages/` When
+
+- The task is package-scoped code or package-scoped documentation work.
+- The task names one or more folders under `packages/`.
+- The task is to decide which package owns a capability, integration, UI surface, or tooling concern.
+- The task needs package grouping or package-wave selection before a leaf package contract exists.
+
+## Required Reads
+
+Before substantive work in this surface, read:
+
+1. `../AGENTS.md`
+2. `../CONTEXT-MAP.md`
+3. `AGENTS.md`
+4. `CONTEXT.md`
+5. The specific leaf package contract if that package is already mapped
+
+## Routing Rule Inside `packages/`
+
+- If the target leaf package already has a rollout contract, enter that leaf package surface.
+- If the target leaf package is not mapped yet, stay in the `packages/` surface and do not invent a leaf-local routing contract.
+- Use `packages/` as the package-index layer between the root map and future leaf-package surfaces.
+- The currently mapped docs-heavy leaf surfaces are `packages/twenty-docs` and `packages/twenty-claude-skills`.
+- The currently mapped AI-tooling leaf surface is `packages/twenty-codex-plugin`.
+
+## Bounce Back To Root When
+
+- The prompt is really about active OpenSpec change work.
+- The prompt is about durable top-level docs, ADRs, governance, or repo-wide operations rather than package-scoped work.
+- The prompt is about an unmapped top-level surface outside `packages/`.
+
+When that happens, return to `../CONTEXT-MAP.md` first and reroute from there. Do not keep working from `packages/`.
+
+## Working Contract
+
+- Declare the routing/context files consulted before responding or editing.
+- State that the selected surface is `packages/`.
+- Preserve the distinction between the package-index surface and future leaf-package surfaces.
