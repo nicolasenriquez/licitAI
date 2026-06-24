@@ -14,17 +14,25 @@ Define the repo-local routing contract for agent work in this checkout during th
   - `docs/`
 - Rollout-architecture surfaces:
   - `packages/`
+- Docs-heavy rollout surfaces:
+  - `packages/twenty-docs`
+  - `packages/twenty-claude-skills`
 - AI-tooling rollout surfaces:
-  - `.codex/`
-  - `packages/twenty-codex-plugin`
-- Unmapped surfaces in the current rollout:
-  - leaf package folders unless explicitly mapped
-  - `.github/`
-  - `.cursor/`
-  - `.opencode/`
-  - `.vscode/`
-  - `.yarn/`
-  - other top-level tooling directories not yet assigned to a wave
+  - `.codex/` (wave 3)
+  - `packages/twenty-codex-plugin` (wave 3)
+  - `.opencode/` (wave 5)
+- Core monorepo rollout surfaces:
+  - `packages/twenty-server`
+  - `packages/twenty-front`
+  - `packages/twenty-shared`
+  - `packages/twenty-ui`
+- Remaining rollout surfaces:
+  - all remaining `packages/` leaf packages (SDK, CLI, app runtime, infra, testing, websites, apps collection)
+- Intentionally root-routed surfaces:
+  - `.github/` — CI workflows, PR templates; rarely agent-targeted
+  - `.cursor/` — editor rules; root contract handles it
+  - `.vscode/` — editor settings; never agent-targeted
+  - `.yarn/` — package manager internals; never agent-targeted
 
 ## Canonical Entry Files
 
@@ -38,6 +46,26 @@ Define the repo-local routing contract for agent work in this checkout during th
 | `packages/twenty-claude-skills` | `packages/twenty-claude-skills/AGENTS.md`, `packages/twenty-claude-skills/CONTEXT.md` | Claude-skills package surface |
 | `.codex` | `.codex/AGENTS.md`, `.codex/CONTEXT.md` | Repo-local Codex commands and skills surface |
 | `packages/twenty-codex-plugin` | `packages/twenty-codex-plugin/AGENTS.md`, `packages/twenty-codex-plugin/CONTEXT.md` | Published Twenty Codex plugin package surface |
+| `packages/twenty-server` | `packages/twenty-server/AGENTS.md`, `packages/twenty-server/CONTEXT.md` | NestJS backend API server, database, queue, and GraphQL surface |
+| `packages/twenty-front` | `packages/twenty-front/AGENTS.md`, `packages/twenty-front/CONTEXT.md` | React frontend application surface |
+| `packages/twenty-shared` | `packages/twenty-shared/AGENTS.md`, `packages/twenty-shared/CONTEXT.md` | Shared types, utilities, and cross-package contracts surface |
+| `packages/twenty-ui` | `packages/twenty-ui/AGENTS.md`, `packages/twenty-ui/CONTEXT.md` | Shared UI component library and design system surface |
+| `.opencode` | `.opencode/AGENTS.md`, `.opencode/CONTEXT.md` | Repo-local OpenCode configuration, skills, and commands surface |
+| `packages/twenty-apps` | `packages/twenty-apps/AGENTS.md`, `packages/twenty-apps/CONTEXT.md` | App collection index surface for all app subdirectories |
+| `packages/twenty-docker` | `packages/twenty-docker/AGENTS.md`, `packages/twenty-docker/CONTEXT.md` | Docker container infrastructure surface |
+| `packages/twenty-e2e-testing` | `packages/twenty-e2e-testing/AGENTS.md`, `packages/twenty-e2e-testing/CONTEXT.md` | Playwright E2E testing surface |
+| `packages/twenty-utils` | `packages/twenty-utils/AGENTS.md`, `packages/twenty-utils/CONTEXT.md` | Repository utility scripts and dev environment tooling surface |
+| `packages/twenty-sdk` | `packages/twenty-sdk/AGENTS.md`, `packages/twenty-sdk/CONTEXT.md` | Twenty SDK package surface |
+| `packages/twenty-cli` | `packages/twenty-cli/AGENTS.md`, `packages/twenty-cli/CONTEXT.md` | Twenty CLI package surface |
+| `packages/twenty-client-sdk` | `packages/twenty-client-sdk/AGENTS.md`, `packages/twenty-client-sdk/CONTEXT.md` | Twenty Client SDK package surface |
+| `packages/create-twenty-app` | `packages/create-twenty-app/AGENTS.md`, `packages/create-twenty-app/CONTEXT.md` | App scaffolder package surface |
+| `packages/twenty-emails` | `packages/twenty-emails/AGENTS.md`, `packages/twenty-emails/CONTEXT.md` | React Email templates package surface |
+| `packages/twenty-companion` | `packages/twenty-companion/AGENTS.md`, `packages/twenty-companion/CONTEXT.md` | Companion service package surface |
+| `packages/twenty-zapier` | `packages/twenty-zapier/AGENTS.md`, `packages/twenty-zapier/CONTEXT.md` | Zapier integration package surface |
+| `packages/twenty-front-component-renderer` | `packages/twenty-front-component-renderer/AGENTS.md`, `packages/twenty-front-component-renderer/CONTEXT.md` | Frontend component renderer package surface |
+| `packages/twenty-oxlint-rules` | `packages/twenty-oxlint-rules/AGENTS.md`, `packages/twenty-oxlint-rules/CONTEXT.md` | Custom oxlint rules package surface |
+| `packages/twenty-website` | `packages/twenty-website/AGENTS.md`, `packages/twenty-website/CONTEXT.md` | Marketing website package surface |
+| `packages/twenty-website-redone` | `packages/twenty-website-redone/AGENTS.md`, `packages/twenty-website-redone/CONTEXT.md` | Redesigned marketing website package surface |
 
 ## Routing Rules
 
@@ -123,6 +151,66 @@ Define the repo-local routing contract for agent work in this checkout during th
 - Prompt: "Adjust the repo-local Codex command set."
 - Action: leave `packages/twenty-codex-plugin`, return to `CONTEXT-MAP.md`, reroute into `.codex`, and do not continue from `packages/twenty-codex-plugin`.
 
+### Root -> `packages/twenty-server`
+
+- Prompt: "Add a new NestJS service in twenty-server."
+- Action: read `packages/AGENTS.md`, `packages/CONTEXT.md`, `packages/twenty-server/AGENTS.md`, and `packages/twenty-server/CONTEXT.md`, then work from `packages/twenty-server`.
+
+### Root -> `packages/twenty-front`
+
+- Prompt: "Add a new React component in twenty-front."
+- Action: read `packages/AGENTS.md`, `packages/CONTEXT.md`, `packages/twenty-front/AGENTS.md`, and `packages/twenty-front/CONTEXT.md`, then work from `packages/twenty-front`.
+
+### Root -> `packages/twenty-shared`
+
+- Prompt: "Add a shared type guard to twenty-shared."
+- Action: read `packages/AGENTS.md`, `packages/CONTEXT.md`, `packages/twenty-shared/AGENTS.md`, and `packages/twenty-shared/CONTEXT.md`, then work from `packages/twenty-shared`.
+
+### Root -> `packages/twenty-ui`
+
+- Prompt: "Add a new UI component to twenty-ui."
+- Action: read `packages/AGENTS.md`, `packages/CONTEXT.md`, `packages/twenty-ui/AGENTS.md`, and `packages/twenty-ui/CONTEXT.md`, then work from `packages/twenty-ui`.
+
+### `packages/twenty-server` -> root -> `docs/`
+
+- Prompt: "Update the repository ADR guidance."
+- Action: leave `packages/twenty-server`, return to `CONTEXT-MAP.md`, reroute into `docs/`, and do not continue from `packages/twenty-server`.
+
+### `packages/twenty-front` -> root -> `openspec/`
+
+- Prompt: "Review the active OpenSpec change tasks."
+- Action: leave `packages/twenty-front`, return to `CONTEXT-MAP.md`, reroute into `openspec/`, and do not continue from `packages/twenty-front`.
+
+### `packages/twenty-shared` -> root -> `docs/`
+
+- Prompt: "Update the repository governance baseline."
+- Action: leave `packages/twenty-shared`, return to `CONTEXT-MAP.md`, reroute into `docs/`, and do not continue from `packages/twenty-shared`.
+
+### `packages/twenty-ui` -> root -> `openspec/`
+
+- Prompt: "Review the active OpenSpec change tasks."
+- Action: leave `packages/twenty-ui`, return to `CONTEXT-MAP.md`, reroute into `openspec/`, and do not continue from `packages/twenty-ui`.
+
+### Root -> `.opencode`
+
+- Prompt: "Update the repo-local OpenCode skills."
+- Action: read `.opencode/AGENTS.md` and `.opencode/CONTEXT.md`, then work from `.opencode`.
+
+### `.opencode` -> root -> `.codex/`
+
+- Prompt: "Update the repo-local Codex commands."
+- Action: leave `.opencode`, return to `CONTEXT-MAP.md`, reroute into `.codex/`, and do not continue from `.opencode`.
+
+### Root -> `packages/twenty-apps`
+
+- Prompt: "Add a new app subdirectory under twenty-apps."
+- Action: read `packages/AGENTS.md`, `packages/CONTEXT.md`, `packages/twenty-apps/AGENTS.md`, and `packages/twenty-apps/CONTEXT.md`, then work from `packages/twenty-apps`.
+
+### Root -> remaining leaf packages
+
+- Prompt: "Update the E2E test suite." / "Modify the dev setup script." / "Update the Docker compose file."
+- Action: read `packages/AGENTS.md` and `packages/CONTEXT.md`, then select the appropriate mapped leaf package surface from `packages/`. If no specific leaf surface is mapped for the target package, stay in `packages/`.
+
 ## Expansion Order After Package Index
 
 - Wave 2: docs-heavy package surfaces
@@ -131,7 +219,19 @@ Define the repo-local routing contract for agent work in this checkout during th
 - Wave 3: AI tooling surfaces
   - `.codex`
   - `packages/twenty-codex-plugin`
-- Wave 4: core monorepo packages first, then the rest of `packages/` by functional group
+- Wave 4: core monorepo packages
+  - `packages/twenty-server`
+  - `packages/twenty-front`
+  - `packages/twenty-shared`
+  - `packages/twenty-ui`
+- Wave 5: remaining repo surfaces
+  - `.opencode/`
+  - `packages/twenty-sdk`, `packages/twenty-cli`, `packages/twenty-client-sdk`, `packages/create-twenty-app`
+  - `packages/twenty-front-component-renderer`, `packages/twenty-emails`, `packages/twenty-companion`, `packages/twenty-zapier`
+  - `packages/twenty-docker`, `packages/twenty-e2e-testing`, `packages/twenty-utils`, `packages/twenty-oxlint-rules`
+  - `packages/twenty-website`, `packages/twenty-website-redone`
+  - `packages/twenty-apps`
+- Surfaces intentionally root-routed: `.github/`, `.cursor/`, `.vscode/`, `.yarn/`
 
 ## Gate For Expansion
 

@@ -10,8 +10,10 @@ Describe the role of `packages/twenty-claude-skills` during the workspace routin
 - Skill entry files under `skills/<skill-name>/SKILL.md`.
 - Package-local README and package metadata.
 
-## Current Surface Shape
+## Current Routing Status
 
+- `packages/twenty-claude-skills` is mapped as a docs-heavy leaf surface (wave 2).
+- The `packages/` index surface must be consulted before entering this surface.
 - The package currently exposes skill files such as `skills/twenty-record-presentation/SKILL.md`.
 - This is a package-scoped skill surface, not the root `.codex` configuration surface and not the `twenty-codex-plugin` surface.
 

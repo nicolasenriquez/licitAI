@@ -1,3 +1,9 @@
+# App Agent Guidance
+
+This file ships as part of the `create-twenty-app` template and is copied into every generated Twenty app.
+
+For repository-level routing, see the parent package contract in `packages/create-twenty-app/AGENTS.md`.
+
 ## Base documentation
 
 - Getting started:

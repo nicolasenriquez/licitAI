@@ -49,6 +49,8 @@ This is a deliberate exception to Twenty's default `workspace_<id>` isolation mo
 
 #### Raw
 
+> **Binding column definitions**: see `schema-catalog.md` §Raw Layer for complete column names, types, constraints, and source mapping.
+
 - `mp.raw_api_payload`
 - `mp.raw_csv_file`
 - `mp.raw_csv_row`
@@ -75,6 +77,8 @@ Minimum object contract:
 
 #### Staging
 
+> **Binding column definitions**: see `schema-catalog.md` §Staging Layer for complete column names, types, constraints, and source mapping.
+
 - `mp.stg_api_v1_licitacion`
 - `mp.stg_api_v1_orden_compra`
 - `mp.stg_api_v2_compra_agil`
@@ -93,6 +97,8 @@ Minimum object contract:
 - `mp.stg_job_run` keeps `job_name`, `job_run_id`, `status`, `started_at`, `finished_at`, counters, and `error_summary`.
 
 #### Canonical
+
+> **Binding column definitions**: see `schema-catalog.md` §Canonical Layer for complete column names, types, constraints, and source mapping.
 
 - `mp.public_buyer`
 - `mp.public_supplier`
@@ -126,6 +132,8 @@ Minimum key and uniqueness contract:
 
 #### Reconciliation
 
+> **Binding column definitions**: see `schema-catalog.md` §Reconciliation Layer for complete column names, types, constraints, and source mapping.
+
 - `mp.reconciliation_public_market_entities`
 - `mp.reconciliation_event`
 
@@ -146,6 +154,8 @@ Minimum object contract:
   - Required fields: `event_type`, `entity_type`, `entity_key`, `source_a`, `source_b`, `details`, `created_at`
 
 #### Gold / Read
+
+> **Binding column definitions**: see `schema-catalog.md` §Gold Layer for complete column names, types, constraints, and source mapping.
 
 - `mp.gold_detected_process`
 - `mp.gold_pipeline_health`

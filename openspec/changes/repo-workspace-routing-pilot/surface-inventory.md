@@ -16,11 +16,11 @@ Record the rollout architecture decisions for the remaining repository surfaces 
 | `packages/twenty-claude-skills` | phase 2 mapped | Claude-skills package surface |
 | `.codex/` | phase 3 mapped | repo-local Codex commands and skills surface |
 | `packages/twenty-codex-plugin` | phase 3 mapped | published plugin package surface |
-| `.github/` | unmapped | phase 5 decision surface |
-| `.cursor/` | unmapped | remain root-routed for now |
-| `.opencode/` | unmapped | remain root-routed for now |
-| `.vscode/` | unmapped | remain root-routed for now |
-| `.yarn/` | unmapped | remain root-routed for now |
+| `.opencode/` | phase 5 mapped | AI-tooling surface — OpenCode local config/skills |
+| `.github/` | intentionally root-routed | CI workflows, PR templates; low agent interaction |
+| `.cursor/` | intentionally root-routed | editor rules; root contract handles it |
+| `.vscode/` | intentionally root-routed | editor settings; never agent-targeted |
+| `.yarn/` | intentionally root-routed | package manager internals; never agent-targeted |
 
 ## Package Wave Assignment
 
@@ -40,6 +40,24 @@ Record the rollout architecture decisions for the remaining repository surfaces 
 - `packages/twenty-front`
 - `packages/twenty-shared`
 - `packages/twenty-ui`
+
+## Wave 4 Completion Notes
+
+- `packages/twenty-server`, `packages/twenty-front`, `packages/twenty-shared`, and `packages/twenty-ui` now have package-local routing contracts and context files.
+- Manual acceptance complete: all 10 cases (5 patterns × 2 tools) pass.
+- Wave 4 gated-closed: routing from root through `packages/` into core monorepo leaf surfaces works, wrong-folder bounce works, unmapped refusal works, consulted-file declaration works.
+- No pre-existing `AGENTS.md` files existed in these packages — no harmonization needed.
+
+## Wave 5 Completion Notes
+
+- All remaining 17 leaf packages and `.opencode/` now have routing contracts and context files.
+- Manual acceptance complete: all 10 cases (5 patterns × 2 tools) pass.
+- Wave 5 gated-closed: routing from root through `packages/` into all remaining leaf surfaces works, `.opencode/` works, `.opencode/`↔`.codex/` bounce works, wrong-folder bounce works, unmapped apps collection stays at twenty-apps index.
+- `.opencode/` mapped as AI-tooling surface with explicit bounce rules vs `.codex/`.
+- `.github/`, `.cursor/`, `.vscode/`, `.yarn/` intentionally root-routed — documented in CONTEXT-MAP.md.
+- Pre-existing template `AGENTS.md` in `create-twenty-app/src/constants/template/` harmonized with routing note.
+- App-internal `AGENTS.md` files (twenty-last-contact, twenty-meeting-bot) deferred — individual apps are not yet first-class routing surfaces; served by `packages/twenty-apps` index.
+- All 38 tasks complete. Change ready for archive.
 
 ### Wave 5: Remaining package groups
 
@@ -68,10 +86,10 @@ Record the rollout architecture decisions for the remaining repository surfaces 
 
 | Path | Priority | Reason | Harmonization decision |
 | --- | --- | --- | --- |
-| `packages/twenty-codex-plugin/AGENTS.md` | first | active plugin-runtime contract with its own routing language | harmonize in wave 3 and add matching `CONTEXT.md` |
-| `packages/create-twenty-app/src/constants/template/AGENTS.md` | first | template output can propagate stale guidance into generated apps | review and harmonize before or during the package-group wave that covers SDK/CLI surfaces |
-| `packages/twenty-apps/internal/twenty-last-contact/AGENTS.md` | later | app-local guidance with narrower blast radius | defer until the `twenty-apps` group is routed |
-| `packages/twenty-apps/internal/twenty-meeting-bot/AGENTS.md` | later | app-local guidance with narrower blast radius | defer until the `twenty-apps` group is routed |
+| `packages/twenty-codex-plugin/AGENTS.md` | first | active plugin-runtime contract with its own routing language | harmonized in wave 3 with routing contract + `CONTEXT.md` |
+| `packages/create-twenty-app/src/constants/template/AGENTS.md` | first | template output can propagate stale guidance into generated apps | harmonized in wave 5 with routing note pointing to parent package contract |
+| `packages/twenty-apps/internal/twenty-last-contact/AGENTS.md` | later | app-local guidance with narrower blast radius | deferred — individual apps not yet mapped; served by `packages/twenty-apps` index |
+| `packages/twenty-apps/internal/twenty-meeting-bot/AGENTS.md` | later | app-local guidance with narrower blast radius | deferred — individual apps not yet mapped; served by `packages/twenty-apps` index |
 
 ## Functional Grouping Rules
 
@@ -84,12 +102,12 @@ Record the rollout architecture decisions for the remaining repository surfaces 
 
 - `packages/twenty-docs` now has a package-local routing contract and context file.
 - `packages/twenty-claude-skills` now has a package-local routing contract and context file.
-- Manual acceptance cases for the docs-heavy wave are prepared in `manual-acceptance.md`.
-- Manual execution of the docs-heavy wave remains pending.
+- Manual acceptance complete: all 10 cases (5 patterns × 2 tools) pass.
+- Wave 2 gated-closed: routing from root through packages/ into docs-heavy leaf surfaces works, wrong-folder bounce works, unmapped refusal works, consulted-file declaration works.
 
 ## Wave 3 Completion Notes
 
 - `.codex` now has a repo-local routing contract and context file.
 - `packages/twenty-codex-plugin` now has a harmonized routing contract plus package context.
-- Manual acceptance cases for the AI-tooling wave are prepared in `manual-acceptance.md`.
-- Manual execution of the AI-tooling wave remains pending.
+- Manual acceptance complete: all 10 cases (5 patterns × 2 tools) pass.
+- Wave 3 gated-closed: routing from root into .codex and packages/twenty-codex-plugin works, .codex↔plugin bounce works, unmapped refusal works, consulted-file declaration works.

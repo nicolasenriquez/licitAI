@@ -76,3 +76,4 @@ Rules:
 - `docs/architecture/data-model.md` — Data model and schema boundaries.
 - `docs/operations/data-operations.md` — Database operation rules.
 - `openspec/changes/mercado-publico-ingestion-backbone/` — Implementation change definition.
+- `openspec/changes/mercado-publico-ingestion-backbone/schema-catalog.md` — Binding column-level SQL schema for the `mp` tables.

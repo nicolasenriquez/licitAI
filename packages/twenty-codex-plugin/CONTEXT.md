@@ -13,6 +13,11 @@ Describe the role of `packages/twenty-codex-plugin` during the workspace routing
 - Reference docs under `references/`.
 - Scripts, templates, checklist, changelog, and package-level validation assets.
 
+## Current Routing Status
+
+- `packages/twenty-codex-plugin` is mapped as an AI-tooling leaf surface (wave 3).
+- The `packages/` index surface must be consulted before entering this surface.
+
 ## How To Use This Surface
 
 Use `packages/twenty-codex-plugin` for:

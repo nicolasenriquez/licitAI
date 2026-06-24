@@ -13,6 +13,11 @@ Describe the role of `packages/twenty-docs` during the workspace routing rollout
 - Navigation structure and translation-related docs artifacts under `navigation/`, `l/`, and generated `docs.json`.
 - Docs package scripts, validation entrypoints, and package-local static assets.
 
+## Current Routing Status
+
+- `packages/twenty-docs` is mapped as a docs-heavy leaf surface (wave 2).
+- The `packages/` index surface must be consulted before entering this surface.
+
 ## How To Use This Surface
 
 Use `packages/twenty-docs` for public docs-site work such as:

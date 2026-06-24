@@ -23,7 +23,7 @@ Before substantive work in this surface, read:
 
 ## Bounce Back To Root When
 
-- The prompt is really about architecture, business context, governance, operations, standards, or ADRs.
+- The prompt is really about architecture, business context, governance, operations, standards, or ADRs under `docs/`.
 - The task is general repo code work that is not anchored to an active OpenSpec artifact.
 - The task asks for a folder not mapped by this pilot.
 

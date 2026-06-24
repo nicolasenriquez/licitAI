@@ -15,7 +15,11 @@ Describe the role of `docs/` in this repository during the workspace routing pil
 - `standards/` contains the authoritative language and tooling standards.
 - `design/`, `templates/`, and `vision-product.md` add design-system and product-context depth.
 
-## How To Read This Surface
+## Current Routing Status
+
+- `docs/` is a validated pilot surface (wave 0).
+
+## How To Use This Surface
 
 For most documentation-led tasks, prefer this order:
 
@@ -30,8 +34,9 @@ This surface is for durable repository documentation and shared context.
 
 It is not the working surface for:
 
-- active OpenSpec change artifacts
-- OpenSpec task status updates
-- apply/archive/sync change actions
+- active OpenSpec change artifacts under `openspec/`
+- OpenSpec task status updates under `openspec/`
+- apply/archive/sync change actions under `openspec/`
+- package-scoped code work under `packages/`
 
 If the prompt is about those topics, go back to `../CONTEXT-MAP.md` and reroute.

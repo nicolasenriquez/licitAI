@@ -10,6 +10,10 @@ Describe the role of `.codex` during the workspace routing rollout.
 - Repo-local Codex skills under `.codex/skills/`.
 - Per-repo Codex operating assets that are local to this checkout rather than published as a marketplace plugin.
 
+## Current Routing Status
+
+- `.codex` is mapped as an AI-tooling surface (wave 3).
+
 ## How To Use This Surface
 
 Use `.codex` for:

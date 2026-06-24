@@ -16,6 +16,26 @@ Describe the role of `packages/` as the package-index routing surface during the
   - `packages/twenty-docs`
   - `packages/twenty-claude-skills`
   - `packages/twenty-codex-plugin`
+  - `packages/twenty-server`
+  - `packages/twenty-front`
+  - `packages/twenty-shared`
+  - `packages/twenty-ui`
+  - `packages/twenty-sdk`
+  - `packages/twenty-cli`
+  - `packages/twenty-client-sdk`
+  - `packages/create-twenty-app`
+  - `packages/twenty-front-component-renderer`
+  - `packages/twenty-emails`
+  - `packages/twenty-companion`
+  - `packages/twenty-zapier`
+  - `packages/twenty-docker`
+  - `packages/twenty-e2e-testing`
+  - `packages/twenty-utils`
+  - `packages/twenty-oxlint-rules`
+  - `packages/twenty-website`
+  - `packages/twenty-website-redone`
+  - `packages/twenty-apps`
+- All remaining leaf packages are now mapped. No further package-level routing expansion is needed.
 - A pre-existing local `AGENTS.md` file does not automatically mean the leaf package is already harmonized with the root routing contract.
 
 ## Package Groups
@@ -29,20 +49,20 @@ Describe the role of `packages/` as the package-index routing surface during the
 
 - `twenty-codex-plugin`
 
-### Core monorepo wave
+### Core monorepo wave (now mapped)
 
 - `twenty-server`
 - `twenty-front`
 - `twenty-shared`
 - `twenty-ui`
 
-### Remaining package groups
+### Remaining package groups (now mapped)
 
 - SDK and CLI:
-  - `create-twenty-app`
   - `twenty-sdk`
   - `twenty-cli`
   - `twenty-client-sdk`
+  - `create-twenty-app`
 - App/runtime support:
   - `twenty-front-component-renderer`
   - `twenty-emails`

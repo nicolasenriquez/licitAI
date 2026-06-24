@@ -5,93 +5,96 @@
 - [x] 0.1: Prime the codebase and read the relevant repository context for `twenty-server`, database commands, upgrade commands, message queue patterns, secure HTTP patterns, config/secret handling, CSV/file handling patterns, `docs/business/mercado-publico-source-contract.md`, `docs/business/mercado-publico-ingestion-context.md`, and docs/standards relevant to backend and data work.
   Footnote: This phase is intentionally non-implementing. Understand structure, entry points, current state, domain rules, and recent patterns before proposing code shape.
 
-- [ ] 0.2: Inventory existing module, interface, adapter, migration, queue, config, secure HTTP, file-storage, and fixture patterns already used in `twenty-server`.
+- [x] 0.2: Inventory existing module, interface, adapter, migration, queue, config, secure HTTP, file-storage, and fixture patterns already used in `twenty-server`.
   Footnote: Focus on depth, leverage, locality, and deletion-test thinking so the planned backbone deepens the codebase instead of adding shallow pass-through modules.
 
-- [ ] 0.3: Verify the untouched baseline using the smallest relevant repository quality gates and record any pre-existing failures.
+- [x] 0.3: Verify the untouched baseline using the smallest relevant repository quality gates and record any pre-existing failures.
   Footnote: The implementation phase should start from a documented baseline, not from assumptions about repo health.
 
-- [ ] 0.4: Review blast radius and regression checks for static `mp` schema creation, instance commands, API ingestion jobs, CSV ingestion jobs, read contracts, quota handling, and secret handling.
+- [x] 0.4: Review blast radius and regression checks for static `mp` schema creation, instance commands, API ingestion jobs, CSV ingestion jobs, read contracts, quota handling, and secret handling.
   Footnote: The deliverable is an explicit review of files, flows, migrations, tests, runtime behaviors, and validation checks that prove the change is safe.
 
-- [ ] 0.5: Produce a minimal, surgical implementation plan mapped to repository patterns rather than invented structure.
+- [x] 0.5: Produce a minimal, surgical implementation plan mapped to repository patterns rather than invented structure.
   Footnote: The plan must satisfy the full source contract while preserving current tenancy, queue, config, upgrade conventions, and the explicit `mp` architectural exception. Freeze runtime config variables, cadence defaults, recent-state boundary, and CSV re-download conflict policy before implementation starts.
 
 ## Phase 1: TDD and Test Design
 
-- [ ] 1.1: Define the tracer-bullet implementation path and order the remaining slices by risk.
+- [x] 1.1: Define the tracer-bullet implementation path and order the remaining slices by risk.
   Footnote: Start with the smallest vertical slice that proves schema creation, one ingestion path, and one read path end to end.
 
-- [ ] 1.2: Define the public test surface for backend modules and internal read contracts.
+- [x] 1.2: Define the public test surface for backend modules and internal read contracts.
   Footnote: Tests should verify behavior through public interfaces, persisted rows, job outcomes, and read contracts rather than private collaborator calls. Phase-1 read contracts stay internal backend services, not new public APIs.
 
-- [ ] 1.3: Specify unit tests for V1 `ddmmaaaa` date formatting and V2 Compra Agil parameter guards.
+- [x] 1.3: Specify unit tests for V1 `ddmmaaaa` date formatting and V2 Compra Agil parameter guards.
   Footnote: Keep request-shape tests deterministic and small.
 
-- [ ] 1.4: Specify unit tests for CSV encoding detection, delimiter detection, quotechar detection, and latin-1 accented text parsing.
+- [x] 1.4: Specify unit tests for CSV encoding detection, delimiter detection, quotechar detection, and latin-1 accented text parsing.
   Footnote: These tests should pin the observed June 2026 CSV parsing behavior.
 
-- [ ] 1.5: Specify unit tests for comma decimal parsing, `1900-01-01` sentinel handling, and null-like value normalization.
+- [x] 1.5: Specify unit tests for comma decimal parsing, `1900-01-01` sentinel handling, and null-like value normalization.
   Footnote: Raw values must remain preserved even when normalized outputs change.
 
-- [ ] 1.6: Specify unit tests for state normalization, unknown raw type handling, HTTP failure classification, non-null-over-null protection, and reconciliation rules.
+- [x] 1.6: Specify unit tests for state normalization, unknown raw type handling, HTTP failure classification, non-null-over-null protection, and reconciliation rules.
   Footnote: Protect canonical behavior and operational outcomes with narrow tests.
 
-- [ ] 1.7: Specify integration and DB verification for schema creation and raw-layer idempotency.
+- [x] 1.7: Specify integration and DB verification for schema creation and raw-layer idempotency.
   Footnote: Cover schema creation, raw API dedupe, and raw CSV file/row dedupe where behavior actually lives.
 
-- [ ] 1.8: Specify integration and DB verification for list-to-detail ingestion, canonical refresh, reconciliation visibility, and gold/read contract correctness.
+- [x] 1.8: Specify integration and DB verification for list-to-detail ingestion, canonical refresh, reconciliation visibility, and gold/read contract correctness.
   Footnote: Prefer realistic DB-backed verification over mocked orchestration checks.
 
-- [ ] 1.9: Define API fixture placement and coverage for V1 licitaciones, V1 OCs, and V2 Compra Agil.
+- [x] 1.9: Define API fixture placement and coverage for V1 licitaciones, V1 OCs, and V2 Compra Agil.
   Footnote: Fixtures must not contain real API tickets or sensitive operational data.
 
-- [ ] 1.10: Define CSV fixture placement and coverage for licitaciones and OCs.
+- [x] 1.10: Define CSV fixture placement and coverage for licitaciones and OCs.
   Footnote: CSV fixtures must cover latin-1, `;`, `"` quotechar, comma decimals, `NA`/blank values, `1900-01-01`, repeated OC `Codigo` with `IDItem`, blank `CodigoLicitacion`, Compra Agil OC markers, repeated licitacion `CodigoExterno` with `Codigoitem`, supplier/offer grain, and exact unusual raw column names.
+
+- [x] 1.11: Create the binding schema catalog mapping every API field and CSV column to exact PostgreSQL columns, types, constraints, and source attribution.
+  Footnote: This catalog (`schema-catalog.md`) is the binding schema for Phase 2 instance commands. Any deviation during implementation requires updating this document first. This enforces `proposal.md:19`.
 
 ## Phase 2: Database Actions
 
 - [ ] 2.1: Create the instance command scaffold for the static `mp` schema rollout.
-  Footnote: Follow existing upgrade-command and instance-command conventions exactly. Keep `up` and `down` logic explicit, reversible where possible, and idempotent.
+  Footnote: Column definitions are binding in `schema-catalog.md` §Naming Conventions. Follow existing upgrade-command and instance-command conventions exactly. Keep `up` and `down` logic explicit, reversible where possible, and idempotent.
 
 - [ ] 2.2: Create the static `mp` schema.
-  Footnote: This is the deployment-local architectural exception and must stay explicit.
+  Footnote: Column definitions are binding in `schema-catalog.md` §Raw Layer. This is the deployment-local architectural exception and must stay explicit.
 
 - [ ] 2.3: Create raw API persistence objects.
-  Footnote: Include request fingerprint, payload checksum, params, timestamps, status metadata, counters, schema fingerprints, and error summaries according to the frozen design contract.
+  Footnote: Column definitions are binding in `schema-catalog.md` §Raw Layer (`raw_api_payload`). Include request fingerprint, payload checksum, params, timestamps, status metadata, counters, schema fingerprints, and error summaries according to the frozen design contract.
 
 - [ ] 2.4: Create raw CSV file persistence objects.
-  Footnote: Include file registry, detected encoding, detected delimiter, quotechar, `header_raw`, `observed_columns`, `column_count`, `schema_fingerprint`, and file-level lineage fields according to the frozen design contract.
+  Footnote: Column definitions are binding in `schema-catalog.md` §Raw Layer (`raw_csv_file`). Include file registry, detected encoding, detected delimiter, quotechar, `header_raw`, `observed_columns`, `column_count`, `schema_fingerprint`, and file-level lineage fields according to the frozen design contract.
 
 - [ ] 2.5: Create raw CSV row persistence objects.
-  Footnote: Include row lineage, `raw_row_text`, `raw_row_json`, `row_checksum`, `parse_status`, and `parse_error` without enforcing incorrect row-grain uniqueness.
+  Footnote: Column definitions are binding in `schema-catalog.md` §Raw Layer (`raw_csv_row`). Include row lineage, `raw_row_text`, `raw_row_json`, `row_checksum`, `parse_status`, and `parse_error` without enforcing incorrect row-grain uniqueness.
 
 - [ ] 2.6: Create staging objects for API list and detail snapshots.
-  Footnote: Staging may project observed fields, but raw remains the source of replay truth.
+  Footnote: Column definitions are binding in `schema-catalog.md` §Staging Layer (`stg_api_v1_licitacion`, `stg_api_v1_orden_compra`, `stg_api_v2_compra_agil`, `stg_job_run`). Staging may project observed fields, but raw remains the source of replay truth.
 
 - [ ] 2.7: Create staging objects for CSV parsed OC projections.
-  Footnote: Preserve the observed OC item grain without requiring one row per business header.
+  Footnote: Column definitions are binding in `schema-catalog.md` §Staging Layer (`stg_csv_orden_compra`). Preserve the observed OC item grain without requiring one row per business header.
 
 - [ ] 2.8: Create staging objects for CSV parsed licitacion projections.
-  Footnote: Preserve the observed licitacion item/supplier/offer grain without requiring one row per business header.
+  Footnote: Column definitions are binding in `schema-catalog.md` §Staging Layer (`stg_csv_licitacion`). Preserve the observed licitacion item/supplier/offer grain without requiring one row per business header.
 
 - [ ] 2.9: Create canonical licitacion objects and uniqueness constraints.
-  Footnote: Cover `licitacion`, `licitacion_item`, `licitacion_oferta`, and `licitacion_adjudicacion` according to the frozen natural-key contract.
+  Footnote: Column definitions are binding in `schema-catalog.md` §Canonical Layer (`licitacion`, `licitacion_item`, `licitacion_oferta`, `licitacion_adjudicacion`). Cover `licitacion`, `licitacion_item`, `licitacion_oferta`, and `licitacion_adjudicacion` according to the frozen natural-key contract.
 
 - [ ] 2.10: Create canonical orden de compra objects and uniqueness constraints.
-  Footnote: Cover `orden_compra` and `orden_compra_item` according to the frozen natural-key contract.
+  Footnote: Column definitions are binding in `schema-catalog.md` §Canonical Layer (`orden_compra`, `orden_compra_item`). Cover `orden_compra` and `orden_compra_item` according to the frozen natural-key contract.
 
 - [ ] 2.11: Create canonical Compra Agil objects and uniqueness constraints.
-  Footnote: Cover `compra_agil`, `compra_agil_producto_solicitado`, and `compra_agil_cotizacion` according to the frozen natural-key contract.
+  Footnote: Column definitions are binding in `schema-catalog.md` §Canonical Layer (`compra_agil`, `compra_agil_producto_solicitado`, `compra_agil_cotizacion`). Cover `compra_agil`, `compra_agil_producto_solicitado`, and `compra_agil_cotizacion` according to the frozen natural-key contract.
 
 - [ ] 2.12: Create reconciliation link objects.
-  Footnote: Reconciliation storage must remain auditable, explainable, and safe to rerun.
+  Footnote: Column definitions are binding in `schema-catalog.md` §Reconciliation Layer (`reconciliation_public_market_entities`). Reconciliation storage must remain auditable, explainable, and safe to rerun.
 
 - [ ] 2.13: Create reconciliation event objects.
-  Footnote: Logical mismatch events must dedupe cleanly without repeated noise on rerun.
+  Footnote: Column definitions are binding in `schema-catalog.md` §Reconciliation Layer (`reconciliation_event`). Logical mismatch events must dedupe cleanly without repeated noise on rerun.
 
 - [ ] 2.14: Create gold/read objects.
-  Footnote: These objects back internal consumer reads and should stay decoupled from raw persistence details.
+  Footnote: Column definitions are binding in `schema-catalog.md` §Gold Layer. These objects back internal consumer reads and should stay decoupled from raw persistence details.
 
 ## Phase 3: Backend Actions
 
