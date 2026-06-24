@@ -1,0 +1,102 @@
+{
+  "profiles": {
+    "default": [
+      "core"
+    ],
+    "all-stable": [
+      "core",
+      "platform",
+      "product-integrations",
+      "content-sites"
+    ],
+    "all-with-change-artifacts": [
+      "core",
+      "platform",
+      "product-integrations",
+      "content-sites",
+      "change-artifacts"
+    ]
+  },
+  "slices": {
+    "core": {
+      "description": "Core architecture surfaces and root docs/config",
+      "include": [
+        "README.md",
+        "AGENTS.md",
+        "CONTEXT-MAP.md",
+        "DESIGN.md",
+        "PRODUCT.md",
+        "package.json",
+        "nx.json",
+        "tsconfig.base.json",
+        "jest.preset.js",
+        "docs",
+        "packages/twenty-front/src",
+        "packages/twenty-front/package.json",
+        "packages/twenty-front/project.json",
+        "packages/twenty-front/tsconfig*.json",
+        "packages/twenty-front/AGENTS.md",
+        "packages/twenty-front/CONTEXT.md",
+        "packages/twenty-front/README.md",
+        "packages/twenty-server/src",
+        "packages/twenty-server/package.json",
+        "packages/twenty-server/project.json",
+        "packages/twenty-server/tsconfig*.json",
+        "packages/twenty-server/AGENTS.md",
+        "packages/twenty-server/CONTEXT.md",
+        "packages/twenty-server/README.md",
+        "packages/twenty-shared/src",
+        "packages/twenty-shared/package.json",
+        "packages/twenty-shared/project.json",
+        "packages/twenty-shared/tsconfig*.json",
+        "packages/twenty-shared/AGENTS.md",
+        "packages/twenty-shared/CONTEXT.md",
+        "packages/twenty-shared/README.md",
+        "packages/twenty-ui/src",
+        "packages/twenty-ui/package.json",
+        "packages/twenty-ui/project.json",
+        "packages/twenty-ui/tsconfig*.json",
+        "packages/twenty-ui/AGENTS.md",
+        "packages/twenty-ui/CONTEXT.md",
+        "packages/twenty-ui/README.md"
+      ]
+    },
+    "platform": {
+      "description": "SDK, CLI, tooling, infra, and test packages",
+      "include": [
+        "packages/twenty-sdk",
+        "packages/twenty-cli",
+        "packages/twenty-client-sdk",
+        "packages/create-twenty-app",
+        "packages/twenty-front-component-renderer",
+        "packages/twenty-docker",
+        "packages/twenty-e2e-testing",
+        "packages/twenty-utils",
+        "packages/twenty-oxlint-rules"
+      ]
+    },
+    "product-integrations": {
+      "description": "App collection and integration packages",
+      "include": [
+        "packages/twenty-apps",
+        "packages/twenty-emails",
+        "packages/twenty-companion",
+        "packages/twenty-zapier"
+      ]
+    },
+    "content-sites": {
+      "description": "Documentation and website packages",
+      "include": [
+        "packages/twenty-docs",
+        "packages/twenty-website",
+        "packages/twenty-website-redone"
+      ]
+    },
+    "change-artifacts": {
+      "description": "Optional active change artifacts",
+      "include": [
+        "openspec"
+      ]
+    }
+  }
+}
