@@ -23,6 +23,7 @@ $stageOutputRoot = Join-Path $stageRoot 'graphify-out'
 $rootOutputRoot = Join-Path $repoRoot 'graphify-out'
 $manifestPath = Join-Path $repoRoot 'graphify.sources.json'
 $sliceStatePath = Join-Path $stageRoot '.selected-slices.json'
+$repoHeadStatePath = Join-Path $stageRoot '.graph-source-head.txt'
 $minGraphifyVersion = [Version]'0.8.46'
 $codeExtensions = @(
     '.c', '.cc', '.cpp', '.cs', '.cts', '.cxx', '.f', '.f03', '.f08', '.f90', '.f95',
@@ -209,6 +210,20 @@ function Save-SliceState {
     Set-Content -LiteralPath $sliceStatePath -Value $json -Encoding UTF8
 }
 
+function Get-CurrentRepoHead {
+    $head = (& git rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($head)) {
+        throw 'Unable to resolve current git HEAD.'
+    }
+
+    return $head
+}
+
+function Save-RepoHeadState {
+    $head = Get-CurrentRepoHead
+    Set-Content -LiteralPath $repoHeadStatePath -Value $head -Encoding UTF8
+}
+
 function Get-SliceState {
     if (-not (Test-Path -LiteralPath $sliceStatePath)) {
         return @()
@@ -216,6 +231,14 @@ function Get-SliceState {
 
     $rawState = Get-Content -LiteralPath $sliceStatePath -Raw | ConvertFrom-Json
     return @($rawState)
+}
+
+function Get-RepoHeadState {
+    if (-not (Test-Path -LiteralPath $repoHeadStatePath)) {
+        return $null
+    }
+
+    return (Get-Content -LiteralPath $repoHeadStatePath -Raw).Trim()
 }
 
 function Test-SameSliceState {
@@ -248,7 +271,10 @@ function Prepare-Staging {
     }
 
     foreach ($child in Get-ChildItem -LiteralPath $stageRoot -Force -ErrorAction SilentlyContinue) {
-        if ($PreserveGraphState -and $child.Name -eq 'graphify-out') {
+        if (
+            $PreserveGraphState -and
+            $child.Name -in @('graphify-out', '.selected-slices.json', '.graph-source-head.txt')
+        ) {
             continue
         }
 
@@ -459,6 +485,23 @@ function Get-UpdateStrategy {
         }
     }
 
+    $previousHead = Get-RepoHeadState
+    $currentHead = Get-CurrentRepoHead
+
+    if ([string]::IsNullOrWhiteSpace($previousHead)) {
+        return [pscustomobject]@{
+            Mode   = 'FullRebuild'
+            Reason = 'No saved git HEAD for the staged graph.'
+        }
+    }
+
+    if ($previousHead -ne $currentHead) {
+        return [pscustomobject]@{
+            Mode   = 'FullRebuild'
+            Reason = 'Git HEAD changed since the staged graph was built.'
+        }
+    }
+
     $changedPaths = Get-GitChangedPaths
     if ($changedPaths.Count -eq 0) {
         return [pscustomobject]@{
@@ -535,6 +578,7 @@ switch ($Command) {
         Prepare-Staging -SelectedSlices $selectedSlices | Out-Null
         Invoke-GraphifyExtract -ResolvedBackend $resolvedBackend
         Save-SliceState -SelectedSlices $selectedSlices
+        Save-RepoHeadState
         Sync-StageOutputToRoot
         break
     }
@@ -544,6 +588,7 @@ switch ($Command) {
         Prepare-Staging -SelectedSlices $selectedSlices | Out-Null
         Invoke-GraphifyExtract -ResolvedBackend $resolvedBackend
         Save-SliceState -SelectedSlices $selectedSlices
+        Save-RepoHeadState
         Sync-StageOutputToRoot
         break
     }
@@ -564,6 +609,7 @@ switch ($Command) {
         if ($strategy.Mode -eq 'IncrementalCode') {
             Invoke-CodeOnlyUpdate
             Save-SliceState -SelectedSlices $selectedSlices
+            Save-RepoHeadState
             Sync-StageOutputToRoot
             break
         }
@@ -572,6 +618,7 @@ switch ($Command) {
         Prepare-Staging -SelectedSlices $selectedSlices | Out-Null
         Invoke-GraphifyExtract -ResolvedBackend $resolvedBackend
         Save-SliceState -SelectedSlices $selectedSlices
+        Save-RepoHeadState
         Sync-StageOutputToRoot
         break
     }

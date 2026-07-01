@@ -13,6 +13,8 @@ type MaskingConfigType = {
   APP_SECRET: LastNCharsConfig;
   PG_DATABASE_URL: HidePasswordConfig;
   REDIS_URL: HidePasswordConfig;
+  MERCADO_PUBLICO_API_TICKET: LastNCharsConfig;
+  COMPRA_AGIL_API_TICKET: LastNCharsConfig;
 };
 
 export const CONFIG_VARIABLES_MASKING_CONFIG: MaskingConfigType = {
@@ -25,5 +27,13 @@ export const CONFIG_VARIABLES_MASKING_CONFIG: MaskingConfigType = {
   },
   REDIS_URL: {
     strategy: ConfigVariablesMaskingStrategies.HIDE_PASSWORD,
+  },
+  MERCADO_PUBLICO_API_TICKET: {
+    strategy: ConfigVariablesMaskingStrategies.LAST_N_CHARS,
+    chars: 5,
+  },
+  COMPRA_AGIL_API_TICKET: {
+    strategy: ConfigVariablesMaskingStrategies.LAST_N_CHARS,
+    chars: 5,
   },
 } as const;

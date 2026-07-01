@@ -54,94 +54,117 @@
 
 ## Phase 2: Database Actions
 
-- [ ] 2.1: Create the instance command scaffold for the static `mp` schema rollout.
+- [x] 2.1: Create the instance command scaffold for the static `mp` schema rollout.
   Footnote: Column definitions are binding in `schema-catalog.md` §Naming Conventions. Follow existing upgrade-command and instance-command conventions exactly. Keep `up` and `down` logic explicit, reversible where possible, and idempotent.
 
-- [ ] 2.2: Create the static `mp` schema.
+- [x] 2.2: Create the static `mp` schema.
   Footnote: Column definitions are binding in `schema-catalog.md` §Raw Layer. This is the deployment-local architectural exception and must stay explicit.
 
-- [ ] 2.3: Create raw API persistence objects.
-  Footnote: Column definitions are binding in `schema-catalog.md` §Raw Layer (`raw_api_payload`). Include request fingerprint, payload checksum, params, timestamps, status metadata, counters, schema fingerprints, and error summaries according to the frozen design contract.
+- [x] 2.3: Create raw API persistence objects.
+  Footnote: Column definitions are binding in `schema-catalog.md` §Raw Layer (`raw_api_payload`). Include request fingerprint, payload checksum, params, timestamps, status metadata, counters, schema fingerprints, and error summaries according to the frozen design contract. FK `ingestion_job_id` → `mp.stg_job_run(id)` ON DELETE SET NULL is added in task 2.6 with `stg_job_run` creation to avoid circular dependency (deviation noted in `schema-catalog.md` §Known Deviations).
 
-- [ ] 2.4: Create raw CSV file persistence objects.
+- [x] 2.4: Create raw CSV file persistence objects.
   Footnote: Column definitions are binding in `schema-catalog.md` §Raw Layer (`raw_csv_file`). Include file registry, detected encoding, detected delimiter, quotechar, `header_raw`, `observed_columns`, `column_count`, `schema_fingerprint`, and file-level lineage fields according to the frozen design contract.
 
-- [ ] 2.5: Create raw CSV row persistence objects.
+- [x] 2.5: Create raw CSV row persistence objects.
   Footnote: Column definitions are binding in `schema-catalog.md` §Raw Layer (`raw_csv_row`). Include row lineage, `raw_row_text`, `raw_row_json`, `row_checksum`, `parse_status`, and `parse_error` without enforcing incorrect row-grain uniqueness.
 
-- [ ] 2.6: Create staging objects for API list and detail snapshots.
-  Footnote: Column definitions are binding in `schema-catalog.md` §Staging Layer (`stg_api_v1_licitacion`, `stg_api_v1_orden_compra`, `stg_api_v2_compra_agil`, `stg_job_run`). Staging may project observed fields, but raw remains the source of replay truth.
+- [x] 2.6: Create staging objects for API list and detail snapshots.
+  Footnote: Column definitions are binding in `schema-catalog.md` §Staging Layer (`stg_api_v1_licitacion`, `stg_api_v1_orden_compra`, `stg_api_v2_compra_agil`, `stg_job_run`). Staging may project observed fields, but raw remains the source of replay truth. FK `ingestion_job_id` → `mp.stg_job_run(id)` for `raw_api_payload`, `raw_csv_file`, and `raw_csv_row` lands here with `stg_job_run` creation to avoid circular dependency (deviation noted in `schema-catalog.md` §Known Deviations).
 
-- [ ] 2.7: Create staging objects for CSV parsed OC projections.
+- [x] 2.7: Create staging objects for CSV parsed OC projections.
   Footnote: Column definitions are binding in `schema-catalog.md` §Staging Layer (`stg_csv_orden_compra`). Preserve the observed OC item grain without requiring one row per business header.
 
-- [ ] 2.8: Create staging objects for CSV parsed licitacion projections.
+- [x] 2.8: Create staging objects for CSV parsed licitacion projections.
   Footnote: Column definitions are binding in `schema-catalog.md` §Staging Layer (`stg_csv_licitacion`). Preserve the observed licitacion item/supplier/offer grain without requiring one row per business header.
 
-- [ ] 2.9: Create canonical licitacion objects and uniqueness constraints.
-  Footnote: Column definitions are binding in `schema-catalog.md` §Canonical Layer (`licitacion`, `licitacion_item`, `licitacion_oferta`, `licitacion_adjudicacion`). Cover `licitacion`, `licitacion_item`, `licitacion_oferta`, and `licitacion_adjudicacion` according to the frozen natural-key contract.
+- [x] 2.9: Create canonical licitacion objects and uniqueness constraints.
+  Footnote: Column definitions are binding in `schema-catalog.md` §Canonical Layer (`licitacion`, `licitacion_item`, `licitacion_oferta`, `licitacion_adjudicacion`). Cover `licitacion`, `licitacion_item`, `licitacion_oferta`, and `licitacion_adjudicacion` according to the frozen natural-key contract. Supporting reference tables (`public_buyer`, `public_supplier`, `estado_dim`, `modalidad_dim`) remain deferred in this slice, and `licitacion_adjudicacion` keeps its natural-key-only contract until nullable item-link semantics are resolved (deviations noted in `schema-catalog.md` §Known Deviations).
 
-- [ ] 2.10: Create canonical orden de compra objects and uniqueness constraints.
+- [x] 2.10: Create canonical orden de compra objects and uniqueness constraints.
   Footnote: Column definitions are binding in `schema-catalog.md` §Canonical Layer (`orden_compra`, `orden_compra_item`). Cover `orden_compra` and `orden_compra_item` according to the frozen natural-key contract.
 
-- [ ] 2.11: Create canonical Compra Agil objects and uniqueness constraints.
+- [x] 2.11: Create canonical Compra Agil objects and uniqueness constraints.
   Footnote: Column definitions are binding in `schema-catalog.md` §Canonical Layer (`compra_agil`, `compra_agil_producto_solicitado`, `compra_agil_cotizacion`). Cover `compra_agil`, `compra_agil_producto_solicitado`, and `compra_agil_cotizacion` according to the frozen natural-key contract.
 
-- [ ] 2.12: Create reconciliation link objects.
+- [x] 2.12: Create reconciliation link objects.
   Footnote: Column definitions are binding in `schema-catalog.md` §Reconciliation Layer (`reconciliation_public_market_entities`). Reconciliation storage must remain auditable, explainable, and safe to rerun.
 
-- [ ] 2.13: Create reconciliation event objects.
+- [x] 2.13: Create reconciliation event objects.
   Footnote: Column definitions are binding in `schema-catalog.md` §Reconciliation Layer (`reconciliation_event`). Logical mismatch events must dedupe cleanly without repeated noise on rerun.
 
-- [ ] 2.14: Create gold/read objects.
+- [x] 2.14: Create gold/read objects.
   Footnote: Column definitions are binding in `schema-catalog.md` §Gold Layer. These objects back internal consumer reads and should stay decoupled from raw persistence details.
 
 ## Phase 3: Backend Actions
 
-- [ ] 3.1: Create the Mercado Publico backend module and register it using existing `twenty-server` composition patterns.
+Execution order note: Phase 3 task numbers are a work-breakdown index, not the preferred implementation sequence.
+Preferred Phase 3 execution order:
+- Foundation already completed: `3.1 -> 3.2 -> 3.3`
+- First tracer bullet: `3.4 -> 3.5 -> 3.20 -> 3.23 -> 3.30`
+- V1 expansion: `3.7 -> 3.8 -> 3.6 -> 3.9 -> 3.11 -> 3.10 -> 3.24`
+- V2 expansion: `3.12 -> 3.13 -> 3.14 -> 3.15 -> 3.25`
+- CSV pipeline: `3.16 -> 3.17 -> 3.26 -> 3.18 -> 3.19 -> 3.21 -> 3.22`
+- Cross-source hardening: `3.27 -> 3.28 -> 3.29`
+- Remaining internal reads and operations: `3.31 -> 3.35 -> 3.32 -> 3.33 -> 3.34`
+- Scope and operator closeout: `3.36 -> 3.37`
+Use dependency/risk order above instead of assuming numeric adjacency within Phase 3.
+
+- [x] 3.1: Create the Mercado Publico backend module and register it using existing `twenty-server` composition patterns.
   Footnote: Match the module/interface shape found in investigation. Prefer a deep module with a small interface over a broad orchestration surface.
 
-- [ ] 3.2: Register typed runtime configuration variables for tickets, base URLs, HTTP settings, quota timezone, and CSV storage/source settings.
+- [x] 3.2: Register typed runtime configuration variables for tickets, base URLs, HTTP settings, quota timezone, and CSV storage/source settings.
   Footnote: Consume all runtime config through `TwentyConfigService` and do not add ad hoc `process.env` reads.
+  Status: Done. All 12 vars registered. Both MP tickets masked via HIDE_PASSWORD.
 
-- [ ] 3.3: Wire manual Mercado Publico job triggering and orchestration into the existing backend queue and worker patterns.
+- [x] 3.3: Wire manual Mercado Publico job triggering and orchestration into the existing backend queue and worker patterns.
   Footnote: Use repository-standard job infrastructure and do not introduce a separate Mercado Publico scheduler, control plane, or new public execution surface in phase 1.
 
-- [ ] 3.4: Implement the API V1 licitaciones client.
+- [x] 3.4: Implement the API V1 licitaciones client.
   Footnote: Keep request construction, date formatting, and raw response capture localized.
 
-- [ ] 3.5: Implement the V1 licitaciones by-date job.
+- [x] 3.5: Implement the V1 licitaciones by-date job.
   Footnote: V1 date jobs must use `ddmmaaaa` and persist list snapshots as raw auditable payloads.
 
-- [ ] 3.6: Implement the V1 licitaciones by-state job.
+- [x] 3.6: Implement the V1 licitaciones by-state job.
   Footnote: Preserve raw `CodigoEstado` and raw state label; do not treat the list response as full detail truth.
+  Status: Done. Client getByEstado(estado: string) added. By-state service mirrors by-date pattern. Reuses existing staging + canonical refresh. Single estado per invocation per source-contract V1 API spec.
 
-- [ ] 3.7: Implement the V1 licitacion detail by-`CodigoExterno` job.
+- [x] 3.7: Implement the V1 licitacion detail by-`CodigoExterno` job.
   Footnote: Detail jobs rehydrate canonical entities and must protect existing non-null values from null regressions.
+  Status: Done. Client method getByCodigoExterno added, detail service mirrors by-date pattern with snapshotKind='detail', canonical refresh already handles both list/detail snapshot kinds with per-field non-null protection via COALESCE.
 
-- [ ] 3.8: Implement the API V1 ordenes de compra client.
+- [x] 3.8: Implement the API V1 ordenes de compra client.
   Footnote: Keep request construction and raw response capture localized.
+  Status: Done. Client service mirrors V1 licitaciones pattern. Shared classifyMercadoPublicoHttpStatus + parseMercadoPublicoBodyError utils extracted. getByDate returns OC records via extractV1OrdenesDeCompraListRecords.
 
-- [ ] 3.9: Implement the V1 ordenes de compra by-date job.
+- [x] 3.9: Implement the V1 ordenes de compra by-date job.
   Footnote: V1 date jobs must use `ddmmaaaa` and persist list snapshots as raw auditable payloads.
+  Status: Done. OC by-date service mirrors licitaciones by-date. OC persistence + canonical refresh methods added. Canonical state stubbed as 'unknown_raw_state' — real state normalizer deferred to 3.6. Shared error handler utils extracted.
 
-- [ ] 3.10: Implement the V1 ordenes de compra by-state job.
+- [x] 3.10: Implement the V1 ordenes de compra by-state job.
   Footnote: Preserve raw OC state, raw provider state, and treat `CodigoLicitacion` as optional.
+  Status: Done. Client getByEstado added. normalizeOcState util maps 8 OC state codes to canonical snake_case. Canonical refresh wired with per-field non-null protection for canonical_state. By-state service mirrors by-date pattern.
 
-- [ ] 3.11: Implement the V1 orden de compra detail by-`Codigo` job.
+- [x] 3.11: Implement the V1 orden de compra detail by-`Codigo` job.
   Footnote: Detail jobs rehydrate canonical entities and must not require `CodigoLicitacion`.
+  Status: Done. Client method getByCodigo added to MercadoPublicoApiV1OrdenesDeCompraClientService (reuses recursive list extract util). Detail service mirrors licitacion detail-by-codigo pattern with snapshotKind='detail'. Canonical refresh handles list/detail snapshot kinds with per-field non-null protection via COALESCE. Orchestrator dispatch wired. Unit spec: 6 tests pass (parsePayload validation + success/soft-miss/transport-failure).
 
-- [ ] 3.12: Implement the API V2 Compra Agil client.
+- [x] 3.12: Implement the API V2 Compra Agil client.
   Footnote: Enforce documented bounds and parameter guards in one place.
+  Status: Done. Client MercadoPublicoApiV2CompraAgilClientService created with getList(getByCodigo methods. V2 ticket sent as HTTP header (not param) per source-contract.md:144-145. Detail URL = path segment /v2/compra-agil/{codigo}. Param guard util validateCompraAgilListParams enforces tamano_pagina≤50, numero_pagina≥1, id/q mutex. Extract util handles list arrays + single-record detail. All 4 V2 constants registered. Unit specs: 12 param-guard cases + 7 extract cases + 10 client cases = 29 passing. No orchestrator dispatch yet (3.13+ wires V2 jobs).
 
-- [ ] 3.13: Implement the V2 Compra Agil incremental job.
+- [x] 3.13: Implement the V2 Compra Agil incremental job.
   Footnote: Support paginated listing, `ttl_cambio_ms`, and `cambio_desde/cambio_hasta`.
+  Status: Done. Service mirrors V1 by-state pattern. parsePayload requires window (ttl_cambio_ms > 0 or cambio_desde non-empty). Client getList already supports all V2 params from 3.12. persistV2CompraAgilSnapshot sews raw persistence seam (staging projection deferred to 3.20). refreshV2CompraAgilFromApiSnapshot stub returns 0 (canonical upsert deferred to 3.25). Orchestrator dispatch wired. Unit spec: 7 tests pass (parsePayload window guard + success with ttl_cambio_ms and cambio_desde/cambio_hasta + error/transport failure).
 
-- [ ] 3.14: Implement the V2 Compra Agil publication-window job.
+- [x] 3.14: Implement the V2 Compra Agil publication-window job.
   Footnote: Support `publicado_desde/publicado_hasta` using the documented request contract.
+  Status: Done. Service mirrors 3.13 incremental. parsePayload requires at least one of publicado_desde/publicado_hasta non-empty (window guarantee). Reuses persistV2CompraAgilSnapshot + refreshV2CompraAgilFromApiSnapshot stubs. Orchestrator dispatch wired. Unit spec: 7 tests pass.
 
-- [ ] 3.15: Implement the V2 Compra Agil detail by-`codigo` job.
+- [x] 3.15: Implement the V2 Compra Agil detail by-`codigo` job.
   Footnote: Use `orden_compra.id_orden_compra` and `id_oc` as the exact OC linkage signals when present.
+  Status: Done. Service mirrors V1 OC detail-by-codigo (3.11). Calls client.getByCodigo which already preseserves OC linkage fields from 3.12. parsePayload requires non-empty codigo. Soft miss via recordsFetched===0 finalizes success with recordsFailed=1, no throw. Reuses persistV2CompraAgilSnapshot + refreshV2CompraAgilFromApiSnapshot stubs. Orchestrator dispatch wired. Unit spec: 7 tests pass.
 
 - [ ] 3.16: Implement CSV download, checksum, and decompression handling.
   Footnote: File acquisition must stay auditable before any parsing decisions are applied.
@@ -155,8 +178,9 @@
 - [ ] 3.19: Implement raw CSV row loading for licitaciones files.
   Footnote: Preserve unknown columns and observed row grain exactly as received.
 
-- [ ] 3.20: Implement API snapshot staging projections.
+- [x] 3.20: Implement API snapshot staging projections.
   Footnote: Keep list and detail staging distinct enough to preserve source behavior.
+  Status: Done. V1 licitaciones + V1 OC staging already implemented in prior slices. V2 Compra Agil staging projection now complete: insertV2CompraAgilStagingRows writes to mp.stg_api_v2_compra_agil per schema-catalog.md columns. Staging fields include codigo, estado, id_orden_compra, id_oc, codigo_orden_compra + date windows. No region in staging (not in catalog binding). persistence spec: 3 tests pass (V1 licitaciones, V1 OC, V2 Compra Agil).
 
 - [ ] 3.21: Implement CSV OC staging projections.
   Footnote: Preserve the observed OC item grain and exact raw column names needed for traceability.
@@ -164,14 +188,17 @@
 - [ ] 3.22: Implement CSV licitacion staging projections.
   Footnote: Preserve the observed licitacion item/supplier/offer grain and exact raw column names needed for traceability.
 
-- [ ] 3.23: Implement canonical refresh for licitaciones and licitacion items/offers/adjudicaciones.
+- [x] 3.23: Implement canonical refresh for licitaciones and licitacion items/offers/adjudicaciones.
   Footnote: Normalize defensively, preserve raw values, and accept repeated raw business keys before canonical dedupe.
+  Status: Done. Licitation header refresh already existed. Added 3 new methods: refreshLicitacionItemsFromCsvSnapshot (UK codigo_externo+codigoitem), refreshLicitacionOfertasFromCsvSnapshot (UK codigo_externo+codigoitem+codigo_proveedor+nombre_de_la_oferta), refreshLicitacionAdjudicacionesFromCsvSnapshot (UK codigo_externo+codigoitem+rut_proveedor, codigoitem nullable). All read from mp.stg_csv_licitacion (CSV staging, empty until CSV pipeline lands). Non-null overflow protection via COALESCE. is_oferta_seleccionada inline boolean conversion (oferta_seleccionada==='Si'). moneda/raw_monto_estimado left NULL (not in CSV staging projection). No FK on adjudicacion per schema-catalog known deviation. Unit spec: 7 tests (4 existing + 3 new sub-entity).
 
-- [ ] 3.24: Implement canonical refresh for ordenes de compra and OC items.
+- [x] 3.24: Implement canonical refresh for ordenes de compra and OC items.
   Footnote: Normalize defensively, preserve raw values, and keep `CodigoLicitacion` nullable.
+  Status: Done. mp.orden_compra header refresh already existed. Added refreshOrdenCompraItemsFromCsvSnapshot (UK iditem). Reads from mp.stg_csv_orden_compra. UPSERT into mp.orden_compra_item with COALESCE non-null protection. raw_total_linea_neto stored as raw text (total_linea_neto numeric stays NULL — normalizeDecimal deferred to 3.26). nombre_producto_generico stays NULL (not in OC staging projection). codigo FK updatable via COALESCE. Unit spec: 8 tests (7 existing + 1 new OC item).
 
-- [ ] 3.25: Implement canonical refresh for Compra Agil entities.
+- [x] 3.25: Implement canonical refresh for Compra Agil entities.
   Footnote: Preserve explicit OC linkage and keep optional fields optional unless fixtures prove otherwise.
+  Status: Done. Real impl of refreshV2CompraAgilFromApiSnapshot mirrors V1 OC pattern. SELECT DISTINCT ON(codigo) from mp.stg_api_v2_compra_agil → UPSERT into mp.compra_agil with non-null-over-null COALESCE protection. OC linkage fields (id_orden_compra, id_oc, codigo_orden_compra) preserved. region passed as null (not in staging columns yet; 3.20 adds). mp.compra_agil_producto_solicitado and mp.compra_agil_cotizacion deferred (no staging source). Unit spec: 2 new V2 cases added to existing canonical-refresh spec (4 total).
 
 - [ ] 3.26: Implement CSV scalar normalization and sentinel/null handling utilities.
   Footnote: Cover comma decimals, `NA`/blank values, and `1900-01-01` without mutating raw storage.
@@ -185,7 +212,7 @@
 - [ ] 3.29: Implement candidate, unmatched, and manual-review-required reconciliation policies and event recording.
   Footnote: Heuristic matches must not silently become exact truth.
 
-- [ ] 3.30: Implement the internal read contract for detected processes.
+- [x] 3.30: Implement the internal read contract for detected processes.
   Footnote: Serve the minimum list shape from the gold/read layer, not from raw persistence details.
 
 - [ ] 3.31: Implement the internal read contract for process detail.

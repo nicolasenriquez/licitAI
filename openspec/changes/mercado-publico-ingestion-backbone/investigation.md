@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Phase 0 investigation artifact for the Mercado Publico ingestion backbone change. Covers pattern inventory, untouched baseline verification, blast-radius review, regression check map, and minimal implementation plan. Non-implementing by design (per `proposal.md` Preferred Execution Shape and `tasks.md` Phase 0 footnotes).
+Phase 0 investigation artifact for the Mercado Publico ingestion backbone change. Covers pattern inventory, untouched baseline verification, blast-radius review, regression check map, and minimal implementation plan. Refreshed after the binding schema catalog landed so Phase 0 stays aligned with the exact `mp` table, key, constraint, and relationship inventory. Non-implementing by design (per `proposal.md` Preferred Execution Shape and `tasks.md` Phase 0 footnotes).
 
 ## Routing Declaration
 
-Surface: `openspec/`. Consulted: root `AGENTS.md`, `CONTEXT-MAP.md`, `openspec/AGENTS.md`, `openspec/CONTEXT.md`, change `proposal.md`, `design.md`, `specs/.../spec.md`, `tasks.md`, `docs/business/mercado-publico-source-contract.md`, `docs/business/mercado-publico-ingestion-context.md`, `docs/standards/{nestjs,database,testing}-standard.md`, `docs/operations/{data-operations,command-surface}.md`, `docs/decisions/0005-deployment-local-mercado-publico-schema.md`, `docs/architecture/current-state.md`, `packages/twenty-server/docs/UPGRADE_COMMANDS.md`. Pattern inventory via explore agent scan of `packages/twenty-server/src/`.
+Surface: `openspec/`. Consulted: root `AGENTS.md`, `CONTEXT-MAP.md`, `openspec/AGENTS.md`, `openspec/CONTEXT.md`, change `proposal.md`, `design.md`, `specs/.../spec.md`, `tasks.md`, `docs/business/mercado-publico-source-contract.md`, `docs/business/mercado-publico-ingestion-context.md`, `docs/standards/{nestjs,database,testing}-standard.md`, `docs/operations/{data-operations,command-surface}.md`, `docs/decisions/0005-deployment-local-mercado-publico-schema.md`, `docs/architecture/current-state.md`, `packages/twenty-server/docs/UPGRADE_COMMANDS.md`. Pattern inventory via explore agent scan of `packages/twenty-server/src/`. Refresh cross-check: `schema-catalog.md` now freezes the exact layer inventory, unique keys, check constraints, and FK relationships for Phase 2 SQL.
 
 ---
 
@@ -180,12 +180,13 @@ For each surface the MP change touches: files affected, blast radius, regression
 ### 1. Static `mp` Schema Creation (instance commands)
 
 - **Files touched**: new files under `packages/twenty-server/src/database/commands/upgrade-version-command/2-15/` (or current version dir). Auto-registered in `instance-commands.constant.ts`.
-- **Blast radius**: New SQL schema `mp` + tables. Does NOT touch `core`, `metadata`, or `workspace_<id>` schemas. `CREATE SCHEMA IF NOT EXISTS mp` + `CREATE TABLE IF NOT EXISTS mp.*` — idempotent, reversible (`DROP SCHEMA IF EXISTS mp CASCADE`).
+- **Blast radius**: New SQL schema `mp` + tables. Does NOT touch `core`, `metadata`, or `workspace_<id>` schemas. `CREATE SCHEMA IF NOT EXISTS mp` + `CREATE TABLE IF NOT EXISTS mp.*` — idempotent, reversible (`DROP SCHEMA IF EXISTS mp CASCADE`). Exact object inventory, unique keys, check constraints, and FK topology are now frozen in `schema-catalog.md` §§Raw/Staging/Canonical/Reconciliation/Gold.
 - **Regression checks**:
   - `npx nx database:reset twenty-server` still passes (runs all instance commands including new MP ones).
   - `npx nx run twenty-server:database:migrate:prod` applies new commands cleanly.
   - Existing `core`/`metadata`/`workspace_<id>` schemas unaffected — verify via Postgres MCP: `SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'workspace_%'` still returns workspaces, `mp` exists alongside.
   - Integration test: `test/integration/mercado-publico/suites/schema-creation.integration-spec.ts` — verify `mp` schema + all required tables exist after migration.
+  - DB verification must sample catalog-defined constraint/relationship seams, not only table existence: raw payload UK, raw CSV row FK to raw CSV file, canonical natural-key UKs, reconciliation logical dedupe UKs, and any catalog-defined CHECKs for enum-like columns.
 
 ### 2. Typed Config Variables (`config-variables.ts`)
 
@@ -259,6 +260,8 @@ For each surface the MP change touches: files affected, blast radius, regression
 
 ### Regression Check Summary
 
+Table-by-table authority is `schema-catalog.md`. This blast-radius map stays focused on touched repository surfaces and the validation shape required to prove the catalog was applied correctly.
+
 | Surface | Check command | Pre-existing? |
 | --- | --- | --- |
 | Instance commands | `npx nx database:reset twenty-server` | must still pass |
@@ -296,6 +299,11 @@ For each surface the MP change touches: files affected, blast radius, regression
 | Gold freshness | healthy ≤1.5x, degraded ≤3x, stale >3x cadence | design.md:316-319, ingestion-context.md:232-235 |
 | HTTP failure classification | 400=param error, 401/403=hard fail, 404=soft miss, 429/500/503/timeout=retryable bounded | design.md:398-405, spec.md:304-329 |
 
+### Binding Schema Note
+
+- `schema-catalog.md` now freezes the exact table inventory, columns, unique keys, FK relationships, and enum-like CHECK constraints for tasks 2.1-2.14.
+- The implementation order below may split work across multiple instance commands or slices, but each selected table must land with its full catalog-defined shape. No invented intermediate column sets.
+
 ### Tracer-Bullet Slice (task 1.1 will define formally; pre-selection here)
 
 **Slice**: `api-v1-licitaciones-by-date` end-to-end, narrowest vertical:
@@ -314,7 +322,7 @@ This slice proves: schema creation, config, secure HTTP, queue, raw persistence,
 #### Foundation blockers (Phase 2 tasks 2.1-2.5, 3.1-3.2)
 1. **2.1**: Instance command scaffold — `npx nx run twenty-server:database:migrate:generate --name mp-schema-foundation --type fast`. Reference: `2-9-instance-command-fast-1799000030000-add-logic-function-execution-mode.ts:6-25`.
 2. **2.2**: `CREATE SCHEMA IF NOT EXISTS mp` in the command `up`, `DROP SCHEMA IF EXISTS mp CASCADE` in `down`.
-3. **2.3-2.5**: Raw API payload, raw CSV file, raw CSV row tables — `CREATE TABLE IF NOT EXISTS mp.raw_api_payload(...)`, etc. in same or follow-up fast commands. Follow design.md:62-74 object contracts exactly.
+3. **2.3-2.5**: Raw API payload, raw CSV file, raw CSV row tables — `CREATE TABLE IF NOT EXISTS mp.raw_api_payload(...)`, etc. in same or follow-up fast commands. Follow `schema-catalog.md` §Raw Layer exactly; design.md summaries are no longer sufficient by themselves.
 4. **3.1**: MP module — `modules/mercado-publico/mercado-publico.module.ts`. Register in `ModulesModule` (`modules.module.ts:10-22`). Reference: `connected-account.module.ts:10-18`.
 5. **3.2**: Config vars — add 12 fields to `config-variables.ts:56-1893`. Reference: `OUTBOUND_HTTP_SAFE_MODE_ENABLED` (line 83-90). Add tickets to masking config. Read via `TwentyConfigService.get(...)`.
 
@@ -323,7 +331,7 @@ This slice proves: schema creation, config, secure HTTP, queue, raw persistence,
 7. **3.5**: V1 Licitaciones by-date job — `jobs/api-v1-licitaciones-by-date.job.ts`. `@Processor(MessageQueue.mercadoPublicoQueue)`. Format date `ddmmaaaa`, call client, persist raw, staging, canonical refresh. Reference: `upsert-timeline-activity-from-internal-event.job.ts:15-72`.
 8. Manual trigger command — `commands/mercado-publico-trigger-licitaciones-by-date.command.ts`. Reference: `calendar-trigger-event-list-fetch.command.ts:29-130`.
 9. Register job module in `JobsModule` (`jobs.module.ts:49-106`).
-10. **2.6, 2.9**: Staging + canonical licitacion tables (minimum subset for slice).
+10. **2.6, 2.9**: Staging + canonical licitacion tables (minimum subset for slice). For each selected table, implement the full `schema-catalog.md` §Staging Layer / §Canonical Layer shape rather than a narrowed ad hoc subset of columns.
 11. **3.20, 3.23, 3.30**: Staging projection, canonical refresh, read contract `listDetectedProcesses` minimum.
 12. Tests: unit (`ddmmaaaa` format, failure classification) + integration (DB-backed slice).
 

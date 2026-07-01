@@ -13,7 +13,10 @@ This change should be executed in a phased, action-oriented way:
 1. Investigation and untouched-baseline verification only, with no implementation changes.
 2. Foundation blockers first: `mp` schema path, typed runtime config, fixture base, and raw persistence seams.
 3. First tracer-bullet slice next: one narrow end-to-end path from source ingestion to internal read contract.
-4. Source expansion and hardening after that, in dependency order.
+   Preferred first slice order: `3.4 -> 3.5 -> 3.20 -> 3.23 -> 3.30`.
+4. Source expansion and hardening after that, in dependency order rather than numeric task order.
+   Phase-3 task numbering is a work-breakdown index, not a strict dependency sequence.
+   The full preferred Phase-3 sequence is maintained in `tasks.md`.
 5. Full validation and closeout, including the smallest relevant test gates first and CI when appropriate.
 
 The intent is to keep blast radius explicit, implementation grounded in existing repository patterns, and source contracts durable enough that agents do not invent fields, joins, or CSV schemas during implementation.

@@ -595,12 +595,14 @@ In phase 1 they are implemented as internal backend service contracts inside `tw
 - Run unit, integration, and DB verification in the smallest useful order.
 - Expand to CI-level validation only after local and targeted checks pass.
 - Confirm no unintended regressions escaped the blast-radius review.
+- Refresh `graphify` only at coherent implementation milestones, not after every small edit.
 
 ### Phase 4: Closeout
 
 - Update any durable docs affected by the implementation.
 - Review whether `CHANGELOG.md` needs an `Unreleased` entry.
 - Record what was validated, what remains deferred, and which consumer-facing phases are intentionally postponed.
+- Run a final `graphify update .` once before handoff so the repo graph matches the completed change.
 
 ## Consumer Contract For Later Change
 

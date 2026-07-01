@@ -1854,6 +1854,120 @@ export class ConfigVariables {
   })
   @IsOptional()
   APP_REGISTRY_TOKEN: string;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.SERVER_CONFIG,
+    isSensitive: true,
+    description:
+      'API ticket for Mercado Publico API V1 licitaciones and ordenes de compra requests',
+    type: ConfigVariableType.STRING,
+  })
+  @IsOptional()
+  MERCADO_PUBLICO_API_TICKET: string;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.SERVER_CONFIG,
+    isSensitive: true,
+    description: 'API ticket for Compra Agil API V2 requests',
+    type: ConfigVariableType.STRING,
+  })
+  @IsOptional()
+  COMPRA_AGIL_API_TICKET: string;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.SERVER_CONFIG,
+    isSensitive: false,
+    description: 'Base URL for Mercado Publico API V1 requests',
+    type: ConfigVariableType.STRING,
+  })
+  @IsUrl({ require_tld: false, require_protocol: true })
+  @IsOptional()
+  MERCADO_PUBLICO_API_V1_BASE_URL: string;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.SERVER_CONFIG,
+    isSensitive: false,
+    description: 'Base URL for Compra Agil API V2 requests',
+    type: ConfigVariableType.STRING,
+  })
+  @IsUrl({ require_tld: false, require_protocol: true })
+  @IsOptional()
+  COMPRA_AGIL_API_BASE_URL: string;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.SERVER_CONFIG,
+    description: 'Timeout in milliseconds for Mercado Publico HTTP requests',
+    type: ConfigVariableType.NUMBER,
+  })
+  @CastToPositiveNumber()
+  @IsOptional()
+  MERCADO_PUBLICO_HTTP_TIMEOUT_MS: number = 30000;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.SERVER_CONFIG,
+    description:
+      'Maximum retry attempts for retryable Mercado Publico HTTP failures',
+    type: ConfigVariableType.NUMBER,
+  })
+  @CastToPositiveNumber()
+  @IsOptional()
+  MERCADO_PUBLICO_HTTP_MAX_RETRIES: number = 3;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.SERVER_CONFIG,
+    description:
+      'Base retry backoff in milliseconds for retryable Mercado Publico HTTP failures',
+    type: ConfigVariableType.NUMBER,
+  })
+  @CastToPositiveNumber()
+  @IsOptional()
+  MERCADO_PUBLICO_HTTP_RETRY_BACKOFF_MS: number = 1000;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.SERVER_CONFIG,
+    description: 'IANA timezone used for Mercado Publico quota resets',
+    type: ConfigVariableType.STRING,
+  })
+  @IsOptional()
+  MERCADO_PUBLICO_QUOTA_TIMEZONE = 'America/Santiago';
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.SERVER_CONFIG,
+    description:
+      'Local storage root for downloaded Mercado Publico CSV files before raw profiling and load',
+    type: ConfigVariableType.STRING,
+  })
+  @IsOptional()
+  MERCADO_PUBLICO_CSV_STORAGE_ROOT: string;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.SERVER_CONFIG,
+    isSensitive: false,
+    description: 'Source URL for Mercado Publico ordenes de compra CSV files',
+    type: ConfigVariableType.STRING,
+  })
+  @IsUrl({ require_tld: false, require_protocol: true })
+  @IsOptional()
+  MERCADO_PUBLICO_CSV_OC_SOURCE_URL: string;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.SERVER_CONFIG,
+    isSensitive: false,
+    description: 'Source URL for Mercado Publico licitaciones CSV files',
+    type: ConfigVariableType.STRING,
+  })
+  @IsUrl({ require_tld: false, require_protocol: true })
+  @IsOptional()
+  MERCADO_PUBLICO_CSV_LICITACIONES_SOURCE_URL: string;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.SERVER_CONFIG,
+    description:
+      'Enable or disable Mercado Publico CSV download jobs in the current deployment',
+    type: ConfigVariableType.BOOLEAN,
+  })
+  @IsOptional()
+  MERCADO_PUBLICO_CSV_DOWNLOAD_ENABLED = false;
 }
 
 export const validate = (config: Record<string, unknown>): ConfigVariables => {

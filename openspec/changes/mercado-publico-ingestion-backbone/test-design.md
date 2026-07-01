@@ -6,7 +6,7 @@ Phase 1 test design artifact. Defines the tracer-bullet path, public test surfac
 
 ## Routing Declaration
 
-Surface: `openspec/`. Consulted: `proposal.md`, `design.md`, `specs/.../spec.md`, `tasks.md`, `investigation.md`, `docs/business/mercado-publico-source-contract.md`, `docs/business/mercado-publico-ingestion-context.md`, `docs/standards/testing-standard.md`. Pattern inventory from `investigation.md` §0.2.
+Surface: `openspec/`. Consulted: `proposal.md`, `design.md`, `specs/.../spec.md`, `tasks.md`, `investigation.md`, `schema-catalog.md`, `docs/business/mercado-publico-source-contract.md`, `docs/business/mercado-publico-ingestion-context.md`, `docs/standards/testing-standard.md`. Pattern inventory from `investigation.md` §0.2.
 
 Test philosophy (per `testing-standard.md` + AGENTS.md rule 11):
 - Test behavior, not implementation.
@@ -17,6 +17,7 @@ Test philosophy (per `testing-standard.md` + AGENTS.md rule 11):
 - DB-backed verification preferred for persistence behavior. `SyncDriver` for queue tests (per `create-app.ts:38,71`).
 - Phase-1 read contracts stay internal backend services — test via service methods, not HTTP/GraphQL endpoints (per `spec.md:429-433`).
 - Column names referenced in test asserts are authoritative in `schema-catalog.md`. If a test references a column not in the catalog, the catalog must be updated first.
+- Slice narrowness means fewer tables, not ad hoc columns inside a selected table. If the tracer bullet implements `mp.raw_api_payload`, the test surface assumes the full catalog-defined shape for that table.
 
 ---
 
@@ -42,7 +43,7 @@ Test philosophy (per `testing-standard.md` + AGENTS.md rule 11):
 **Why this slice**: touches every architectural seam once — schema creation (instance command), static `mp` datasource, config vars, secure HTTP, queue/worker, raw persistence, staging, canonical refresh, read contract. Smallest end-to-end path that falsifies or confirms the backbone shape. Per `investigation.md` §0.5.
 
 **Scope of tracer-bullet impl** (minimum to pass slice tests):
-- Instance command: `mp` schema + `raw_api_payload` + `stg_api_v1_licitacion` + `stg_job_run` + `licitacion` tables only.
+- Instance command: `mp` schema + `raw_api_payload` + `stg_api_v1_licitacion` + `stg_job_run` + `licitacion` tables only, but each selected table lands with its full `schema-catalog.md` shape.
 - Config: `MERCADO_PUBLICO_API_TICKET`, `MERCADO_PUBLICO_API_V1_BASE_URL`, `MERCADO_PUBLICO_HTTP_TIMEOUT_MS`, `MERCADO_PUBLICO_HTTP_MAX_RETRIES` (4 of 12).
 - Client: V1 Licitaciones by-date method only.
 - Job: by-date only.

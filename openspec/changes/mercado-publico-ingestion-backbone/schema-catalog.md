@@ -299,7 +299,7 @@ Source: `design.md:92`, `source-contract.md:260-287,391-404`, `test-design.md §
 | `source_dataset` | text | NOT NULL | — | `[inferred]` | 'oc' |
 | `source_period` | text | NOT NULL | — | `[inferred]` | |
 | `codigo` | text | NULL | — | `[doc]` source-contract.md:270 | OC header key, may repeat |
-| `id` | text | NULL | — | `[doc]` source-contract.md:271 | internal OC id, may repeat |
+| `source_id` | text | NULL | — | `[inferred]` source-contract.md:271 | raw CSV `ID` preserved without colliding with PK `id`; may repeat |
 | `iditem` | text | NULL | — | `[doc]` source-contract.md:272 | item key |
 | `codigo_licitacion` | text | NULL | — | `[doc]` source-contract.md:273 | nullable |
 | `fecha_envio` | text | NULL | — | `[doc]` source-contract.md:394 | raw string |
@@ -459,6 +459,7 @@ Source: `design.md:120`, `source-contract.md:446-461`.
 Constraints:
 - PK: `id`
 - UK: `(codigo_externo, codigoitem, rut_proveedor)` (`design.md:120`) — item segment nullable only if source proves process-level award
+- No FK currently declared to `mp.licitacion_item`; see `Known Deviations` for the current slice rationale.
 
 ### mp.orden_compra
 
@@ -877,7 +878,7 @@ Cross-reference from source API fields and CSV columns to canonical/staging colu
 | CSV column | Staging column | Canonical column | Source doc |
 | --- | --- | --- | --- |
 | `Codigo` | `stg_csv_orden_compra.codigo` | `orden_compra.codigo` | source-contract.md:270 |
-| `ID` | `stg_csv_orden_compra.id` | — (internal, not canonical key) | source-contract.md:271 |
+| `ID` | `stg_csv_orden_compra.source_id` | — (internal, not canonical key) | source-contract.md:271 |
 | `IDItem` | `stg_csv_orden_compra.iditem` | `orden_compra_item.iditem` | source-contract.md:272 |
 | `CodigoLicitacion` | `stg_csv_orden_compra.codigo_licitacion` | `orden_compra.codigo_licitacion` | source-contract.md:273 |
 | `FechaEnvio` | `stg_csv_orden_compra.fecha_envio` | `orden_compra.fecha_envio` (normalized) | source-contract.md:394 |
@@ -966,3 +967,13 @@ This catalog is the binding schema for Phase 2. During implementation:
 2. If a column type needs to change, update this catalog first, then write a new instance command (never edit committed commands).
 3. If a source field is discovered that is not mapped here, add it with `[inferred]` or `[new]` provenance and update the Source→Column mapping index.
 4. Phase 5 closeout will promote this catalog to `docs/architecture/` if the implementation confirms the schema.
+
+### Known Deviations
+
+- `raw_api_payload.ingestion_job_id`, `raw_csv_file.ingestion_job_id`, and `raw_csv_row.ingestion_job_id` are cataloged with FKs to `mp.stg_job_run(id)`, but those constraints land in task 2.6 when `stg_job_run` is created. The implementation uses that later slice to avoid circular dependency during task ordering.
+- `licitacion.buyer_code` FK to `mp.public_buyer(codigo_organismo)` is deferred until the `public_buyer` table has an implementation slice. Task 2.9 creates the canonical licitacion tables without that FK to preserve task order and avoid inventing out-of-scope tables.
+- `mp.public_supplier` is cataloged as a target-state canonical reference table, but no implementation slice creates it in tasks 2.4-2.14. Current canonical objects preserve supplier raw fields without introducing that table mid-slice.
+- `mp.estado_dim` is cataloged as a target-state normalization dimension, but no implementation slice creates or seeds it in tasks 2.4-2.14. Current canonical objects therefore retain raw state fields without a physical dimension table yet.
+- `mp.modalidad_dim` is cataloged as a target-state normalization dimension, but no implementation slice creates or seeds it in tasks 2.4-2.14. Current canonical objects therefore retain raw modality fields without a physical dimension table yet.
+- `mp.licitacion_adjudicacion` currently has no FK to `mp.licitacion_item(codigo_externo, codigoitem)`. The current slice preserves the documented natural key while `codigoitem` remains nullable for process-level awards; item-link enforcement needs a follow-up design decision rather than an implicit FK added mid-slice.
+- Module implemented at `src/engine/core-modules/mercado-publico/` (registered in `core-engine.module.ts` and `jobs.module.ts`), not at `src/modules/mercado-publico/` as `design.md` §Architecture and `investigation.md` §0.2 state. The investigation explicitly argued against the `core-modules/` location; implementation reversed that decision without updating design docs. This catalog and `design.md` should be reconciled when the module location is finalized.

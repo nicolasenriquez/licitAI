@@ -32,3 +32,4 @@ Skills I use daily for code work.
 - **[openspec-archive-change](./openspec-archive-change.md)** — Archive a completed change after implementation.
 - **[openspec-explore](./openspec-explore.md)** — Enter explore mode for thinking through ideas and clarifying requirements.
 - **[openspec-sync-specs](./openspec-sync-specs.md)** — Sync delta specs from a change to main specs.
+- **[opsx-spec-workflow](./opsx-spec-workflow.md)** — Orquesta una spec OpenSpec hasta _implementation-ready_ validando el orden cronológico de tareas (`## Execution Order` + checkpoints) para que `/execute` no pueda agrupar tasks fuera de secuencia.
