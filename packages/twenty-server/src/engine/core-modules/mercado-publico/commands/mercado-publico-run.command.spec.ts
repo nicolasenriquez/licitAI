@@ -13,12 +13,12 @@ describe('MercadoPublicoRunCommand', () => {
     expect(command.parseJobName('api-v1-licitaciones-by-date')).toBe(
       'api-v1-licitaciones-by-date',
     );
+    expect(command.parseJobName('csv-staging-projection')).toBe(
+      'csv-staging-projection',
+    );
   });
 
-  it('rejects unimplemented csv and reconciliation job names', () => {
-    expect(() => command.parseJobName('csv-raw-load')).toThrow(
-      'Unsupported Mercado Publico job "csv-raw-load"',
-    );
+  it('rejects unimplemented reconciliation job names', () => {
     expect(() => command.parseJobName('reconciliation-refresh')).toThrow(
       'Unsupported Mercado Publico job "reconciliation-refresh"',
     );
@@ -33,7 +33,8 @@ describe('MercadoPublicoRunCommand', () => {
     expect(optionMetadata.description).toContain(
       MERCADO_PUBLICO_SUPPORTED_JOB_NAMES_TEXT,
     );
-    expect(optionMetadata.description).not.toContain('csv-raw-load');
+    expect(optionMetadata.description).toContain('csv-staging-projection');
+    expect(optionMetadata.description).toContain('csv-canonical-refresh');
     expect(optionMetadata.description).not.toContain('reconciliation-refresh');
   });
 });

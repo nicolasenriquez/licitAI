@@ -588,9 +588,11 @@ export class MercadoPublicoCanonicalRefreshService {
           codigoitem,
           nombre_producto_generico,
           cantidad
-        FROM mp.stg_csv_licitacion
-        WHERE raw_csv_file_id = $1
-        ORDER BY codigo_externo, codigoitem, id DESC
+        FROM mp.stg_csv_licitacion stg
+        INNER JOIN mp.raw_csv_row raw_row
+          ON raw_row.id = stg.raw_csv_row_id
+        WHERE raw_row.raw_csv_file_id = $1
+        ORDER BY codigo_externo, codigoitem, raw_row.row_number DESC, stg.created_at DESC, stg.id DESC
       `,
       [rawCsvFileId],
     );
@@ -613,9 +615,11 @@ export class MercadoPublicoCanonicalRefreshService {
           cantidad_ofertada,
           valor_total_ofertado,
           oferta_seleccionada
-        FROM mp.stg_csv_licitacion
-        WHERE raw_csv_file_id = $1
-        ORDER BY codigo_externo, codigoitem, codigo_proveedor, nombre_de_la_oferta, id DESC
+        FROM mp.stg_csv_licitacion stg
+        INNER JOIN mp.raw_csv_row raw_row
+          ON raw_row.id = stg.raw_csv_row_id
+        WHERE raw_row.raw_csv_file_id = $1
+        ORDER BY codigo_externo, codigoitem, codigo_proveedor, nombre_de_la_oferta, raw_row.row_number DESC, stg.created_at DESC, stg.id DESC
       `,
       [rawCsvFileId],
     );
@@ -636,9 +640,11 @@ export class MercadoPublicoCanonicalRefreshService {
           rut_proveedor,
           cantidad_adjudicada,
           monto_estimado_adjudicado
-        FROM mp.stg_csv_licitacion
-        WHERE raw_csv_file_id = $1
-        ORDER BY codigo_externo, codigoitem, rut_proveedor, id DESC
+        FROM mp.stg_csv_licitacion stg
+        INNER JOIN mp.raw_csv_row raw_row
+          ON raw_row.id = stg.raw_csv_row_id
+        WHERE raw_row.raw_csv_file_id = $1
+        ORDER BY codigo_externo, codigoitem, rut_proveedor, raw_row.row_number DESC, stg.created_at DESC, stg.id DESC
       `,
       [rawCsvFileId],
     );
@@ -807,9 +813,11 @@ export class MercadoPublicoCanonicalRefreshService {
           total_linea_neto,
           codigo_producto_onu,
           forma_de_pago
-        FROM mp.stg_csv_orden_compra
-        WHERE raw_csv_file_id = $1
-        ORDER BY iditem, id DESC
+        FROM mp.stg_csv_orden_compra stg
+        INNER JOIN mp.raw_csv_row raw_row
+          ON raw_row.id = stg.raw_csv_row_id
+        WHERE raw_row.raw_csv_file_id = $1
+        ORDER BY iditem, raw_row.row_number DESC, stg.created_at DESC, stg.id DESC
       `,
       [rawCsvFileId],
     );

@@ -166,27 +166,30 @@ Use dependency/risk order above instead of assuming numeric adjacency within Pha
   Footnote: Use `orden_compra.id_orden_compra` and `id_oc` as the exact OC linkage signals when present.
   Status: Done. Service mirrors V1 OC detail-by-codigo (3.11). Calls client.getByCodigo which already preseserves OC linkage fields from 3.12. parsePayload requires non-empty codigo. Soft miss via recordsFetched===0 finalizes success with recordsFailed=1, no throw. Reuses persistV2CompraAgilSnapshot + refreshV2CompraAgilFromApiSnapshot stubs. Orchestrator dispatch wired. Unit spec: 7 tests pass.
 
-- [ ] 3.16: Implement CSV download, checksum, and decompression handling.
+- [x] 3.16: Implement CSV download, checksum, and decompression handling.
   Footnote: File acquisition must stay auditable before any parsing decisions are applied.
 
-- [ ] 3.17: Implement CSV profiling for encoding, delimiter, quotechar, header capture, and schema fingerprinting.
+- [x] 3.17: Implement CSV profiling for encoding, delimiter, quotechar, header capture, and schema fingerprinting.
   Footnote: Do not assume UTF-8 or `;` without runtime detection, even if June 2026 fixtures observe them.
 
-- [ ] 3.18: Implement raw CSV row loading for ordenes de compra files.
+- [x] 3.18: Implement raw CSV row loading for ordenes de compra files.
   Footnote: Preserve unknown columns and observed row grain exactly as received.
 
-- [ ] 3.19: Implement raw CSV row loading for licitaciones files.
-  Footnote: Preserve unknown columns and observed row grain exactly as received.
+- [x] 3.19: Implement raw CSV row loading for licitaciones files.
+   Footnote: Preserve unknown columns and observed row grain exactly as received.
+   Status: Done. Dataset-agnostic raw-load service (from 3.18) verified against licitaciones fixtures: latin-1, 110-col header, repeated CodigoExterno across Codigoitem + supplier/offer grain, raw Oferta seleccionada preserved. 13 test cases pass in mercado-publico-csv-raw-load-licitaciones.spec.ts. No service/orchestrator/constants edit needed — shared service already handles both datasets.
 
 - [x] 3.20: Implement API snapshot staging projections.
   Footnote: Keep list and detail staging distinct enough to preserve source behavior.
   Status: Done. V1 licitaciones + V1 OC staging already implemented in prior slices. V2 Compra Agil staging projection now complete: insertV2CompraAgilStagingRows writes to mp.stg_api_v2_compra_agil per schema-catalog.md columns. Staging fields include codigo, estado, id_orden_compra, id_oc, codigo_orden_compra + date windows. No region in staging (not in catalog binding). persistence spec: 3 tests pass (V1 licitaciones, V1 OC, V2 Compra Agil).
 
-- [ ] 3.21: Implement CSV OC staging projections.
-  Footnote: Preserve the observed OC item grain and exact raw column names needed for traceability.
+- [x] 3.21: Implement CSV OC staging projections.
+   Footnote: Preserve the observed OC item grain and exact raw column names needed for traceability.
+   Status: Done. Added `MercadoPublicoCsvStagingProjectionService` with dataset-aware dispatcher. `projectStagingRow` util maps column names from `observed_columns` to staging positions. 3 new persistence methods: `insertStgCsvOrdenCompraRows` (batch INSERT into mp.stg_csv_orden_compra, 25 cols), `insertStgCsvLicitacionRows` (batch INSERT into mp.stg_csv_licitacion, 23 cols), `getRawCsvRowsByFileId` (reads success-only rows). `getRawCsvFileObservedColumns` added for column-name lookup. `csv-canonical-refresh` job registered in constants + orchestrator + module. Plain INSERT (no ON CONFLICT) matches API staging pattern. 19 tests pass (9 unit + 7 integration + 3 run-command). Empty CSV values → null in staging. Unknown columns → `all_observed_fields` jsonb. No schema changes.
 
-- [ ] 3.22: Implement CSV licitacion staging projections.
-  Footnote: Preserve the observed licitacion item/supplier/offer grain and exact raw column names needed for traceability.
+- [x] 3.22: Implement CSV licitacion staging projections.
+   Footnote: Preserve the observed licitacion item/supplier/offer grain and exact raw column names needed for traceability.
+   Status: Done. Same service dispatches by `source_dataset`. `LICITACIONES_STAGING_COLUMN_MAP` maps 18 observed column names to staging columns. Repeated `CodigoExterno` + `Codigoitem` rows all accepted (no UK). `Oferta seleccionada` preserved raw. Column→index mapping driven by `observed_columns`. Integration spec verifies item+supplier/offer grain.
 
 - [x] 3.23: Implement canonical refresh for licitaciones and licitacion items/offers/adjudicaciones.
   Footnote: Normalize defensively, preserve raw values, and accept repeated raw business keys before canonical dedupe.
@@ -200,7 +203,7 @@ Use dependency/risk order above instead of assuming numeric adjacency within Pha
   Footnote: Preserve explicit OC linkage and keep optional fields optional unless fixtures prove otherwise.
   Status: Done. Real impl of refreshV2CompraAgilFromApiSnapshot mirrors V1 OC pattern. SELECT DISTINCT ON(codigo) from mp.stg_api_v2_compra_agil → UPSERT into mp.compra_agil with non-null-over-null COALESCE protection. OC linkage fields (id_orden_compra, id_oc, codigo_orden_compra) preserved. region passed as null (not in staging columns yet; 3.20 adds). mp.compra_agil_producto_solicitado and mp.compra_agil_cotizacion deferred (no staging source). Unit spec: 2 new V2 cases added to existing canonical-refresh spec (4 total).
 
-- [ ] 3.26: Implement CSV scalar normalization and sentinel/null handling utilities.
+- [x] 3.26: Implement CSV scalar normalization and sentinel/null handling utilities.
   Footnote: Cover comma decimals, `NA`/blank values, and `1900-01-01` without mutating raw storage.
 
 - [ ] 3.27: Implement non-null-over-null protection and idempotent canonical rerun behavior.

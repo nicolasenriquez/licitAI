@@ -5,7 +5,7 @@ import { isNonEmptyString } from '@sniptt/guards';
 import {
   MercadoPublicoApiV2CompraAgilClientService,
 } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
-import { classifyHttpFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
+import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
@@ -125,7 +125,7 @@ export class MercadoPublicoApiV2CompraAgilDetailByCodigoService {
         throw error;
       }
 
-      const errorSummary = classifyHttpFailure(error);
+      const errorSummary = classifyFailure(error);
       const errorSummaryText =
         buildMercadoPublicoUnexpectedErrorSummaryText(errorSummary, error);
 

@@ -87,6 +87,135 @@ type PersistMercadoPublicoV2CompraAgilSnapshotResult = {
   recordsCanonicalized: number;
 };
 
+type PersistMercadoPublicoCsvDownloadInput = {
+  jobRunRecordId: string;
+  sourceSystem: string;
+  sourceDataset: string;
+  sourceUrl: string;
+  sourceFileName: string;
+  sourcePeriod: string;
+  sourceModality?: string;
+  fileChecksum: string;
+  fileSizeBytes: number;
+  compressionType: string | null;
+};
+
+type PersistMercadoPublicoCsvDownloadResult = {
+  rawCsvFileId: string;
+  deduped: boolean;
+};
+
+type RawCsvFileRow = {
+  id: string;
+  source_system: string;
+  source_dataset: string;
+  source_url: string;
+  source_file_name: string;
+  source_period: string;
+  source_modality: string | null;
+  file_checksum: string;
+  file_size_bytes: number;
+  compression_type: string | null;
+};
+
+type UpdateCsvFileProfilingInput = {
+  rawCsvFileId: string;
+  detectedEncoding: string;
+  detectedDelimiter: string;
+  quotechar: string | null;
+  headerRaw: string;
+  observedColumns: string[];
+  columnCount: number;
+  schemaFingerprint: string;
+  rowCount: number;
+};
+
+type RawCsvFileMeta = {
+  id: string;
+  source_dataset: string;
+  source_period: string;
+  source_modality: string | null;
+  source_file_name: string;
+  detected_encoding: string;
+  detected_delimiter: string;
+  quotechar: string | null;
+};
+
+type InsertRawCsvRowInput = {
+  rawCsvFileId: string;
+  ingestionJobId: string;
+  sourceDataset: string;
+  sourceFileName: string;
+  sourcePeriod: string;
+  rowNumber: number;
+  rawRowText: string;
+  rawRowJson: unknown;
+  rowChecksum: string;
+  parseStatus: 'success' | 'error';
+  parseError: string | null;
+};
+
+type InsertStgCsvOrdenCompraRowInput = {
+  rawCsvRowId: string;
+  sourceDataset: string;
+  sourcePeriod: string;
+  codigo: string | null;
+  sourceId: string | null;
+  iditem: string | null;
+  codigoLicitacion: string | null;
+  fechaEnvio: string | null;
+  estado: string | null;
+  descripcionTipoOc: string | null;
+  codigoAbreviadoTipoOc: string | null;
+  codigoTipo: string | null;
+  tipoMonedaOc: string | null;
+  montoTotalOcPesosChilenos: string | null;
+  impuestosOc: string | null;
+  unidadCompra: string | null;
+  nombreProveedor: string | null;
+  codigoProductoOnu: string | null;
+  totalLineaNeto: string | null;
+  esCompraAgil: string | null;
+  esTratoDirecto: string | null;
+  formaDePago: string | null;
+  codigoConvenioMarco: string | null;
+  allObservedFields: unknown;
+};
+
+type InsertStgCsvLicitacionRowInput = {
+  rawCsvRowId: string;
+  sourceDataset: string;
+  sourcePeriod: string;
+  codigoExterno: string | null;
+  codigo: string | null;
+  codigoitem: string | null;
+  codigoProveedor: string | null;
+  rutProveedor: string | null;
+  nombreDeLaOferta: string | null;
+  estadoOferta: string | null;
+  ofertaSeleccionada: string | null;
+  cantidadOfertada: string | null;
+  valorTotalOfertado: string | null;
+  tipoDeAdquisicion: string | null;
+  fechaPublicacion: string | null;
+  fechaAdjudicacion: string | null;
+  estado: string | null;
+  nombreUnidad: string | null;
+  nombreProductoGenerico: string | null;
+  cantidadAdjudicada: string | null;
+  montoEstimadoAdjudicado: string | null;
+  allObservedFields: unknown;
+};
+
+type RawCsvRowForStaging = {
+  id: string;
+  row_number: number;
+  raw_row_json: string[] | null;
+  parse_status: string;
+};
+
+const STAGING_INSERT_BATCH_SIZE = 500;
+
 @Injectable()
 export class MercadoPublicoPersistenceService {
   constructor(
@@ -313,7 +442,15 @@ export class MercadoPublicoPersistenceService {
     apiResponse: MercadoPublicoApiV1LicitacionesByDateResponse,
     snapshotKind: SnapshotKind,
   ): Promise<void> {
-    for (const licitacion of apiResponse.licitaciones) {
+    const placeholders: string[] = [];
+    const params: unknown[] = [];
+    let paramIndex = 1;
+
+    const flushBatch = async () => {
+      if (placeholders.length === 0) {
+        return;
+      }
+
       await entityManager.query(
         `
           INSERT INTO mp.stg_api_v1_licitacion (
@@ -333,43 +470,45 @@ export class MercadoPublicoPersistenceService {
             nombre_organismo,
             fetched_at
           )
-          VALUES (
-            $1,
-            $2,
-            $3,
-            $4,
-            $5,
-            $6,
-            $7,
-            $8,
-            $9,
-            $10,
-            $11,
-            $12,
-            $13,
-            $14,
-            $15
-          )
+          VALUES ${placeholders.join(', ')}
         `,
-        [
-          rawApiPayloadId,
-          apiResponse.source,
-          snapshotKind,
-          coerceToNullableString(licitacion.CodigoExterno),
-          coerceToNullableString(licitacion.Codigo),
-          coerceToNullableString(licitacion.CodigoEstado),
-          coerceToNullableString(licitacion.Estado),
-          coerceToNullableString(licitacion.CodigoTipo),
-          coerceToNullableString(licitacion.Nombre),
-          coerceToNullableString(licitacion.FechaPublicacion),
-          coerceToNullableString(licitacion.FechaCierre),
-          coerceToNullableString(licitacion.FechaAdjudicacion),
-          coerceToNullableString(licitacion.CodigoOrganismo),
-          coerceToNullableString(licitacion.NombreOrganismo),
-          apiResponse.fetchedAt,
-        ],
+        params,
       );
+
+      placeholders.length = 0;
+      params.length = 0;
+      paramIndex = 1;
+    };
+
+    for (const licitacion of apiResponse.licitaciones) {
+      placeholders.push(
+        `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12}, $${paramIndex + 13}, $${paramIndex + 14})`,
+      );
+      params.push(
+        rawApiPayloadId,
+        apiResponse.source,
+        snapshotKind,
+        coerceToNullableString(licitacion.CodigoExterno),
+        coerceToNullableString(licitacion.Codigo),
+        coerceToNullableString(licitacion.CodigoEstado),
+        coerceToNullableString(licitacion.Estado),
+        coerceToNullableString(licitacion.CodigoTipo),
+        coerceToNullableString(licitacion.Nombre),
+        coerceToNullableString(licitacion.FechaPublicacion),
+        coerceToNullableString(licitacion.FechaCierre),
+        coerceToNullableString(licitacion.FechaAdjudicacion),
+        coerceToNullableString(licitacion.CodigoOrganismo),
+        coerceToNullableString(licitacion.NombreOrganismo),
+        apiResponse.fetchedAt,
+      );
+      paramIndex += 15;
+
+      if (placeholders.length >= STAGING_INSERT_BATCH_SIZE) {
+        await flushBatch();
+      }
     }
+
+    await flushBatch();
   }
 
   async persistV1OrdenesDeCompraSnapshot(
@@ -412,7 +551,15 @@ export class MercadoPublicoPersistenceService {
     apiResponse: MercadoPublicoApiV1OcByDateResponse,
     snapshotKind: SnapshotKind,
   ): Promise<void> {
-    for (const oc of apiResponse.ordenesDeCompra) {
+    const placeholders: string[] = [];
+    const params: unknown[] = [];
+    let paramIndex = 1;
+
+    const flushBatch = async () => {
+      if (placeholders.length === 0) {
+        return;
+      }
+
       await entityManager.query(
         `
           INSERT INTO mp.stg_api_v1_orden_compra (
@@ -430,39 +577,43 @@ export class MercadoPublicoPersistenceService {
             nombre_proveedor,
             fetched_at
           )
-          VALUES (
-            $1,
-            $2,
-            $3,
-            $4,
-            $5,
-            $6,
-            $7,
-            $8,
-            $9,
-            $10,
-            $11,
-            $12,
-            $13
-          )
+          VALUES ${placeholders.join(', ')}
         `,
-        [
-          rawApiPayloadId,
-          apiResponse.source,
-          snapshotKind,
-          coerceToNullableString(oc.Codigo),
-          coerceToNullableString(oc.CodigoEstado),
-          coerceToNullableString(oc.Estado),
-          coerceToNullableString(oc.EstadoProveedor),
-          coerceToNullableString(oc.CodigoLicitacion),
-          coerceToNullableString(oc.FechaEnvio),
-          coerceToNullableString(oc.MontoTotalOC),
-          coerceToNullableString(oc.TipoMonedaOC),
-          coerceToNullableString(oc.NombreProveedor),
-          apiResponse.fetchedAt,
-        ],
+        params,
       );
+
+      placeholders.length = 0;
+      params.length = 0;
+      paramIndex = 1;
+    };
+
+    for (const oc of apiResponse.ordenesDeCompra) {
+      placeholders.push(
+        `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12})`,
+      );
+      params.push(
+        rawApiPayloadId,
+        apiResponse.source,
+        snapshotKind,
+        coerceToNullableString(oc.Codigo),
+        coerceToNullableString(oc.CodigoEstado),
+        coerceToNullableString(oc.Estado),
+        coerceToNullableString(oc.EstadoProveedor),
+        coerceToNullableString(oc.CodigoLicitacion),
+        coerceToNullableString(oc.FechaEnvio),
+        coerceToNullableString(oc.MontoTotalOC),
+        coerceToNullableString(oc.TipoMonedaOC),
+        coerceToNullableString(oc.NombreProveedor),
+        apiResponse.fetchedAt,
+      );
+      paramIndex += 13;
+
+      if (placeholders.length >= STAGING_INSERT_BATCH_SIZE) {
+        await flushBatch();
+      }
     }
+
+    await flushBatch();
   }
 
   async persistV2CompraAgilSnapshot(
@@ -505,8 +656,14 @@ export class MercadoPublicoPersistenceService {
     apiResponse: MercadoPublicoApiV2CompraAgilListResponse,
     snapshotKind: SnapshotKind,
   ): Promise<void> {
-    for (const compraAgilItem of apiResponse.compraAgil) {
-      const ordenCompra = compraAgilItem.orden_compra;
+    const placeholders: string[] = [];
+    const params: unknown[] = [];
+    let paramIndex = 1;
+
+    const flushBatch = async () => {
+      if (placeholders.length === 0) {
+        return;
+      }
 
       await entityManager.query(
         `
@@ -525,6 +682,76 @@ export class MercadoPublicoPersistenceService {
             cambio_hasta,
             fetched_at
           )
+          VALUES ${placeholders.join(', ')}
+        `,
+        params,
+      );
+
+      placeholders.length = 0;
+      params.length = 0;
+      paramIndex = 1;
+    };
+
+    for (const compraAgilItem of apiResponse.compraAgil) {
+      const ordenCompra = compraAgilItem.orden_compra;
+
+      placeholders.push(
+        `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12})`,
+      );
+      params.push(
+        rawApiPayloadId,
+        apiResponse.source,
+        snapshotKind,
+        coerceToNullableString(compraAgilItem.codigo),
+        coerceToNullableString(compraAgilItem.estado),
+        coerceToNullableString(ordenCompra?.id_orden_compra),
+        coerceToNullableString(ordenCompra?.id_oc),
+        coerceToNullableString(ordenCompra?.codigo_orden_compra),
+        coerceToNullableString(compraAgilItem.publicado_desde),
+        coerceToNullableString(compraAgilItem.publicado_hasta),
+        coerceToNullableString(compraAgilItem.cambio_desde),
+        coerceToNullableString(compraAgilItem.cambio_hasta),
+        apiResponse.fetchedAt,
+      );
+      paramIndex += 13;
+
+      if (placeholders.length >= STAGING_INSERT_BATCH_SIZE) {
+        await flushBatch();
+      }
+    }
+
+    await flushBatch();
+  }
+
+  async persistCsvDownload(
+    input: PersistMercadoPublicoCsvDownloadInput,
+  ): Promise<PersistMercadoPublicoCsvDownloadResult> {
+    const now = new Date();
+
+    return this.coreDataSource.transaction(async (entityManager) => {
+      const insertedRows = await entityManager.query<{ id: string }[]>(
+        `
+          INSERT INTO mp.raw_csv_file (
+            source_system,
+            source_dataset,
+            source_url,
+            source_file_name,
+            source_period,
+            source_modality,
+            downloaded_at,
+            file_checksum,
+            file_size_bytes,
+            compression_type,
+            ingestion_job_id,
+            detected_encoding,
+            detected_delimiter,
+            quotechar,
+            header_raw,
+            observed_columns,
+            column_count,
+            schema_fingerprint,
+            row_count
+          )
           VALUES (
             $1,
             $2,
@@ -537,26 +764,430 @@ export class MercadoPublicoPersistenceService {
             $9,
             $10,
             $11,
-            $12,
-            $13
+            'latin-1',
+            ';',
+            NULL,
+            '',
+            '[]'::jsonb,
+            0,
+            '',
+            0
           )
+          ON CONFLICT (source_dataset, source_period, source_modality, file_checksum) DO NOTHING
+          RETURNING id
         `,
         [
-          rawApiPayloadId,
-          apiResponse.source,
-          snapshotKind,
-          coerceToNullableString(compraAgilItem.codigo),
-          coerceToNullableString(compraAgilItem.estado),
-          coerceToNullableString(ordenCompra?.id_orden_compra),
-          coerceToNullableString(ordenCompra?.id_oc),
-          coerceToNullableString(ordenCompra?.codigo_orden_compra),
-          coerceToNullableString(compraAgilItem.publicado_desde),
-          coerceToNullableString(compraAgilItem.publicado_hasta),
-          coerceToNullableString(compraAgilItem.cambio_desde),
-          coerceToNullableString(compraAgilItem.cambio_hasta),
-          apiResponse.fetchedAt,
+          input.sourceSystem,
+          input.sourceDataset,
+          input.sourceUrl,
+          input.sourceFileName,
+          input.sourcePeriod,
+          input.sourceModality ?? null,
+          now,
+          input.fileChecksum,
+          input.fileSizeBytes,
+          input.compressionType,
+          input.jobRunRecordId,
         ],
       );
+
+      if (insertedRows.length > 0) {
+        return { rawCsvFileId: insertedRows[0].id, deduped: false };
+      }
+
+      const existingRows = await entityManager.query<{ id: string }[]>(
+        `
+          SELECT id
+          FROM mp.raw_csv_file
+          WHERE
+            source_dataset = $1
+            AND source_period = $2
+            AND source_modality IS NOT DISTINCT FROM $3
+            AND file_checksum = $4
+          LIMIT 1
+        `,
+        [input.sourceDataset, input.sourcePeriod, input.sourceModality ?? null, input.fileChecksum],
+      );
+
+      return { rawCsvFileId: existingRows[0].id, deduped: true };
+    });
+  }
+
+  async getRawCsvFileById(rawCsvFileId: string): Promise<RawCsvFileRow | null> {
+    const rows = await this.coreDataSource.query<RawCsvFileRow[]>(
+      `
+        SELECT
+          id,
+          source_system,
+          source_dataset,
+          source_url,
+          source_file_name,
+          source_period,
+          source_modality,
+          file_checksum,
+          file_size_bytes,
+          compression_type
+        FROM mp.raw_csv_file
+        WHERE id = $1
+      `,
+      [rawCsvFileId],
+    );
+
+    if (rows.length === 0) {
+      return null;
     }
+
+    return rows[0];
+  }
+
+  async updateCsvFileProfiling(
+    input: UpdateCsvFileProfilingInput,
+  ): Promise<void> {
+    await this.coreDataSource.query(
+      `
+        UPDATE mp.raw_csv_file
+        SET
+          detected_encoding = $2,
+          detected_delimiter = $3,
+          quotechar = $4,
+          header_raw = $5,
+          observed_columns = $6::jsonb,
+          column_count = $7,
+          schema_fingerprint = $8,
+          row_count = $9
+        WHERE id = $1
+      `,
+      [
+        input.rawCsvFileId,
+        input.detectedEncoding,
+        input.detectedDelimiter,
+        input.quotechar,
+        input.headerRaw,
+        JSON.stringify(input.observedColumns),
+        input.columnCount,
+        input.schemaFingerprint,
+        input.rowCount,
+      ],
+    );
+  }
+
+  async getRawCsvFileMetaById(
+    rawCsvFileId: string,
+  ): Promise<RawCsvFileMeta | null> {
+    const rows = await this.coreDataSource.query<RawCsvFileMeta[]>(
+      `
+        SELECT
+          id,
+          source_dataset,
+          source_period,
+          source_modality,
+          source_file_name,
+          detected_encoding,
+          detected_delimiter,
+          quotechar
+        FROM mp.raw_csv_file
+        WHERE id = $1
+      `,
+      [rawCsvFileId],
+    );
+
+    if (rows.length === 0) {
+      return null;
+    }
+
+    return rows[0];
+  }
+
+  async insertRawCsvRows(
+    input: { rows: InsertRawCsvRowInput[] },
+  ): Promise<void> {
+    if (input.rows.length === 0) {
+      return;
+    }
+
+    const placeholders: string[] = [];
+    const params: unknown[] = [];
+    let paramIndex = 1;
+
+    for (const row of input.rows) {
+      placeholders.push(
+        `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}::jsonb, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10})`,
+      );
+      params.push(
+        row.rawCsvFileId,
+        row.ingestionJobId,
+        row.sourceDataset,
+        row.sourceFileName,
+        row.sourcePeriod,
+        row.rowNumber,
+        row.rawRowText,
+        row.rawRowJson ? JSON.stringify(row.rawRowJson) : null,
+        row.rowChecksum,
+        row.parseStatus,
+        row.parseError,
+      );
+      paramIndex += 11;
+    }
+
+    await this.coreDataSource.query(
+      `
+        INSERT INTO mp.raw_csv_row (
+          raw_csv_file_id,
+          ingestion_job_id,
+          source_dataset,
+          source_file_name,
+          source_period,
+          row_number,
+          raw_row_text,
+          raw_row_json,
+          row_checksum,
+          parse_status,
+          parse_error
+        )
+        VALUES ${placeholders.join(', ')}
+        ON CONFLICT (raw_csv_file_id, row_number, row_checksum) DO NOTHING
+      `,
+      params,
+    );
+  }
+
+  async insertStgCsvOrdenCompraRows(
+    input: { rows: InsertStgCsvOrdenCompraRowInput[] },
+  ): Promise<void> {
+    if (input.rows.length === 0) {
+      return;
+    }
+
+    const placeholders: string[] = [];
+    const params: unknown[] = [];
+    let paramIndex = 1;
+
+    for (const row of input.rows) {
+      placeholders.push(
+        `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12}, $${paramIndex + 13}, $${paramIndex + 14}, $${paramIndex + 15}, $${paramIndex + 16}, $${paramIndex + 17}, $${paramIndex + 18}, $${paramIndex + 19}, $${paramIndex + 20}, $${paramIndex + 21}, $${paramIndex + 22}, $${paramIndex + 23})`,
+      );
+      params.push(
+        row.rawCsvRowId,
+        row.sourceDataset,
+        row.sourcePeriod,
+        row.codigo,
+        row.sourceId,
+        row.iditem,
+        row.codigoLicitacion,
+        row.fechaEnvio,
+        row.estado,
+        row.descripcionTipoOc,
+        row.codigoAbreviadoTipoOc,
+        row.codigoTipo,
+        row.tipoMonedaOc,
+        row.montoTotalOcPesosChilenos,
+        row.impuestosOc,
+        row.unidadCompra,
+        row.nombreProveedor,
+        row.codigoProductoOnu,
+        row.totalLineaNeto,
+        row.esCompraAgil,
+        row.esTratoDirecto,
+        row.formaDePago,
+        row.codigoConvenioMarco,
+        row.allObservedFields ? JSON.stringify(row.allObservedFields) : null,
+      );
+      paramIndex += 24;
+    }
+
+    await this.coreDataSource.query(
+      `
+        INSERT INTO mp.stg_csv_orden_compra (
+          raw_csv_row_id,
+          source_dataset,
+          source_period,
+          codigo,
+          source_id,
+          iditem,
+          codigo_licitacion,
+          fecha_envio,
+          estado,
+          descripcion_tipo_oc,
+          codigo_abreviado_tipo_oc,
+          codigo_tipo,
+          tipo_moneda_oc,
+          monto_total_oc_pesos_chilenos,
+          impuestos_oc,
+          unidad_compra,
+          nombre_proveedor,
+          codigo_producto_onu,
+          total_linea_neto,
+          es_compra_agil,
+          es_trato_directo,
+          forma_de_pago,
+          codigo_convenio_marco,
+          all_observed_fields
+        )
+        VALUES ${placeholders.join(', ')}
+      `,
+      params,
+    );
+  }
+
+  async insertStgCsvLicitacionRows(
+    input: { rows: InsertStgCsvLicitacionRowInput[] },
+  ): Promise<void> {
+    if (input.rows.length === 0) {
+      return;
+    }
+
+    const placeholders: string[] = [];
+    const params: unknown[] = [];
+    let paramIndex = 1;
+
+    for (const row of input.rows) {
+      placeholders.push(
+        `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12}, $${paramIndex + 13}, $${paramIndex + 14}, $${paramIndex + 15}, $${paramIndex + 16}, $${paramIndex + 17}, $${paramIndex + 18}, $${paramIndex + 19}, $${paramIndex + 20}, $${paramIndex + 21})`,
+      );
+      params.push(
+        row.rawCsvRowId,
+        row.sourceDataset,
+        row.sourcePeriod,
+        row.codigoExterno,
+        row.codigo,
+        row.codigoitem,
+        row.codigoProveedor,
+        row.rutProveedor,
+        row.nombreDeLaOferta,
+        row.estadoOferta,
+        row.ofertaSeleccionada,
+        row.cantidadOfertada,
+        row.valorTotalOfertado,
+        row.tipoDeAdquisicion,
+        row.fechaPublicacion,
+        row.fechaAdjudicacion,
+        row.estado,
+        row.nombreUnidad,
+        row.nombreProductoGenerico,
+        row.cantidadAdjudicada,
+        row.montoEstimadoAdjudicado,
+        row.allObservedFields ? JSON.stringify(row.allObservedFields) : null,
+      );
+      paramIndex += 22;
+    }
+
+    await this.coreDataSource.query(
+      `
+        INSERT INTO mp.stg_csv_licitacion (
+          raw_csv_row_id,
+          source_dataset,
+          source_period,
+          codigo_externo,
+          codigo,
+          codigoitem,
+          codigo_proveedor,
+          rut_proveedor,
+          nombre_de_la_oferta,
+          estado_oferta,
+          oferta_seleccionada,
+          cantidad_ofertada,
+          valor_total_ofertado,
+          tipo_de_adquisicion,
+          fecha_publicacion,
+          fecha_adjudicacion,
+          estado,
+          nombre_unidad,
+          nombre_producto_generico,
+          cantidad_adjudicada,
+          monto_estimado_adjudicado,
+          all_observed_fields
+        )
+        VALUES ${placeholders.join(', ')}
+      `,
+      params,
+    );
+  }
+
+  async deleteStgCsvOrdenCompraRowsByRawFileId(
+    rawCsvFileId: string,
+  ): Promise<void> {
+    await this.coreDataSource.query(
+      `
+        DELETE FROM mp.stg_csv_orden_compra
+        WHERE raw_csv_row_id IN (
+          SELECT id FROM mp.raw_csv_row WHERE raw_csv_file_id = $1
+        )
+      `,
+      [rawCsvFileId],
+    );
+  }
+
+  async deleteStgCsvLicitacionRowsByRawFileId(
+    rawCsvFileId: string,
+  ): Promise<void> {
+    await this.coreDataSource.query(
+      `
+        DELETE FROM mp.stg_csv_licitacion
+        WHERE raw_csv_row_id IN (
+          SELECT id FROM mp.raw_csv_row WHERE raw_csv_file_id = $1
+        )
+      `,
+      [rawCsvFileId],
+    );
+  }
+
+  async getRawCsvFileObservedColumns(
+    rawCsvFileId: string,
+  ): Promise<string[]> {
+    const rows = await this.coreDataSource.query<{ observed_columns: string[] }[]>(
+      `
+        SELECT observed_columns
+        FROM mp.raw_csv_file
+        WHERE id = $1
+      `,
+      [rawCsvFileId],
+    );
+
+    if (rows.length === 0) {
+      return [];
+    }
+
+    const columns = rows[0]?.observed_columns;
+
+    return Array.isArray(columns) ? columns : [];
+  }
+
+  async countRawCsvRowsByFileId(
+    rawCsvFileId: string,
+  ): Promise<number> {
+    const rows = await this.coreDataSource.query<{ count: string }[]>(
+      `
+        SELECT COUNT(*)::text AS count
+        FROM mp.raw_csv_row
+        WHERE raw_csv_file_id = $1
+      `,
+      [rawCsvFileId],
+    );
+
+    return Number(rows[0]?.count ?? 0);
+  }
+
+  async getRawCsvRowsPageByFileId(
+    rawCsvFileId: string,
+    rowNumberExclusiveStart: number,
+    limit: number,
+  ): Promise<RawCsvRowForStaging[]> {
+    return this.coreDataSource.query<RawCsvRowForStaging[]>(
+      `
+        SELECT
+          id,
+          row_number,
+          raw_row_json,
+          parse_status
+        FROM mp.raw_csv_row
+        WHERE
+          raw_csv_file_id = $1
+          AND parse_status = 'success'
+          AND row_number > $2
+        ORDER BY row_number ASC
+        LIMIT $3
+      `,
+      [rawCsvFileId, rowNumberExclusiveStart, limit],
+    );
   }
 }

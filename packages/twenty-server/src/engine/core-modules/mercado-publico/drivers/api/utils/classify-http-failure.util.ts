@@ -9,7 +9,7 @@ const RETRYABLE_ERROR_CODES = new Set([
   'ETIMEDOUT',
 ]);
 
-export const classifyHttpFailure = (
+export const classifyFailure = (
   error: unknown,
 ): MercadoPublicoErrorSummary => {
   if (!axios.isAxiosError(error)) {
@@ -39,3 +39,5 @@ export const classifyHttpFailure = (
 
   return 'hard_fail';
 };
+
+export const classifyHttpFailure = classifyFailure;

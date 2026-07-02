@@ -226,6 +226,9 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
         expect.stringContaining('SELECT DISTINCT ON (codigo_externo, codigoitem)'),
         ['raw-csv-file-id'],
       );
+      expect(mockEntityManager.query.mock.calls[0]?.[0]).toContain(
+        'JOIN mp.raw_csv_row raw_row',
+      );
 
       const [upsertSql, upsertParams] = mockEntityManager.query.mock.calls[1];
 
@@ -264,6 +267,9 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
         );
 
       expect(refreshedCount).toBe(1);
+      expect(mockEntityManager.query.mock.calls[0]?.[0]).toContain(
+        'JOIN mp.raw_csv_row raw_row',
+      );
 
       const [upsertSql, upsertParams] = mockEntityManager.query.mock.calls[1];
 
@@ -304,6 +310,9 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
         );
 
       expect(refreshedCount).toBe(1);
+      expect(mockEntityManager.query.mock.calls[0]?.[0]).toContain(
+        'JOIN mp.raw_csv_row raw_row',
+      );
 
       const [upsertSql, upsertParams] = mockEntityManager.query.mock.calls[1];
 
@@ -343,6 +352,9 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
         1,
         expect.stringContaining('SELECT DISTINCT ON (iditem)'),
         ['raw-csv-file-id'],
+      );
+      expect(mockEntityManager.query.mock.calls[0]?.[0]).toContain(
+        'JOIN mp.raw_csv_row raw_row',
       );
 
       const [upsertSql, upsertParams] = mockEntityManager.query.mock.calls[1];

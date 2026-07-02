@@ -20,6 +20,13 @@ import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-pub
 import { MercadoPublicoDetectedProcessReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-detected-process-read.service';
 import { MercadoPublicoJobOrchestratorService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-job-orchestrator.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
+import { MercadoPublicoCsvDownloadSharedService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-download-shared.service';
+import { MercadoPublicoCsvOcDownloadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-oc-download.service';
+import { MercadoPublicoCsvLicitacionesDownloadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-licitaciones-download.service';
+import { MercadoPublicoCsvProfilingService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-profiling.service';
+import { MercadoPublicoCsvProfileService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-profile.service';
+import { MercadoPublicoCsvRawLoadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-raw-load.service';
+import { MercadoPublicoCsvStagingProjectionService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-staging-projection.service';
 
 @Module({
   imports: [SecureHttpClientModule],
@@ -27,6 +34,13 @@ import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercad
     MercadoPublicoConfigService,
     MercadoPublicoJobOrchestratorService,
     MercadoPublicoPersistenceService,
+    MercadoPublicoCsvDownloadSharedService,
+    MercadoPublicoCsvOcDownloadService,
+    MercadoPublicoCsvLicitacionesDownloadService,
+    MercadoPublicoCsvProfilingService,
+    MercadoPublicoCsvProfileService,
+    MercadoPublicoCsvRawLoadService,
+    MercadoPublicoCsvStagingProjectionService,
     MercadoPublicoCanonicalRefreshService,
     MercadoPublicoDetectedProcessReadService,
     MercadoPublicoApiV1LicitacionesClientService,

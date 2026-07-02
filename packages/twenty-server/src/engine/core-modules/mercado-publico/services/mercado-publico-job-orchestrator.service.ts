@@ -20,6 +20,11 @@ import { MercadoPublicoApiV2CompraAgilIncrementalService } from 'src/engine/core
 import { MercadoPublicoApiV2CompraAgilPublicationWindowService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-v2-compra-agil-publication-window.service';
 import { MercadoPublicoApiV2CompraAgilDetailByCodigoService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-v2-compra-agil-detail-by-codigo.service';
 import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
+import { MercadoPublicoCsvOcDownloadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-oc-download.service';
+import { MercadoPublicoCsvLicitacionesDownloadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-licitaciones-download.service';
+import { MercadoPublicoCsvProfileService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-profile.service';
+import { MercadoPublicoCsvRawLoadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-raw-load.service';
+import { MercadoPublicoCsvStagingProjectionService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-staging-projection.service';
 
 @Injectable()
 export class MercadoPublicoJobOrchestratorService {
@@ -38,6 +43,11 @@ export class MercadoPublicoJobOrchestratorService {
     private readonly mercadoPublicoApiV2CompraAgilIncrementalService: MercadoPublicoApiV2CompraAgilIncrementalService,
     private readonly mercadoPublicoApiV2CompraAgilPublicationWindowService: MercadoPublicoApiV2CompraAgilPublicationWindowService,
     private readonly mercadoPublicoApiV2CompraAgilDetailByCodigoService: MercadoPublicoApiV2CompraAgilDetailByCodigoService,
+    private readonly mercadoPublicoCsvOcDownloadService: MercadoPublicoCsvOcDownloadService,
+    private readonly mercadoPublicoCsvLicitacionesDownloadService: MercadoPublicoCsvLicitacionesDownloadService,
+    private readonly mercadoPublicoCsvProfileService: MercadoPublicoCsvProfileService,
+    private readonly mercadoPublicoCsvRawLoadService: MercadoPublicoCsvRawLoadService,
+    private readonly mercadoPublicoCsvStagingProjectionService: MercadoPublicoCsvStagingProjectionService,
   ) {}
 
   async run(
@@ -114,6 +124,43 @@ export class MercadoPublicoJobOrchestratorService {
       );
 
       return;
+    }
+
+    if (jobName === 'csv-oc-download') {
+      await this.mercadoPublicoCsvOcDownloadService.run(payload);
+
+      return;
+    }
+
+    if (jobName === 'csv-licitaciones-download') {
+      await this.mercadoPublicoCsvLicitacionesDownloadService.run(payload);
+
+      return;
+    }
+
+    if (jobName === 'csv-file-profile') {
+      await this.mercadoPublicoCsvProfileService.run(payload);
+
+      return;
+    }
+
+    if (jobName === 'csv-raw-load') {
+      await this.mercadoPublicoCsvRawLoadService.run(payload);
+
+      return;
+    }
+
+    if (jobName === 'csv-staging-projection') {
+      await this.mercadoPublicoCsvStagingProjectionService.run(payload);
+
+      return;
+    }
+
+    if (jobName === 'csv-canonical-refresh') {
+      throw new NotImplementedException(
+        `Mercado Publico job "${jobName}" is registered and queued, but execution starts in tasks 3.4+.
+Payload: ${JSON.stringify(payload)}`,
+      );
     }
 
     throw new NotImplementedException(

@@ -8,7 +8,21 @@ export const MERCADO_PUBLICO_SUPPORTED_JOB_NAMES = [
   'api-v2-compra-agil-incremental',
   'api-v2-compra-agil-by-publication-window',
   'api-v2-compra-agil-detail-by-codigo',
+  'csv-oc-download',
+  'csv-licitaciones-download',
+  'csv-file-profile',
+  'csv-raw-load',
+  'csv-staging-projection',
+  'csv-canonical-refresh',
 ] as const;
+
+export const MERCADO_PUBLICO_CSV_SOURCE_SYSTEM = 'datos-abiertos' as const;
+export const MERCADO_PUBLICO_CSV_OC_DATASET = 'oc' as const;
+export const MERCADO_PUBLICO_CSV_LICITACIONES_DATASET = 'licitaciones' as const;
+export const MERCADO_PUBLICO_CSV_STORAGE_FAILED_ERROR_SUMMARY =
+  'storage_write_failed' as const;
+export const MERCADO_PUBLICO_CSV_EMPTY_RESPONSE_ERROR_SUMMARY =
+  'empty_response' as const;
 
 export const MERCADO_PUBLICO_API_V1_LICITACIONES_PATH =
   'servicios/v1/publico/licitaciones.json';

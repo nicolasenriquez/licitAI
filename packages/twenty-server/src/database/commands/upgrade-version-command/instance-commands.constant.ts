@@ -74,7 +74,6 @@ import { EncryptNonSecretApplicationVariableSlowInstanceCommand } from 'src/data
 import { MigrateAiModelPreferencesSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-9/2-9-instance-command-slow-1799000010000-migrate-ai-model-preferences';
 import { AddHasPaymentMethodToBillingCustomerFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-15/2-15-instance-command-fast-1781280240009-add-has-payment-method-to-billing-customer';
 import { AddFolderImportToMessageFolderPendingSyncActionFastInstanceCommand } from './2-15/2-15-instance-command-fast-1781714499016-add-folder-import-to-message-folder-pending-sync-action';
-import { MpSchemaScaffoldFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782339275194-mp-schema-scaffold';
 import { MpSchemaFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007505-mp-schema';
 import { MpRawApiPayloadFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007517-mp-raw-api-payload';
 import { MpRawCsvFileFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007600-mp-raw-csv-file';
@@ -91,6 +90,7 @@ import { MpCanonicalCompraAgilFastInstanceCommand } from 'src/database/commands/
 import { MpReconciliationPublicMarketEntitiesFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007890-mp-reconciliation-public-market-entities';
 import { MpReconciliationEventFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007900-mp-reconciliation-event';
 import { MpGoldReadObjectsFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007910-mp-gold-read-objects';
+import { MpRawCsvFileDedupeModalityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007920-mp-raw-csv-file-dedupe-modality';
 
 export const INSTANCE_COMMANDS = [
   AddViewFieldGroupIdIndexOnViewFieldFastInstanceCommand,
@@ -167,7 +167,6 @@ export const INSTANCE_COMMANDS = [
   AddIsSystemSideEffectFastInstanceCommand,
   BackfillConnectionSecuritySlowInstanceCommand,
   AddFolderImportToMessageFolderPendingSyncActionFastInstanceCommand,
-  MpSchemaScaffoldFastInstanceCommand,
   MpSchemaFastInstanceCommand,
   MpRawApiPayloadFastInstanceCommand,
   MpRawCsvFileFastInstanceCommand,
@@ -184,4 +183,5 @@ export const INSTANCE_COMMANDS = [
   MpReconciliationPublicMarketEntitiesFastInstanceCommand,
   MpReconciliationEventFastInstanceCommand,
   MpGoldReadObjectsFastInstanceCommand,
+  MpRawCsvFileDedupeModalityFastInstanceCommand,
 ];
