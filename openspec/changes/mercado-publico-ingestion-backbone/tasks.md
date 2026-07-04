@@ -236,7 +236,7 @@ Use dependency/risk order above instead of assuming numeric adjacency within Pha
   Footnote: Expose daily quota visibility, `last429At`, and timezone-aware reset behavior.
   Status: Done. Read service MercadoPublicoApiQuotaUsageReadService.getApiQuotaUsage() reads from mp.gold_api_quota_usage (SELECT source, used, reset_at, last_429_at). dailyLimit sourced from new config var MERCADO_PUBLICO_API_DAILY_LIMIT (default 10000, non-sensitive) wired via MercadoPublicoConfigService.getSettings(). remaining = max(0, dailyLimit - used). Tracker unchanged; daily_limit column in gold table stays unwritten (config-derived, not stored). Returns 0..3 entries (the 3 per-endpoint sources the tracker writes: api-v1-licitaciones, api-v1-oc, api-v2-compra-agil). Doc: 10000/day 24h America/Santiago documented in docs/business/mercado-publico-source-contract.md §Quota and Rate Limits. Unit spec: 4 tests pass + integration-shaped spec: 2 tests pass. TypeScript clean. Format clean. No public API surface.
 
-- [ ] 3.34: Implement the internal read contract for CSV file health.
+- [x] 3.34: Implement the internal read contract for CSV file health.
   Footnote: Expose profiling outcomes, freshness, and last successful file processing state.
 
 - [x] 3.35: Implement bounded retry, quota reset, and failure classification policies for Mercado Publico API jobs.

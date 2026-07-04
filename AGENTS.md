@@ -33,6 +33,20 @@ During this routing rollout, use the contract below before acting:
 - Do not invent folder-local routing rules for unmapped leaf surfaces during rollout. If the task is outside the mapped surfaces, stay on the root contract, state explicitly that the surface is unmapped, and do not wander.
 - Only when required, declare consulted routing/context files briefly using relative paths. Include only the files actually needed for the task, then state the selected surface.
 
+## Repository Path Style
+
+- In user-facing responses, refer to files inside this repository using repository-relative paths by default.
+- If a clickable markdown file link requires an absolute path in the link target, keep the visible link label repository-relative and use the absolute path only in the target.
+- Do not print raw absolute filesystem paths in prose unless the user explicitly asks for them or the path is outside this repository.
+
+Preferred:
+[packages/twenty-server/src/foo.ts](/absolute/path/to/repo/packages/twenty-server/src/foo.ts:12)
+
+Avoid:
+`C:\Users\...`
+`/Users/...`
+in normal prose when the file is inside this repository.
+
 ## Fast Path
 
 - Docs or routing task: `AGENTS.md` -> `index.md` -> selected surface files.

@@ -31,6 +31,10 @@ type FinalizeMercadoPublicoJobRunInput = {
   recordsFailed?: number;
 };
 
+type CreateMercadoPublicoJobRunInput = {
+  rawCsvFileId?: string;
+};
+
 type PersistMercadoPublicoApiFailureInput = {
   jobRunRecordId: string;
   source: string;
@@ -225,6 +229,7 @@ export class MercadoPublicoPersistenceService {
 
   async createJobRun(
     jobName: MercadoPublicoJobName,
+    input: CreateMercadoPublicoJobRunInput = {},
   ): Promise<MercadoPublicoJobRunRecord> {
     const startedAt = new Date();
     const jobRunId = crypto.randomUUID();
@@ -236,12 +241,13 @@ export class MercadoPublicoPersistenceService {
           job_name,
           job_run_id,
           status,
-          started_at
+          started_at,
+          raw_csv_file_id
         )
-        VALUES ($1, $2, 'failed', $3)
+        VALUES ($1, $2, 'failed', $3, $4)
         RETURNING id
       `,
-      [jobName, jobRunId, startedAt],
+      [jobName, jobRunId, startedAt, input.rawCsvFileId ?? null],
     );
 
     return {
@@ -806,7 +812,12 @@ export class MercadoPublicoPersistenceService {
             AND file_checksum = $4
           LIMIT 1
         `,
-        [input.sourceDataset, input.sourcePeriod, input.sourceModality ?? null, input.fileChecksum],
+        [
+          input.sourceDataset,
+          input.sourcePeriod,
+          input.sourceModality ?? null,
+          input.fileChecksum,
+        ],
       );
 
       return { rawCsvFileId: existingRows[0].id, deduped: true };
@@ -898,9 +909,9 @@ export class MercadoPublicoPersistenceService {
     return rows[0];
   }
 
-  async insertRawCsvRows(
-    input: { rows: InsertRawCsvRowInput[] },
-  ): Promise<void> {
+  async insertRawCsvRows(input: {
+    rows: InsertRawCsvRowInput[];
+  }): Promise<void> {
     if (input.rows.length === 0) {
       return;
     }
@@ -951,9 +962,9 @@ export class MercadoPublicoPersistenceService {
     );
   }
 
-  async insertStgCsvOrdenCompraRows(
-    input: { rows: InsertStgCsvOrdenCompraRowInput[] },
-  ): Promise<void> {
+  async insertStgCsvOrdenCompraRows(input: {
+    rows: InsertStgCsvOrdenCompraRowInput[];
+  }): Promise<void> {
     if (input.rows.length === 0) {
       return;
     }
@@ -1029,9 +1040,9 @@ export class MercadoPublicoPersistenceService {
     );
   }
 
-  async insertStgCsvLicitacionRows(
-    input: { rows: InsertStgCsvLicitacionRowInput[] },
-  ): Promise<void> {
+  async insertStgCsvLicitacionRows(input: {
+    rows: InsertStgCsvLicitacionRowInput[];
+  }): Promise<void> {
     if (input.rows.length === 0) {
       return;
     }
@@ -1131,10 +1142,10 @@ export class MercadoPublicoPersistenceService {
     );
   }
 
-  async getRawCsvFileObservedColumns(
-    rawCsvFileId: string,
-  ): Promise<string[]> {
-    const rows = await this.coreDataSource.query<{ observed_columns: string[] }[]>(
+  async getRawCsvFileObservedColumns(rawCsvFileId: string): Promise<string[]> {
+    const rows = await this.coreDataSource.query<
+      { observed_columns: string[] }[]
+    >(
       `
         SELECT observed_columns
         FROM mp.raw_csv_file
@@ -1152,9 +1163,7 @@ export class MercadoPublicoPersistenceService {
     return Array.isArray(columns) ? columns : [];
   }
 
-  async countRawCsvRowsByFileId(
-    rawCsvFileId: string,
-  ): Promise<number> {
+  async countRawCsvRowsByFileId(rawCsvFileId: string): Promise<number> {
     const rows = await this.coreDataSource.query<{ count: string }[]>(
       `
         SELECT COUNT(*)::text AS count

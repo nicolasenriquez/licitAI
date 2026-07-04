@@ -28,6 +28,10 @@ commands.
 
 ## Required Artifact Compatibility
 
+Use [opsx-house-style.md](opsx-house-style.md) for authoring quality, phase
+order, and slice-shaping rules. This file defines command compatibility and
+output behavior only.
+
 `proposal.md`
 
 - must include `## Notes`
@@ -47,30 +51,50 @@ commands.
 
 ## Execution Boundary
 
-This skill prepares the change for `/execute`.
+This workflow prepares artifacts for future implementation, not for immediate
+execution.
 
 It should:
 
 - normalize artifacts
 - close design ambiguities
-- make tasks implementation-ready
-- recommend the next command
+- shape tasks into implementation-ready slices
+- stop at `Proposal Ready for Implementation`
 
 It should not:
 
 - perform production code changes itself
 - substitute for `/execute`
+- recommend `/execute` as an automatic next step
 - hide unresolved ambiguity
+
+## Output Contract
+
+Use this contract instead of redistributing the same exit rules across multiple
+sections:
+
+- `blocked`
+  - return one exact next command
+- `in-progress`
+  - return one exact next command
+- `proposal-ready`
+  - report `Proposal Ready for Implementation`
+  - stop cleanly
+  - do not require a next command
+  - mention `/execute <change-name> <task-selector>` only as a future entrypoint
+    when the user explicitly decides to start implementation
 
 ## Recommended Next Commands
 
-Use one exact next command only:
+Use one exact next command only while the spec is incomplete or blocked:
 
 - `/opsx-new <change-name>` when the change does not exist yet
 - `/opsx-continue <change-name>` when the change exists but artifacts are partial or stale
 - `/grill-with-docs <change-name|proposal-path> source=openspec mode=grill` when ambiguity blocks implementation planning
-- `/plan source=openspec <change-name>` when the change is clear enough for artifact authoring but not yet implementation-ready
-- `/execute <change-name> <task-selector>` only after the spec is implementation-ready
+- `/plan source=openspec <change-name>` when the change is clear enough for artifact authoring but not yet `Proposal Ready for Implementation`
 - `/opsx-verify <change-name>` after implementation when artifact and implementation alignment must be checked
 - `/opsx-sync <change-name>` when implemented deltas must be synced into canonical specs
 - `/opsx-archive <change-name>` only after verification and sync are complete
+
+When the spec is already `Proposal Ready for Implementation`, do not recommend
+an automatic next command.
