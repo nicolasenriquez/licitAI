@@ -1,3 +1,9 @@
+---
+type: reference
+title: "graphify reference: commit hook and native CLAUDE.md integration"
+description: "Reference documentation for graphify reference: commit hook and native CLAUDE.md integration."
+okf_version: "0.1"
+---
 # graphify reference: commit hook and native CLAUDE.md integration
 
 Load this when the user asked to install the post-commit hook or wire graphify into a project's CLAUDE.md.

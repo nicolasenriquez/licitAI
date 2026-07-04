@@ -1,3 +1,9 @@
+---
+type: context
+title: Codex Surface Context
+description: Scope and reading order for repo-local Codex assets.
+---
+
 # Codex Context
 
 ## Purpose
@@ -31,4 +37,4 @@ This surface is not the durable home for:
 - OpenSpec change artifacts under `openspec/`
 - general package selection under `packages/`
 
-If the prompt is about those topics, go back to `../CONTEXT-MAP.md` and reroute.
+If the prompt is about those topics, go back to `../index.md` and reroute.

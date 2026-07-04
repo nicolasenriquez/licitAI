@@ -1,3 +1,9 @@
+---
+type: context
+title: "Twenty UI Context"
+description: "Context and scope guide for Twenty Ui."
+okf_version: "0.1"
+---
 # Twenty UI Context
 
 ## Purpose
@@ -41,4 +47,5 @@ This surface is not the durable home for:
 - frontend application logic in `packages/twenty-front`
 - shared type/utility code in `packages/twenty-shared`
 
-If the prompt is about those topics, go back to `../../CONTEXT-MAP.md` and reroute.
+If the prompt is about those topics, go back to `../../index.md` and reroute.
+

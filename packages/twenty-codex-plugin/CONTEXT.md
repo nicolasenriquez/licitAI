@@ -1,3 +1,9 @@
+---
+type: context
+title: "Twenty Codex Plugin Context"
+description: "Context and scope guide for Twenty Codex Plugin."
+okf_version: "0.1"
+---
 # Twenty Codex Plugin Context
 
 ## Purpose
@@ -35,4 +41,5 @@ This surface is not the durable home for:
 - OpenSpec change artifacts
 - general package selection work in `packages/`
 
-If the prompt is about those topics, go back to `../../CONTEXT-MAP.md` and reroute.
+If the prompt is about those topics, go back to `../../index.md` and reroute.
+

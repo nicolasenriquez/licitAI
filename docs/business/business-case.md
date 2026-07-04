@@ -1,3 +1,9 @@
+---
+type: business-context
+title: "Business Case"
+description: "Business context for Business Case."
+okf_version: "0.1"
+---
 # Business Case
 
 ## Purpose

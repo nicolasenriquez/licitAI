@@ -1,3 +1,9 @@
+---
+type: readme
+title: "How to patch a dependency"
+description: "Durable README for Patches."
+okf_version: "0.1"
+---
 # How to patch a dependency
 
 `yarn patch-commit -s` does not work in our monorepo. Use the workflow below instead.

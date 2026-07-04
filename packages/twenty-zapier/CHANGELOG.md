@@ -1,3 +1,9 @@
+---
+type: changelog
+title: "2.2.0"
+description: "Changelog for Twenty Zapier."
+okf_version: "0.1"
+---
 ## 2.2.0
 
 - Fix authentication issue

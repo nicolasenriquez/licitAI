@@ -18,6 +18,9 @@ import { MercadoPublicoApiV2CompraAgilDetailByCodigoService } from 'src/engine/c
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
 import { MercadoPublicoDetectedProcessReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-detected-process-read.service';
+import { MercadoPublicoApiQuotaUsageReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-quota-usage-read.service';
+import { MercadoPublicoPipelineHealthReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-pipeline-health-read.service';
+import { MercadoPublicoProcessDetailReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-process-detail-read.service';
 import { MercadoPublicoJobOrchestratorService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-job-orchestrator.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoCsvDownloadSharedService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-download-shared.service';
@@ -27,6 +30,8 @@ import { MercadoPublicoCsvProfilingService } from 'src/engine/core-modules/merca
 import { MercadoPublicoCsvProfileService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-profile.service';
 import { MercadoPublicoCsvRawLoadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-raw-load.service';
 import { MercadoPublicoCsvStagingProjectionService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-staging-projection.service';
+import { MercadoPublicoReconciliationService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-reconciliation.service';
+import { MercadoPublicoQuotaTrackerService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-quota-tracker.service';
 
 @Module({
   imports: [SecureHttpClientModule],
@@ -41,8 +46,13 @@ import { MercadoPublicoCsvStagingProjectionService } from 'src/engine/core-modul
     MercadoPublicoCsvProfileService,
     MercadoPublicoCsvRawLoadService,
     MercadoPublicoCsvStagingProjectionService,
+    MercadoPublicoReconciliationService,
+    MercadoPublicoQuotaTrackerService,
     MercadoPublicoCanonicalRefreshService,
+    MercadoPublicoApiQuotaUsageReadService,
     MercadoPublicoDetectedProcessReadService,
+    MercadoPublicoPipelineHealthReadService,
+    MercadoPublicoProcessDetailReadService,
     MercadoPublicoApiV1LicitacionesClientService,
     MercadoPublicoApiV1OrdenesDeCompraClientService,
     MercadoPublicoApiV2CompraAgilClientService,
@@ -61,7 +71,10 @@ import { MercadoPublicoCsvStagingProjectionService } from 'src/engine/core-modul
   exports: [
     MercadoPublicoConfigService,
     MercadoPublicoJobOrchestratorService,
+    MercadoPublicoApiQuotaUsageReadService,
     MercadoPublicoDetectedProcessReadService,
+    MercadoPublicoPipelineHealthReadService,
+    MercadoPublicoProcessDetailReadService,
   ],
 })
 export class MercadoPublicoModule {}

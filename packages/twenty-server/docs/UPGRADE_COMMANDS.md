@@ -1,3 +1,9 @@
+---
+type: operations-guide
+title: "Upgrade Commands"
+description: "Upgrade command guide for Docs."
+okf_version: "0.1"
+---
 # Upgrade Commands
 
 The upgrade process relies on two types of commands:

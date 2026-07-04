@@ -1,3 +1,9 @@
+---
+type: readme
+title: "Twenty Codex Plugin"
+description: "Durable README for Twenty Codex Plugin."
+okf_version: "0.1"
+---
 # Twenty Codex Plugin
 
 Official Codex plugin for building, deploying, and querying Twenty apps. Bundles five focused skills, the public Twenty documentation MCP server, and a one-command workspace MCP setup helper.

@@ -1,3 +1,9 @@
+---
+type: readme
+title: "How to deploy twenty on podman"
+description: "Durable README for Podman."
+okf_version: "0.1"
+---
 # How to deploy twenty on podman
 
 DISCLAIMER: The k8s and podman deployments are not maintained by the core team.

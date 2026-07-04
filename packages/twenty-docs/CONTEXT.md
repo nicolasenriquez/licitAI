@@ -1,3 +1,9 @@
+---
+type: context
+title: "Twenty Docs Context"
+description: "Context and scope guide for Twenty Docs."
+okf_version: "0.1"
+---
 # Twenty Docs Context
 
 ## Purpose
@@ -35,4 +41,5 @@ This surface is not the durable home for:
 - active OpenSpec artifacts under `openspec/`
 - package selection for unrelated packages
 
-If the prompt is about those topics, go back to `../../CONTEXT-MAP.md` and reroute.
+If the prompt is about those topics, go back to `../../index.md` and reroute.
+

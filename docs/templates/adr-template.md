@@ -1,3 +1,9 @@
+---
+type: template
+title: "ADR Template"
+description: "Template for ADR Template."
+okf_version: "0.1"
+---
 # ADR Template
 
 ## Status

@@ -1,3 +1,9 @@
+---
+type: agent-contract
+title: "Twenty Apps Surface Contract"
+description: "Routing contract for Twenty Apps."
+okf_version: "0.1"
+---
 # Twenty Apps Surface Contract
 
 ## Purpose
@@ -16,7 +22,7 @@ Define when work should stay inside `packages/twenty-apps` during the workspace 
 Before substantive work in this surface, read:
 
 1. `../../AGENTS.md`
-2. `../../CONTEXT-MAP.md`
+2. `../../index.md`
 3. `../AGENTS.md`
 4. `../CONTEXT.md`
 5. `AGENTS.md`
@@ -36,7 +42,7 @@ Before substantive work in this surface, read:
 - The prompt is about backend server code, frontend CRM app code, or other package-level code rather than app collection work.
 - The prompt is general package selection rather than `twenty-apps` specifically.
 
-When that happens, return to `../../CONTEXT-MAP.md` first and reroute from there. Do not keep working from `packages/twenty-apps`.
+When that happens, return to `../../index.md` first and reroute from there. Do not keep working from `packages/twenty-apps`.
 
 ## Working Contract
 
@@ -44,3 +50,4 @@ When that happens, return to `../../CONTEXT-MAP.md` first and reroute from there
 - State that the selected surface is `packages/twenty-apps`.
 - Preserve the distinction between the apps collection index and individual app package surfaces.
 - Individual app subdirectories are not yet mapped as first-class surfaces — use this index surface.
+

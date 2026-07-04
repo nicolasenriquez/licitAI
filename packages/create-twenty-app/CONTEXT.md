@@ -1,3 +1,9 @@
+---
+type: context
+title: "Create Twenty App Context"
+description: "Context and scope guide for Create Twenty App."
+okf_version: "0.1"
+---
 # Create Twenty App Context
 
 ## Purpose
@@ -33,4 +39,5 @@ This surface is not the durable home for:
 - root repository architecture, governance, or ADR docs under `docs/`
 - runtime backend, frontend, or UI code in other packages
 
-If the prompt is about those topics, go back to `../../CONTEXT-MAP.md` and reroute.
+If the prompt is about those topics, go back to `../../index.md` and reroute.
+

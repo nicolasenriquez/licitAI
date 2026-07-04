@@ -1,3 +1,9 @@
+---
+type: standard
+title: "Testing Standard"
+description: "Repository standard for Testing Standard."
+okf_version: "0.1"
+---
 # Testing Standard
 
 ## Overview

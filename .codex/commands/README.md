@@ -1,3 +1,9 @@
+---
+type: readme
+title: "Codex Commands"
+description: "README for repo-local Codex commands."
+okf_version: "0.1"
+---
 # Commands
 
 Skills I use daily for code work.

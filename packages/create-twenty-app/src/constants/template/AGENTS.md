@@ -1,3 +1,9 @@
+---
+type: agent-contract
+title: "App Agent Guidance"
+description: "Routing contract for Template."
+okf_version: "0.1"
+---
 # App Agent Guidance
 
 This file ships as part of the `create-twenty-app` template and is copied into every generated Twenty app.

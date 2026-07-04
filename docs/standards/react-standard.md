@@ -1,3 +1,9 @@
+---
+type: standard
+title: "React Standard"
+description: "Repository standard for React Standard."
+okf_version: "0.1"
+---
 # React Standard
 
 ## Overview

@@ -1,3 +1,9 @@
+---
+type: agent-contract
+title: "Twenty E2E Testing Surface Contract"
+description: "Routing contract for Twenty E2e Testing."
+okf_version: "0.1"
+---
 # Twenty E2E Testing Surface Contract
 
 ## Purpose
@@ -16,7 +22,7 @@ Define when work should stay inside `packages/twenty-e2e-testing` during the wor
 Before substantive work in this surface, read:
 
 1. `../../AGENTS.md`
-2. `../../CONTEXT-MAP.md`
+2. `../../index.md`
 3. `../AGENTS.md`
 4. `../CONTEXT.md`
 5. `AGENTS.md`
@@ -30,10 +36,11 @@ Before substantive work in this surface, read:
 - The prompt is about backend server code, frontend app code, or unit test code rather than E2E test code.
 - The prompt is general package selection rather than `twenty-e2e-testing` specifically.
 
-When that happens, return to `../../CONTEXT-MAP.md` first and reroute from there. Do not keep working from `packages/twenty-e2e-testing`.
+When that happens, return to `../../index.md` first and reroute from there. Do not keep working from `packages/twenty-e2e-testing`.
 
 ## Working Contract
 
 - Declare the routing/context files consulted before responding or editing.
 - State that the selected surface is `packages/twenty-e2e-testing`.
 - Preserve the distinction between E2E testing code and application-specific or infrastructure-docs work.
+

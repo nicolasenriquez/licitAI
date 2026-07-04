@@ -1,3 +1,9 @@
+---
+type: reference
+title: "Artifact Templates"
+description: "Reference documentation for Artifact Templates."
+okf_version: "0.1"
+---
 # Artifact Templates
 
 Use these as compact defaults. Keep them lean and adapt only when the change is

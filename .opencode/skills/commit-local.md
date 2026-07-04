@@ -1,3 +1,9 @@
+---
+type: skill
+title: "Commit Local Skill"
+description: "Repo-local OpenCode skill for creating one local commit."
+okf_version: "0.1"
+---
 Create one single local commit from the current working tree and stop before any push.
 
 Optional input: `@ARGUMENTS`

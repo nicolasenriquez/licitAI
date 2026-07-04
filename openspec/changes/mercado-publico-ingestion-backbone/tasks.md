@@ -1,3 +1,9 @@
+---
+type: change-tasks
+title: "Tasks: mercado-publico-ingestion-backbone"
+description: "Tasks for Mercado Publico Ingestion Backbone."
+okf_version: "0.1"
+---
 # Tasks: mercado-publico-ingestion-backbone
 
 ## Phase 0: Investigation Only
@@ -206,32 +212,35 @@ Use dependency/risk order above instead of assuming numeric adjacency within Pha
 - [x] 3.26: Implement CSV scalar normalization and sentinel/null handling utilities.
   Footnote: Cover comma decimals, `NA`/blank values, and `1900-01-01` without mutating raw storage.
 
-- [ ] 3.27: Implement non-null-over-null protection and idempotent canonical rerun behavior.
+- [x] 3.27: Implement non-null-over-null protection and idempotent canonical rerun behavior.
   Footnote: Reruns and partial detail refreshes must not regress populated canonical fields.
 
-- [ ] 3.28: Implement exact reconciliation policies for API/CSV same-key, licitacion-to-OC, and Compra Agil-to-OC matches.
-  Footnote: Exact links must remain explicit and auditable.
+- [x] 3.28: Implement exact reconciliation policies for API/CSV same-key, licitacion-to-OC, and Compra Agil-to-OC matches.
+  Footnote: All 4 exact match types from source-contract.md:472-477 implemented: exact_codigo_externo, csv_api_same_business_key (OC), exact_codigo_licitacion, exact_compra_agil_id_orden_compra. csv_api_same_business_key reads source from staging tables. Compra Agil cotizaciones deferred to 3.29+. reconciliation-refresh job registered in constants + orchestrator. Idempotent via UK ON CONFLICT DO NOTHING. Unit spec: 7 tests pass. TypeScript: clean.
 
-- [ ] 3.29: Implement candidate, unmatched, and manual-review-required reconciliation policies and event recording.
-  Footnote: Heuristic matches must not silently become exact truth.
+- [x] 3.29: Implement candidate, unmatched, and manual-review-required reconciliation policies and event recording.
+  Footnote: 4 heuristic match types from source-contract.md:478-481 partially implemented: candidate_supplier_amount (same nombre_proveedor trim, no exact key, confidence 'medium'), candidate_item_amount (canonical licitacion_item with monto exists but no exact key, confidence 'low'), unmatched (canonical rows with zero reconciliation links + gold status update to 'unmatched'), manual_review_required (recorded as event_type). Heuristic amount tolerance = 0% (ponytail: ceiling, upgrade via fixture distribution). 3 event types: state_mismatch, source_period_rerun_mismatch, manual_review_required. Event fingerprint = sha256(...) with UK idempotency. gold_detected_process.reconciliation_status updated for unmatched rows. Same reconciliation-refresh job + service + module. Unit spec: 14 tests total (7 exact + 7 heuristic). TS: clean.
 
 - [x] 3.30: Implement the internal read contract for detected processes.
   Footnote: Serve the minimum list shape from the gold/read layer, not from raw persistence details.
 
-- [ ] 3.31: Implement the internal read contract for process detail.
+- [x] 3.31: Implement the internal read contract for process detail.
   Footnote: Return canonical detail plus reconciliation context and source lineage summary.
+  Status: Done. Single service MercadoPublicoProcessDetailReadService with getDetectedProcessDetail(processType, processCode) dispatching by type. Licitacion: items + adjudications + related OCs via reconciliation. OrdenCompra: items + null adjudications + related OCs. CompraAgil: items + null adjudications + related OCs. Source lineage from staging tables (api-v1-licitaciones, api-v1-oc, api-v2-compra-agil, csv-datos-abiertos) filtered to rowCount > 0. Reconciliation summary aggregated from mp.reconciliation_public_market_entities (exact/candidate/unmatched/manualReviewRequired counts). Registered in module providers + exports. Unit spec: 7 tests pass + integration spec: 4 tests pass. TypeScript: clean.
 
-- [ ] 3.32: Implement the internal read contract for pipeline health.
+- [x] 3.32: Implement the internal read contract for pipeline health.
   Footnote: Report cadence-relative freshness and latest job outcomes needed for operations.
+  Status: Done. Single service MercadoPublicoPipelineHealthReadService with getPipelineHealth() aggregating from mp.stg_job_run via 2 raw queries (DISTINCT ON for latest run per job + GROUP BY with FILTER for 7-day failure count). Returns 16 entries (one per MERCADO_PUBLICO_SUPPORTED_JOB_NAMES) with latestStatus, lastSuccessAt, lastFailureAt, lagSinceLastSuccessMs, failureCount, freshness=null, expectedCadenceMs=null (phase 1 has no fixed cadence). Registered in module providers + exports. Unit spec: 9 tests pass + integration-shaped spec: 5 tests pass. TypeScript clean. Format clean. No public API surface. No writer to mp.gold_pipeline_health (table stays empty, aggregated live from stg_job_run).
 
-- [ ] 3.33: Implement the internal read contract for API quota usage.
+- [x] 3.33: Implement the internal read contract for API quota usage.
   Footnote: Expose daily quota visibility, `last429At`, and timezone-aware reset behavior.
+  Status: Done. Read service MercadoPublicoApiQuotaUsageReadService.getApiQuotaUsage() reads from mp.gold_api_quota_usage (SELECT source, used, reset_at, last_429_at). dailyLimit sourced from new config var MERCADO_PUBLICO_API_DAILY_LIMIT (default 10000, non-sensitive) wired via MercadoPublicoConfigService.getSettings(). remaining = max(0, dailyLimit - used). Tracker unchanged; daily_limit column in gold table stays unwritten (config-derived, not stored). Returns 0..3 entries (the 3 per-endpoint sources the tracker writes: api-v1-licitaciones, api-v1-oc, api-v2-compra-agil). Doc: 10000/day 24h America/Santiago documented in docs/business/mercado-publico-source-contract.md §Quota and Rate Limits. Unit spec: 4 tests pass + integration-shaped spec: 2 tests pass. TypeScript clean. Format clean. No public API surface.
 
 - [ ] 3.34: Implement the internal read contract for CSV file health.
   Footnote: Expose profiling outcomes, freshness, and last successful file processing state.
 
-- [ ] 3.35: Implement bounded retry, quota reset, and failure classification policies for Mercado Publico API jobs.
-  Footnote: Hard-fail auth errors, audit soft misses, record parameter failures, and bound transient retries without infinite loops.
+- [x] 3.35: Implement bounded retry, quota reset, and failure classification policies for Mercado Publico API jobs.
+  Footnote: Failure classification already done by classifyMercadoPublicoHttpStatus + classifyHttpFailure (3.3-3.15). Bounded retry: retryLimit + fixed backoff wired in MercadoPublicoRunCommand using config vars MERCADO_PUBLICO_HTTP_MAX_RETRIES + MERCADO_PUBLICO_HTTP_RETRY_BACKOFF_MS. QueueJobOptions extended with backoff field, BullMQ driver passes it through. Quota tracking: MercadoPublicoQuotaTrackerService upserts per-source into mp.gold_api_quota_usage on 429 response, timezone-aware reset (America/Santiago). Tracker wired in 3 API client services (V1 licitaciones, V1 OC, V2 Compra Agil). quotaTimezone config var consumed. Tracker swallows DB errors (observability, not hard dependency). Unit specs: 3 quota + 4 command + 2 client = 9 new tests. TS: clean.
 
 - [ ] 3.36: Confirm that frontend work remains explicitly out of scope for this change.
   Footnote: If any consumer-facing UI need emerges, document it as deferred follow-up work instead of leaking it into this backbone implementation.

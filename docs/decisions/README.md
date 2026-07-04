@@ -1,3 +1,9 @@
+---
+type: readme
+title: "Architecture Decision Records"
+description: "README for the repository decision record set."
+okf_version: "0.1"
+---
 # Architecture Decision Records
 
 ## When To Create Or Update An ADR

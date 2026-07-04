@@ -1,3 +1,9 @@
+---
+type: reference
+title: "Opsx House Style"
+description: "Reference documentation for Opsx House Style."
+okf_version: "0.1"
+---
 # Opsx House Style
 
 Use this reference when authoring or normalizing an OpenSpec change.

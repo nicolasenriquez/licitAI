@@ -1,3 +1,9 @@
+---
+type: agent-contract
+title: "Create Twenty App Surface Contract"
+description: "Routing contract for Create Twenty App."
+okf_version: "0.1"
+---
 # Create Twenty App Surface Contract
 
 ## Purpose
@@ -16,7 +22,7 @@ Define when work should stay inside `packages/create-twenty-app` during the work
 Before substantive work in this surface, read:
 
 1. `../../AGENTS.md`
-2. `../../CONTEXT-MAP.md`
+2. `../../index.md`
 3. `../AGENTS.md`
 4. `../CONTEXT.md`
 5. `AGENTS.md`
@@ -30,7 +36,7 @@ Before substantive work in this surface, read:
 - The prompt is about backend server code, frontend app code, or runtime code rather than scaffolding logic.
 - The prompt is general package selection rather than `create-twenty-app` specifically.
 
-When that happens, return to `../../CONTEXT-MAP.md` first and reroute from there. Do not keep working from `packages/create-twenty-app`.
+When that happens, return to `../../index.md` first and reroute from there. Do not keep working from `packages/create-twenty-app`.
 
 ## Working Contract
 

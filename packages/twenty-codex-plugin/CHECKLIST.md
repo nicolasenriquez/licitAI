@@ -1,3 +1,9 @@
+---
+type: checklist
+title: "Twenty Codex Plugin — Best Practices Compliance Checklist"
+description: "Checklist for Twenty Codex Plugin."
+okf_version: "0.1"
+---
 # Twenty Codex Plugin — Best Practices Compliance Checklist
 
 This file is the authoritative compliance matrix. Every row maps an official requirement (Codex build guide, Codex best-practices guide, or OpenAI reference implementation) to either an **automated** check (a `scripts/validate.js` assertion function) or a **manual** sign-off.

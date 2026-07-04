@@ -1,3 +1,9 @@
+---
+type: reference
+title: "Glossary — Building Great Skills"
+description: "Reference documentation for Glossary — Building Great Skills."
+okf_version: "0.1"
+---
 # Glossary — Building Great Skills
 
 The domain model for what makes a skill great. A skill exists to wrangle determinism out of a stochastic system; the root virtue is **Predictability**, and every term below is a lever on it. This is the disclosed reference for [`writing-great-skills`](SKILL.md).

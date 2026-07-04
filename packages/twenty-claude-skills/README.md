@@ -1,3 +1,9 @@
+---
+type: readme
+title: "twenty-claude-skills"
+description: "Durable README for Twenty Claude Skills."
+okf_version: "0.1"
+---
 # twenty-claude-skills
 
 Claude skills for working with Twenty.

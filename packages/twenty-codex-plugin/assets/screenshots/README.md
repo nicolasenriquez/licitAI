@@ -1,3 +1,9 @@
+---
+type: readme
+title: "Marketplace Screenshots"
+description: "Durable README for Screenshots."
+okf_version: "0.1"
+---
 # Marketplace Screenshots
 
 The Codex marketplace listing for the Twenty plugin requires ≥ 1 screenshot showing the plugin in action (Build guide §Assets).

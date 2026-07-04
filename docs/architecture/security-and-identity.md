@@ -1,3 +1,9 @@
+---
+type: architecture
+title: "Security And Identity"
+description: "Architecture documentation for Security And Identity."
+okf_version: "0.1"
+---
 # Security And Identity
 
 ## Purpose

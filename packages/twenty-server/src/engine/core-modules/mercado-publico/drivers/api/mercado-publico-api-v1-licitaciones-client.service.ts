@@ -23,6 +23,7 @@ import {
   type MercadoPublicoErrorSummary,
 } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
+import { MercadoPublicoQuotaTrackerService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-quota-tracker.service';
 import { SecureHttpClientService } from 'src/engine/core-modules/secure-http-client/secure-http-client.service';
 
 export type MercadoPublicoApiV1LicitacionesByDateResponse = {
@@ -54,6 +55,7 @@ export class MercadoPublicoApiV1LicitacionesClientService {
   constructor(
     private readonly mercadoPublicoConfigService: MercadoPublicoConfigService,
     private readonly secureHttpClientService: SecureHttpClientService,
+    private readonly quotaTracker: MercadoPublicoQuotaTrackerService,
   ) {}
 
   async getByDate(
@@ -95,6 +97,7 @@ export class MercadoPublicoApiV1LicitacionesClientService {
     const licitaciones = extractV1LicitacionesListRecords(rawPayload);
     const bodyError = parseMercadoPublicoBodyError(rawPayload);
     const httpStatusErrorSummary = classifyMercadoPublicoHttpStatus(response.status);
+    this.tryRecord429(response.status);
 
     return {
       endpoint: MERCADO_PUBLICO_API_V1_LICITACIONES_BY_DATE_ENDPOINT,
@@ -157,6 +160,7 @@ export class MercadoPublicoApiV1LicitacionesClientService {
     const licitaciones = detailRecord ? [detailRecord] : [];
     const bodyError = parseMercadoPublicoBodyError(rawPayload);
     const httpStatusErrorSummary = classifyMercadoPublicoHttpStatus(response.status);
+    this.tryRecord429(response.status);
 
     return {
       endpoint: MERCADO_PUBLICO_API_V1_LICITACIONES_DETAIL_BY_CODIGO_ENDPOINT,
@@ -215,6 +219,7 @@ export class MercadoPublicoApiV1LicitacionesClientService {
     const httpStatusErrorSummary = classifyMercadoPublicoHttpStatus(
       response.status,
     );
+    this.tryRecord429(response.status);
 
     return {
       endpoint: MERCADO_PUBLICO_API_V1_LICITACIONES_BY_STATE_ENDPOINT,
@@ -231,5 +236,25 @@ export class MercadoPublicoApiV1LicitacionesClientService {
       errorMessage: bodyError?.message,
       errorCode: bodyError?.code ?? undefined,
     };
+  }
+
+  // ponytail: tryRecord429 duplicated 3×, extract to util when 4th client appears
+  private tryRecord429(status: number): void {
+    if (status !== 429) {
+      return;
+    }
+
+    void (async () => {
+      try {
+        const settings = this.mercadoPublicoConfigService.getSettings();
+
+        await this.quotaTracker.record429(
+          MERCADO_PUBLICO_API_V1_LICITACIONES_SOURCE,
+          settings.quotaTimezone,
+        );
+      } catch {
+        return;
+      }
+    })();
   }
 }

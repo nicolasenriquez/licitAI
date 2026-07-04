@@ -11,6 +11,7 @@ import {
   MercadoPublicoJob,
   type MercadoPublicoJobData,
 } from 'src/engine/core-modules/mercado-publico/jobs/mercado-publico.job';
+import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
 import { InjectMessageQueue } from 'src/engine/core-modules/message-queue/decorators/message-queue.decorator';
 import { MessageQueue } from 'src/engine/core-modules/message-queue/message-queue.constants';
 import { MessageQueueService } from 'src/engine/core-modules/message-queue/services/message-queue.service';
@@ -31,6 +32,7 @@ export class MercadoPublicoRunCommand extends CommandRunner {
   constructor(
     @InjectMessageQueue(MessageQueue.mercadoPublicoQueue)
     private readonly messageQueueService: MessageQueueService,
+    private readonly mercadoPublicoConfigService: MercadoPublicoConfigService,
   ) {
     super();
   }
@@ -40,6 +42,7 @@ export class MercadoPublicoRunCommand extends CommandRunner {
     options: MercadoPublicoRunCommandOptions,
   ): Promise<void> {
     const payload = options.payload ?? {};
+    const settings = this.mercadoPublicoConfigService.getSettings();
 
     await this.messageQueueService.add<MercadoPublicoJobData>(
       MercadoPublicoJob.name,
@@ -48,6 +51,13 @@ export class MercadoPublicoRunCommand extends CommandRunner {
         payload,
         requestedAt: new Date().toISOString(),
         requestedBy: 'command',
+      },
+      {
+        retryLimit: settings.httpMaxRetries,
+        backoff: {
+          type: 'fixed',
+          delay: settings.httpRetryBackoffMs,
+        },
       },
     );
 

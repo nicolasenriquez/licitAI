@@ -1,3 +1,9 @@
+---
+type: readme
+title: "Twenty Desktop"
+description: "Durable README for Twenty Companion."
+okf_version: "0.1"
+---
 # Twenty Desktop
 
 > **WARNING: This application is a Proof of Concept (POC) and must NOT be used in production.** It is intended for demonstration and experimentation purposes only. Security, stability, and performance have not been validated for production use.

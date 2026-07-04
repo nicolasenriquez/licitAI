@@ -1,3 +1,9 @@
+---
+type: operations-guide
+title: "Twenty Helm Chart - Quick Install"
+description: "Quickstart guide for Twenty."
+okf_version: "0.1"
+---
 # Twenty Helm Chart - Quick Install
 
 ## Simple Install

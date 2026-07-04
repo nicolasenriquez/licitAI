@@ -1,3 +1,9 @@
+---
+type: reference
+title: "Opsx Command Contract"
+description: "Reference documentation for Opsx Command Contract."
+okf_version: "0.1"
+---
 # Opsx Command Contract
 
 Use this reference to keep OpenSpec artifacts compatible with local slash

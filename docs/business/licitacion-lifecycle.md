@@ -1,3 +1,9 @@
+---
+type: business-context
+title: "Licitacion Lifecycle"
+description: "Business context for Licitacion Lifecycle."
+okf_version: "0.1"
+---
 # Licitacion Lifecycle
 
 ## Purpose

@@ -1,3 +1,9 @@
+---
+type: readme
+title: "Quick start"
+description: "Durable README for Twenty Sdk."
+okf_version: "0.1"
+---
 <div align="center">
   <a href="https://twenty.com">
     <picture>

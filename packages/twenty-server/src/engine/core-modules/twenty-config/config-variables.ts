@@ -1934,6 +1934,15 @@ export class ConfigVariables {
   @ConfigVariablesMetadata({
     group: ConfigVariablesGroup.SERVER_CONFIG,
     description:
+      'Daily API call limit for Mercado Publico (shared across all sources); used for quota visibility in internal read contracts',
+    type: ConfigVariableType.NUMBER,
+  })
+  @IsOptional()
+  MERCADO_PUBLICO_API_DAILY_LIMIT = 10000;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.SERVER_CONFIG,
+    description:
       'Local storage root for downloaded Mercado Publico CSV files before raw profiling and load',
     type: ConfigVariableType.STRING,
   })

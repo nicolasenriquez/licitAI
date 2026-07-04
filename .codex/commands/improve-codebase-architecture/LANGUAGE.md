@@ -1,3 +1,9 @@
+---
+type: reference
+title: "Language"
+description: "Reference documentation for Language."
+okf_version: "0.1"
+---
 # Language
 
 Shared vocabulary for every suggestion this skill makes. Use these terms exactly — don't substitute "component," "service," "API," or "boundary." Consistent language is the whole point.

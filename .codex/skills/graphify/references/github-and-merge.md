@@ -1,3 +1,9 @@
+---
+type: reference
+title: "graphify reference: GitHub clone and cross-repo merge"
+description: "Reference documentation for graphify reference: GitHub clone and cross-repo merge."
+okf_version: "0.1"
+---
 # graphify reference: GitHub clone and cross-repo merge
 
 Load this when the user passed one or more `https://github.com/...` URLs, or named several local subfolders to merge into one graph.

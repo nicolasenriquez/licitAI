@@ -1,3 +1,9 @@
+---
+type: architecture
+title: "Reference Architecture"
+description: "Architecture documentation for Reference Architecture."
+okf_version: "0.1"
+---
 # Reference Architecture
 
 ## Purpose

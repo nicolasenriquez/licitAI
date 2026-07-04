@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Provide the manual acceptance suite and result log for the workspace routing pilot.
+Provide the manual acceptance suite and result log for the workspace routing pilot and the staged rollout waves that followed it.
 
-Pilot execution status in this document is user-reported completion. The pilot was not rerun automatically in this editing session.
+Claude Code rows record the `CLAUDE.md` shim path; routing logic is identical to Codex once the shim is resolved.
 
 ## Execution Rules
 
@@ -36,31 +36,6 @@ Pilot execution status in this document is user-reported completion. The pilot w
 | 4 | Claude Code | `openspec/` | Explain the repository governance model. | `AGENTS.md`, `CONTEXT-MAP.md`, `openspec/AGENTS.md`, `openspec/CONTEXT.md`, `docs/AGENTS.md`, `docs/CONTEXT.md` | `docs/` | Bounces out of `openspec/`, returns through the root map, and reroutes into `docs/`. | User-reported pass; routing matched expected behavior. | Pass |
 | 5 | Codex | root | Work inside a folder-local contract for `packages/twenty-front`. | `AGENTS.md`, `CONTEXT-MAP.md` | root | States that `packages/twenty-front` is unmapped in this pilot and does not wander into another surface. | User-reported pass; routing matched expected behavior. | Pass |
 | 5 | Claude Code | root | Work inside a folder-local contract for `packages/twenty-front`. | `AGENTS.md`, `CONTEXT-MAP.md` | root | States that `packages/twenty-front` is unmapped in this pilot and does not wander into another surface. | User-reported pass; routing matched expected behavior. | Pass |
-
-## Post-Pilot Wave Template
-
-Before each new wave is marked complete, append cases that cover at minimum:
-
-- root -> new surface
-- wrong-folder bounce -> root -> new surface
-- new surface -> root -> correct alternative surface
-- unmapped refusal still works
-- consulted-file declaration still happens
-
-## Reusable Wave Case Table
-
-Copy this table for each new wave and replace `<wave>` and `<surface>`:
-
-| Case | Tool | Starting surface | Prompt | Expected consulted files | Expected final folder | Expected behavior | Actual result | Pass/Fail |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Codex | root | Route me to `<surface>` work. | `AGENTS.md`, `CONTEXT-MAP.md`, `<surface>/AGENTS.md`, `<surface>/CONTEXT.md` | `<surface>` | Routes from root into the new surface and declares consulted files. | Pending | Pending |
-| 1 | Claude Code | root | Route me to `<surface>` work. | `AGENTS.md`, `CONTEXT-MAP.md`, `<surface>/AGENTS.md`, `<surface>/CONTEXT.md` | `<surface>` | Routes from root into the new surface and declares consulted files. | Pending | Pending |
-| 2 | Codex | wrong folder | Perform `<surface>` work from the wrong folder. | root files plus wrong-folder files plus `<surface>` files | `<surface>` | Bounces through root and reroutes correctly. | Pending | Pending |
-| 2 | Claude Code | wrong folder | Perform `<surface>` work from the wrong folder. | root files plus wrong-folder files plus `<surface>` files | `<surface>` | Bounces through root and reroutes correctly. | Pending | Pending |
-| 3 | Codex | `<surface>` | Do unrelated docs or OpenSpec work from `<surface>`. | root files plus `<surface>` files plus target-surface files | target surface | Leaves the new surface and reroutes correctly. | Pending | Pending |
-| 3 | Claude Code | `<surface>` | Do unrelated docs or OpenSpec work from `<surface>`. | root files plus `<surface>` files plus target-surface files | target surface | Leaves the new surface and reroutes correctly. | Pending | Pending |
-| 4 | Codex | root | Work in an unmapped sibling surface instead. | `AGENTS.md`, `CONTEXT-MAP.md` | root | Refuses to invent a sibling routing contract. | Pending | Pending |
-| 4 | Claude Code | root | Work in an unmapped sibling surface instead. | `AGENTS.md`, `CONTEXT-MAP.md` | root | Refuses to invent a sibling routing contract. | Pending | Pending |
 
 ## Wave 2: Docs-Heavy Cases
 
@@ -121,3 +96,15 @@ Copy this table for each new wave and replace `<wave>` and `<surface>`:
 | 4 | Claude Code | `packages/twenty-docker` | Update the repository governance docs. | `AGENTS.md`, `CONTEXT-MAP.md`, `packages/AGENTS.md`, `packages/CONTEXT.md`, `packages/twenty-docker/AGENTS.md`, `packages/twenty-docker/CONTEXT.md`, `docs/AGENTS.md`, `docs/CONTEXT.md` | `docs/` | Leaves `packages/twenty-docker`, returns through root, and reroutes into root `docs/`. | CLAUDE.md redirects to AGENTS.md + CONTEXT-MAP.md; routing path identical to Codex. | Pass |
 | 5 | Codex | root | Work inside a specific app subdirectory like `packages/twenty-apps/internal/twenty-slack`. | `AGENTS.md`, `CONTEXT-MAP.md`, `packages/AGENTS.md`, `packages/CONTEXT.md`, `packages/twenty-apps/AGENTS.md`, `packages/twenty-apps/CONTEXT.md` | `packages/twenty-apps` | Uses the apps-collection index surface and does not invent per-app leaf routing. | twenty-apps/AGENTS.md routing rule: "If the target app is not mapped yet, stay in the packages/twenty-apps/ surface"; individual apps not yet mapped. | Pass |
 | 5 | Claude Code | root | Work inside a specific app subdirectory like `packages/twenty-apps/internal/twenty-slack`. | `AGENTS.md`, `CONTEXT-MAP.md`, `packages/AGENTS.md`, `packages/CONTEXT.md`, `packages/twenty-apps/AGENTS.md`, `packages/twenty-apps/CONTEXT.md` | `packages/twenty-apps` | Uses the apps-collection index surface and does not invent per-app leaf routing. | CLAUDE.md redirects to AGENTS.md + CONTEXT-MAP.md; routing path identical to Codex. | Pass |
+
+## Methodology Reference
+
+Each wave followed the same five-pattern coverage before being marked closed:
+
+- root -> new surface
+- wrong-folder bounce -> root -> new surface
+- new surface -> root -> correct alternative surface
+- unmapped refusal still works
+- consulted-file declaration still happens
+
+Per-case pass/fail is the source of truth for that wave; `surface-inventory.md` carries the high-level wave status.

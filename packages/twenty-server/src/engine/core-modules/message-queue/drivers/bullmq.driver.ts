@@ -270,6 +270,7 @@ export class BullMQDriver
         count: QUEUE_RETENTION.failedMaxCount,
       },
       delay: options?.delay,
+      backoff: options?.backoff,
     };
 
     await this.queueMap[queueName].add(jobName, data, queueOptions);

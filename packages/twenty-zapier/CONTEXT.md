@@ -1,3 +1,9 @@
+---
+type: context
+title: "Twenty Zapier Context"
+description: "Context and scope guide for Twenty Zapier."
+okf_version: "0.1"
+---
 # Twenty Zapier Context
 
 ## Purpose
@@ -31,4 +37,5 @@ This surface is not the durable home for:
 - root repository architecture, governance, or ADR docs under `docs/`
 - backend, frontend, or other package code in the monorepo
 
-If the prompt is about those topics, go back to `../../CONTEXT-MAP.md` and reroute.
+If the prompt is about those topics, go back to `../../index.md` and reroute.
+

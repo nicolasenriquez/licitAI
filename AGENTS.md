@@ -1,3 +1,9 @@
+---
+type: agent-contract
+title: Root Agent Contract
+description: Canonical operational entrypoint for agent work in this checkout.
+---
+
 # AGENTS.md
 
 This file provides guidance when working with code in this repository.
@@ -12,17 +18,26 @@ Twenty is an open-source CRM built with modern technologies in a monorepo struct
 
 During this routing rollout, use the contract below before acting:
 
-- Start at `AGENTS.md`, then read `CONTEXT-MAP.md` to choose the correct surface.
+- Start at `AGENTS.md`, then read `index.md` to choose the correct surface.
+- Treat tokens as a first-class budget: prefer the smallest sufficient file set, the shortest sufficient declaration, and the shortest sufficient response that preserves correctness.
 - Route into `openspec/` for active OpenSpec changes, proposal/design/tasks/spec artifacts, change review, implementation, and archive/sync work.
 - Route into `docs/` for repository architecture, business context, governance, operations, standards, and ADR reading or editing.
 - Route into `packages/` for package-scoped work and for selecting the right package surface before leaf-package work.
 - Route into `.codex/` for repo-local Codex commands, repo-local Codex skills, and local Codex workflow assets.
+- Route into `.opencode/` for repo-local OpenCode commands, repo-local OpenCode skills, and local OpenCode workflow assets.
 - If a task starts in `docs/` but is really about an active OpenSpec change, return to the root map and reroute into `openspec/`.
 - If a task starts in `openspec/` but is really about architecture, governance, or other repo docs, return to the root map and reroute into `docs/`.
 - If a task starts in `packages/` but is really about root docs or OpenSpec change work, return to the root map and reroute.
 - If a task starts in `.codex/` but is really about the published plugin package or another mapped surface, return to the root map and reroute.
-- Do not invent folder-local routing rules for unmapped leaf surfaces during rollout. If the task is outside the mapped surfaces, stay on the root contract and do not wander.
-- Before a substantive response or edit, declare which routing/context files were consulted and which surface was selected.
+- If a task starts in `.opencode/` but is really about repo-local Codex assets, published plugin work, or another mapped surface, return to the root map and reroute.
+- Do not invent folder-local routing rules for unmapped leaf surfaces during rollout. If the task is outside the mapped surfaces, stay on the root contract, state explicitly that the surface is unmapped, and do not wander.
+- Only when required, declare consulted routing/context files briefly using relative paths. Include only the files actually needed for the task, then state the selected surface.
+
+## Fast Path
+
+- Docs or routing task: `AGENTS.md` -> `index.md` -> selected surface files.
+- Library, setup, or API-doc task: use Context7 when relevant.
+- Codebase question: use `graphify` first when available.
 
 ## Key Commands
 

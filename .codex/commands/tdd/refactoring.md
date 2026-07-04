@@ -1,3 +1,9 @@
+---
+type: reference
+title: "Refactor Candidates"
+description: "Reference documentation for Refactor Candidates."
+okf_version: "0.1"
+---
 # Refactor Candidates
 
 After TDD cycle, look for:

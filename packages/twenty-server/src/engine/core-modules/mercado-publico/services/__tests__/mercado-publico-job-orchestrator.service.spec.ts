@@ -1,5 +1,3 @@
-import { NotImplementedException } from '@nestjs/common';
-
 import { MercadoPublicoJobOrchestratorService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-job-orchestrator.service';
 
 describe('MercadoPublicoJobOrchestratorService', () => {
@@ -14,9 +12,38 @@ describe('MercadoPublicoJobOrchestratorService', () => {
     };
     const noopService = { run: jest.fn() };
     const stagingProjectionService = { run: jest.fn() };
+    const canonicalRefreshService = {
+      refreshCanonicalFromCsvSnapshot: jest
+        .fn()
+        .mockResolvedValue({
+          licitacionItems: 1,
+          licitacionOfertas: 1,
+          licitacionAdjudicaciones: 1,
+          ordenCompraItems: 1,
+          total: 4,
+        }),
+    };
+    const reconciliationService = {
+      refreshAllExactReconciliation: jest.fn().mockResolvedValue({
+        exactCodigoExterno: 2,
+        csvApiSameBusinessKey: 1,
+        exactCodigoLicitacion: 1,
+        exactCompraAgilIdOrdenCompra: 1,
+        total: 5,
+      }),
+      refreshAllHeuristicReconciliation: jest.fn().mockResolvedValue({
+        candidates: 1,
+        unmatched: 1,
+        events: 2,
+        goldStatusesUpdated: 1,
+        total: 4,
+      }),
+    };
 
     return {
       stagingProjectionService,
+      canonicalRefreshService,
+      reconciliationService,
       service: new MercadoPublicoJobOrchestratorService(
         configService as never,
         noopService as never,
@@ -33,6 +60,8 @@ describe('MercadoPublicoJobOrchestratorService', () => {
         noopService as never,
         noopService as never,
         stagingProjectionService as never,
+        canonicalRefreshService as never,
+        reconciliationService as never,
       ),
     };
   };
@@ -45,12 +74,40 @@ describe('MercadoPublicoJobOrchestratorService', () => {
     expect(stagingProjectionService.run).toHaveBeenCalledWith(payload);
   });
 
-  it('keeps csv-canonical-refresh explicitly unimplemented', async () => {
-    const { service, stagingProjectionService } = createService();
+  it('routes csv-canonical-refresh to canonical rerun and logs counts', async () => {
+    const { service, canonicalRefreshService } = createService();
+
+    await service.run('csv-canonical-refresh', payload);
+
+    expect(
+      canonicalRefreshService.refreshCanonicalFromCsvSnapshot,
+    ).toHaveBeenCalledWith('csv-file-id');
+  });
+
+  it('rejects csv-canonical-refresh without raw_csv_file_id', async () => {
+    const { service, canonicalRefreshService } = createService();
 
     await expect(
-      service.run('csv-canonical-refresh', payload),
-    ).rejects.toThrow(NotImplementedException);
-    expect(stagingProjectionService.run).not.toHaveBeenCalled();
+      service.run('csv-canonical-refresh', {}),
+    ).rejects.toThrow(
+      'Mercado Publico csv-canonical-refresh payload requires a non-empty "raw_csv_file_id" string',
+    );
+
+    expect(
+      canonicalRefreshService.refreshCanonicalFromCsvSnapshot,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('routes reconciliation-refresh to exact reconciliation and logs counts', async () => {
+    const { service, reconciliationService } = createService();
+
+    await service.run('reconciliation-refresh', payload);
+
+    expect(
+      reconciliationService.refreshAllExactReconciliation,
+    ).toHaveBeenCalled();
+    expect(
+      reconciliationService.refreshAllHeuristicReconciliation,
+    ).toHaveBeenCalled();
   });
 });

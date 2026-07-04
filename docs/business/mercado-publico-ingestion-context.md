@@ -1,3 +1,9 @@
+---
+type: business-context
+title: "Mercado Publico Ingestion Context"
+description: "Business context for Mercado Publico Ingestion Context."
+okf_version: "0.1"
+---
 # Mercado Publico Ingestion Context
 
 ## Purpose

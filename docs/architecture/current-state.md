@@ -1,3 +1,9 @@
+---
+type: architecture
+title: "Current State Architecture"
+description: "Architecture documentation for Current State Architecture."
+okf_version: "0.1"
+---
 # Current State Architecture
 
 ## Purpose

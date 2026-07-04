@@ -1,3 +1,9 @@
+---
+type: decision
+title: "ADR 0002: NestJS + TypeORM + PostgreSQL Backend Stack"
+description: "Architecture decision record for ADR 0002: NestJS + TypeORM + PostgreSQL Backend Stack."
+okf_version: "0.1"
+---
 # ADR 0002: NestJS + TypeORM + PostgreSQL Backend Stack
 
 ## Status

@@ -1,3 +1,9 @@
+---
+type: reference
+title: "CONTEXT.md Format"
+description: "Reference documentation for CONTEXT.md Format."
+okf_version: "0.1"
+---
 # CONTEXT.md Format
 
 ## Structure
@@ -50,7 +56,9 @@ _Avoid_: Client, buyer, account
 
 **Single context (most repos):** One `CONTEXT.md` at the repo root.
 
-**Multiple contexts:** A `CONTEXT-MAP.md` at the repo root lists the contexts, where they live, and how they relate to each other:
+**Multiple contexts:** A root `index.md` can act as the routing map that lists
+the documentation surfaces, where they live, and how they relate to each
+other:
 
 ```md
 # Context Map
@@ -70,7 +78,8 @@ _Avoid_: Client, buyer, account
 
 The skill infers which structure applies:
 
-- If `CONTEXT-MAP.md` exists, read it to find contexts
+- If a root `index.md` exists, read it to find the relevant surface and local
+  contexts
 - If only a root `CONTEXT.md` exists, single context
 - If neither exists, create a root `CONTEXT.md` lazily when the first term is resolved
 

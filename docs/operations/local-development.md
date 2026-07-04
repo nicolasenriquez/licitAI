@@ -1,3 +1,9 @@
+---
+type: operations-guide
+title: "Local Development"
+description: "Operations guidance for Local Development."
+okf_version: "0.1"
+---
 # Local Development
 
 ## Purpose

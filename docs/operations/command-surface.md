@@ -1,3 +1,9 @@
+---
+type: operations-guide
+title: "Command Surface"
+description: "Operations guidance for Command Surface."
+okf_version: "0.1"
+---
 # Command Surface
 
 ## Purpose

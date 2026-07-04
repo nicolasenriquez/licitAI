@@ -1,3 +1,9 @@
+---
+type: readme
+title: "Twenty end-to-end (E2E) Testing"
+description: "Durable README for Twenty E2e Testing."
+okf_version: "0.1"
+---
 # Twenty end-to-end (E2E) Testing
 
 ## Prerequisite

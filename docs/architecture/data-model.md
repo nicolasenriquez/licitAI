@@ -1,3 +1,9 @@
+---
+type: architecture
+title: "Data Model"
+description: "Architecture documentation for Data Model."
+okf_version: "0.1"
+---
 # Data Model
 
 ## Purpose

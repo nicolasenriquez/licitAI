@@ -1,3 +1,9 @@
+---
+type: readme
+title: "Legacy TypeORM migrations — do not add new files here"
+description: "Durable README for Legacy Typeorm Migrations Do Not Add."
+okf_version: "0.1"
+---
 # Legacy TypeORM migrations — do not add new files here
 
 This directory contains historical TypeORM migrations (`common/` and `billing/`).

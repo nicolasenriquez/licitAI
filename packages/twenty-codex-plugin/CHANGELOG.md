@@ -1,3 +1,9 @@
+---
+type: changelog
+title: "Changelog"
+description: "Changelog for Twenty Codex Plugin."
+okf_version: "0.1"
+---
 # Changelog
 
 All notable changes to the Twenty Codex plugin are documented in this file.

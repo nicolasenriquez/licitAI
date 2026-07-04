@@ -2,6 +2,7 @@ import { type AxiosInstance } from 'axios';
 
 import { MercadoPublicoApiV1LicitacionesClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-licitaciones-client.service';
 import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
+import { MercadoPublicoQuotaTrackerService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-quota-tracker.service';
 import { SecureHttpClientService } from 'src/engine/core-modules/secure-http-client/secure-http-client.service';
 
 describe('MercadoPublicoApiV1LicitacionesClientService', () => {
@@ -14,6 +15,10 @@ describe('MercadoPublicoApiV1LicitacionesClientService', () => {
       apiTicket: 'fake-ticket',
       apiV1BaseUrl: 'https://api.mercadopublico.cl',
       httpTimeoutMs: 30_000,
+      httpMaxRetries: 3,
+      httpRetryBackoffMs: 1_000,
+      quotaTimezone: 'America/Santiago',
+      csvDownloadEnabled: false,
     }),
   } as unknown as jest.Mocked<MercadoPublicoConfigService>;
 
@@ -21,9 +26,14 @@ describe('MercadoPublicoApiV1LicitacionesClientService', () => {
     getHttpClient: jest.fn().mockReturnValue(mockHttpClient),
   } as unknown as jest.Mocked<SecureHttpClientService>;
 
+  const mockQuotaTracker = {
+    record429: jest.fn(),
+  } as unknown as jest.Mocked<MercadoPublicoQuotaTrackerService>;
+
   const service = new MercadoPublicoApiV1LicitacionesClientService(
     mockMercadoPublicoConfigService,
     mockSecureHttpClientService,
+    mockQuotaTracker,
   );
 
   beforeEach(() => {
@@ -118,5 +128,70 @@ describe('MercadoPublicoApiV1LicitacionesClientService', () => {
 
     expect(response.errorSummary).toBe('soft_miss');
     expect(response.licitaciones).toHaveLength(0);
+  });
+
+  it('should record 429 on quota tracker when rate-limited', async () => {
+    mockHttpClient.get.mockResolvedValue({
+      status: 429,
+      data: {},
+    });
+
+    mockMercadoPublicoConfigService.getSettings.mockReturnValue({
+      apiTicket: 'fake-ticket',
+      apiV1BaseUrl: 'https://api.mercadopublico.cl',
+      httpTimeoutMs: 30_000,
+      httpMaxRetries: 3,
+      httpRetryBackoffMs: 1_000,
+      quotaTimezone: 'America/Santiago',
+      csvDownloadEnabled: false,
+    });
+
+    await service.getByDate(new Date(Date.UTC(2026, 5, 15)));
+
+    expect(mockQuotaTracker.record429).toHaveBeenCalledWith(
+      'api-v1-licitaciones',
+      'America/Santiago',
+    );
+  });
+
+  it('should resolve normally when quota settings lookup throws during 429 tracking', async () => {
+    mockHttpClient.get.mockResolvedValue({
+      status: 429,
+      data: {},
+    });
+
+    mockMercadoPublicoConfigService.getSettings
+      .mockReturnValueOnce({
+        apiTicket: 'fake-ticket',
+        apiV1BaseUrl: 'https://api.mercadopublico.cl',
+        httpTimeoutMs: 30_000,
+        httpMaxRetries: 3,
+        httpRetryBackoffMs: 1_000,
+        quotaTimezone: 'America/Santiago',
+        csvDownloadEnabled: false,
+      })
+      .mockImplementationOnce(() => {
+        throw new Error('settings unavailable');
+      });
+
+    await expect(
+      service.getByDate(new Date(Date.UTC(2026, 5, 15))),
+    ).resolves.toMatchObject({
+      httpStatus: 429,
+      errorSummary: 'retryable_failed',
+    });
+  });
+
+  it('should not record 429 when status is 200', async () => {
+    mockHttpClient.get.mockResolvedValue({
+      status: 200,
+      data: {
+        Listado: [{ CodigoExterno: 'L1' }],
+      },
+    });
+
+    await service.getByDate(new Date(Date.UTC(2026, 5, 15)));
+
+    expect(mockQuotaTracker.record429).not.toHaveBeenCalled();
   });
 });

@@ -1,3 +1,9 @@
+---
+type: decision
+title: "ADR 0003: Metadata-Driven UI with Runtime GraphQL Schema Generation"
+description: "Architecture decision record for ADR 0003: Metadata-Driven UI with Runtime GraphQL Schema Generation."
+okf_version: "0.1"
+---
 # ADR 0003: Metadata-Driven UI with Runtime GraphQL Schema Generation
 
 ## Status

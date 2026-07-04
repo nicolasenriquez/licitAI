@@ -1,3 +1,9 @@
+---
+type: context
+title: OpenSpec Surface Context
+description: Scope and reading order for active OpenSpec changes.
+---
+
 # OpenSpec Context
 
 ## Purpose
@@ -25,11 +31,12 @@ Describe the role of `openspec/` in this repository during the workspace routing
 
 For an active change, prefer this order:
 
-1. `proposal.md`
-2. `specs/.../spec.md`
-3. `design.md`
-4. `tasks.md`
-5. Any change-local validation artifact such as a manual acceptance document
+1. `index.md`
+2. `proposal.md`
+3. `specs/.../spec.md`
+4. `design.md`
+5. `tasks.md`
+6. Any change-local validation artifact such as a manual acceptance document
 
 ## Scope Boundary
 
@@ -43,4 +50,4 @@ It is not the durable home for:
 - ADRs under `docs/`
 - general package implementation guidance under `packages/` unrelated to an active change
 
-If the prompt is about those topics, go back to `../CONTEXT-MAP.md` and reroute.
+If the prompt is about those topics, go back to `../index.md` and reroute.

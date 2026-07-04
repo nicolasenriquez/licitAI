@@ -11,6 +11,7 @@ export type MercadoPublicoRuntimeConfig = {
   httpMaxRetries: number;
   httpRetryBackoffMs: number;
   quotaTimezone: string;
+  apiDailyLimit: number;
   csvStorageRoot?: string;
   csvOrdenesDeCompraSourceUrl?: string;
   csvLicitacionesSourceUrl?: string;
@@ -44,6 +45,9 @@ export class MercadoPublicoConfigService {
       ),
       quotaTimezone: this.twentyConfigService.get(
         'MERCADO_PUBLICO_QUOTA_TIMEZONE',
+      ),
+      apiDailyLimit: this.twentyConfigService.get(
+        'MERCADO_PUBLICO_API_DAILY_LIMIT',
       ),
       csvStorageRoot: this.twentyConfigService.get(
         'MERCADO_PUBLICO_CSV_STORAGE_ROOT',

@@ -1,3 +1,9 @@
+---
+type: changelog
+title: "Changelog"
+description: "Changelog for Twenty Sdk."
+okf_version: "0.1"
+---
 # Changelog
 
 All notable changes to the [Twenty SDK](https://www.npmjs.com/package/twenty-sdk) are documented in this file.

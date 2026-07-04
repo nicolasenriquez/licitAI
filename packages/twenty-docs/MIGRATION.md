@@ -1,3 +1,9 @@
+---
+type: migration-guide
+title: "Mintlify Migration Summary"
+description: "Migration guide for Twenty Docs."
+okf_version: "0.1"
+---
 # Mintlify Migration Summary
 
 ## What Was Migrated

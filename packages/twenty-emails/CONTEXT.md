@@ -1,3 +1,9 @@
+---
+type: context
+title: "Twenty Emails Context"
+description: "Context and scope guide for Twenty Emails."
+okf_version: "0.1"
+---
 # Twenty Emails Context
 
 ## Purpose
@@ -32,4 +38,5 @@ This surface is not the durable home for:
 - root repository architecture, governance, or ADR docs under `docs/`
 - backend, frontend, or UI library code in other packages
 
-If the prompt is about those topics, go back to `../../CONTEXT-MAP.md` and reroute.
+If the prompt is about those topics, go back to `../../index.md` and reroute.
+

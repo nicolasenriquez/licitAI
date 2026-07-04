@@ -8,11 +8,18 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
   let mockSecureHttpClientService: {
     getHttpClient: jest.Mock;
   };
+  let mockQuotaTracker: {
+    record429: jest.Mock;
+  };
 
   const validSettings = {
     compraAgilApiTicket: 'test-v2-ticket',
     compraAgilApiBaseUrl: 'https://api2.mercadopublico.cl/',
     httpTimeoutMs: 30000,
+    httpMaxRetries: 3,
+    httpRetryBackoffMs: 1000,
+    quotaTimezone: 'America/Santiago',
+    csvDownloadEnabled: false,
   };
 
   const mockHttpClient = {
@@ -28,9 +35,14 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       getHttpClient: jest.fn().mockReturnValue(mockHttpClient),
     };
 
+    mockQuotaTracker = {
+      record429: jest.fn(),
+    };
+
     service = new MercadoPublicoApiV2CompraAgilClientService(
       mockConfigService as never,
       mockSecureHttpClientService as never,
+      mockQuotaTracker as never,
     );
 
     jest.clearAllMocks();
@@ -124,6 +136,25 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       const result = await service.getList({});
 
       expect(result.errorSummary).toBe('retryable_failed');
+    });
+
+    it('should resolve normally when quota settings lookup throws during 429 tracking', async () => {
+      mockHttpClient.get.mockResolvedValue({
+        status: 429,
+        data: {},
+      });
+
+      mockConfigService.getSettings
+        .mockReturnValueOnce(validSettings)
+        .mockImplementationOnce(() => {
+          throw new Error('settings unavailable');
+        });
+
+      await expect(service.getList({})).resolves.toMatchObject({
+        httpStatus: 429,
+        errorSummary: 'retryable_failed',
+      });
+      expect(mockQuotaTracker.record429).not.toHaveBeenCalled();
     });
   });
 

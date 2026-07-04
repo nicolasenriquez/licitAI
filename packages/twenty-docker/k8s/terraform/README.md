@@ -1,3 +1,9 @@
+---
+type: readme
+title: "TwentyCRM Terraform Docs"
+description: "Durable README for Terraform."
+okf_version: "0.1"
+---
 <!-- BEGIN_TF_DOCS -->
 # TwentyCRM Terraform Docs
 

@@ -22,6 +22,7 @@ import {
   type MercadoPublicoErrorSummary,
 } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
+import { MercadoPublicoQuotaTrackerService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-quota-tracker.service';
 import { SecureHttpClientService } from 'src/engine/core-modules/secure-http-client/secure-http-client.service';
 
 export type MercadoPublicoApiV2CompraAgilListResponse = {
@@ -101,6 +102,7 @@ export class MercadoPublicoApiV2CompraAgilClientService {
   constructor(
     private readonly mercadoPublicoConfigService: MercadoPublicoConfigService,
     private readonly secureHttpClientService: SecureHttpClientService,
+    private readonly quotaTracker: MercadoPublicoQuotaTrackerService,
   ) {}
 
   async getList(
@@ -154,6 +156,7 @@ export class MercadoPublicoApiV2CompraAgilClientService {
     const httpStatusErrorSummary = classifyMercadoPublicoHttpStatus(
       response.status,
     );
+    this.tryRecord429(response.status);
 
     return {
       endpoint: MERCADO_PUBLICO_API_V2_COMPRA_AGIL_LIST_ENDPOINT,
@@ -215,6 +218,7 @@ export class MercadoPublicoApiV2CompraAgilClientService {
     const httpStatusErrorSummary = classifyMercadoPublicoHttpStatus(
       response.status,
     );
+    this.tryRecord429(response.status);
 
     return {
       endpoint: MERCADO_PUBLICO_API_V2_COMPRA_AGIL_DETAIL_BY_CODIGO_ENDPOINT,
@@ -231,5 +235,25 @@ export class MercadoPublicoApiV2CompraAgilClientService {
       errorMessage: bodyError?.message,
       errorCode: bodyError?.code ?? undefined,
     };
+  }
+
+  // ponytail: tryRecord429 duplicated 3×, extract to util when 4th client appears
+  private tryRecord429(status: number): void {
+    if (status !== 429) {
+      return;
+    }
+
+    void (async () => {
+      try {
+        const settings = this.mercadoPublicoConfigService.getSettings();
+
+        await this.quotaTracker.record429(
+          MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
+          settings.quotaTimezone,
+        );
+      } catch {
+        return;
+      }
+    })();
   }
 }

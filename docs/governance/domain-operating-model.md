@@ -1,3 +1,9 @@
+---
+type: governance
+title: "Domain Operating Model"
+description: "Governance guidance for Domain Operating Model."
+okf_version: "0.1"
+---
 # Domain Operating Model
 
 ## Purpose

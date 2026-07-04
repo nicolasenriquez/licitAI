@@ -1,3 +1,9 @@
+---
+type: decision
+title: "ADR 0004: Per-Workspace PostgreSQL Schema Isolation"
+description: "Architecture decision record for ADR 0004: Per-Workspace PostgreSQL Schema Isolation."
+okf_version: "0.1"
+---
 # ADR 0004: Per-Workspace PostgreSQL Schema Isolation
 
 ## Status

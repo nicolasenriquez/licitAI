@@ -1,3 +1,9 @@
+---
+type: design-guide
+title: "Wireframe Playbook"
+description: "Design guidance for Wireframe Playbook."
+okf_version: "0.1"
+---
 # Wireframe Playbook
 
 ## Purpose

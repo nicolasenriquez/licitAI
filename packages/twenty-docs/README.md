@@ -1,3 +1,9 @@
+---
+type: readme
+title: "Twenty Documentation"
+description: "Durable README for Twenty Docs."
+okf_version: "0.1"
+---
 # Twenty Documentation
 
 Official documentation for Twenty CRM, powered by [Mintlify](https://mintlify.com).

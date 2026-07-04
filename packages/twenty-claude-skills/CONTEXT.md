@@ -1,3 +1,9 @@
+---
+type: context
+title: "Twenty Claude Skills Context"
+description: "Context and scope guide for Twenty Claude Skills."
+okf_version: "0.1"
+---
 # Twenty Claude Skills Context
 
 ## Purpose
@@ -34,4 +40,5 @@ This surface is not the durable home for:
 - root `docs/` baseline docs
 - OpenSpec artifacts
 
-If the prompt is about those topics, go back to `../../CONTEXT-MAP.md` and reroute.
+If the prompt is about those topics, go back to `../../index.md` and reroute.
+

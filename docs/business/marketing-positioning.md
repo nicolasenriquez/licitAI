@@ -1,3 +1,9 @@
+---
+type: business-context
+title: "Marketing And Positioning"
+description: "Business context for Marketing And Positioning."
+okf_version: "0.1"
+---
 # Marketing And Positioning
 
 ## Purpose

@@ -1,3 +1,9 @@
+---
+type: standard
+title: "Changelog Standard: Semantic Versioned Release Notes"
+description: "Repository standard for Changelog Standard: Semantic Versioned Release Notes."
+okf_version: "0.1"
+---
 # Changelog Standard: Semantic Versioned Release Notes
 
 ## Overview

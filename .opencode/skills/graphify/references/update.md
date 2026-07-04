@@ -1,3 +1,9 @@
+---
+type: reference
+title: "graphify reference: incremental update and cluster-only"
+description: "Reference documentation for graphify reference: incremental update and cluster-only."
+okf_version: "0.1"
+---
 # graphify reference: incremental update and cluster-only
 
 Load this only when the user passed `--update` or `--cluster-only`. A first-time full build never reads this file.

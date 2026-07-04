@@ -798,6 +798,38 @@ export class MercadoPublicoCanonicalRefreshService {
     });
   }
 
+  async refreshCanonicalFromCsvSnapshot(rawCsvFileId: string): Promise<{
+    licitacionItems: number;
+    licitacionOfertas: number;
+    licitacionAdjudicaciones: number;
+    ordenCompraItems: number;
+    total: number;
+  }> {
+    const result = {
+      licitacionItems: 0,
+      licitacionOfertas: 0,
+      licitacionAdjudicaciones: 0,
+      ordenCompraItems: 0,
+      total: 0,
+    };
+
+    result.licitacionItems =
+      await this.refreshLicitacionItemsFromCsvSnapshot(rawCsvFileId);
+    result.licitacionOfertas =
+      await this.refreshLicitacionOfertasFromCsvSnapshot(rawCsvFileId);
+    result.licitacionAdjudicaciones =
+      await this.refreshLicitacionAdjudicacionesFromCsvSnapshot(rawCsvFileId);
+    result.ordenCompraItems =
+      await this.refreshOrdenCompraItemsFromCsvSnapshot(rawCsvFileId);
+    result.total =
+      result.licitacionItems +
+      result.licitacionOfertas +
+      result.licitacionAdjudicaciones +
+      result.ordenCompraItems;
+
+    return result;
+  }
+
   private async selectLatestOrdenCompraItemStagingRows(
     entityManager: EntityManager,
     rawCsvFileId: string,

@@ -1,3 +1,9 @@
+---
+type: reference
+title: "Triage Labels"
+description: "Reference documentation for Triage Labels."
+okf_version: "0.1"
+---
 # Triage Labels
 
 The skills speak in terms of five canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker.

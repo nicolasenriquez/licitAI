@@ -24,7 +24,9 @@ import { MercadoPublicoCsvOcDownloadService } from 'src/engine/core-modules/merc
 import { MercadoPublicoCsvLicitacionesDownloadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-licitaciones-download.service';
 import { MercadoPublicoCsvProfileService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-profile.service';
 import { MercadoPublicoCsvRawLoadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-raw-load.service';
+import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoCsvStagingProjectionService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-staging-projection.service';
+import { MercadoPublicoReconciliationService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-reconciliation.service';
 
 @Injectable()
 export class MercadoPublicoJobOrchestratorService {
@@ -48,6 +50,8 @@ export class MercadoPublicoJobOrchestratorService {
     private readonly mercadoPublicoCsvProfileService: MercadoPublicoCsvProfileService,
     private readonly mercadoPublicoCsvRawLoadService: MercadoPublicoCsvRawLoadService,
     private readonly mercadoPublicoCsvStagingProjectionService: MercadoPublicoCsvStagingProjectionService,
+    private readonly mercadoPublicoCanonicalRefreshService: MercadoPublicoCanonicalRefreshService,
+    private readonly mercadoPublicoReconciliationService: MercadoPublicoReconciliationService,
   ) {}
 
   async run(
@@ -157,15 +161,52 @@ export class MercadoPublicoJobOrchestratorService {
     }
 
     if (jobName === 'csv-canonical-refresh') {
-      throw new NotImplementedException(
-        `Mercado Publico job "${jobName}" is registered and queued, but execution starts in tasks 3.4+.
-Payload: ${JSON.stringify(payload)}`,
+      const rawCsvFileId = this.parseRawCsvFileId(payload);
+      const result =
+        await this.mercadoPublicoCanonicalRefreshService.refreshCanonicalFromCsvSnapshot(
+          rawCsvFileId,
+        );
+
+      this.logger.log(
+        `Canonical rerun complete: items=${result.licitacionItems}, ofertas=${result.licitacionOfertas}, adjudicaciones=${result.licitacionAdjudicaciones}, OC_items=${result.ordenCompraItems}, total=${result.total}`,
       );
+
+      return;
+    }
+
+    if (jobName === 'reconciliation-refresh') {
+      const exactResult =
+        await this.mercadoPublicoReconciliationService.refreshAllExactReconciliation();
+
+      this.logger.log(
+        `Exact reconciliation complete: codigo_externo=${exactResult.exactCodigoExterno}, csv_api_same_business_key=${exactResult.csvApiSameBusinessKey}, codigo_licitacion=${exactResult.exactCodigoLicitacion}, compra_agil_id_orden_compra=${exactResult.exactCompraAgilIdOrdenCompra}, total=${exactResult.total}`,
+      );
+
+      const heuristicResult =
+        await this.mercadoPublicoReconciliationService.refreshAllHeuristicReconciliation();
+
+      this.logger.log(
+        `Heuristic reconciliation complete: candidates=${heuristicResult.candidates}, unmatched=${heuristicResult.unmatched}, events=${heuristicResult.events}, goldStatusesUpdated=${heuristicResult.goldStatusesUpdated}, total=${heuristicResult.total}`,
+      );
+
+      return;
     }
 
     throw new NotImplementedException(
       `Mercado Publico job "${jobName}" is registered and queued, but execution starts in tasks 3.4+.
 Payload: ${JSON.stringify(payload)}`,
     );
+  }
+
+  private parseRawCsvFileId(payload: Record<string, unknown>): string {
+    const rawCsvFileId = payload.raw_csv_file_id;
+
+    if (typeof rawCsvFileId !== 'string' || rawCsvFileId.trim().length === 0) {
+      throw new BadRequestException(
+        'Mercado Publico csv-canonical-refresh payload requires a non-empty "raw_csv_file_id" string',
+      );
+    }
+
+    return rawCsvFileId;
   }
 }

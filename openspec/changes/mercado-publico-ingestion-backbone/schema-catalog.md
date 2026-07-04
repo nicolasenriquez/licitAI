@@ -1,3 +1,9 @@
+---
+type: schema-catalog
+title: "Schema Catalog: mercado-publico-ingestion-backbone"
+description: "Schema catalog for Mercado Publico Ingestion Backbone."
+okf_version: "0.1"
+---
 # Schema Catalog: mercado-publico-ingestion-backbone
 
 ## Binding Declaration

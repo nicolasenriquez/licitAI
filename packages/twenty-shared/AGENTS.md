@@ -1,3 +1,9 @@
+---
+type: agent-contract
+title: "Twenty Shared Surface Contract"
+description: "Routing contract for Twenty Shared."
+okf_version: "0.1"
+---
 # Twenty Shared Surface Contract
 
 ## Purpose
@@ -17,7 +23,7 @@ Define when work should stay inside `packages/twenty-shared` during the workspac
 Before substantive work in this surface, read:
 
 1. `../../AGENTS.md`
-2. `../../CONTEXT-MAP.md`
+2. `../../index.md`
 3. `../AGENTS.md`
 4. `../CONTEXT.md`
 5. `AGENTS.md`
@@ -31,7 +37,7 @@ Before substantive work in this surface, read:
 - The prompt is about backend server code, frontend app code, or UI component library code rather than shared types.
 - The prompt is general package selection rather than `twenty-shared` specifically.
 
-When that happens, return to `../../CONTEXT-MAP.md` first and reroute from there. Do not keep working from `packages/twenty-shared`.
+When that happens, return to `../../index.md` first and reroute from there. Do not keep working from `packages/twenty-shared`.
 
 ## Working Contract
 
@@ -39,3 +45,4 @@ When that happens, return to `../../CONTEXT-MAP.md` first and reroute from there
 - State that the selected surface is `packages/twenty-shared`.
 - Preserve the distinction between shared library code and application-specific, UI, or infrastructure-docs work.
 - `twenty-shared` is a dependency of multiple packages; changes here have wide blast radius — validate downstream consumers.
+

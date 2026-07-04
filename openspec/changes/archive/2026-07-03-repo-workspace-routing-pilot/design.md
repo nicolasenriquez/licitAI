@@ -2,7 +2,7 @@
 
 ## Summary
 
-Implement a file-based routing system for agent work in this repository using a validated pilot plus staged rollout waves. The pilot already proved the contract on the root, `openspec/`, and `docs/`. The next step is to extend that same contract deliberately across the remaining repo surfaces.
+Implement a file-based routing system for agent work in this repository through a validated pilot followed by staged rollout waves. The pilot proved the contract on the root, `openspec/`, and `docs/`. The staged waves then extended the same contract to the rest of the mapped repository surfaces, ending in a fully-routed repository ready for change archive.
 
 The design remains intentionally small:
 
@@ -68,13 +68,16 @@ Responsibilities:
 
 ### Rollout surfaces
 
-The next expansion should not jump directly from root to dozens of leaf packages.
+The rollout does not jump directly from root to dozens of leaf packages.
 
-It should add routing in this order:
+It adds routing in this order:
 
 1. `packages/` as a parent package-index surface
 2. docs-heavy leaf packages
-3. AI-tooling leaf packages
+3. AI-tooling leaf packages and surfaces
+   - `.codex/`
+   - `packages/twenty-codex-plugin`
+   - `.opencode/` (added in the AI-tooling extension of wave 5)
 4. core monorepo packages
 5. remaining package groups
 
@@ -113,6 +116,7 @@ This keeps the routing topology legible and makes the package tree navigable wit
 - when package routing expands:
   - `packages/AGENTS.md`
   - `packages/CONTEXT.md`
+- `.opencode/` follows the same file contract shape as `.codex/`, with explicit bounce rules between the two AI-tooling surfaces
 - pre-existing local `AGENTS.md` files are harmonized rather than left divergent
 
 ### Validation Artifact

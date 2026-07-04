@@ -1,3 +1,9 @@
+---
+type: context
+title: OpenCode Surface Context
+description: Scope and reading order for repo-local OpenCode assets.
+---
+
 # OpenCode Context
 
 ## Purpose
@@ -33,4 +39,4 @@ This surface is not the durable home for:
 - the published plugin package in `packages/twenty-codex-plugin`
 - general package selection under `packages/`
 
-If the prompt is about those topics, go back to `../CONTEXT-MAP.md` and reroute.
+If the prompt is about those topics, go back to `../index.md` and reroute.

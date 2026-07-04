@@ -2,6 +2,8 @@ import { type DataSource, type EntityManager } from 'typeorm';
 
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 
+// ponytail: chained mocks are positional, query-count change breaks them.
+// Refactor with care — index 17 is the "raw_state present" gate for upsertCanonicalLicitacion.
 describe('MercadoPublicoCanonicalRefreshService', () => {
   const mockEntityManager = {
     query: jest.fn(),
@@ -18,6 +20,7 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (mockEntityManager.query as jest.Mock).mockReset();
   });
 
   it('should refresh canonical licitaciones from distinct staging rows', async () => {
@@ -107,7 +110,7 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
 
     await service.refreshV1LicitacionesFromApiSnapshot('raw-api-payload-id');
 
-    const [, upsertParams] = mockEntityManager.query.mock.calls[1];
+    const upsertParams = mockEntityManager.query.mock.calls[1]![1] as unknown[];
 
     expect(upsertParams[3]).toBeNull();
     expect(upsertParams[7]).toBe('unknown_raw_type');
@@ -192,7 +195,7 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
 
       expect(refreshedCount).toBe(1);
 
-      const [, upsertParams] = mockEntityManager.query.mock.calls[1];
+    const upsertParams = mockEntityManager.query.mock.calls[1]![1] as unknown[];
 
       expect(upsertParams[1]).toBeNull();
       expect(upsertParams[2]).toBeNull();
@@ -367,6 +370,79 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
         'UNSPSC-123',
         'Transferencia',
       ]);
+    });
+  });
+
+  describe('refreshCanonicalFromCsvSnapshot', () => {
+    it('should refresh only CSV-derived canonical entities for the requested file', async () => {
+      mockEntityManager.query
+        .mockResolvedValueOnce([
+          {
+            id: 'stg-it1',
+            codigo_externo: 'L1',
+            codigoitem: 'ITEM-1',
+            nombre_producto_generico: 'Producto X',
+            cantidad: '100',
+          },
+        ])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            id: 'stg-of1',
+            codigo_externo: 'L1',
+            codigoitem: 'ITEM-1',
+            codigo_proveedor: 'PROV-1',
+            rut_proveedor: '12345678-9',
+            nombre_de_la_oferta: 'Oferta A',
+            estado_oferta: 'Aceptada',
+            cantidad_ofertada: '50',
+            valor_total_ofertado: '1000000,50',
+            oferta_seleccionada: 'Si',
+          },
+        ])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            id: 'stg-adj1',
+            codigo_externo: 'L1',
+            codigoitem: 'ITEM-1',
+            rut_proveedor: '12345678-9',
+            cantidad_adjudicada: '100',
+            monto_estimado_adjudicado: '5000000',
+          },
+        ])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            id: 'stg-oci1',
+            iditem: 'ITEM-OC-1',
+            codigo: 'OC-1',
+            total_linea_neto: '500000',
+            codigo_producto_onu: 'UNSPSC-123',
+            forma_de_pago: 'Transferencia',
+          },
+        ])
+        .mockResolvedValueOnce([]);
+
+      const result =
+        await service.refreshCanonicalFromCsvSnapshot('csv-file-id');
+
+      expect(result).toEqual({
+        licitacionItems: 1,
+        licitacionOfertas: 1,
+        licitacionAdjudicaciones: 1,
+        ordenCompraItems: 1,
+        total: 4,
+      });
+      expect(mockEntityManager.query).toHaveBeenCalledTimes(8);
+      const rawFileIdCalls = (
+        mockEntityManager.query as jest.Mock
+      ).mock.calls.filter(
+        (c: unknown[]) =>
+          typeof c[0] === 'string' &&
+          (c[0] as string).includes('WHERE raw_row.raw_csv_file_id = $1'),
+      );
+      expect(rawFileIdCalls.length).toBeGreaterThanOrEqual(2);
     });
   });
 });

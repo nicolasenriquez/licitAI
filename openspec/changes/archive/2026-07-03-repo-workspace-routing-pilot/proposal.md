@@ -2,18 +2,16 @@
 
 ## Why
 
-This repository already uses root-level agent entry files, durable docs, and OpenSpec change artifacts, but it does not yet have an explicit routing contract for folder-scoped agent work.
+This repository already uses root-level agent entry files, durable docs, and OpenSpec change artifacts, but it did not yet have an explicit routing contract for folder-scoped agent work.
 
-That gap makes it too easy for an agent to:
+That gap made it too easy for an agent to:
 
 - stay in the wrong surface for the task
 - mix durable docs work with active change work
-- invent local folder rules for areas that are not yet mapped
+- invent local folder rules for areas that were not yet mapped
 - answer without making its consulted context explicit
 
-The initial pilot for root, `openspec/`, and `docs/` is now in place and the manual test gate has been completed by the user. The remaining problem is consistency: the change still reads like a pending pilot instead of a validated pilot that now needs a controlled rollout to the rest of the repository.
-
-This change therefore continues past the pilot and becomes the rollout-tracking spec for staged routing documentation expansion across the repo. It is not a product feature and does not alter runtime behavior.
+This change delivers a file-based routing contract for the whole repository through a validated pilot and a staged rollout. The pilot proved the contract on the root, `openspec/`, and `docs/`, and the staged waves then extended the same contract to every mapped repo surface, including `packages/` as a package-index, every leaf package with a routing contract of its own, `.codex/` and `.opencode/` as AI-tooling surfaces, and the `packages/twenty-apps` index for the apps collection. It is not a product feature and does not alter runtime behavior.
 
 ## Scope
 
@@ -33,8 +31,9 @@ This change therefore continues past the pilot and becomes the rollout-tracking 
   - `packages/` as the package-index surface
   - `packages/twenty-docs`
   - `packages/twenty-claude-skills`
-  - `.codex`
+  - `.codex/`
   - `packages/twenty-codex-plugin`
+  - `.opencode/`
   - core monorepo packages and then remaining package groups
 - A clear position on external discovery tools such as Understand Anything
 
@@ -59,6 +58,7 @@ This change therefore continues past the pilot and becomes the rollout-tracking 
 - `packages/` should gain a parent routing contract before broad leaf-package expansion.
 - Existing local `AGENTS.md` files must be harmonized with the root routing contract instead of drifting.
 - Understand Anything may be used as an optional discovery aid, but the file-backed routing contract remains the only source of truth and no plugin dependency is introduced by this change.
+- `.opencode/` is a parallel AI-tooling surface to `.codex/`, with the same file contract and explicit bounce rules between the two.
 
 ## Expected Outcome
 
@@ -70,22 +70,28 @@ At the end of this change, the repository has:
 - a consistent rule that every mapped surface uses repo-native files, not external generated truth
 - a backlog of remaining work that can be executed without reopening the same design questions each time
 
-## Expansion Order After The Pilot
+## Rollout Order (Executed)
 
-1. Stabilize rollout architecture
-   - define the full surface inventory
-   - add `packages/` as the package-index surface
-   - reconcile pre-existing local `AGENTS.md` files
-2. Docs-heavy surfaces
+1. Pilot closeout and rollout architecture
+   - defined the full surface inventory
+   - added `packages/` as the package-index surface
+   - reconciled pre-existing local `AGENTS.md` files
+2. Docs-heavy wave
    - `packages/twenty-docs`
    - `packages/twenty-claude-skills`
-3. AI tooling surfaces
-   - `.codex`
+3. AI tooling wave
+   - `.codex/`
    - `packages/twenty-codex-plugin`
-4. Core monorepo packages first
+   - `.opencode/` (added during the AI-tooling extension in wave 5)
+4. Core monorepo wave
    - `packages/twenty-server`
    - `packages/twenty-front`
    - `packages/twenty-shared`
    - `packages/twenty-ui`
-5. The rest of `packages/` by functional group
-6. Decide separately whether top-level operational surfaces such as `.github/` should become first-class routing surfaces or remain root-routed
+5. Remaining `packages/` by functional group
+   - SDK and CLI: `create-twenty-app`, `twenty-sdk`, `twenty-cli`, `twenty-client-sdk`
+   - App and runtime support: `twenty-front-component-renderer`, `twenty-emails`, `twenty-companion`, `twenty-zapier`
+   - Infra, testing, and utilities: `twenty-docker`, `twenty-e2e-testing`, `twenty-utils`, `twenty-oxlint-rules`
+   - Websites: `twenty-website`, `twenty-website-redone`
+   - App collections: `packages/twenty-apps` (index surface; individual apps deferred to the index)
+6. Operational surfaces such as `.github/`, `.cursor/`, `.vscode/`, `.yarn/` remain intentionally root-routed and are documented as such in `CONTEXT-MAP.md`.

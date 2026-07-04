@@ -1,3 +1,9 @@
+---
+type: context
+title: Docs Surface Context
+description: Scope and reading order for durable repository documentation.
+---
+
 # Docs Context
 
 ## Purpose
@@ -6,7 +12,8 @@ Describe the role of `docs/` in this repository during the workspace routing pil
 
 ## What Lives Here
 
-- `README.md` is the documentation index and reading-path entrypoint.
+- `index.md` is the documentation routing index and local navigation layer.
+- `README.md` is the durable documentation baseline and reading-path entrypoint.
 - `architecture/` captures current state, reference architecture, repository strategy, data model, security, and technology standards.
 - `business/` captures domain-specific context and source contracts.
 - `governance/` captures AI-assisted delivery, domain operating model, and shared decision rules.
@@ -23,10 +30,11 @@ Describe the role of `docs/` in this repository during the workspace routing pil
 
 For most documentation-led tasks, prefer this order:
 
-1. `README.md`
-2. The sub-area that matches the prompt
-3. `decisions/` when a shared architectural decision is involved
-4. `standards/` when a technology rule is involved
+1. `index.md`
+2. `README.md`
+3. The sub-area that matches the prompt
+4. `decisions/` when a shared architectural decision is involved
+5. `standards/` when a technology rule is involved
 
 ## Scope Boundary
 
@@ -39,4 +47,4 @@ It is not the working surface for:
 - apply/archive/sync change actions under `openspec/`
 - package-scoped code work under `packages/`
 
-If the prompt is about those topics, go back to `../CONTEXT-MAP.md` and reroute.
+If the prompt is about those topics, go back to `../index.md` and reroute.

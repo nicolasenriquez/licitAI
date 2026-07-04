@@ -1,3 +1,9 @@
+---
+type: change-spec
+title: "Spec: mercado-publico-ingestion-backbone"
+description: "Specification for Mercado Publico Ingestion Backbone."
+okf_version: "0.1"
+---
 # Spec: mercado-publico-ingestion-backbone
 
 ## ADDED Requirements

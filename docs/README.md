@@ -1,3 +1,9 @@
+---
+type: readme
+title: Documentation Baseline
+description: Durable baseline, reading paths, and documentation layers for the repository.
+---
+
 # Documentation Baseline
 
 ## Purpose
@@ -7,7 +13,13 @@ Provide a single navigation layer for Twenty CRM monorepo documentation. This in
 AI agents (Claude Code, Codex), engineers, architects, and reviewers working on the Twenty CRM monorepo.
 
 ## Executive Summary
-Twenty is a mature, production-grade open-source CRM with a 22-package Nx monorepo, full CI/CD pipelines, and a metadata-driven architecture. This repository did not previously contain a coherent internal documentation baseline consolidating architecture, decisions, governance, and operations. This index organizes that baseline. The existing `CLAUDE.md` at the repo root remains the fast operational reference for AI agents; `docs/` adds depth, traceability, and durable context.
+Twenty is a mature, production-grade open-source CRM with a 22-package Nx
+monorepo, full CI/CD pipelines, and a metadata-driven architecture. This
+repository now exposes a coherent internal documentation baseline that
+consolidates architecture, decisions, governance, and operations. Root
+`AGENTS.md` remains the operational entrypoint, root `index.md` is the
+canonical routing map, and `docs/` adds depth, traceability, and durable
+context.
 
 ## Documentation Structure
 
@@ -16,30 +28,36 @@ Twenty is a mature, production-grade open-source CRM with a 22-package Nx monore
 | Product vision | `vision-product.md` | Why Twenty exists, who it serves, product register, and MVP scope. |
 | Business | `business/` | Procurement domain: business case, lifecycle, source contracts, workflows, and market positioning for Mercado Publico / ChileCompra data ingestion. |
 | Architecture | `architecture/` | Current state, target state, reference architecture, data model, security, and repository strategy. |
+| Docs topology | `architecture/documentation-topology.md` | OKF bundle shape, index hierarchy, and documentation topology. |
 | Design | `design/` | Design system, visual tokens, interaction patterns, and wireframe grammar. |
 | Governance | `governance/` | Ownership, decision boundaries, AI-assisted delivery rules, and domain operating model. |
-| Operations | `operations/` | Local development, command surface, database operations, CI/CD, and release expectations. |
+| Operations | `operations/` | Local development, command surface, database operations, CI/CD, release expectations, and documentation authoring guidance. |
 | Decisions | `decisions/` | ADR index and repository-level architectural decisions. |
 | Templates | `templates/` | Standard templates for ADR creation and governance assets. |
-| Standards | `standards/` | Technology-specific standards for TypeScript, NestJS, React, GraphQL, testing, and tooling. |
+| Standards | `standards/` | Technology-specific standards plus repository documentation standards such as OKF adoption guidance. |
 
 ## Reading Paths
 
 ### For AI agents (onboarding)
 
 1. `../CLAUDE.md` — Fast operational rules (dev workflow, testing, lint commands)
-2. `architecture/current-state.md` — What Twenty is today (packages, stack, architecture)
-3. `architecture/reference-architecture.md` — Architecture diagram and integration rules
-4. `architecture/repository-strategy.md` — Monorepo layout, package dependencies, build order
-5. `architecture/data-model.md` — Multi-tenant data model, entities, field types
-6. `architecture/security-and-identity.md` — Authentication, RBAC, RLS, guards
-7. `vision-product.md` — Product context and scope
-8. `governance/ai-assisted-delivery.md` — Agent guardrails and delivery workflow
-9. `operations/command-surface.md` — Developer command contract
-10. `operations/local-development.md` — Local setup and runtime
-11. `design/design-system.md` — Visual and interaction rules
-12. `decisions/` — Key architectural decisions with rationale
-13. `../.cursor/rules/` — Cursor-specific development rules (16 `.mdc` files)
+2. `../index.md` — Canonical root routing map
+3. `index.md` — `docs/` routing index
+4. `architecture/current-state.md` — What Twenty is today (packages, stack, architecture)
+5. `architecture/reference-architecture.md` — Architecture diagram and integration rules
+6. `architecture/repository-strategy.md` — Monorepo layout, package dependencies, build order
+7. `architecture/data-model.md` — Multi-tenant data model, entities, field types
+8. `architecture/security-and-identity.md` — Authentication, RBAC, RLS, guards
+9. `architecture/documentation-topology.md` — Documentation topology and index hierarchy
+10. `vision-product.md` — Product context and scope
+11. `governance/ai-assisted-delivery.md` — Agent guardrails and delivery workflow
+12. `operations/command-surface.md` — Developer command contract
+13. `operations/local-development.md` — Local setup and runtime
+14. `operations/okf-authoring-guide.md` — Safe additive documentation authoring rules
+15. `design/design-system.md` — Visual and interaction rules
+16. `standards/okf-standard.md` — Repository OKF taxonomy and frontmatter rules
+17. `decisions/` — Key architectural decisions with rationale
+18. `../.cursor/rules/` — Cursor-specific development rules (16 `.mdc` files)
 
 ### For architecture and delivery
 
@@ -69,7 +87,7 @@ Twenty is a mature, production-grade open-source CRM with a 22-package Nx monore
 | Repository maturity | Production-grade. 22 packages, full CI/CD (40+ GitHub Actions workflows), published SDK (`twenty-sdk` v2.15.0), Docker Compose + Kubernetes Helm charts. |
 | Product maturity | Active. Twenty Cloud available at twenty.com. Self-hosting supported. App ecosystem with internal, community, and example apps. |
 | Architecture maturity | High but implicit. Architecture is visible in code and `CLAUDE.md` but not consolidated in a single durable document. |
-| Documentation maturity | Partial. Public docs at docs.twenty.com (Mintlify). `CLAUDE.md` for AI agents. No internal architecture baseline. |
+| Documentation maturity | Structured. Public docs at docs.twenty.com (Mintlify), root routing via `AGENTS.md` + `index.md`, and an internal baseline under `docs/`. |
 | Technical certainty | High. Stack is ratified: NestJS 11, React 19, TypeScript strict, PostgreSQL 16, Redis 7, BullMQ, GraphQL Yoga, Jotai, Linaria, Nx. |
 | Data certainty | High. Multi-tenant per-workspace PostgreSQL schemas. Metadata-driven object/field model. Instance command migration system. |
 
@@ -86,7 +104,12 @@ Twenty is a mature, production-grade open-source CRM with a 22-package Nx monore
 | Artifact | Role |
 | --- | --- |
 | `CLAUDE.md` | Fast operational rules for AI agents and engineers. Shortest path to working commands. |
+| `index.md` | Canonical routing map from the root contract into mapped documentation surfaces. |
+| `docs/index.md` | Local routing index for durable repository docs before leaf documents. |
 | `docs/` | Durable repository context and operating baseline. Architecture, governance, operations. |
+| `docs/standards/okf-standard.md` | Documentation taxonomy, frontmatter contract, and index rules for this repository. |
+| `docs/architecture/documentation-topology.md` | OKF bundle shape, surface model, and ordering rules. |
+| `docs/operations/okf-authoring-guide.md` | Safe additive update policy for future documentation work. |
 | `docs/decisions/` | Traceable long-lived decisions and supersession history. ADR format. |
 | `.cursor/rules/` | Reusable per-technology rules for Cursor IDE. 16 `.mdc` files covering TypeScript, NestJS, React, testing, etc. |
 | `packages/twenty-docs/` | Public-facing documentation site (Mintlify). User guides, developer guides, API reference. Distinct from internal `docs/`. |

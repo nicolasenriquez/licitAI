@@ -1,3 +1,9 @@
+---
+type: decision
+title: "Deployment-Local Mercado Publico Schema"
+description: "Architecture decision record for Deployment-Local Mercado Publico Schema."
+okf_version: "0.1"
+---
 # Deployment-Local Mercado Publico Schema
 
 ## Status

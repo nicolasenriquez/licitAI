@@ -1,3 +1,9 @@
+---
+type: standard
+title: "GraphQL Standard"
+description: "Repository standard for GraphQL Standard."
+okf_version: "0.1"
+---
 # GraphQL Standard
 
 ## Overview

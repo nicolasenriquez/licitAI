@@ -33,11 +33,13 @@ Most repos have a single context:
 └── src/
 ```
 
-If a `CONTEXT-MAP.md` exists at the root, the repo has multiple contexts. The map points to where each one lives:
+If a root `index.md` exists as the routing map, the repo may expose multiple
+documentation surfaces. Use the root map to find the relevant local
+`CONTEXT.md` files and related docs:
 
 ```
 /
-├── CONTEXT-MAP.md
+├── index.md
 ├── docs/
 │   └── adr/                          ← system-wide decisions
 ├── src/

@@ -1,3 +1,9 @@
+---
+type: decision
+title: "ADR 0001: Nx Monorepo with Yarn 4 Workspaces"
+description: "Architecture decision record for ADR 0001: Nx Monorepo with Yarn 4 Workspaces."
+okf_version: "0.1"
+---
 # ADR 0001: Nx Monorepo with Yarn 4 Workspaces
 
 ## Status

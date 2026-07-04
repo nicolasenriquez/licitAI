@@ -1,3 +1,9 @@
+---
+type: agent-contract
+title: "Twenty Docker Surface Contract"
+description: "Routing contract for Twenty Docker."
+okf_version: "0.1"
+---
 # Twenty Docker Surface Contract
 
 ## Purpose
@@ -16,7 +22,7 @@ Define when work should stay inside `packages/twenty-docker` during the workspac
 Before substantive work in this surface, read:
 
 1. `../../AGENTS.md`
-2. `../../CONTEXT-MAP.md`
+2. `../../index.md`
 3. `../AGENTS.md`
 4. `../CONTEXT.md`
 5. `AGENTS.md`
@@ -30,10 +36,11 @@ Before substantive work in this surface, read:
 - The prompt is about application code, backend services, or frontend components rather than container infrastructure.
 - The prompt is general package selection rather than `twenty-docker` specifically.
 
-When that happens, return to `../../CONTEXT-MAP.md` first and reroute from there. Do not keep working from `packages/twenty-docker`.
+When that happens, return to `../../index.md` first and reroute from there. Do not keep working from `packages/twenty-docker`.
 
 ## Working Contract
 
 - Declare the routing/context files consulted before responding or editing.
 - State that the selected surface is `packages/twenty-docker`.
 - Preserve the distinction between Docker/container infrastructure and application-specific or infrastructure-docs work.
+

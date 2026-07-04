@@ -1,3 +1,9 @@
+---
+type: product-vision
+title: "Product Vision"
+description: "Product vision and positioning for Twenty."
+okf_version: "0.1"
+---
 # Product Vision
 
 ## Purpose

@@ -1,3 +1,9 @@
+---
+type: contributing
+title: "Contributing"
+description: "Contribution guide for Twenty Codex Plugin."
+okf_version: "0.1"
+---
 # Contributing
 
 For maintainers of the plugin itself. Agents *using* the plugin → see [`AGENTS.md`](./AGENTS.md).

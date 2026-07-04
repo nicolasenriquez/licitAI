@@ -1,3 +1,9 @@
+---
+type: context
+title: "Twenty Server Context"
+description: "Context and scope guide for Twenty Server."
+okf_version: "0.1"
+---
 # Twenty Server Context
 
 ## Purpose
@@ -42,4 +48,5 @@ This surface is not the durable home for:
 - shared type/utility code in `packages/twenty-shared`
 - UI component library code in `packages/twenty-ui`
 
-If the prompt is about those topics, go back to `../../CONTEXT-MAP.md` and reroute.
+If the prompt is about those topics, go back to `../../index.md` and reroute.
+

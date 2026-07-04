@@ -1,3 +1,9 @@
+---
+type: reference
+title: "Deep Modules"
+description: "Reference documentation for Deep Modules."
+okf_version: "0.1"
+---
 # Deep Modules
 
 From "A Philosophy of Software Design":

@@ -1,3 +1,9 @@
+---
+type: reference
+title: "graphify reference: add a URL and watch a folder"
+description: "Reference documentation for graphify reference: add a URL and watch a folder."
+okf_version: "0.1"
+---
 # graphify reference: add a URL and watch a folder
 
 Load this when the user ran `/graphify add <url>` or passed `--watch`. Neither is part of the default build.

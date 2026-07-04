@@ -8,11 +8,18 @@ describe('MercadoPublicoApiV1OrdenesDeCompraClientService', () => {
   let mockSecureHttpClientService: {
     getHttpClient: jest.Mock;
   };
+  let mockQuotaTracker: {
+    record429: jest.Mock;
+  };
 
   const validSettings = {
     apiTicket: 'test-ticket',
     apiV1BaseUrl: 'https://api.mercadopublico.cl/',
     httpTimeoutMs: 30000,
+    httpMaxRetries: 3,
+    httpRetryBackoffMs: 1000,
+    quotaTimezone: 'America/Santiago',
+    csvDownloadEnabled: false,
   };
 
   const mockHttpClient = {
@@ -28,9 +35,14 @@ describe('MercadoPublicoApiV1OrdenesDeCompraClientService', () => {
       getHttpClient: jest.fn().mockReturnValue(mockHttpClient),
     };
 
+    mockQuotaTracker = {
+      record429: jest.fn(),
+    };
+
     service = new MercadoPublicoApiV1OrdenesDeCompraClientService(
       mockConfigService as never,
       mockSecureHttpClientService as never,
+      mockQuotaTracker as never,
     );
 
     jest.clearAllMocks();
@@ -112,6 +124,25 @@ describe('MercadoPublicoApiV1OrdenesDeCompraClientService', () => {
       const result = await service.getByDate(new Date('2026-06-15'));
 
       expect(result.errorSummary).toBe('retryable_failed');
+    });
+
+    it('should resolve normally when quota settings lookup throws during 429 tracking', async () => {
+      mockHttpClient.get.mockResolvedValue({
+        status: 429,
+        data: {},
+      });
+
+      mockConfigService.getSettings
+        .mockReturnValueOnce(validSettings)
+        .mockImplementationOnce(() => {
+          throw new Error('settings unavailable');
+        });
+
+      await expect(service.getByDate(new Date('2026-06-15'))).resolves.toMatchObject({
+        httpStatus: 429,
+        errorSummary: 'retryable_failed',
+      });
+      expect(mockQuotaTracker.record429).not.toHaveBeenCalled();
     });
   });
 

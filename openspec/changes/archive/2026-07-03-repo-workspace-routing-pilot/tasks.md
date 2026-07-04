@@ -58,15 +58,4 @@
 
 ## Notes
 
-- The pilot acceptance was reported complete by the user and is recorded as such in `manual-acceptance.md`.
-- Understand Anything is intentionally treated as optional discovery support only, not as required routing infrastructure.
-- Phase 1 rollout architecture is captured in `surface-inventory.md`, and the root contract now includes the `packages/` package-index surface.
-- Phase 2 docs-heavy wave acceptance complete: all 10 cases (5 patterns × 2 tools) pass.
-- Phase 3 AI-tooling wave acceptance complete: all 10 cases (5 patterns × 2 tools) pass.
-- Wave 2 and wave 3 are gated-closed.
-- Wave 4 core monorepo wave complete: all 10 cases (5 patterns × 2 tools) pass.
-- Wave 5 remaining surfaces complete: all 10 cases (5 patterns × 2 tools) pass.
-- Task 35 decision: `.opencode/` mapped as AI-tooling surface; `.github/`, `.cursor/`, `.vscode/`, `.yarn/` remain intentionally root-routed with explicit documentation.
-- Task 36 consistency pass: all 28 mapped surfaces verified — every AGENTS.md has Bounce Back To Root When + Working Contract; every CONTEXT.md has Scope Boundary; CONTEXT-MAP.md canonical table complete.
-- Task 38 archive decision: archive `repo-workspace-routing-pilot` after this commit. All surfaces mapped. No further waves needed.
-- All 38 tasks complete. Change ready for archive.
+- All 38 tasks complete. Per-case acceptance results are the source of truth and live in `manual-acceptance.md`. Archive per Task 38.

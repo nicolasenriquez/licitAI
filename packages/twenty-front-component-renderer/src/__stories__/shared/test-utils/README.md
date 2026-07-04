@@ -1,3 +1,9 @@
+---
+type: readme
+title: "Front-component Storybook test utilities"
+description: "Durable README for Test Utils."
+okf_version: "0.1"
+---
 # Front-component Storybook test utilities
 
 This folder contains the shared plumbing used by the Storybook stories under

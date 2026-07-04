@@ -1,3 +1,9 @@
+---
+type: readme
+title: "Vendored genql codegen"
+description: "Durable README for Genql."
+okf_version: "0.1"
+---
 # Vendored genql codegen
 
 This folder is a narrowed, vendored copy of [`@genql/cli`](https://github.com/remorses/genql)

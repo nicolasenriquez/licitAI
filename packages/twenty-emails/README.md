@@ -1,3 +1,9 @@
+---
+type: readme
+title: "Twenty Emails"
+description: "Durable README for Twenty Emails."
+okf_version: "0.1"
+---
 # Twenty Emails
 
 This package contains the email templates used by Twenty.

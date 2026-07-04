@@ -1,3 +1,9 @@
+---
+type: change-investigation
+title: "Investigation: mercado-publico-ingestion-backbone"
+description: "Investigation artifact for Mercado Publico Ingestion Backbone."
+okf_version: "0.1"
+---
 # Investigation: mercado-publico-ingestion-backbone
 
 ## Purpose
@@ -6,7 +12,7 @@ Phase 0 investigation artifact for the Mercado Publico ingestion backbone change
 
 ## Routing Declaration
 
-Surface: `openspec/`. Consulted: root `AGENTS.md`, `CONTEXT-MAP.md`, `openspec/AGENTS.md`, `openspec/CONTEXT.md`, change `proposal.md`, `design.md`, `specs/.../spec.md`, `tasks.md`, `docs/business/mercado-publico-source-contract.md`, `docs/business/mercado-publico-ingestion-context.md`, `docs/standards/{nestjs,database,testing}-standard.md`, `docs/operations/{data-operations,command-surface}.md`, `docs/decisions/0005-deployment-local-mercado-publico-schema.md`, `docs/architecture/current-state.md`, `packages/twenty-server/docs/UPGRADE_COMMANDS.md`. Pattern inventory via explore agent scan of `packages/twenty-server/src/`. Refresh cross-check: `schema-catalog.md` now freezes the exact layer inventory, unique keys, check constraints, and FK relationships for Phase 2 SQL.
+Surface: `openspec/`. Consulted: root `AGENTS.md`, `index.md`, `openspec/AGENTS.md`, `openspec/CONTEXT.md`, change `proposal.md`, `design.md`, `specs/.../spec.md`, `tasks.md`, `docs/business/mercado-publico-source-contract.md`, `docs/business/mercado-publico-ingestion-context.md`, `docs/standards/{nestjs,database,testing}-standard.md`, `docs/operations/{data-operations,command-surface}.md`, `docs/decisions/0005-deployment-local-mercado-publico-schema.md`, `docs/architecture/current-state.md`, `packages/twenty-server/docs/UPGRADE_COMMANDS.md`. Pattern inventory via explore agent scan of `packages/twenty-server/src/`. Refresh cross-check: `schema-catalog.md` now freezes the exact layer inventory, unique keys, check constraints, and FK relationships for Phase 2 SQL.
 
 ---
 

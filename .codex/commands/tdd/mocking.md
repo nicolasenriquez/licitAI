@@ -1,3 +1,9 @@
+---
+type: reference
+title: "When to Mock"
+description: "Reference documentation for When to Mock."
+okf_version: "0.1"
+---
 # When to Mock
 
 Mock at **system boundaries** only:

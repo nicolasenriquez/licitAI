@@ -1,3 +1,9 @@
+---
+type: agent-contract
+title: "Twenty UI Surface Contract"
+description: "Routing contract for Twenty Ui."
+okf_version: "0.1"
+---
 # Twenty UI Surface Contract
 
 ## Purpose
@@ -20,7 +26,7 @@ Define when work should stay inside `packages/twenty-ui` during the workspace ro
 Before substantive work in this surface, read:
 
 1. `../../AGENTS.md`
-2. `../../CONTEXT-MAP.md`
+2. `../../index.md`
 3. `../AGENTS.md`
 4. `../CONTEXT.md`
 5. `AGENTS.md`
@@ -37,10 +43,11 @@ Before substantive work in this surface, read:
 - The prompt is about the `twenty-shared` package rather than UI component code.
 - The prompt is general package selection rather than `twenty-ui` specifically.
 
-When that happens, return to `../../CONTEXT-MAP.md` first and reroute from there. Do not keep working from `packages/twenty-ui`.
+When that happens, return to `../../index.md` first and reroute from there. Do not keep working from `packages/twenty-ui`.
 
 ## Working Contract
 
 - Declare the routing/context files consulted before responding or editing.
 - State that the selected surface is `packages/twenty-ui`.
 - Preserve the distinction between the reusable UI library and frontend app logic, backend code, or infrastructure docs.
+

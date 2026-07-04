@@ -1,3 +1,9 @@
+---
+type: reference
+title: "Domain Docs"
+description: "Reference documentation for Domain Docs."
+okf_version: "0.1"
+---
 # Domain Docs
 
 How the engineering skills should consume this repo's domain documentation when exploring the codebase.
@@ -5,7 +11,9 @@ How the engineering skills should consume this repo's domain documentation when 
 ## Before exploring, read these
 
 - **`CONTEXT.md`** at the repo root, or
-- **`CONTEXT-MAP.md`** at the repo root if it exists — it points at one `CONTEXT.md` per context. Read each one relevant to the topic.
+- **`index.md`** at the repo root if it exists — it points at the relevant
+  documentation surfaces and any per-context `CONTEXT.md` files. Read each one
+  relevant to the topic.
 - **`docs/adr/`** — read ADRs that touch the area you're about to work in. In multi-context repos, also check `src/<context>/docs/adr/` for context-scoped decisions.
 
 If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The producer skill (`/grill-with-docs`) creates them lazily when terms or decisions actually get resolved.
@@ -23,11 +31,11 @@ Single-context repo (most repos):
 └── src/
 ```
 
-Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
+Multi-context repo (presence of `index.md` at the root):
 
 ```
 /
-├── CONTEXT-MAP.md
+├── index.md
 ├── docs/adr/                          ← system-wide decisions
 └── src/
     ├── ordering/

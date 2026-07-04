@@ -1,3 +1,9 @@
+---
+type: readme
+title: "Twenty Helm Chart"
+description: "Durable README for Twenty."
+okf_version: "0.1"
+---
 # Twenty Helm Chart
 
 Deploy Twenty CRM on Kubernetes with server, worker, PostgreSQL, and Redis components.

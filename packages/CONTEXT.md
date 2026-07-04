@@ -1,3 +1,9 @@
+---
+type: context
+title: Packages Surface Context
+description: Scope and reading order for the package-index routing surface.
+---
+
 # Packages Context
 
 ## Purpose
@@ -82,8 +88,9 @@ Describe the role of `packages/` as the package-index routing surface during the
 ## How To Use This Surface
 
 1. Identify the package or package group that matches the task.
-2. If the leaf package already has a mapped routing contract, enter that leaf package surface.
-3. If the leaf package is not mapped yet, stay in `packages/` and use package-index context only.
+2. Read `index.md` for the package-index routing layer.
+3. If the leaf package already has a mapped routing contract, enter that leaf package surface.
+4. If the leaf package is not mapped yet, stay in `packages/` and use package-index context only.
 
 ## Scope Boundary
 
@@ -95,4 +102,4 @@ It is not the durable home for:
 - top-level governance or ADR work
 - package-local contracts that have not been mapped yet
 
-If the prompt is about those topics, go back to `../CONTEXT-MAP.md` and reroute.
+If the prompt is about those topics, go back to `../index.md` and reroute.

@@ -1,3 +1,9 @@
+---
+type: reference
+title: "Issue tracker: Local Markdown"
+description: "Reference documentation for Issue tracker: Local Markdown."
+okf_version: "0.1"
+---
 # Issue tracker: Local Markdown
 
 Issues and PRDs for this repo live as markdown files in `.scratch/`.

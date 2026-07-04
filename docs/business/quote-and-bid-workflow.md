@@ -1,3 +1,9 @@
+---
+type: business-context
+title: "Quote & Bid Workflow"
+description: "Business context for Quote & Bid Workflow."
+okf_version: "0.1"
+---
 # Quote & Bid Workflow
 
 ## Purpose

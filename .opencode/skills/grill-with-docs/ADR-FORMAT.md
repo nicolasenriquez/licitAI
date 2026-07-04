@@ -1,3 +1,9 @@
+---
+type: reference
+title: "ADR Format"
+description: "Reference documentation for ADR Format."
+okf_version: "0.1"
+---
 # ADR Format
 
 ADRs live in `docs/adr/` and use sequential numbering: `0001-slug.md`, `0002-slug.md`, etc.

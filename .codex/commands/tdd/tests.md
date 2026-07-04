@@ -1,3 +1,9 @@
+---
+type: reference
+title: "Good and Bad Tests"
+description: "Reference documentation for Good and Bad Tests."
+okf_version: "0.1"
+---
 # Good and Bad Tests
 
 ## Good Tests

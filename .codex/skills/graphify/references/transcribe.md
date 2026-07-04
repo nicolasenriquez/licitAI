@@ -1,3 +1,9 @@
+---
+type: reference
+title: "graphify reference: transcribe video and audio"
+description: "Reference documentation for graphify reference: transcribe video and audio."
+okf_version: "0.1"
+---
 # graphify reference: transcribe video and audio
 
 Load this only when `detect` reported one or more `video` files. A corpus with no video never reads this.

@@ -1,3 +1,9 @@
+---
+type: agent-contract
+title: "Twenty Codex Plugin — Agent Guidance"
+description: "Routing contract for Twenty Codex Plugin."
+okf_version: "0.1"
+---
 # Twenty Codex Plugin — Agent Guidance
 
 ## Routing Contract
@@ -9,7 +15,7 @@ Stay in `packages/twenty-codex-plugin` when the task is about editing or validat
 Before substantive work in this surface, read:
 
 1. `../../AGENTS.md`
-2. `../../CONTEXT-MAP.md`
+2. `../../index.md`
 3. `../AGENTS.md`
 4. `../CONTEXT.md`
 5. `AGENTS.md`
@@ -23,7 +29,7 @@ Before substantive work in this surface, read:
 - The prompt is about durable repository docs under root `docs/`.
 - The prompt is about active OpenSpec change work.
 
-When that happens, return to `../../CONTEXT-MAP.md` first and reroute from there. Do not keep working from `packages/twenty-codex-plugin` when the task belongs elsewhere.
+When that happens, return to `../../index.md` first and reroute from there. Do not keep working from `packages/twenty-codex-plugin` when the task belongs elsewhere.
 
 ## Working Contract
 
@@ -102,3 +108,4 @@ Run `yarn workspace twenty-codex-plugin validate` after any change to this plugi
 ## Boundaries
 
 This file is for *agents using the plugin*. If you are *editing the plugin itself*, see `CONTRIBUTING.md`.
+

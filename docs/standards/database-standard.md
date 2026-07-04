@@ -1,3 +1,9 @@
+---
+type: standard
+title: "Database Standard"
+description: "Repository standard for Database Standard."
+okf_version: "0.1"
+---
 # Database Standard
 
 ## Overview

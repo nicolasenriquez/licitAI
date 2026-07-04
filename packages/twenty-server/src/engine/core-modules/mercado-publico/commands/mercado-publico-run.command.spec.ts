@@ -2,12 +2,23 @@ import { OptionMeta } from 'nest-commander/src/constants';
 
 import { MERCADO_PUBLICO_SUPPORTED_JOB_NAMES_TEXT } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 import { MercadoPublicoRunCommand } from 'src/engine/core-modules/mercado-publico/commands/mercado-publico-run.command';
+import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
 import { MessageQueueService } from 'src/engine/core-modules/message-queue/services/message-queue.service';
 
 describe('MercadoPublicoRunCommand', () => {
-  const command = new MercadoPublicoRunCommand({
-    add: jest.fn(),
-  } as unknown as MessageQueueService);
+  const mockAdd = jest.fn();
+
+  const configService = {
+    getSettings: jest.fn().mockReturnValue({
+      httpMaxRetries: 3,
+      httpRetryBackoffMs: 5000,
+    }),
+  } as unknown as jest.Mocked<MercadoPublicoConfigService>;
+
+  const command = new MercadoPublicoRunCommand(
+    { add: mockAdd } as unknown as MessageQueueService,
+    configService,
+  );
 
   it('accepts implemented job names', () => {
     expect(command.parseJobName('api-v1-licitaciones-by-date')).toBe(
@@ -18,13 +29,13 @@ describe('MercadoPublicoRunCommand', () => {
     );
   });
 
-  it('rejects unimplemented reconciliation job names', () => {
-    expect(() => command.parseJobName('reconciliation-refresh')).toThrow(
-      'Unsupported Mercado Publico job "reconciliation-refresh"',
+  it('accepts reconciliation-refresh as implemented job name', () => {
+    expect(command.parseJobName('reconciliation-refresh')).toBe(
+      'reconciliation-refresh',
     );
   });
 
-  it('does not advertise unimplemented job names in the option help text', () => {
+  it('advertises all supported job names in the option help text', () => {
     const optionMetadata = Reflect.getMetadata(
       OptionMeta,
       MercadoPublicoRunCommand.prototype.parseJobName,
@@ -35,6 +46,25 @@ describe('MercadoPublicoRunCommand', () => {
     );
     expect(optionMetadata.description).toContain('csv-staging-projection');
     expect(optionMetadata.description).toContain('csv-canonical-refresh');
-    expect(optionMetadata.description).not.toContain('reconciliation-refresh');
+    expect(optionMetadata.description).toContain('reconciliation-refresh');
+  });
+
+  it('enqueues job with bounded retry and fixed backoff from config', async () => {
+    await command.run([], {
+      jobName: 'api-v1-licitaciones-by-date',
+      payload: { fecha: '01012026' },
+    });
+
+    expect(mockAdd).toHaveBeenCalledWith(
+      'MercadoPublicoJob',
+      expect.objectContaining({
+        jobName: 'api-v1-licitaciones-by-date',
+        payload: { fecha: '01012026' },
+      }),
+      {
+        retryLimit: 3,
+        backoff: { type: 'fixed', delay: 5000 },
+      },
+    );
   });
 });

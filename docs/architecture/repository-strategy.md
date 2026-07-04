@@ -1,3 +1,9 @@
+---
+type: architecture
+title: "Repository Strategy"
+description: "Architecture documentation for Repository Strategy."
+okf_version: "0.1"
+---
 # Repository Strategy
 
 ## Purpose

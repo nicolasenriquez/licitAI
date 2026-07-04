@@ -1,3 +1,9 @@
+---
+type: change-proposal
+title: "Change Proposal: mercado-publico-ingestion-backbone"
+description: "Proposal for Mercado Publico Ingestion Backbone."
+okf_version: "0.1"
+---
 # Change Proposal: mercado-publico-ingestion-backbone
 
 ## Why

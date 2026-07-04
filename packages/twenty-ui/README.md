@@ -1,3 +1,9 @@
+---
+type: readme
+title: "twenty-ui"
+description: "Durable README for Twenty Ui."
+okf_version: "0.1"
+---
 # twenty-ui
 
 > **Status:** Cut-over complete (June 2026). All 192 components and all 70 stories were

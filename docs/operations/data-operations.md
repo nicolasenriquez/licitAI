@@ -1,3 +1,9 @@
+---
+type: operations-guide
+title: "Data Operations"
+description: "Operations guidance for Data Operations."
+okf_version: "0.1"
+---
 # Data Operations
 
 ## Purpose

@@ -1,3 +1,9 @@
+---
+type: architecture
+title: "Technology Standards"
+description: "Architecture documentation for Technology Standards."
+okf_version: "0.1"
+---
 # Technology Standards
 
 ## Purpose

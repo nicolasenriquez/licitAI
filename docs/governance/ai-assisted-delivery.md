@@ -1,3 +1,9 @@
+---
+type: governance
+title: "AI-Assisted Delivery"
+description: "Governance guidance for AI-Assisted Delivery."
+okf_version: "0.1"
+---
 # AI-Assisted Delivery
 
 ## Purpose

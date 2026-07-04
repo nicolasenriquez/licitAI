@@ -1,3 +1,9 @@
+---
+type: readme
+title: "Local SSL Certificate Generation Script"
+description: "Durable README for Ssl Generation."
+okf_version: "0.1"
+---
 # Local SSL Certificate Generation Script
 
 This Bash script helps generate self-signed SSL certificates for local development. It uses OpenSSL to create a root certificate authority, a domain certificate, and configures them for local usage.

@@ -1,3 +1,9 @@
+---
+type: reference
+title: "graphify reference: extraction subagent prompt (compact)"
+description: "Reference documentation for graphify reference: extraction subagent prompt (compact)."
+okf_version: "0.1"
+---
 # graphify reference: extraction subagent prompt (compact)
 
 Load this in Step 3 Part B when the corpus has at least one doc, paper, or image chunk. A pure-code corpus skips Part B and never reads this file. Each semantic subagent receives the prompt below verbatim (substitute FILE_LIST, CHUNK_NUM, TOTAL_CHUNKS, and DEEP_MODE).

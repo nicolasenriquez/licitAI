@@ -1,3 +1,9 @@
+---
+type: readme
+title: "Kubernetes for Twenty CRM (Helm)"
+description: "Durable README for K8s."
+okf_version: "0.1"
+---
 # Kubernetes for Twenty CRM (Helm)
 DISCLAIMER: The k8s and podman deployments are not maintained by the core team.
 These files are provided and maintained by the community. Twenty core team

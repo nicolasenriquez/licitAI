@@ -1,3 +1,9 @@
+---
+type: agent-contract
+title: Docs Surface Contract
+description: Routing contract for durable repository documentation work.
+---
+
 # Docs Surface Contract
 
 ## Purpose
@@ -15,11 +21,12 @@ Define when work should stay inside `docs/` during the workspace routing pilot.
 Before substantive work in this surface, read:
 
 1. `../AGENTS.md`
-2. `../CONTEXT-MAP.md`
+2. `../index.md`
 3. `AGENTS.md`
 4. `CONTEXT.md`
-5. `README.md`
-6. The specific docs subfiles relevant to the prompt
+5. `index.md`
+6. `README.md`
+7. The specific docs subfiles relevant to the prompt
 
 ## Bounce Back To Root When
 
@@ -27,7 +34,8 @@ Before substantive work in this surface, read:
 - The task is to apply, archive, or sync an OpenSpec change.
 - The task is general repo code work under `packages/` or `.codex/` that is not documentation-led.
 
-When that happens, return to `../CONTEXT-MAP.md` first and reroute from there. Do not keep working from `docs/`.
+When that happens, return to `../index.md` first and reroute from there. Do
+not keep working from `docs/`.
 
 ## Working Contract
 

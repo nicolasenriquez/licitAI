@@ -1,3 +1,9 @@
+---
+type: standard
+title: "NestJS Standard"
+description: "Repository standard for NestJS Standard."
+okf_version: "0.1"
+---
 # NestJS Standard
 
 ## Overview

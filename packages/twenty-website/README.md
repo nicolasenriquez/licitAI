@@ -1,3 +1,9 @@
+---
+type: readme
+title: "twenty-website"
+description: "Durable README for Twenty Website."
+okf_version: "0.1"
+---
 # twenty-website
 
 ```bash

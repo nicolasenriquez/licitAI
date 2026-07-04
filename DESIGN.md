@@ -1,3 +1,9 @@
+---
+type: design-overview
+title: "Twenty Website — DESIGN.md"
+description: "Design direction and constraints for the Twenty marketing website."
+okf_version: "0.1"
+---
 # Twenty Website — DESIGN.md
 
 > Visual system for the Twenty marketing site. Distilled from `packages/twenty-website/src/theme/`. Loaded by every `impeccable` invocation alongside PRODUCT.md.

@@ -1,3 +1,9 @@
+---
+type: design-guide
+title: "Design System"
+description: "Design guidance for Design System."
+okf_version: "0.1"
+---
 # Design System
 
 ## Purpose

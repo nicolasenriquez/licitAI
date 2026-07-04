@@ -1,4 +1,12 @@
+---
+type: changelog
+title: "licitai Changelog"
+description: "Repository changelog for licitai."
+okf_version: "0.1"
+---
 # Changelog
+
+This repository is published as `licitai` and inherits the upstream Twenty history below.
 
 All notable changes to Twenty are documented in this file.
 

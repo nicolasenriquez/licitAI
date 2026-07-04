@@ -1,3 +1,9 @@
+---
+type: reference
+title: "Interface Design for Testability"
+description: "Reference documentation for Interface Design for Testability."
+okf_version: "0.1"
+---
 # Interface Design for Testability
 
 Good interfaces make testing natural:

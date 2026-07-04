@@ -1,3 +1,9 @@
+---
+type: standard
+title: "TypeScript Standard"
+description: "Repository standard for TypeScript Standard."
+okf_version: "0.1"
+---
 # TypeScript Standard
 
 ## Overview

@@ -1,3 +1,9 @@
+---
+type: reference
+title: "graphify reference: query, path, explain"
+description: "Reference documentation for graphify reference: query, path, explain."
+okf_version: "0.1"
+---
 # graphify reference: query, path, explain
 
 Load this when the user asks a question against an existing graph, or runs `/graphify path` or `/graphify explain`. The core's query stub points here for the full traversal flow. These flows use the `graphify query` CLI when it is available and fall back to an inline NetworkX traversal otherwise.

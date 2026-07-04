@@ -1,3 +1,9 @@
+---
+type: readme
+title: "Getting Started"
+description: "Durable README for Template."
+okf_version: "0.1"
+---
 This is a [Twenty](https://twenty.com) application bootstrapped with [`create-twenty-app`](https://www.npmjs.com/package/create-twenty-app).
 
 ## Getting Started

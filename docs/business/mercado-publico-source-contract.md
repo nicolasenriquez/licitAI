@@ -1,3 +1,9 @@
+---
+type: business-context
+title: "Mercado Publico Source Contract"
+description: "Business context for Mercado Publico Source Contract."
+okf_version: "0.1"
+---
 # Mercado Publico Source Contract
 
 ## Purpose
@@ -551,3 +557,14 @@ The source contract is implementation-ready when:
 - Structured logging exists.
 - API fixtures exist.
 - CSV fixtures exist.
+
+## Quota and Rate Limits
+
+The Mercado Publico API enforces a daily call limit tracked by the ingestion backbone.
+
+- **Daily limit**: 10000 calls per day, shared across all Mercado Publico API sources (V1 Licitaciones, V1 Ordenes de Compra, V2 Compra Agil).
+- **Window**: 24-hour anchored to `America/Santiago` local time. Counter resets at 00:00 America/Santiago.
+- **429 handling**: On a 429 response, the system records `last_429_at` in `mp.gold_api_quota_usage`. The `used` counter increments until the reset boundary passes, then resets to 1.
+- **Configurable**: The daily limit is configurable via `MERCADO_PUBLICO_API_DAILY_LIMIT` (default 10000, non-sensitive). Lowering it in config allows early warning before hitting the actual API limit.
+
+Per-source tracking is implemented at the endpoint level (`api-v1-licitaciones`, `api-v1-oc`, `api-v2-compra-agil`). The shared limit applies to all sources.
