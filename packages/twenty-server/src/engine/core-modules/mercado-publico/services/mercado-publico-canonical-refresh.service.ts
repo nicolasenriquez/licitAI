@@ -583,11 +583,11 @@ export class MercadoPublicoCanonicalRefreshService {
     return entityManager.query<MercadoPublicoApiV1LicitacionItemStagingRow[]>(
       `
         SELECT DISTINCT ON (codigo_externo, codigoitem)
-          id,
+          stg.id,
           codigo_externo,
           codigoitem,
           nombre_producto_generico,
-          cantidad
+          COALESCE(cantidad_adjudicada, cantidad_ofertada) AS cantidad
         FROM mp.stg_csv_licitacion stg
         INNER JOIN mp.raw_csv_row raw_row
           ON raw_row.id = stg.raw_csv_row_id
@@ -605,7 +605,7 @@ export class MercadoPublicoCanonicalRefreshService {
     return entityManager.query<MercadoPublicoApiV1LicitacionOfertaStagingRow[]>(
       `
         SELECT DISTINCT ON (codigo_externo, codigoitem, codigo_proveedor, nombre_de_la_oferta)
-          id,
+          stg.id,
           codigo_externo,
           codigoitem,
           codigo_proveedor,
@@ -634,7 +634,7 @@ export class MercadoPublicoCanonicalRefreshService {
     >(
       `
         SELECT DISTINCT ON (codigo_externo, codigoitem, rut_proveedor)
-          id,
+          stg.id,
           codigo_externo,
           codigoitem,
           rut_proveedor,
@@ -839,7 +839,7 @@ export class MercadoPublicoCanonicalRefreshService {
     >(
       `
         SELECT DISTINCT ON (iditem)
-          id,
+          stg.id,
           iditem,
           codigo,
           total_linea_neto,

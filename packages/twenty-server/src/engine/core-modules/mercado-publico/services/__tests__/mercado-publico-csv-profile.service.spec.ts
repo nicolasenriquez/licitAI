@@ -65,6 +65,7 @@ describe('MercadoPublicoCsvProfileService', () => {
 
       expect(persistenceService.createJobRun).toHaveBeenCalledWith(
         'csv-file-profile',
+        { rawCsvFileId: 'test-file-id' },
       );
       expect(profilingService.profileFileById).toHaveBeenCalledWith(
         'test-file-id',

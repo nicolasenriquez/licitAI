@@ -250,25 +250,28 @@ Use dependency/risk order above instead of assuming numeric adjacency within Pha
 
 ## Phase 4: Validation and CI
 
-- [ ] 4.1: Execute unit tests for request formatting and parameter guards.
-  Footnote: Cover V1 `ddmmaaaa` formatting and V2 parameter-boundary behavior first.
+- [x] 4.1: Execute unit tests for request formatting and parameter guards.
+  Footnote: 7/7 format-v1-date + 12/12 validate-compra-agil-params green. Impl uses UTC (not America/Santiago) — accepted deviation, document in 5.1 closeout.
 
-- [ ] 4.2: Execute unit tests for CSV profiling and parsing behavior.
-  Footnote: Cover encoding, delimiter, quotechar, and latin-1 accented text handling.
+- [x] 4.2: Execute unit tests for CSV profiling and parsing behavior.
+  Footnote: 8/8 detect-encoding + 7/7 detect-delimiter + 6/6 detect-quotechar green. Latin-1 accented text pinned via detect-encoding fallback cases. csv-profiling service specs deferred to 3.17/4.7.
 
-- [ ] 4.3: Execute unit tests for scalar normalization, sentinel handling, null-like values, state mapping, and HTTP failure classification.
-  Footnote: Validation should prove behavior, not just compile shape.
+- [x] 4.3: Execute unit tests for scalar normalization, sentinel handling, null-like values, state mapping, and HTTP failure classification.
+  Footnote: 36 normalize-scalar + 11 normalize-oc-state + 2 normalize-licitacion-type + 12 new normalize-v1-licitacion-state + 12 new classify-http-failure = 73 cases green. Two missing specs written (both were spec'd in test-design §1.3/§1.6 but never created). Impl names diverge from test-design — written to impl signatures. flag in 5.1: audit all 1.x completed specs for missing-on-disk files.
 
-- [ ] 4.4: Execute unit tests for non-null-over-null protection, idempotent reruns, and reconciliation rules.
-  Footnote: These tests protect the highest-regression canonical rules.
+- [x] 4.4: Execute unit tests for non-null-over-null protection, idempotent reruns, and reconciliation rules.
+  Footnote: 9 canonical-refresh + 27 reconciliation = 36/36 green. Non-null protection (sparse-row + V2 null staging), idempotent reruns (UK + fingerprint dedupe), exact+heuristic reconciliation rules all passing. Positional mocks intact at canonical-refresh:5-6.
 
-- [ ] 4.5: Execute integration and DB verification for schema creation and raw-layer persistence.
+- [x] 4.5: Execute integration and DB verification for schema creation and raw-layer persistence.
   Footnote: Confirm schema creation plus raw API and raw CSV dedupe behavior in the database.
+  Status: Done. Added DB-backed verification suite `packages/twenty-server/test/integration/mercado-publico/suites/raw-layer-persistence.spec.ts` covering `mp` schema/table existence, dedupe constraints, `raw_api_payload` dedupe, and `raw_csv_file` + `raw_csv_row` dedupe without depending on the broader app bootstrap.
 
-- [ ] 4.6: Execute integration and DB verification for API list-to-detail ingestion and canonical refresh.
+- [x] 4.6: Execute integration and DB verification for API list-to-detail ingestion and canonical refresh.
+  Footnote: Confirm the end-to-end API path from raw payload to staging to canonical rows, including detail rehydrate and non-null-over-null protection.
   Footnote: This should prove the end-to-end API path from raw to canonical.
 
-- [ ] 4.7: Execute integration and DB verification for CSV profiling, raw load, and canonical refresh.
+- [x] 4.7: Execute integration and DB verification for CSV profiling, raw load, and canonical refresh.
+  Footnote: Confirm OC and licitaciones CSV paths from raw file registry through profiling, raw row persistence, staging, and implemented canonical projections.
   Footnote: This should prove the end-to-end CSV path from file acquisition to canonical projections.
 
 - [ ] 4.8: Execute integration and DB verification for reconciliation visibility, quota visibility, CSV file health, and gold/read contract correctness.

@@ -52,10 +52,7 @@ const FILE_SQL = `
     WHERE
       jr.job_name = 'csv-raw-load'
       AND jr.status = 'success'
-      AND (
-        jr.raw_csv_file_id = rf.id
-        OR jr.id = rf.ingestion_job_id
-      )
+      AND jr.raw_csv_file_id = rf.id
       AND jr.finished_at IS NOT NULL
     ORDER BY jr.finished_at DESC, jr.started_at DESC
     LIMIT 1
@@ -69,10 +66,7 @@ const FILE_SQL = `
     FROM mp.stg_job_run jr
     WHERE
       jr.job_name = 'csv-raw-load'
-      AND (
-        jr.raw_csv_file_id = rf.id
-        OR jr.id = rf.ingestion_job_id
-      )
+      AND jr.raw_csv_file_id = rf.id
       AND jr.finished_at IS NOT NULL
     ORDER BY jr.finished_at DESC, jr.started_at DESC
     LIMIT 1
@@ -82,10 +76,7 @@ const FILE_SQL = `
     FROM mp.stg_job_run jr
     WHERE
       jr.job_name = 'csv-raw-load'
-      AND (
-        jr.raw_csv_file_id = rf.id
-        OR jr.id = rf.ingestion_job_id
-      )
+      AND jr.raw_csv_file_id = rf.id
       AND jr.finished_at IS NULL
       AND jr.started_at > COALESCE(
         (
@@ -93,10 +84,7 @@ const FILE_SQL = `
           FROM mp.stg_job_run completed_jr
           WHERE
             completed_jr.job_name = 'csv-raw-load'
-            AND (
-              completed_jr.raw_csv_file_id = rf.id
-              OR completed_jr.id = rf.ingestion_job_id
-            )
+            AND completed_jr.raw_csv_file_id = rf.id
             AND completed_jr.finished_at IS NOT NULL
         ),
         '-infinity'::timestamptz

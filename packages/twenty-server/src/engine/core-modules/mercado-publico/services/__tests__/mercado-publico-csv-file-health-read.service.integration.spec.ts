@@ -13,14 +13,6 @@ type StoredRawCsvFileRow = {
   detected_delimiter: string;
   schema_fingerprint: string;
   row_count: number;
-  ingestion_job_id?: string | null;
-};
-
-type StoredRawCsvRowRow = {
-  id: string;
-  raw_csv_file_id: string;
-  ingestion_job_id: string;
-  parse_status: string;
 };
 
 type StoredStgJobRunRow = {
@@ -41,10 +33,6 @@ class CsvFileHealthStore {
 
   registerRawCsvFiles(rows: StoredRawCsvFileRow[]): void {
     this.rawCsvFileRows = [...rows];
-  }
-
-  registerRawCsvRows(rows: StoredRawCsvRowRow[]): void {
-    void rows;
   }
 
   registerStgJobRuns(rows: StoredStgJobRunRow[]): void {
@@ -83,8 +71,7 @@ class CsvFileHealthStore {
       const matchingJobRuns = this.stgJobRunRows.filter(
         (jobRun) =>
           jobRun.job_name === 'csv-raw-load' &&
-          (jobRun.raw_csv_file_id === row.id ||
-            jobRun.id === (row.ingestion_job_id ?? null)),
+          jobRun.raw_csv_file_id === row.id,
       );
 
       const latestSuccessLoad = [...matchingJobRuns]
@@ -116,7 +103,8 @@ class CsvFileHealthStore {
           return right.started_at.getTime() - left.started_at.getTime();
         })[0];
 
-      const latestCompletedFinishedAt = latestCompletedLoad?.finished_at ?? null;
+      const latestCompletedFinishedAt =
+        latestCompletedLoad?.finished_at ?? null;
 
       const hasInFlightLoad = matchingJobRuns.some(
         (jobRun) =>
@@ -161,7 +149,6 @@ describe('MercadoPublicoCsvFileHealthReadService (integration-shaped)', () => {
 
   beforeEach(() => {
     store.registerRawCsvFiles([]);
-    store.registerRawCsvRows([]);
     store.registerStgJobRuns([]);
     service = new MercadoPublicoCsvFileHealthReadService(buildDataSource());
   });
@@ -293,15 +280,6 @@ describe('MercadoPublicoCsvFileHealthReadService (integration-shaped)', () => {
         records_fetched: null,
         records_staged: null,
         records_failed: null,
-      },
-    ]);
-
-    store.registerRawCsvRows([
-      {
-        id: 'raw-1',
-        raw_csv_file_id: 'f1',
-        ingestion_job_id: 'jr-failed',
-        parse_status: 'success',
       },
     ]);
 
@@ -573,24 +551,13 @@ describe('MercadoPublicoCsvFileHealthReadService (integration-shaped)', () => {
       },
     ]);
 
-    store.registerRawCsvRows([
-      {
-        id: 'raw-1',
-        raw_csv_file_id: 'f1',
-        ingestion_job_id: 'jr-backfilled',
-        parse_status: 'success',
-      },
-    ]);
-
     const result = await service.getCsvFileHealth();
 
     expect(result.files[0].parseStatus).toBe('success');
     expect(result.files[0].lastLoadedAt).toEqual(historicLoadAt);
   });
 
-  it('uses raw_csv_file.ingestion_job_id for a legacy zero-row success', async () => {
-    const historicLoadAt = new Date('2026-07-04T08:00:00.000Z');
-
+  it('ignores csv-raw-load job runs that have no raw_csv_file_id link', async () => {
     store.registerRawCsvFiles([
       {
         id: 'f1',
@@ -603,17 +570,16 @@ describe('MercadoPublicoCsvFileHealthReadService (integration-shaped)', () => {
         detected_delimiter: ';',
         schema_fingerprint: 'fp1',
         row_count: 0,
-        ingestion_job_id: 'jr-legacy-success',
       },
     ]);
 
     store.registerStgJobRuns([
       {
-        id: 'jr-legacy-success',
+        id: 'jr-download',
         job_name: 'csv-raw-load',
         status: 'success',
         started_at: new Date('2026-07-04T07:00:00.000Z'),
-        finished_at: historicLoadAt,
+        finished_at: new Date('2026-07-04T08:00:00.000Z'),
         raw_csv_file_id: null,
         records_fetched: 0,
         records_staged: 0,
@@ -623,46 +589,8 @@ describe('MercadoPublicoCsvFileHealthReadService (integration-shaped)', () => {
 
     const result = await service.getCsvFileHealth();
 
-    expect(result.files[0].parseStatus).toBe('success');
-    expect(result.files[0].lastLoadedAt).toEqual(historicLoadAt);
-  });
-
-  it('uses raw_csv_file.ingestion_job_id for a legacy failed completion', async () => {
-    const failedAt = new Date('2026-07-04T08:00:00.000Z');
-
-    store.registerRawCsvFiles([
-      {
-        id: 'f1',
-        source_dataset: 'oc',
-        source_modality: null,
-        source_period: '2026-06',
-        source_file_name: '2026-6.csv',
-        file_checksum: 'abc',
-        detected_encoding: 'latin-1',
-        detected_delimiter: ';',
-        schema_fingerprint: 'fp1',
-        row_count: 0,
-        ingestion_job_id: 'jr-legacy-failed',
-      },
-    ]);
-
-    store.registerStgJobRuns([
-      {
-        id: 'jr-legacy-failed',
-        job_name: 'csv-raw-load',
-        status: 'failed',
-        started_at: new Date('2026-07-04T07:00:00.000Z'),
-        finished_at: failedAt,
-        raw_csv_file_id: null,
-        records_fetched: null,
-        records_staged: null,
-        records_failed: null,
-      },
-    ]);
-
-    const result = await service.getCsvFileHealth();
-
-    expect(result.files[0].parseStatus).toBe('error');
+    expect(result.files[0].parseStatus).toBe('pending');
+    expect(result.files[0].lastLoadedAt).toBeNull();
   });
 
   it('ignores a stale unfinished legacy run after a newer linked completion', async () => {
@@ -680,7 +608,6 @@ describe('MercadoPublicoCsvFileHealthReadService (integration-shaped)', () => {
         detected_delimiter: ';',
         schema_fingerprint: 'fp1',
         row_count: 100,
-        ingestion_job_id: 'jr-stale-legacy',
       },
     ]);
 

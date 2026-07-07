@@ -748,7 +748,6 @@ export class MercadoPublicoPersistenceService {
             file_checksum,
             file_size_bytes,
             compression_type,
-            ingestion_job_id,
             detected_encoding,
             detected_delimiter,
             quotechar,
@@ -769,7 +768,6 @@ export class MercadoPublicoPersistenceService {
             $8,
             $9,
             $10,
-            $11,
             'latin-1',
             ';',
             NULL,
@@ -793,7 +791,6 @@ export class MercadoPublicoPersistenceService {
           input.fileChecksum,
           input.fileSizeBytes,
           input.compressionType,
-          input.jobRunRecordId,
         ],
       );
 

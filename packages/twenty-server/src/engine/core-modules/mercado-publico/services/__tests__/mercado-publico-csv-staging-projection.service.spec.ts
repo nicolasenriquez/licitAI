@@ -104,6 +104,7 @@ describe('MercadoPublicoCsvStagingProjectionService', () => {
 
       expect(persistenceService.createJobRun).toHaveBeenCalledWith(
         'csv-staging-projection',
+        { rawCsvFileId: 'csv-file-oc-id' },
       );
       expect(persistenceService.insertStgCsvOrdenCompraRows).toHaveBeenCalledTimes(1);
 

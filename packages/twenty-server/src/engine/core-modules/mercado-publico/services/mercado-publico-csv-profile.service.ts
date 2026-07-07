@@ -33,6 +33,7 @@ export class MercadoPublicoCsvProfileService {
     const jobRunRecord =
       await this.mercadoPublicoPersistenceService.createJobRun(
         'csv-file-profile',
+        { rawCsvFileId: parsedPayload.raw_csv_file_id },
       );
 
     try {

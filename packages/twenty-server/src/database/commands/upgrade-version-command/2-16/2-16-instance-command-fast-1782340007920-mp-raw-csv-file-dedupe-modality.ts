@@ -16,7 +16,12 @@ export class MpRawCsvFileDedupeModalityFastInstanceCommand
     await queryRunner.query(`
       ALTER TABLE mp.raw_csv_file
       ADD CONSTRAINT "uk_mp_raw_csv_file_dedupe"
-        UNIQUE (source_dataset, source_period, source_modality, file_checksum)
+        UNIQUE NULLS NOT DISTINCT (
+          source_dataset,
+          source_period,
+          source_modality,
+          file_checksum
+        )
     `);
   }
 

@@ -124,7 +124,6 @@ Purpose: Preserve downloaded CSV file metadata before parsing.
 | `column_count` | integer | NOT NULL | — | `[doc]` design.md:368 | |
 | `schema_fingerprint` | text | NOT NULL | — | `[doc]` design.md:369 | hash of normalized header |
 | `row_count` | integer | NOT NULL | — | `[doc]` design.md:370 | |
-| `ingestion_job_id` | uuid | NULL | — | `[doc]` design.md:371 | FK to stg_job_run.id |
 | `created_at` | timestamptz | NOT NULL | now() | `[new]` | |
 
 Constraints:
@@ -134,7 +133,6 @@ Constraints:
 - CHECK: `detected_delimiter IN (';', ',', '\t', '\|')`
 - CHECK: `column_count >= 0`
 - CHECK: `row_count >= 0`
-- FK: `ingestion_job_id` → `mp.stg_job_run(id)` ON DELETE SET NULL
 
 ### mp.raw_csv_row
 
@@ -976,7 +974,8 @@ This catalog is the binding schema for Phase 2. During implementation:
 
 ### Known Deviations
 
-- `raw_api_payload.ingestion_job_id`, `raw_csv_file.ingestion_job_id`, and `raw_csv_row.ingestion_job_id` are cataloged with FKs to `mp.stg_job_run(id)`, but those constraints land in task 2.6 when `stg_job_run` is created. The implementation uses that later slice to avoid circular dependency during task ordering.
+- `raw_api_payload.ingestion_job_id` and `raw_csv_row.ingestion_job_id` are cataloged with FKs to `mp.stg_job_run(id)`, but those constraints land in task 2.6 when `stg_job_run` is created. The implementation uses that later slice to avoid circular dependency during task ordering.
+- `raw_csv_file.ingestion_job_id` was removed in Phase 4 (the direct `stg_job_run.raw_csv_file_id` link replaced the column as the file-to-job-run join). The column + FK are dropped by a Phase 4 instance command.
 - `licitacion.buyer_code` FK to `mp.public_buyer(codigo_organismo)` is deferred until the `public_buyer` table has an implementation slice. Task 2.9 creates the canonical licitacion tables without that FK to preserve task order and avoid inventing out-of-scope tables.
 - `mp.public_supplier` is cataloged as a target-state canonical reference table, but no implementation slice creates it in tasks 2.4-2.14. Current canonical objects preserve supplier raw fields without introducing that table mid-slice.
 - `mp.estado_dim` is cataloged as a target-state normalization dimension, but no implementation slice creates or seeds it in tasks 2.4-2.14. Current canonical objects therefore retain raw state fields without a physical dimension table yet.

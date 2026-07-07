@@ -37,9 +37,7 @@ type PendingErrorRow = {
 };
 
 type RawCsvFileMeta = NonNullable<
-  Awaited<
-    ReturnType<MercadoPublicoPersistenceService['getRawCsvFileMetaById']>
-  >
+  Awaited<ReturnType<MercadoPublicoPersistenceService['getRawCsvFileMetaById']>>
 >;
 
 const BATCH_SIZE = 1000;
