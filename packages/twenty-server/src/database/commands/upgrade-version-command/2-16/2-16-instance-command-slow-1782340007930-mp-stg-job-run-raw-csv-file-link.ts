@@ -9,18 +9,42 @@ export class MpStgJobRunRawCsvFileLinkSlowInstanceCommand
 {
   async runDataMigration(dataSource: DataSource): Promise<void> {
     await dataSource.query(`
+      ALTER TABLE mp.stg_job_run
+      ADD COLUMN IF NOT EXISTS raw_csv_file_id uuid NULL
+    `);
+
+    await dataSource.query(`
       UPDATE mp.stg_job_run jr
-      SET raw_csv_file_id = linked_runs.raw_csv_file_id
+      SET raw_csv_file_id = linked_files.raw_csv_file_id
       FROM (
         SELECT
           ingestion_job_id,
-          MIN(raw_csv_file_id) AS raw_csv_file_id
+          MIN(id::text)::uuid AS raw_csv_file_id
+        FROM mp.raw_csv_file
+        WHERE ingestion_job_id IS NOT NULL
+        GROUP BY ingestion_job_id
+        HAVING COUNT(DISTINCT id) = 1
+      ) linked_files
+      WHERE
+        jr.id = linked_files.ingestion_job_id
+        AND jr.job_name IN ('csv-oc-download', 'csv-licitaciones-download')
+        AND jr.raw_csv_file_id IS NULL
+    `);
+
+    await dataSource.query(`
+      UPDATE mp.stg_job_run jr
+      SET raw_csv_file_id = linked_rows.raw_csv_file_id
+      FROM (
+        SELECT
+          ingestion_job_id,
+          MIN(raw_csv_file_id::text)::uuid AS raw_csv_file_id
         FROM mp.raw_csv_row
+        WHERE ingestion_job_id IS NOT NULL
         GROUP BY ingestion_job_id
         HAVING COUNT(DISTINCT raw_csv_file_id) = 1
-      ) linked_runs
+      ) linked_rows
       WHERE
-        jr.id = linked_runs.ingestion_job_id
+        jr.id = linked_rows.ingestion_job_id
         AND jr.job_name = 'csv-raw-load'
         AND jr.raw_csv_file_id IS NULL
     `);

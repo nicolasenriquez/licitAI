@@ -42,7 +42,7 @@ class CsvFileHealthStore {
   query<T>(sql: string): T[] {
     if (
       sql.includes('FROM mp.raw_csv_file rf') &&
-      sql.includes('latest_completed_load_status')
+      sql.includes('latest_completed_pipeline_job_status')
     ) {
       return this.fileQuery() as T[];
     }
@@ -70,11 +70,14 @@ class CsvFileHealthStore {
     return sorted.map((row) => {
       const matchingJobRuns = this.stgJobRunRows.filter(
         (jobRun) =>
-          jobRun.job_name === 'csv-raw-load' &&
+          ['csv-file-profile', 'csv-raw-load'].includes(jobRun.job_name) &&
           jobRun.raw_csv_file_id === row.id,
       );
+      const rawLoadJobRuns = matchingJobRuns.filter(
+        (jobRun) => jobRun.job_name === 'csv-raw-load',
+      );
 
-      const latestSuccessLoad = [...matchingJobRuns]
+      const latestSuccessLoad = [...rawLoadJobRuns]
         .filter(
           (jobRun) =>
             jobRun.status === 'success' && jobRun.finished_at instanceof Date,
@@ -90,7 +93,7 @@ class CsvFileHealthStore {
           return right.started_at.getTime() - left.started_at.getTime();
         })[0];
 
-      const latestCompletedLoad = [...matchingJobRuns]
+      const latestCompletedPipelineJob = [...matchingJobRuns]
         .filter((jobRun) => jobRun.finished_at instanceof Date)
         .sort((left, right) => {
           const finished =
@@ -104,9 +107,9 @@ class CsvFileHealthStore {
         })[0];
 
       const latestCompletedFinishedAt =
-        latestCompletedLoad?.finished_at ?? null;
+        latestCompletedPipelineJob?.finished_at ?? null;
 
-      const hasInFlightLoad = matchingJobRuns.some(
+      const hasInFlightPipelineJob = matchingJobRuns.some(
         (jobRun) =>
           jobRun.finished_at === null &&
           jobRun.started_at.getTime() >
@@ -125,14 +128,17 @@ class CsvFileHealthStore {
         schema_fingerprint: row.schema_fingerprint,
         row_count: row.row_count,
         last_loaded_at: latestSuccessLoad?.finished_at ?? null,
-        has_in_flight_load: hasInFlightLoad,
-        latest_completed_load_status: latestCompletedLoad?.status ?? null,
+        has_in_flight_pipeline_job: hasInFlightPipelineJob,
+        latest_completed_pipeline_job_name:
+          latestCompletedPipelineJob?.job_name ?? null,
+        latest_completed_pipeline_job_status:
+          latestCompletedPipelineJob?.status ?? null,
         latest_completed_records_fetched:
-          latestCompletedLoad?.records_fetched ?? null,
+          latestCompletedPipelineJob?.records_fetched ?? null,
         latest_completed_records_staged:
-          latestCompletedLoad?.records_staged ?? null,
+          latestCompletedPipelineJob?.records_staged ?? null,
         latest_completed_records_failed:
-          latestCompletedLoad?.records_failed ?? null,
+          latestCompletedPipelineJob?.records_failed ?? null,
       };
     });
   }
@@ -304,6 +310,105 @@ describe('MercadoPublicoCsvFileHealthReadService (integration-shaped)', () => {
         detected_delimiter: ';',
         schema_fingerprint: 'fp1',
         row_count: 100,
+      },
+    ]);
+
+    const result = await service.getCsvFileHealth();
+
+    expect(result.files[0].parseStatus).toBe('pending');
+    expect(result.files[0].lastLoadedAt).toBeNull();
+  });
+
+  it('returns error when a failed csv-file-profile is the latest completed pipeline job', async () => {
+    store.registerRawCsvFiles([
+      {
+        id: 'f1',
+        source_dataset: 'oc',
+        source_modality: null,
+        source_period: '2026-06',
+        source_file_name: '2026-6.csv',
+        file_checksum: 'abc',
+        detected_encoding: 'latin-1',
+        detected_delimiter: ';',
+        schema_fingerprint: 'fp1',
+        row_count: 100,
+      },
+    ]);
+
+    store.registerStgJobRuns([
+      {
+        id: 'jr-profile',
+        job_name: 'csv-file-profile',
+        status: 'failed',
+        started_at: new Date('2026-07-04T07:00:00.000Z'),
+        finished_at: new Date('2026-07-04T08:00:00.000Z'),
+        raw_csv_file_id: 'f1',
+      },
+    ]);
+
+    const result = await service.getCsvFileHealth();
+
+    expect(result.files[0].parseStatus).toBe('error');
+    expect(result.files[0].lastLoadedAt).toBeNull();
+  });
+
+  it('returns pending when a successful csv-file-profile is the latest completed pipeline job', async () => {
+    store.registerRawCsvFiles([
+      {
+        id: 'f1',
+        source_dataset: 'oc',
+        source_modality: null,
+        source_period: '2026-06',
+        source_file_name: '2026-6.csv',
+        file_checksum: 'abc',
+        detected_encoding: 'latin-1',
+        detected_delimiter: ';',
+        schema_fingerprint: 'fp1',
+        row_count: 100,
+      },
+    ]);
+
+    store.registerStgJobRuns([
+      {
+        id: 'jr-profile',
+        job_name: 'csv-file-profile',
+        status: 'success',
+        started_at: new Date('2026-07-04T07:00:00.000Z'),
+        finished_at: new Date('2026-07-04T08:00:00.000Z'),
+        raw_csv_file_id: 'f1',
+      },
+    ]);
+
+    const result = await service.getCsvFileHealth();
+
+    expect(result.files[0].parseStatus).toBe('pending');
+    expect(result.files[0].lastLoadedAt).toBeNull();
+  });
+
+  it('keeps pending while a csv-file-profile job is in flight', async () => {
+    store.registerRawCsvFiles([
+      {
+        id: 'f1',
+        source_dataset: 'oc',
+        source_modality: null,
+        source_period: '2026-06',
+        source_file_name: '2026-6.csv',
+        file_checksum: 'abc',
+        detected_encoding: 'latin-1',
+        detected_delimiter: ';',
+        schema_fingerprint: 'fp1',
+        row_count: 100,
+      },
+    ]);
+
+    store.registerStgJobRuns([
+      {
+        id: 'jr-profile',
+        job_name: 'csv-file-profile',
+        status: 'failed',
+        started_at: new Date('2026-07-04T09:00:00.000Z'),
+        finished_at: null,
+        raw_csv_file_id: 'f1',
       },
     ]);
 

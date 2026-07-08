@@ -274,8 +274,19 @@ Use dependency/risk order above instead of assuming numeric adjacency within Pha
   Footnote: Confirm OC and licitaciones CSV paths from raw file registry through profiling, raw row persistence, staging, and implemented canonical projections.
   Footnote: This should prove the end-to-end CSV path from file acquisition to canonical projections.
 
-- [ ] 4.8: Execute integration and DB verification for reconciliation visibility, quota visibility, CSV file health, and gold/read contract correctness.
-  Footnote: This is where the earlier blast-radius review is confirmed or falsified. Any missing regression check should be documented explicitly.
+- [x] 4.8: Execute integration and DB verification for reconciliation visibility, quota visibility, CSV file health, and gold/read contract correctness.
+  Status: Done. 3 NEW DB-backed integration specs added:
+    `packages/twenty-server/test/integration/mercado-publico/suites/reconciliation-refresh.spec.ts`
+    `packages/twenty-server/test/integration/mercado-publico/suites/quota-usage-db.spec.ts`
+    `packages/twenty-server/test/integration/mercado-publico/suites/csv-file-health-db.spec.ts`
+  Coverage:
+    - reconciliation-refresh: exact_codigo_externo, csv_api_same_business_key, exact_codigo_licitacion, exact_compra_agil_id_orden_compra (both id_orden_compra and id_oc fallback), null-link guard, candidate_supplier_amount, candidate_item_amount, unmatched (gold_detected_process write), state_mismatch event, source_period_rerun_mismatch event, idempotent rerun dedupe on both reconciliation_public_market_entities and reconciliation_event.
+    - quota-usage-db: all 3 source entries, remaining computation, used-exceeds-limit guard, last429At populated/null, resetAt storage, empty source set.
+    - csv-file-health-db: parseStatus=success/error/pending, ordering (dataset asc, period desc, fileName asc), parseErrorCount/parseSuccessCount, lastLoadedAt from stg_job_run, sourceModality passthrough, in-flight detection via LATERAL JOIN, empty table, no-job-run-yet pending.
+  In-memory "integration-shaped" specs (pipeline-health, process-detail, detected-process-list) retained as-is — no SQL risk above shape-match proven by existing spec logic.
+  Residual gaps: Pre-existing type errors in 4.5/4.6/4.7 integration specs not addressed (api-v1-licitaciones-canonical-refresh.spec.ts:169, csv-ingestion-canonical-refresh.spec.ts:194+338, raw-layer-persistence.spec.ts:230+243). Workspace-migration-runner errors per investigation.md 0.3 baseline unchanged.
+  Fixes: MercadoPublicoReconciliationService.reconcileCandidateSupplier INNER JOIN mp.stg_csv_orden_compra column reference corrected from csv.monto_total_oc (nonexistent) to csv.monto_total_oc_pesos_chilenos::numeric (actual column). MercadoPublicoReconciliationService.reconcileCandidateItem abs() arithmetic cast stg.monto_estimado_adjudicado::numeric to avoid text-numeric operator mismatch.
+  Confirms 0.4 blast-radius review: all 4.8 target surfaces now have at least one DB-backed spec covering real Postgres SQL, constraints, and FK topology.
 
 - [ ] 4.9: Run repository quality gates relevant to the touched surfaces.
   Footnote: Keep the validation order pragmatic: targeted tests first, then type/lint gates for touched packages.

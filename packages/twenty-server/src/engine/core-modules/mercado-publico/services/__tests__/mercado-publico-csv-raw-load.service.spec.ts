@@ -69,8 +69,16 @@ describe('MercadoPublicoCsvRawLoadService', () => {
       expect(persistenceService.getRawCsvFileMetaById).toHaveBeenCalledWith(
         'missing-id',
       );
-      expect(persistenceService.createJobRun).not.toHaveBeenCalled();
-      expect(persistenceService.finalizeJobRun).not.toHaveBeenCalled();
+      expect(persistenceService.createJobRun).toHaveBeenCalledWith(
+        'csv-raw-load',
+      );
+      expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          jobRunRecordId: mockJobRunRecord.id,
+          status: 'failed',
+          recordsFailed: 1,
+        }),
+      );
     });
 
     it('should finalize as failed and rethrow when csvStorageRoot is missing', async () => {

@@ -28,8 +28,9 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
     schema_fingerprint: 'fp1',
     row_count: 100,
     last_loaded_at: null,
-    has_in_flight_load: false,
-    latest_completed_load_status: null,
+    has_in_flight_pipeline_job: false,
+    latest_completed_pipeline_job_name: null,
+    latest_completed_pipeline_job_status: null,
     latest_completed_records_fetched: null,
     latest_completed_records_staged: null,
     latest_completed_records_failed: null,
@@ -98,7 +99,8 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
       buildFileRow({
         id: 'f1',
         last_loaded_at: loadedAt,
-        latest_completed_load_status: 'success',
+        latest_completed_pipeline_job_name: 'csv-raw-load',
+        latest_completed_pipeline_job_status: 'success',
         latest_completed_records_fetched: 100,
         latest_completed_records_staged: 100,
         latest_completed_records_failed: 0,
@@ -117,7 +119,8 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
     mockQuery.mockResolvedValueOnce([
       buildFileRow({
         id: 'f1',
-        latest_completed_load_status: 'success',
+        latest_completed_pipeline_job_name: 'csv-raw-load',
+        latest_completed_pipeline_job_status: 'success',
         latest_completed_records_fetched: 100,
         latest_completed_records_staged: 98,
         latest_completed_records_failed: 2,
@@ -138,7 +141,8 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
       buildFileRow({
         id: 'f1',
         last_loaded_at: previousSuccessAt,
-        latest_completed_load_status: 'failed',
+        latest_completed_pipeline_job_name: 'csv-raw-load',
+        latest_completed_pipeline_job_status: 'failed',
       }),
     ]);
 
@@ -158,7 +162,8 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
         id: 'f1',
         row_count: 0,
         last_loaded_at: loadedAt,
-        latest_completed_load_status: 'success',
+        latest_completed_pipeline_job_name: 'csv-raw-load',
+        latest_completed_pipeline_job_status: 'success',
         latest_completed_records_fetched: 0,
         latest_completed_records_staged: 0,
         latest_completed_records_failed: 0,
@@ -178,7 +183,8 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
       buildFileRow({
         id: 'f1',
         last_loaded_at: rerunAt,
-        latest_completed_load_status: 'success',
+        latest_completed_pipeline_job_name: 'csv-raw-load',
+        latest_completed_pipeline_job_status: 'success',
         latest_completed_records_fetched: 100,
         latest_completed_records_staged: 0,
         latest_completed_records_failed: 0,
@@ -196,8 +202,9 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
     mockQuery.mockResolvedValueOnce([
       buildFileRow({
         id: 'f1',
-        has_in_flight_load: true,
-        latest_completed_load_status: 'success',
+        has_in_flight_pipeline_job: true,
+        latest_completed_pipeline_job_name: 'csv-raw-load',
+        latest_completed_pipeline_job_status: 'success',
         latest_completed_records_fetched: 100,
         latest_completed_records_staged: 100,
         latest_completed_records_failed: 0,
@@ -214,7 +221,8 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
       buildFileRow({
         id: 'f1',
         row_count: 100,
-        latest_completed_load_status: 'success',
+        latest_completed_pipeline_job_name: 'csv-raw-load',
+        latest_completed_pipeline_job_status: 'success',
         latest_completed_records_fetched: 99,
         latest_completed_records_staged: 99,
         latest_completed_records_failed: 0,
@@ -235,6 +243,48 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
     expect(result.files[0].parseSuccessCount).toBe(0);
     expect(result.files[0].parseErrorCount).toBe(0);
     expect(result.files[0].lastLoadedAt).toBeNull();
+  });
+
+  it('reports error when the latest completed pipeline job is a failed csv-file-profile', async () => {
+    mockQuery.mockResolvedValueOnce([
+      buildFileRow({
+        latest_completed_pipeline_job_name: 'csv-file-profile',
+        latest_completed_pipeline_job_status: 'failed',
+      }),
+    ]);
+
+    const result = await service.getCsvFileHealth();
+
+    expect(result.files[0].parseStatus).toBe('error');
+    expect(result.files[0].lastLoadedAt).toBeNull();
+  });
+
+  it('reports pending when the latest completed pipeline job is a successful csv-file-profile', async () => {
+    mockQuery.mockResolvedValueOnce([
+      buildFileRow({
+        latest_completed_pipeline_job_name: 'csv-file-profile',
+        latest_completed_pipeline_job_status: 'success',
+      }),
+    ]);
+
+    const result = await service.getCsvFileHealth();
+
+    expect(result.files[0].parseStatus).toBe('pending');
+    expect(result.files[0].lastLoadedAt).toBeNull();
+  });
+
+  it('reports pending while a csv-file-profile job is in flight', async () => {
+    mockQuery.mockResolvedValueOnce([
+      buildFileRow({
+        has_in_flight_pipeline_job: true,
+        latest_completed_pipeline_job_name: 'csv-file-profile',
+        latest_completed_pipeline_job_status: 'failed',
+      }),
+    ]);
+
+    const result = await service.getCsvFileHealth();
+
+    expect(result.files[0].parseStatus).toBe('pending');
   });
 
   it('returns null freshness in phase 1', async () => {

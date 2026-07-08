@@ -7,40 +7,11 @@ import { FastInstanceCommand } from 'src/engine/core-modules/upgrade/interfaces/
 export class DropRawCsvFileIngestionJobIdFastInstanceCommand
   implements FastInstanceCommand
 {
-  public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`
-      ALTER TABLE mp.raw_csv_file
-      DROP CONSTRAINT IF EXISTS "fk_mp_raw_csv_file_ingestion_job_id"
-    `);
-
-    await queryRunner.query(`
-      ALTER TABLE mp.raw_csv_file
-      DROP COLUMN IF EXISTS ingestion_job_id
-    `);
+  public async up(_queryRunner: QueryRunner): Promise<void> {
+    return;
   }
 
-  public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`
-      ALTER TABLE mp.raw_csv_file
-      ADD COLUMN IF NOT EXISTS ingestion_job_id uuid NULL
-    `);
-
-    await queryRunner.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1
-          FROM pg_constraint
-          WHERE conname = 'fk_mp_raw_csv_file_ingestion_job_id'
-        ) THEN
-          ALTER TABLE mp.raw_csv_file
-          ADD CONSTRAINT "fk_mp_raw_csv_file_ingestion_job_id"
-            FOREIGN KEY (ingestion_job_id)
-            REFERENCES mp.stg_job_run(id)
-            ON DELETE SET NULL;
-        END IF;
-      END
-      $$;
-    `);
+  public async down(_queryRunner: QueryRunner): Promise<void> {
+    return;
   }
 }
