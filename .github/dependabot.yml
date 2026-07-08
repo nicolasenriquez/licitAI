@@ -9,7 +9,7 @@ updates:
     open-pull-requests-limit: 3
     versioning-strategy: "lockfile-only"
     assignees:
-      - "mabdullahabaid"
+      - "nicolasenriquez"
     ignore:
       - dependency-name: "@graphql-yoga/nestjs"
       - dependency-name: "@nestjs/graphql"
