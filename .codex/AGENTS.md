@@ -39,6 +39,13 @@ not keep working from `.codex`.
 
 ## Working Contract
 
-- Declare the routing/context files consulted before responding or editing.
+- Declare consulted routing/context files briefly only when required by the
+  root contract. Keep the declaration minimal and avoid adding routine routing
+  breadcrumbs to normal user-facing closeout messages unless the routing choice
+  is material to the task.
+- When referencing files inside this repository in user-facing responses, follow the root `AGENTS.md` repository path-style rule.
+- Use repository-relative paths in user-visible text by default.
+- If a clickable markdown file link requires an absolute target, keep the visible link label repository-relative and use the absolute path only in the target.
+- Do not print raw absolute filesystem paths in prose unless explicitly requested by the user or required because the path is outside the repository.
 - State that the selected surface is `.codex`.
 - Preserve the distinction between repo-local Codex assets and the published plugin package.

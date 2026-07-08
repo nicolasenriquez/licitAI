@@ -19,6 +19,7 @@ import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/m
 import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
 import { MercadoPublicoDetectedProcessReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-detected-process-read.service';
 import { MercadoPublicoApiQuotaUsageReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-quota-usage-read.service';
+import { MercadoPublicoCsvFileHealthReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-file-health-read.service';
 import { MercadoPublicoPipelineHealthReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-pipeline-health-read.service';
 import { MercadoPublicoProcessDetailReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-process-detail-read.service';
 import { MercadoPublicoJobOrchestratorService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-job-orchestrator.service';
@@ -50,6 +51,7 @@ import { MercadoPublicoQuotaTrackerService } from 'src/engine/core-modules/merca
     MercadoPublicoQuotaTrackerService,
     MercadoPublicoCanonicalRefreshService,
     MercadoPublicoApiQuotaUsageReadService,
+    MercadoPublicoCsvFileHealthReadService,
     MercadoPublicoDetectedProcessReadService,
     MercadoPublicoPipelineHealthReadService,
     MercadoPublicoProcessDetailReadService,
@@ -72,6 +74,7 @@ import { MercadoPublicoQuotaTrackerService } from 'src/engine/core-modules/merca
     MercadoPublicoConfigService,
     MercadoPublicoJobOrchestratorService,
     MercadoPublicoApiQuotaUsageReadService,
+    MercadoPublicoCsvFileHealthReadService,
     MercadoPublicoDetectedProcessReadService,
     MercadoPublicoPipelineHealthReadService,
     MercadoPublicoProcessDetailReadService,

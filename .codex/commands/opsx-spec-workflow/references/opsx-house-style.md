@@ -28,6 +28,9 @@ Rules:
 - `3` proves implementation and reproduced symptom
 - `4` contains final changelog, docs, diagrams, sync, and archive readiness
 
+This phase order governs authoring quality. It does not by itself authorize
+implementation.
+
 ## Change Profiles
 
 Classify each change as one of:
@@ -115,6 +118,9 @@ Avoid both extremes:
 - one giant end-to-end implementation task
 - micro-fragmentation that creates meaningless ceremony
 
+`implementation-ready slices` describes task quality, not permission to start
+implementation.
+
 ## Clarification Policy
 
 If repo docs, artifacts, and user intent do not yet form a polished shared
@@ -130,7 +136,7 @@ understanding:
 
 ## Exit Gate
 
-A spec is `Implementation Ready` only when:
+A spec is `Proposal Ready for Implementation` only when:
 
 - the scope is locked
 - no material ambiguity remains
@@ -141,7 +147,10 @@ A spec is `Implementation Ready` only when:
 - if phase `1` is omitted, `proposal.md` explicitly justifies why fail-first coverage is not required
 - implementation tasks are minimal safe slices
 - release hygiene work stays in final closeout
-- one exact next command is evident
+- the workflow can stop without assuming implementation starts immediately
+
+This gate ends planning and hands control back to the human.
+It does not automatically transition into `/execute`.
 
 ## Closeout Policy
 

@@ -162,9 +162,9 @@ export class MercadoPublicoReconciliationService {
         WHERE api.nombre_proveedor IS NOT NULL
           AND csv.nombre_proveedor IS NOT NULL
           AND api.monto_total_oc IS NOT NULL
-          AND csv.monto_total_oc IS NOT NULL
-          AND abs(api.monto_total_oc - csv.monto_total_oc)
-              / NULLIF(api.monto_total_oc, 0) <= $1
+          AND csv.monto_total_oc_pesos_chilenos IS NOT NULL
+          AND abs(api.monto_total_oc::numeric - csv.monto_total_oc_pesos_chilenos::numeric)
+              / NULLIF(api.monto_total_oc::numeric, 0) <= $1
           AND NOT EXISTS (
             SELECT 1 FROM mp.reconciliation_public_market_entities r
             WHERE r.match_type = 'csv_api_same_business_key'
@@ -218,7 +218,7 @@ export class MercadoPublicoReconciliationService {
           AND stg.codigo_externo = lic_item.codigo_externo
         WHERE lic_item.monto_estimado IS NOT NULL
           AND stg.monto_estimado_adjudicado IS NOT NULL
-          AND abs(lic_item.monto_estimado - stg.monto_estimado_adjudicado)
+          AND abs(lic_item.monto_estimado - stg.monto_estimado_adjudicado::numeric)
               / NULLIF(lic_item.monto_estimado, 0) <= $1
           AND NOT EXISTS (
             SELECT 1 FROM mp.reconciliation_public_market_entities r

@@ -50,9 +50,9 @@ describe('MercadoPublicoCsvRawLoadService', () => {
     });
 
     it('should throw BadRequestException when raw_csv_file_id is empty', async () => {
-      await expect(
-        service.run({ raw_csv_file_id: '' }),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.run({ raw_csv_file_id: '' })).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -66,9 +66,17 @@ describe('MercadoPublicoCsvRawLoadService', () => {
         service.run({ raw_csv_file_id: 'missing-id' }),
       ).rejects.toThrow('raw_csv_file row not found');
 
+      expect(persistenceService.getRawCsvFileMetaById).toHaveBeenCalledWith(
+        'missing-id',
+      );
+      expect(persistenceService.createJobRun).toHaveBeenCalledWith(
+        'csv-raw-load',
+      );
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
         expect.objectContaining({
+          jobRunRecordId: mockJobRunRecord.id,
           status: 'failed',
+          recordsFailed: 1,
         }),
       );
     });
@@ -85,10 +93,14 @@ describe('MercadoPublicoCsvRawLoadService', () => {
         persistenceService,
       );
 
-      await expect(
-        svc.run({ raw_csv_file_id: 'test-id' }),
-      ).rejects.toThrow('MERCADO_PUBLICO_CSV_STORAGE_ROOT');
+      await expect(svc.run({ raw_csv_file_id: 'test-id' })).rejects.toThrow(
+        'MERCADO_PUBLICO_CSV_STORAGE_ROOT',
+      );
 
+      expect(persistenceService.createJobRun).toHaveBeenCalledWith(
+        'csv-raw-load',
+        { rawCsvFileId: 'csv-file-id' },
+      );
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'failed',

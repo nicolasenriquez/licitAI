@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
+import { readFileSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import crypto from 'crypto';
@@ -80,11 +80,11 @@ describe('MercadoPublicoCsvRawLoadService — licitaciones', () => {
         detected_delimiter: ';',
         quotechar: '"',
       }),
-      insertRawCsvRows: jest.fn().mockImplementation(
-        async (input: { rows: InsertRawCsvRowInput[] }) => {
+      insertRawCsvRows: jest
+        .fn()
+        .mockImplementation(async (input: { rows: InsertRawCsvRowInput[] }) => {
           capturedRows.push(...input.rows);
-        },
-      ),
+        }),
     } as unknown as jest.Mocked<MercadoPublicoPersistenceService>;
   });
 
@@ -95,7 +95,10 @@ describe('MercadoPublicoCsvRawLoadService — licitaciones', () => {
       }),
     } as unknown as jest.Mocked<MercadoPublicoConfigService>;
 
-    return new MercadoPublicoCsvRawLoadService(configService, persistenceService);
+    return new MercadoPublicoCsvRawLoadService(
+      configService,
+      persistenceService,
+    );
   }
 
   function successRows(): InsertRawCsvRowInput[] {
@@ -115,8 +118,14 @@ describe('MercadoPublicoCsvRawLoadService — licitaciones', () => {
     it('should load all 5 data rows (skip header, skip empty lines)', async () => {
       await service.run({ raw_csv_file_id: 'csv-lic-file-id' });
 
+      expect(persistenceService.createJobRun).toHaveBeenCalledWith(
+        'csv-raw-load',
+        { rawCsvFileId: 'csv-lic-file-id' },
+      );
       expect(successRows()).toHaveLength(5);
-      expect(capturedRows.filter((r) => r.parseStatus === 'error')).toHaveLength(0);
+      expect(
+        capturedRows.filter((r) => r.parseStatus === 'error'),
+      ).toHaveLength(0);
     });
 
     it('should set source_dataset to licitaciones on every row', async () => {
@@ -313,9 +322,9 @@ describe('MercadoPublicoCsvRawLoadService — licitaciones', () => {
     });
 
     it('should throw BadRequestException when raw_csv_file_id is empty', async () => {
-      await expect(
-        service.run({ raw_csv_file_id: '' }),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.run({ raw_csv_file_id: '' })).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 });

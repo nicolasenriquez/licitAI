@@ -35,6 +35,7 @@ export class MercadoPublicoCsvStagingProjectionService {
     const jobRunRecord =
       await this.mercadoPublicoPersistenceService.createJobRun(
         'csv-staging-projection',
+        { rawCsvFileId: parsedPayload.raw_csv_file_id },
       );
 
     try {

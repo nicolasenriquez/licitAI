@@ -3,20 +3,14 @@ import * as path from 'path';
 
 import { parse } from 'csv-parse';
 
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 
 import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
 import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 import { mapMercadoPublicoErrorSummaryToJobRunStatus } from 'src/engine/core-modules/mercado-publico/services/utils/map-mercado-publico-error-summary-to-job-run-status.util';
-import {
-  buildMercadoPublicoUnexpectedErrorSummaryText,
-} from 'src/engine/core-modules/mercado-publico/services/utils/build-mercado-publico-error-summary-text.util';
+import { buildMercadoPublicoUnexpectedErrorSummaryText } from 'src/engine/core-modules/mercado-publico/services/utils/build-mercado-publico-error-summary-text.util';
 import { computeRowChecksum } from 'src/engine/core-modules/mercado-publico/services/utils/csv/compute-row-checksum.util';
 
 type MercadoPublicoCsvRawLoadPayload = {
@@ -42,19 +36,19 @@ type PendingErrorRow = {
   parseError: string;
 };
 
+type RawCsvFileMeta = NonNullable<
+  Awaited<ReturnType<MercadoPublicoPersistenceService['getRawCsvFileMetaById']>>
+>;
+
 const BATCH_SIZE = 1000;
 
-const resolveNodeEncoding = (
-  detectedEncoding: string,
-): BufferEncoding => {
+const resolveNodeEncoding = (detectedEncoding: string): BufferEncoding => {
   return detectedEncoding === 'latin-1' ? 'latin1' : 'utf8';
 };
 
 @Injectable()
 export class MercadoPublicoCsvRawLoadService {
-  private readonly logger = new Logger(
-    MercadoPublicoCsvRawLoadService.name,
-  );
+  private readonly logger = new Logger(MercadoPublicoCsvRawLoadService.name);
 
   constructor(
     private readonly mercadoPublicoConfigService: MercadoPublicoConfigService,
@@ -63,16 +57,29 @@ export class MercadoPublicoCsvRawLoadService {
 
   async run(payload: Record<string, unknown>): Promise<void> {
     const parsedPayload = this.parsePayload(payload);
-    const jobRunRecord =
-      await this.mercadoPublicoPersistenceService.createJobRun(
-        'csv-raw-load',
+    const fileMeta =
+      await this.mercadoPublicoPersistenceService.getRawCsvFileMetaById(
+        parsedPayload.raw_csv_file_id,
       );
+    const jobRunRecord = fileMeta
+      ? await this.mercadoPublicoPersistenceService.createJobRun(
+          'csv-raw-load',
+          {
+            rawCsvFileId: fileMeta.id,
+          },
+        )
+      : await this.mercadoPublicoPersistenceService.createJobRun(
+          'csv-raw-load',
+        );
 
     try {
-      const result = await this.loadRawCsvRowsById(
-        parsedPayload.raw_csv_file_id,
-        jobRunRecord.id,
-      );
+      if (!fileMeta) {
+        throw new Error(
+          `raw_csv_file row not found for id ${parsedPayload.raw_csv_file_id}`,
+        );
+      }
+
+      const result = await this.loadRawCsvRows(fileMeta, jobRunRecord.id);
 
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,
@@ -95,8 +102,10 @@ export class MercadoPublicoCsvRawLoadService {
       }
 
       const errorSummary = classifyFailure(error);
-      const errorSummaryText =
-        buildMercadoPublicoUnexpectedErrorSummaryText(errorSummary, error);
+      const errorSummaryText = buildMercadoPublicoUnexpectedErrorSummaryText(
+        errorSummary,
+        error,
+      );
 
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,
@@ -128,8 +137,8 @@ export class MercadoPublicoCsvRawLoadService {
     };
   }
 
-  private async loadRawCsvRowsById(
-    rawCsvFileId: string,
+  private async loadRawCsvRows(
+    fileMeta: RawCsvFileMeta,
     ingestionJobId: string,
   ): Promise<{
     totalLines: number;
@@ -140,17 +149,6 @@ export class MercadoPublicoCsvRawLoadService {
 
     if (!settings.csvStorageRoot) {
       throw new Error('MERCADO_PUBLICO_CSV_STORAGE_ROOT is not configured');
-    }
-
-    const fileMeta =
-      await this.mercadoPublicoPersistenceService.getRawCsvFileMetaById(
-        rawCsvFileId,
-      );
-
-    if (!fileMeta) {
-      throw new Error(
-        `raw_csv_file row not found for id ${rawCsvFileId}`,
-      );
     }
 
     const filePath = path.join(
@@ -165,9 +163,7 @@ export class MercadoPublicoCsvRawLoadService {
       `Loading raw rows from ${fileMeta.source_dataset}/${fileMeta.source_period} ${filePath}`,
     );
 
-    const nodeEncoding = resolveNodeEncoding(
-      fileMeta.detected_encoding,
-    );
+    const nodeEncoding = resolveNodeEncoding(fileMeta.detected_encoding);
     const isUtf8Sig = fileMeta.detected_encoding === 'utf-8-sig';
     const delimiter = fileMeta.detected_delimiter;
     const quotechar = fileMeta.quotechar;
@@ -175,7 +171,9 @@ export class MercadoPublicoCsvRawLoadService {
     let totalLines = 0;
     let successCount = 0;
     let errorCount = 0;
-    let batch: Parameters<typeof this.mercadoPublicoPersistenceService.insertRawCsvRows>[0]['rows'] = [];
+    let batch: Parameters<
+      typeof this.mercadoPublicoPersistenceService.insertRawCsvRows
+    >[0]['rows'] = [];
     const pendingErrorRows: PendingErrorRow[] = [];
 
     const flushBatch = async () => {

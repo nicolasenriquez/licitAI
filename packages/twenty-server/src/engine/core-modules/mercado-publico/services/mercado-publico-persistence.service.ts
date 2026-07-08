@@ -31,6 +31,10 @@ type FinalizeMercadoPublicoJobRunInput = {
   recordsFailed?: number;
 };
 
+type CreateMercadoPublicoJobRunInput = {
+  rawCsvFileId?: string;
+};
+
 type PersistMercadoPublicoApiFailureInput = {
   jobRunRecordId: string;
   source: string;
@@ -218,6 +222,8 @@ const STAGING_INSERT_BATCH_SIZE = 500;
 
 @Injectable()
 export class MercadoPublicoPersistenceService {
+  private hasStgJobRunRawCsvFileIdColumn: boolean | null = null;
+
   constructor(
     @InjectDataSource()
     private readonly coreDataSource: DataSource,
@@ -225,23 +231,41 @@ export class MercadoPublicoPersistenceService {
 
   async createJobRun(
     jobName: MercadoPublicoJobName,
+    input: CreateMercadoPublicoJobRunInput = {},
   ): Promise<MercadoPublicoJobRunRecord> {
     const startedAt = new Date();
     const jobRunId = crypto.randomUUID();
+    const shouldLinkRawCsvFile =
+      typeof input.rawCsvFileId === 'string' &&
+      (await this.stgJobRunSupportsRawCsvFileId());
     const insertedJobRunRows = await this.coreDataSource.query<
       { id: string }[]
     >(
-      `
-        INSERT INTO mp.stg_job_run (
-          job_name,
-          job_run_id,
-          status,
-          started_at
-        )
-        VALUES ($1, $2, 'failed', $3)
-        RETURNING id
-      `,
-      [jobName, jobRunId, startedAt],
+      shouldLinkRawCsvFile
+        ? `
+            INSERT INTO mp.stg_job_run (
+              job_name,
+              job_run_id,
+              status,
+              started_at,
+              raw_csv_file_id
+            )
+            VALUES ($1, $2, 'failed', $3, $4)
+            RETURNING id
+          `
+        : `
+            INSERT INTO mp.stg_job_run (
+              job_name,
+              job_run_id,
+              status,
+              started_at
+            )
+            VALUES ($1, $2, 'failed', $3)
+            RETURNING id
+          `,
+      shouldLinkRawCsvFile
+        ? [jobName, jobRunId, startedAt, input.rawCsvFileId]
+        : [jobName, jobRunId, startedAt],
     );
 
     return {
@@ -249,6 +273,28 @@ export class MercadoPublicoPersistenceService {
       jobRunId,
       startedAt,
     };
+  }
+
+  private async stgJobRunSupportsRawCsvFileId(): Promise<boolean> {
+    if (this.hasStgJobRunRawCsvFileIdColumn !== null) {
+      return this.hasStgJobRunRawCsvFileIdColumn;
+    }
+
+    const [row] = await this.coreDataSource.query<{ exists: boolean }[]>(
+      `
+        SELECT EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_schema = 'mp'
+            AND table_name = 'stg_job_run'
+            AND column_name = 'raw_csv_file_id'
+        ) AS exists
+      `,
+    );
+
+    this.hasStgJobRunRawCsvFileIdColumn = row?.exists ?? false;
+
+    return this.hasStgJobRunRawCsvFileIdColumn;
   }
 
   async finalizeJobRun(
@@ -742,7 +788,6 @@ export class MercadoPublicoPersistenceService {
             file_checksum,
             file_size_bytes,
             compression_type,
-            ingestion_job_id,
             detected_encoding,
             detected_delimiter,
             quotechar,
@@ -763,7 +808,6 @@ export class MercadoPublicoPersistenceService {
             $8,
             $9,
             $10,
-            $11,
             'latin-1',
             ';',
             NULL,
@@ -787,7 +831,6 @@ export class MercadoPublicoPersistenceService {
           input.fileChecksum,
           input.fileSizeBytes,
           input.compressionType,
-          input.jobRunRecordId,
         ],
       );
 
@@ -806,7 +849,12 @@ export class MercadoPublicoPersistenceService {
             AND file_checksum = $4
           LIMIT 1
         `,
-        [input.sourceDataset, input.sourcePeriod, input.sourceModality ?? null, input.fileChecksum],
+        [
+          input.sourceDataset,
+          input.sourcePeriod,
+          input.sourceModality ?? null,
+          input.fileChecksum,
+        ],
       );
 
       return { rawCsvFileId: existingRows[0].id, deduped: true };
@@ -898,9 +946,9 @@ export class MercadoPublicoPersistenceService {
     return rows[0];
   }
 
-  async insertRawCsvRows(
-    input: { rows: InsertRawCsvRowInput[] },
-  ): Promise<void> {
+  async insertRawCsvRows(input: {
+    rows: InsertRawCsvRowInput[];
+  }): Promise<void> {
     if (input.rows.length === 0) {
       return;
     }
@@ -951,9 +999,9 @@ export class MercadoPublicoPersistenceService {
     );
   }
 
-  async insertStgCsvOrdenCompraRows(
-    input: { rows: InsertStgCsvOrdenCompraRowInput[] },
-  ): Promise<void> {
+  async insertStgCsvOrdenCompraRows(input: {
+    rows: InsertStgCsvOrdenCompraRowInput[];
+  }): Promise<void> {
     if (input.rows.length === 0) {
       return;
     }
@@ -1029,9 +1077,9 @@ export class MercadoPublicoPersistenceService {
     );
   }
 
-  async insertStgCsvLicitacionRows(
-    input: { rows: InsertStgCsvLicitacionRowInput[] },
-  ): Promise<void> {
+  async insertStgCsvLicitacionRows(input: {
+    rows: InsertStgCsvLicitacionRowInput[];
+  }): Promise<void> {
     if (input.rows.length === 0) {
       return;
     }
@@ -1131,10 +1179,10 @@ export class MercadoPublicoPersistenceService {
     );
   }
 
-  async getRawCsvFileObservedColumns(
-    rawCsvFileId: string,
-  ): Promise<string[]> {
-    const rows = await this.coreDataSource.query<{ observed_columns: string[] }[]>(
+  async getRawCsvFileObservedColumns(rawCsvFileId: string): Promise<string[]> {
+    const rows = await this.coreDataSource.query<
+      { observed_columns: string[] }[]
+    >(
       `
         SELECT observed_columns
         FROM mp.raw_csv_file
@@ -1152,9 +1200,7 @@ export class MercadoPublicoPersistenceService {
     return Array.isArray(columns) ? columns : [];
   }
 
-  async countRawCsvRowsByFileId(
-    rawCsvFileId: string,
-  ): Promise<number> {
+  async countRawCsvRowsByFileId(rawCsvFileId: string): Promise<number> {
     const rows = await this.coreDataSource.query<{ count: string }[]>(
       `
         SELECT COUNT(*)::text AS count

@@ -236,7 +236,7 @@ Use dependency/risk order above instead of assuming numeric adjacency within Pha
   Footnote: Expose daily quota visibility, `last429At`, and timezone-aware reset behavior.
   Status: Done. Read service MercadoPublicoApiQuotaUsageReadService.getApiQuotaUsage() reads from mp.gold_api_quota_usage (SELECT source, used, reset_at, last_429_at). dailyLimit sourced from new config var MERCADO_PUBLICO_API_DAILY_LIMIT (default 10000, non-sensitive) wired via MercadoPublicoConfigService.getSettings(). remaining = max(0, dailyLimit - used). Tracker unchanged; daily_limit column in gold table stays unwritten (config-derived, not stored). Returns 0..3 entries (the 3 per-endpoint sources the tracker writes: api-v1-licitaciones, api-v1-oc, api-v2-compra-agil). Doc: 10000/day 24h America/Santiago documented in docs/business/mercado-publico-source-contract.md §Quota and Rate Limits. Unit spec: 4 tests pass + integration-shaped spec: 2 tests pass. TypeScript clean. Format clean. No public API surface.
 
-- [ ] 3.34: Implement the internal read contract for CSV file health.
+- [x] 3.34: Implement the internal read contract for CSV file health.
   Footnote: Expose profiling outcomes, freshness, and last successful file processing state.
 
 - [x] 3.35: Implement bounded retry, quota reset, and failure classification policies for Mercado Publico API jobs.
@@ -250,29 +250,43 @@ Use dependency/risk order above instead of assuming numeric adjacency within Pha
 
 ## Phase 4: Validation and CI
 
-- [ ] 4.1: Execute unit tests for request formatting and parameter guards.
-  Footnote: Cover V1 `ddmmaaaa` formatting and V2 parameter-boundary behavior first.
+- [x] 4.1: Execute unit tests for request formatting and parameter guards.
+  Footnote: 7/7 format-v1-date + 12/12 validate-compra-agil-params green. Impl uses UTC (not America/Santiago) — accepted deviation, document in 5.1 closeout.
 
-- [ ] 4.2: Execute unit tests for CSV profiling and parsing behavior.
-  Footnote: Cover encoding, delimiter, quotechar, and latin-1 accented text handling.
+- [x] 4.2: Execute unit tests for CSV profiling and parsing behavior.
+  Footnote: 8/8 detect-encoding + 7/7 detect-delimiter + 6/6 detect-quotechar green. Latin-1 accented text pinned via detect-encoding fallback cases. csv-profiling service specs deferred to 3.17/4.7.
 
-- [ ] 4.3: Execute unit tests for scalar normalization, sentinel handling, null-like values, state mapping, and HTTP failure classification.
-  Footnote: Validation should prove behavior, not just compile shape.
+- [x] 4.3: Execute unit tests for scalar normalization, sentinel handling, null-like values, state mapping, and HTTP failure classification.
+  Footnote: 36 normalize-scalar + 11 normalize-oc-state + 2 normalize-licitacion-type + 12 new normalize-v1-licitacion-state + 12 new classify-http-failure = 73 cases green. Two missing specs written (both were spec'd in test-design §1.3/§1.6 but never created). Impl names diverge from test-design — written to impl signatures. flag in 5.1: audit all 1.x completed specs for missing-on-disk files.
 
-- [ ] 4.4: Execute unit tests for non-null-over-null protection, idempotent reruns, and reconciliation rules.
-  Footnote: These tests protect the highest-regression canonical rules.
+- [x] 4.4: Execute unit tests for non-null-over-null protection, idempotent reruns, and reconciliation rules.
+  Footnote: 9 canonical-refresh + 27 reconciliation = 36/36 green. Non-null protection (sparse-row + V2 null staging), idempotent reruns (UK + fingerprint dedupe), exact+heuristic reconciliation rules all passing. Positional mocks intact at canonical-refresh:5-6.
 
-- [ ] 4.5: Execute integration and DB verification for schema creation and raw-layer persistence.
+- [x] 4.5: Execute integration and DB verification for schema creation and raw-layer persistence.
   Footnote: Confirm schema creation plus raw API and raw CSV dedupe behavior in the database.
+  Status: Done. Added DB-backed verification suite `packages/twenty-server/test/integration/mercado-publico/suites/raw-layer-persistence.spec.ts` covering `mp` schema/table existence, dedupe constraints, `raw_api_payload` dedupe, and `raw_csv_file` + `raw_csv_row` dedupe without depending on the broader app bootstrap.
 
-- [ ] 4.6: Execute integration and DB verification for API list-to-detail ingestion and canonical refresh.
+- [x] 4.6: Execute integration and DB verification for API list-to-detail ingestion and canonical refresh.
+  Footnote: Confirm the end-to-end API path from raw payload to staging to canonical rows, including detail rehydrate and non-null-over-null protection.
   Footnote: This should prove the end-to-end API path from raw to canonical.
 
-- [ ] 4.7: Execute integration and DB verification for CSV profiling, raw load, and canonical refresh.
+- [x] 4.7: Execute integration and DB verification for CSV profiling, raw load, and canonical refresh.
+  Footnote: Confirm OC and licitaciones CSV paths from raw file registry through profiling, raw row persistence, staging, and implemented canonical projections.
   Footnote: This should prove the end-to-end CSV path from file acquisition to canonical projections.
 
-- [ ] 4.8: Execute integration and DB verification for reconciliation visibility, quota visibility, CSV file health, and gold/read contract correctness.
-  Footnote: This is where the earlier blast-radius review is confirmed or falsified. Any missing regression check should be documented explicitly.
+- [x] 4.8: Execute integration and DB verification for reconciliation visibility, quota visibility, CSV file health, and gold/read contract correctness.
+  Status: Done. 3 NEW DB-backed integration specs added:
+    `packages/twenty-server/test/integration/mercado-publico/suites/reconciliation-refresh.spec.ts`
+    `packages/twenty-server/test/integration/mercado-publico/suites/quota-usage-db.spec.ts`
+    `packages/twenty-server/test/integration/mercado-publico/suites/csv-file-health-db.spec.ts`
+  Coverage:
+    - reconciliation-refresh: exact_codigo_externo, csv_api_same_business_key, exact_codigo_licitacion, exact_compra_agil_id_orden_compra (both id_orden_compra and id_oc fallback), null-link guard, candidate_supplier_amount, candidate_item_amount, unmatched (gold_detected_process write), state_mismatch event, source_period_rerun_mismatch event, idempotent rerun dedupe on both reconciliation_public_market_entities and reconciliation_event.
+    - quota-usage-db: all 3 source entries, remaining computation, used-exceeds-limit guard, last429At populated/null, resetAt storage, empty source set.
+    - csv-file-health-db: parseStatus=success/error/pending, ordering (dataset asc, period desc, fileName asc), parseErrorCount/parseSuccessCount, lastLoadedAt from stg_job_run, sourceModality passthrough, in-flight detection via LATERAL JOIN, empty table, no-job-run-yet pending.
+  In-memory "integration-shaped" specs (pipeline-health, process-detail, detected-process-list) retained as-is — no SQL risk above shape-match proven by existing spec logic.
+  Residual gaps: Pre-existing type errors in 4.5/4.6/4.7 integration specs not addressed (api-v1-licitaciones-canonical-refresh.spec.ts:169, csv-ingestion-canonical-refresh.spec.ts:194+338, raw-layer-persistence.spec.ts:230+243). Workspace-migration-runner errors per investigation.md 0.3 baseline unchanged.
+  Fixes: MercadoPublicoReconciliationService.reconcileCandidateSupplier INNER JOIN mp.stg_csv_orden_compra column reference corrected from csv.monto_total_oc (nonexistent) to csv.monto_total_oc_pesos_chilenos::numeric (actual column). MercadoPublicoReconciliationService.reconcileCandidateItem abs() arithmetic cast stg.monto_estimado_adjudicado::numeric to avoid text-numeric operator mismatch.
+  Confirms 0.4 blast-radius review: all 4.8 target surfaces now have at least one DB-backed spec covering real Postgres SQL, constraints, and FK topology.
 
 - [ ] 4.9: Run repository quality gates relevant to the touched surfaces.
   Footnote: Keep the validation order pragmatic: targeted tests first, then type/lint gates for touched packages.

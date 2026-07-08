@@ -91,6 +91,9 @@ import { MpReconciliationPublicMarketEntitiesFastInstanceCommand } from 'src/dat
 import { MpReconciliationEventFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007900-mp-reconciliation-event';
 import { MpGoldReadObjectsFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007910-mp-gold-read-objects';
 import { MpRawCsvFileDedupeModalityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007920-mp-raw-csv-file-dedupe-modality';
+import { DropRawCsvFileIngestionJobIdFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1783191615514-drop-raw-csv-file-ingestion-job-id';
+import { MpStgJobRunRawCsvFileLinkSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1782340007930-mp-stg-job-run-raw-csv-file-link';
+import { DropRawCsvFileIngestionJobIdSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1783191615515-drop-raw-csv-file-ingestion-job-id';
 
 export const INSTANCE_COMMANDS = [
   AddViewFieldGroupIdIndexOnViewFieldFastInstanceCommand,
@@ -184,4 +187,7 @@ export const INSTANCE_COMMANDS = [
   MpReconciliationEventFastInstanceCommand,
   MpGoldReadObjectsFastInstanceCommand,
   MpRawCsvFileDedupeModalityFastInstanceCommand,
+  DropRawCsvFileIngestionJobIdFastInstanceCommand,
+  MpStgJobRunRawCsvFileLinkSlowInstanceCommand,
+  DropRawCsvFileIngestionJobIdSlowInstanceCommand,
 ];

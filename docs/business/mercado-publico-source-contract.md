@@ -372,7 +372,6 @@ Every file load records:
 - `column_count`.
 - `schema_fingerprint`.
 - `row_count`.
-- `ingestion_job_id`.
 
 ### CSV Row Metadata
 

@@ -73,8 +73,9 @@ Resolution rules:
   - if it is only reasonable, say what is weak
   - if a better repo-native approach exists, say so directly
 - Prefer repo evidence over proposal language.
-- Use repository-relative paths only in the response.
-- Do not print absolute filesystem paths unless the user explicitly asks for them.
+- Use repository-relative paths for all user-visible file references in the response.
+- If clickable markdown file links require an absolute target, keep the visible link label repository-relative and use the absolute path only in the target.
+- Do not print raw absolute filesystem paths in prose unless the user explicitly asks for them.
 - Prefer short bullets over paragraphs when the meaning is unchanged.
 - Avoid repeating a path once it has been introduced; refer back to it by short name or context.
 - When a flow helps interpretation, use a compact ASCII diagram in a fenced `text` block.
@@ -172,7 +173,7 @@ Tailor by depth:
 - explain the concrete design shape in a teach-first order: problem, mental model, implementation, tradeoff
 - name the main tables, modules, flows, tests, and docs involved
 - when a flow is easier to understand visually, include one compact ASCII diagram
-- cite repository-relative paths only, and keep line references minimal
+- cite repository-relative file references in user-visible text, and keep line references minimal
 - call out important constraints such as auditability, source-of-truth decisions, or safety guards
 
 ### 4) Why This Is The Right Shape
@@ -189,7 +190,7 @@ Tailor by depth:
 
 ### 6) Evidence
 
-- include a short bullet list of the key files with repository-relative line references
+- include a short bullet list of the key files with repository-relative labels and tight line references
 - keep line references tight
 - avoid repeating full paths in the body if the file was already named above
 
