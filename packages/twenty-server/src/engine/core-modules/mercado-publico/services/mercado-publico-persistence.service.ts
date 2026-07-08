@@ -222,6 +222,8 @@ const STAGING_INSERT_BATCH_SIZE = 500;
 
 @Injectable()
 export class MercadoPublicoPersistenceService {
+  private hasStgJobRunRawCsvFileIdColumn: boolean | null = null;
+
   constructor(
     @InjectDataSource()
     private readonly coreDataSource: DataSource,
@@ -233,21 +235,37 @@ export class MercadoPublicoPersistenceService {
   ): Promise<MercadoPublicoJobRunRecord> {
     const startedAt = new Date();
     const jobRunId = crypto.randomUUID();
+    const shouldLinkRawCsvFile =
+      typeof input.rawCsvFileId === 'string' &&
+      (await this.stgJobRunSupportsRawCsvFileId());
     const insertedJobRunRows = await this.coreDataSource.query<
       { id: string }[]
     >(
-      `
-        INSERT INTO mp.stg_job_run (
-          job_name,
-          job_run_id,
-          status,
-          started_at,
-          raw_csv_file_id
-        )
-        VALUES ($1, $2, 'failed', $3, $4)
-        RETURNING id
-      `,
-      [jobName, jobRunId, startedAt, input.rawCsvFileId ?? null],
+      shouldLinkRawCsvFile
+        ? `
+            INSERT INTO mp.stg_job_run (
+              job_name,
+              job_run_id,
+              status,
+              started_at,
+              raw_csv_file_id
+            )
+            VALUES ($1, $2, 'failed', $3, $4)
+            RETURNING id
+          `
+        : `
+            INSERT INTO mp.stg_job_run (
+              job_name,
+              job_run_id,
+              status,
+              started_at
+            )
+            VALUES ($1, $2, 'failed', $3)
+            RETURNING id
+          `,
+      shouldLinkRawCsvFile
+        ? [jobName, jobRunId, startedAt, input.rawCsvFileId]
+        : [jobName, jobRunId, startedAt],
     );
 
     return {
@@ -255,6 +273,28 @@ export class MercadoPublicoPersistenceService {
       jobRunId,
       startedAt,
     };
+  }
+
+  private async stgJobRunSupportsRawCsvFileId(): Promise<boolean> {
+    if (this.hasStgJobRunRawCsvFileIdColumn !== null) {
+      return this.hasStgJobRunRawCsvFileIdColumn;
+    }
+
+    const [row] = await this.coreDataSource.query<{ exists: boolean }[]>(
+      `
+        SELECT EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_schema = 'mp'
+            AND table_name = 'stg_job_run'
+            AND column_name = 'raw_csv_file_id'
+        ) AS exists
+      `,
+    );
+
+    this.hasStgJobRunRawCsvFileIdColumn = row?.exists ?? false;
+
+    return this.hasStgJobRunRawCsvFileIdColumn;
   }
 
   async finalizeJobRun(

@@ -8,13 +8,21 @@ description: Canonical operational entrypoint for agent work in this checkout.
 
 This file provides guidance when working with code in this repository.
 
-## Project Overview
+## Repository Identity
 
-Twenty is an open-source CRM built with modern technologies in a monorepo structure. The codebase is organized as an Nx workspace with multiple packages.
+This is the **licitai** fork (`github.com/nicolasenriquez/licitAI`, package name
+`licitai`). Internal package directories, decorators, GraphQL types, and the
+upstream product references still follow the inherited `twenty-*` naming from
+the Twenty monorepo. Do not rename `twenty-*` paths or import specifiers when
+working here.
+
+**Engines:** Node `^24.5.0`, yarn `>=4.0.2` (yarn `4.13.0` pinned). npm is
+explicitly disabled in `package.json` — never use `npm install` or `package-lock.json`.
 
 ## Workspace Routing Pilot
 
-`AGENTS.md` at the repository root remains the canonical entrypoint for agent instructions in this checkout.
+`AGENTS.md` at the repository root remains the canonical entrypoint for agent
+instructions in this checkout.
 
 During this routing rollout, use the contract below before acting:
 
@@ -53,232 +61,213 @@ in normal prose when the file is inside this repository.
 - Library, setup, or API-doc task: use Context7 when relevant.
 - Codebase question: use `graphify` first when available.
 
+## Toolchain
+
+- **Linter:** `oxlint` (server uses `--type-aware`). `eslint` is not used.
+- **Formatter:** `oxfmt`. `prettier` is not used (root `prettier` block in `package.json` is historical).
+- **Typechecker:** `tsgo` (TypeScript native Go preview), not `tsc`.
+- **Build/test runner:** Nx 22 + `@nx/jest` + Vite.
+- `npx nx lint` and `npx nx lint:diff-with-main` both `dependsOn: ["twenty-oxlint-rules:build"]` — on a fresh clone, run `npx nx build twenty-oxlint-rules` once before linting, or the first lint will fail with a missing plugin error.
+
 ## Key Commands
 
 ### Development
 ```bash
-# Start development environment (frontend + backend + worker)
-yarn start
-
-# Individual package development
-npx nx start twenty-front     # Start frontend dev server
-npx nx start twenty-server    # Start backend server
-npx nx run twenty-server:worker  # Start background worker
+yarn start                                       # server + front + worker, concurrent
+npx nx start twenty-front                        # frontend dev server
+npx nx start twenty-server                       # backend dev server
+npx nx run twenty-server:worker                  # BullMQ background worker
 ```
 
 ### Testing
 ```bash
-# Preferred: run a single test file (fast)
-npx jest path/to/test.test.ts --config=packages/PROJECT/jest.config.mjs
+# Single test or pattern (preferred — fastest)
+cd packages/{pkg} && npx jest "<pattern or filename>"
 
-# Run all tests for a package
-npx nx test twenty-front      # Frontend unit tests
-npx nx test twenty-server     # Backend unit tests
-npx nx run twenty-server:test:integration:with-db-reset  # Integration tests with DB reset
-# To run an individual test or a pattern of tests, use the following command:
-cd packages/{workspace} && npx jest "pattern or filename"
+# All unit tests for a package
+npx nx test twenty-front
+npx nx test twenty-server
+
+# Integration tests with DB reset (expensive — full schema rebuild)
+npx nx run twenty-server:test:integration:with-db-reset
 
 # Storybook
 npx nx storybook:build twenty-front
 npx nx storybook:test twenty-front
 
-# When testing the UI end to end, click on "Continue with Email" and use the prefilled credentials.
+# UI E2E: log in via "Continue with Email" with the prefilled dev credentials.
 ```
 
 ### Code Quality
 ```bash
-# Linting (diff with main - fastest, always prefer this)
+# Lint + format only what changed vs main (fastest, always prefer)
 npx nx lint:diff-with-main twenty-front
-npx nx lint:diff-with-main twenty-server
-npx nx lint:diff-with-main twenty-front --configuration=fix  # Auto-fix
+npx nx lint:diff-with-main twenty-server          # uses scripts/lint-diff-with-main.mjs
+npx nx lint:diff-with-main twenty-server --configuration=fix
 
-# Linting (full project - slower, use only when needed)
+# Full-package lint
 npx nx lint twenty-front
 npx nx lint twenty-server
 
-# Type checking
+# Typecheck (runs tsgo)
 npx nx typecheck twenty-front
 npx nx typecheck twenty-server
 
-# Format code
+# Format
 npx nx fmt twenty-front
 npx nx fmt twenty-server
 ```
 
+`lint:diff-with-main` is `git diff main...HEAD` for the server
+(`scripts/lint-diff-with-main.mjs`) and a `git diff main` for the front.
+On feature branches this is the intended behavior — do not "fix" it by
+repointing the base.
+
 ### Build
 ```bash
-# Build packages (twenty-shared must be built first)
-npx nx build twenty-shared
+npx nx build twenty-shared   # build first — other packages depend on its dist
 npx nx build twenty-front
 npx nx build twenty-server
 ```
 
-### Database Operations
+### Database
 ```bash
-# Database management
-npx nx database:reset twenty-server         # Reset database
-npx nx run twenty-server:database:init:prod # Initialize database
-npx nx run twenty-server:database:migrate:prod # Run instance commands (fast only)
-
-# Generate an instance command (fast or slow)
+npx nx database:reset twenty-server                     # truncate + init + seed
+npx nx run twenty-server:database:init                  # first-time schema + seeds
+npx nx run twenty-server:database:migrate               # run registered instance commands (fast only by default; --include-slow for slow)
 npx nx run twenty-server:database:migrate:generate --name <name> --type <fast|slow>
+# ClickHouse
+npx nx run twenty-server:clickhouse:migrate
+npx nx run twenty-server:clickhouse:seed
 ```
-
-### Database Inspection (Postgres MCP)
-
-A read-only Postgres MCP server is configured in `.mcp.json`. Use it to:
-- Inspect workspace data, metadata, and object definitions while developing
-- Verify migration results (columns, types, constraints) after running migrations
-- Explore the multi-tenant schema structure (core, metadata, workspace-specific schemas)
-- Debug issues by querying raw data to confirm whether a bug is frontend, backend, or data-level
-- Inspect metadata tables to debug GraphQL schema generation issues
-
-This server is read-only — for write operations (reset, migrations, sync), use the CLI commands above.
 
 ### GraphQL
 ```bash
-# Generate GraphQL types (run after schema changes)
-npx nx run twenty-front:graphql:generate
+npx nx run twenty-front:graphql:generate                # default: data codegen
 npx nx run twenty-front:graphql:generate --configuration=metadata
+npx nx run twenty-front:graphql:generate --configuration=admin
+npx nx run twenty-front:mock:generate                   # regenerate mock data fixtures
+```
+
+### Env
+```bash
+npx nx run twenty-server:reset:env                      # cp .env.example .env
 ```
 
 ## Architecture Overview
 
 ### Tech Stack
-- **Frontend**: React 18, TypeScript, Jotai (state management), Linaria (styling), Vite
-- **Backend**: NestJS, TypeORM, PostgreSQL, Redis, GraphQL (with GraphQL Yoga)
-- **Monorepo**: Nx workspace managed with Yarn 4
+- **Frontend:** React + TypeScript, Jotai, Linaria (zero-runtime CSS-in-JS), Vite, Apollo Client, Lingui.
+- **Backend:** NestJS, TypeORM, PostgreSQL, Redis, BullMQ, GraphQL (code-first via `@nestjs/graphql` + GraphQL Yoga).
+- **Monorepo:** Nx workspace, Yarn 4 workspaces.
 
-### Package Structure
-```
+### Package Layout
+```text
 packages/
-├── twenty-front/          # React frontend application
-├── twenty-server/         # NestJS backend API
-├── twenty-ui/             # Shared UI components library
-├── twenty-shared/         # Common types and utilities
-├── twenty-emails/         # Email templates with React Email
-├── twenty-website/    # Next.js marketing website
-├── twenty-docs/           # Documentation website
-├── twenty-zapier/         # Zapier integration
-└── twenty-e2e-testing/    # Playwright E2E tests
+├── twenty-front/                  # React app
+├── twenty-server/                 # NestJS API
+├── twenty-shared/                 # Shared types & helpers
+├── twenty-ui/                     # Shared UI primitives
+├── twenty-emails/                 # React Email templates
+├── twenty-sdk/                    # App SDK (defineObject, etc.)
+├── twenty-cli/                    # `twenty` CLI (`app:publish`, `workspace:*`)
+├── twenty-client-sdk/             # Generated GraphQL client
+├── twenty-front-component-renderer/  # remote-dom renderer
+├── create-twenty-app/             # `npx create-twenty-app` scaffolder
+├── twenty-companion/              # Desktop companion
+├── twenty-codex-plugin/           # Published Codex plugin
+├── twenty-claude-skills/          # Published Claude skills bundle
+├── twenty-zapier/                 # Zapier integration
+├── twenty-docker/                 # Compose / Helm / k8s
+├── twenty-e2e-testing/            # Playwright suites
+├── twenty-utils/                  # Shared dev scripts (setup-dev-env.sh)
+├── twenty-oxlint-rules/           # Custom oxlint plugin (built once, then cached)
+├── twenty-website/                # Marketing site (legacy Next.js)
+├── twenty-website-redone/         # Marketing site (new)
+└── twenty-apps/                   # Examples + internal apps (slack, linear, etc.)
 ```
 
-### Key Development Principles
-- **Functional components only** (no class components)
-- **Named exports only** (no default exports)
-- **Types over interfaces** (except when extending third-party interfaces)
-- **String literals over enums** (except for GraphQL enums)
-- **No 'any' type allowed** — strict TypeScript enforced
-- **Event handlers preferred over useEffect** for state updates
-- **Props down, events up** — unidirectional data flow
-- **Composition over inheritance**
-- **No abbreviations** in variable names (`user` not `u`, `fieldMetadata` not `fm`)
+### Conventions That Differ From Defaults
 
-### Naming Conventions
-- **Variables/functions**: camelCase
-- **Constants**: SCREAMING_SNAKE_CASE
-- **Types/Classes**: PascalCase (suffix component props with `Props`, e.g. `ButtonProps`)
-- **Files/directories**: kebab-case with descriptive suffixes (`.component.tsx`, `.service.ts`, `.entity.ts`, `.dto.ts`, `.module.ts`)
-- **TypeScript generics**: descriptive names (`TData` not `T`)
+- **Functional components only.** No class components.
+- **Named exports only.** No default exports.
+- **Types over interfaces** (except when extending third-party interfaces).
+- **String literals over enums** (GraphQL enums excepted).
+- **No `any`** — strict TypeScript enforced.
+- **No abbreviations** in variable names (`user` not `u`, `fieldMetadata` not `fm`).
+- Files kebab-case with descriptive suffixes (`.component.tsx`, `.service.ts`, `.entity.ts`, `.dto.ts`, `.module.ts`).
+- Component prop types suffixed `Props` (`ButtonProps`).
+- TypeScript generics get descriptive names (`TData` not `T`).
+- Use `twenty-shared` helpers instead of manual type guards: `isDefined`, `isNonEmptyString`, `isNonEmptyArray`.
+- Styling: **Linaria** only.
+- i18n: **Lingui** (run `lingui:extract` / `lingui:compile` targets).
 
-### File Structure
-- Components under 300 lines, services under 500 lines
-- Components in their own directories with tests and stories
-- Use `index.ts` barrel exports for clean imports
-- Import order: external libraries first, then internal (`@/`), then relative
+## Database & Upgrade Commands
 
-### Comments
-- Use short-form comments (`//`), not JSDoc blocks
-- Explain WHY (business logic), not WHAT
-- Do not comment obvious code
-- Multi-line comments use multiple `//` lines, not `/** */`
-
-### State Management
-- **Jotai** for global state: atoms for primitive state, selectors for derived state, atom families for dynamic collections
-- Component-specific state with React hooks (`useState`, `useReducer` for complex logic)
-- GraphQL cache managed by Apollo Client
-- Use functional state updates: `setState(prev => prev + 1)`
-
-### Backend Architecture
-- **NestJS modules** for feature organization
-- **TypeORM** for database ORM with PostgreSQL
-- **GraphQL** API with code-first approach
-- **Redis** for caching and session management
-- **BullMQ** for background job processing
-
-### Database & Upgrade Commands
-- **PostgreSQL** as primary database
-- **Redis** for caching and sessions
-- **ClickHouse** for analytics (when enabled)
-- When changing entity files, generate an **instance command** (`database:migrate:generate --name <name> --type <fast|slow>`)
-- **Fast** instance commands handle schema changes; **slow** ones add a `runDataMigration` step for data backfills
-- **Workspace commands** iterate over all active/suspended workspaces for per-workspace upgrades
-- Commands use `@RegisteredInstanceCommand` and `@RegisteredWorkspaceCommand` decorators for automatic discovery
-- Include both `up` and `down` logic in instance commands
-- Never delete or rewrite committed instance command `up`/`down` logic
-- See `packages/twenty-server/docs/UPGRADE_COMMANDS.md` for full documentation
-
-### Utility Helpers
-Use existing helpers from `twenty-shared` instead of manual type guards:
-- `isDefined()`, `isNonEmptyString()`, `isNonEmptyArray()`
-
-## Development Workflow
-
-IMPORTANT: Use Context7 for code generation, setup or configuration steps, or library/API documentation. Automatically use the Context7 MCP tools to resolve library IDs and get library docs without waiting for explicit requests.
-
-### Before Making Changes
-1. Always run linting (`lint:diff-with-main`) and type checking after code changes
-2. Test changes with relevant test suites (prefer single-file test runs)
-3. Ensure instance commands are generated for entity changes (`database:migrate:generate`)
-4. Check that GraphQL schema changes are backward compatible
-5. Run `graphql:generate` after any GraphQL schema changes
-
-### Code Style Notes
-- Use **Linaria** for styling with zero-runtime CSS-in-JS (styled-components pattern)
-- Follow **Nx** workspace conventions for imports
-- Use **Lingui** for internationalization
-- Apply security first, then formatting (sanitize before format)
-
-### Testing Strategy
-- **Test behavior, not implementation** — focus on user perspective
-- **Test pyramid**: 70% unit, 20% integration, 10% E2E
-- Query by user-visible elements (text, roles, labels) over test IDs
-- Use `@testing-library/user-event` for realistic interactions
-- Descriptive test names: "should [behavior] when [condition]"
-- Clear mocks between tests with `jest.clearAllMocks()`
+- Schema changes to entities require a generated **instance command**:
+  `npx nx run twenty-server:database:migrate:generate --name <name> --type <fast|slow>`.
+  The generator is not optional.
+- **Fast** instance commands handle schema changes; **slow** ones add a `runDataMigration` step for data backfills.
+- **Workspace commands** iterate over all active/suspended workspaces.
+- Commands are auto-discovered via `@RegisteredInstanceCommand` and `@RegisteredWorkspaceCommand` decorators.
+- Always include both `up` and `down` logic. **Never delete or rewrite committed `up`/`down` logic** — append, don't mutate.
+- Full rules in `packages/twenty-server/docs/UPGRADE_COMMANDS.md`.
 
 ## Dev Environment Setup
 
-All dev environments (Claude Code web, Cursor, local) use one script:
-
 ```bash
-bash packages/twenty-utils/setup-dev-env.sh
+bash packages/twenty-utils/setup-dev-env.sh        # idempotent
+# flags:
+#   --docker   force Docker (uses packages/twenty-docker/docker-compose.dev.yml)
+#   --down     stop services
+#   --reset    wipe data and restart fresh
 ```
 
-This handles everything: starts Postgres + Redis (auto-detects local services vs Docker), creates databases, copies `.env` files, and initializes the database schema (runs migrations) on a fresh database. Idempotent — safe to run multiple times.
+Starts Postgres + Redis (auto-detects local services vs Docker), creates
+databases, copies `.env` files, runs migrations. **Skip this for tasks that
+only read code** (architecture review, doc edits, code review).
 
-- `--docker` — force Docker mode (uses `packages/twenty-docker/docker-compose.dev.yml`)
-- `--down` — stop services
-- `--reset` — wipe data and restart fresh
-- **Skip the setup script** for tasks that only read code — architecture questions, code review, documentation, etc.
+CI (`.github/workflows/`) uses Actions service containers and runs setup
+steps individually — it does not call this script.
 
-**Note:** CI workflows (GitHub Actions) manage services via Actions service containers and run setup steps individually — they don't use this script.
+## Database Inspection (Postgres MCP)
 
-## Important Files
-- `nx.json` - Nx workspace configuration with task definitions
-- `tsconfig.base.json` - Base TypeScript configuration
-- `package.json` - Root package with workspace definitions
-- `.cursor/rules/` - Detailed development guidelines and best practices
+A read-only Postgres MCP server is configured in `.mcp.json`. Use it to:
+
+- Inspect workspace data, metadata, and object definitions.
+- Verify migration results (columns, types, constraints) after running migrations.
+- Explore the multi-tenant schema (core, metadata, per-workspace schemas).
+- Debug whether a bug is frontend, backend, or data-level by querying raw data.
+- Inspect metadata tables when debugging GraphQL schema generation.
+
+Read-only. For writes (reset, migrate, sync), use the Nx targets above.
+
+## Development Workflow
+
+IMPORTANT: Use Context7 for code generation, setup or configuration steps, or
+library/API documentation. Automatically use the Context7 MCP tools to resolve
+library IDs and get library docs without waiting for explicit requests.
+
+After code changes:
+
+1. `npx nx lint:diff-with-main <pkg>` (and `--configuration=fix` if needed).
+2. `npx nx typecheck <pkg>`.
+3. `npx nx test <pkg>` — or single-file `cd packages/<pkg> && npx jest "<pattern>"`.
+4. For entity changes: generate the instance command (see Database section).
+5. For GraphQL schema changes: `npx nx run twenty-front:graphql:generate`, then verify the diff is backward compatible.
 
 ## graphify
 
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+This project has a knowledge graph at `graphify-out/` with god nodes,
+community structure, and cross-file relationships.
 
-When the user types `/graphify`, invoke the `skill` tool with `skill: "graphify"` before doing anything else.
+When the user types `/graphify`, invoke the `skill` tool with `skill: "graphify"`
+before doing anything else.
 
 Rules:
-- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- Do not run `graphify update .` automatically after code changes in this checkout because it is too slow and has timed out here; instead, tell the user at the end that they should run `graphify update .` manually if they want to refresh the graph.
+
+- For codebase questions, first run `graphify query "<question>"` when `graphify-out/graph.json` exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts.
+- Dirty `graphify-out/` files are expected after hooks or incremental updates; not a reason to skip graphify. Only skip if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
+- If `graphify-out/wiki/index.md` exists, use it for broad navigation instead of raw source browsing.
+- Read `graphify-out/GRAPH_REPORT.md` only for broad architecture review or when query/path/explain do not surface enough context.
+- Do not run `graphify update .` automatically after code changes — it is too slow and has timed out here. Tell the user to run `graphify update .` manually if they want the graph refreshed.

@@ -29,11 +29,11 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
     row_count: 100,
     last_loaded_at: null,
     has_in_flight_pipeline_job: false,
-    latest_completed_pipeline_job_name: null,
-    latest_completed_pipeline_job_status: null,
-    latest_completed_records_fetched: null,
-    latest_completed_records_staged: null,
-    latest_completed_records_failed: null,
+    latest_completed_load_job_status: null,
+    latest_completed_load_records_fetched: null,
+    latest_completed_load_records_staged: null,
+    latest_completed_load_records_failed: null,
+    latest_completed_profile_job_status: null,
     ...overrides,
   });
 
@@ -99,11 +99,10 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
       buildFileRow({
         id: 'f1',
         last_loaded_at: loadedAt,
-        latest_completed_pipeline_job_name: 'csv-raw-load',
-        latest_completed_pipeline_job_status: 'success',
-        latest_completed_records_fetched: 100,
-        latest_completed_records_staged: 100,
-        latest_completed_records_failed: 0,
+        latest_completed_load_job_status: 'success',
+        latest_completed_load_records_fetched: 100,
+        latest_completed_load_records_staged: 100,
+        latest_completed_load_records_failed: 0,
       }),
     ]);
 
@@ -119,11 +118,10 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
     mockQuery.mockResolvedValueOnce([
       buildFileRow({
         id: 'f1',
-        latest_completed_pipeline_job_name: 'csv-raw-load',
-        latest_completed_pipeline_job_status: 'success',
-        latest_completed_records_fetched: 100,
-        latest_completed_records_staged: 98,
-        latest_completed_records_failed: 2,
+        latest_completed_load_job_status: 'success',
+        latest_completed_load_records_fetched: 100,
+        latest_completed_load_records_staged: 98,
+        latest_completed_load_records_failed: 2,
       }),
     ]);
 
@@ -141,8 +139,7 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
       buildFileRow({
         id: 'f1',
         last_loaded_at: previousSuccessAt,
-        latest_completed_pipeline_job_name: 'csv-raw-load',
-        latest_completed_pipeline_job_status: 'failed',
+        latest_completed_load_job_status: 'failed',
       }),
     ]);
 
@@ -162,11 +159,10 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
         id: 'f1',
         row_count: 0,
         last_loaded_at: loadedAt,
-        latest_completed_pipeline_job_name: 'csv-raw-load',
-        latest_completed_pipeline_job_status: 'success',
-        latest_completed_records_fetched: 0,
-        latest_completed_records_staged: 0,
-        latest_completed_records_failed: 0,
+        latest_completed_load_job_status: 'success',
+        latest_completed_load_records_fetched: 0,
+        latest_completed_load_records_staged: 0,
+        latest_completed_load_records_failed: 0,
       }),
     ]);
 
@@ -183,11 +179,10 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
       buildFileRow({
         id: 'f1',
         last_loaded_at: rerunAt,
-        latest_completed_pipeline_job_name: 'csv-raw-load',
-        latest_completed_pipeline_job_status: 'success',
-        latest_completed_records_fetched: 100,
-        latest_completed_records_staged: 0,
-        latest_completed_records_failed: 0,
+        latest_completed_load_job_status: 'success',
+        latest_completed_load_records_fetched: 100,
+        latest_completed_load_records_staged: 0,
+        latest_completed_load_records_failed: 0,
       }),
     ]);
 
@@ -203,11 +198,10 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
       buildFileRow({
         id: 'f1',
         has_in_flight_pipeline_job: true,
-        latest_completed_pipeline_job_name: 'csv-raw-load',
-        latest_completed_pipeline_job_status: 'success',
-        latest_completed_records_fetched: 100,
-        latest_completed_records_staged: 100,
-        latest_completed_records_failed: 0,
+        latest_completed_load_job_status: 'success',
+        latest_completed_load_records_fetched: 100,
+        latest_completed_load_records_staged: 100,
+        latest_completed_load_records_failed: 0,
       }),
     ]);
 
@@ -221,11 +215,10 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
       buildFileRow({
         id: 'f1',
         row_count: 100,
-        latest_completed_pipeline_job_name: 'csv-raw-load',
-        latest_completed_pipeline_job_status: 'success',
-        latest_completed_records_fetched: 99,
-        latest_completed_records_staged: 99,
-        latest_completed_records_failed: 0,
+        latest_completed_load_job_status: 'success',
+        latest_completed_load_records_fetched: 99,
+        latest_completed_load_records_staged: 99,
+        latest_completed_load_records_failed: 0,
       }),
     ]);
 
@@ -245,11 +238,10 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
     expect(result.files[0].lastLoadedAt).toBeNull();
   });
 
-  it('reports error when the latest completed pipeline job is a failed csv-file-profile', async () => {
+  it('reports error when the latest completed profile job failed and no load exists', async () => {
     mockQuery.mockResolvedValueOnce([
       buildFileRow({
-        latest_completed_pipeline_job_name: 'csv-file-profile',
-        latest_completed_pipeline_job_status: 'failed',
+        latest_completed_profile_job_status: 'failed',
       }),
     ]);
 
@@ -259,11 +251,10 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
     expect(result.files[0].lastLoadedAt).toBeNull();
   });
 
-  it('reports pending when the latest completed pipeline job is a successful csv-file-profile', async () => {
+  it('reports pending when the latest completed profile job succeeded and no load exists', async () => {
     mockQuery.mockResolvedValueOnce([
       buildFileRow({
-        latest_completed_pipeline_job_name: 'csv-file-profile',
-        latest_completed_pipeline_job_status: 'success',
+        latest_completed_profile_job_status: 'success',
       }),
     ]);
 
@@ -277,8 +268,7 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
     mockQuery.mockResolvedValueOnce([
       buildFileRow({
         has_in_flight_pipeline_job: true,
-        latest_completed_pipeline_job_name: 'csv-file-profile',
-        latest_completed_pipeline_job_status: 'failed',
+        latest_completed_profile_job_status: 'failed',
       }),
     ]);
 
@@ -315,5 +305,45 @@ describe('MercadoPublicoCsvFileHealthReadService', () => {
     const result = await service.getCsvFileHealth();
 
     expect(result.files[0].sourceModality).toBe('mes-6');
+  });
+
+  it('keeps a successful load as success after a later successful profile rerun', async () => {
+    const loadedAt = new Date('2026-07-04T10:00:00.000Z');
+
+    mockQuery.mockResolvedValueOnce([
+      buildFileRow({
+        last_loaded_at: loadedAt,
+        latest_completed_load_job_status: 'success',
+        latest_completed_load_records_fetched: 100,
+        latest_completed_load_records_staged: 100,
+        latest_completed_load_records_failed: 0,
+        latest_completed_profile_job_status: 'success',
+      }),
+    ]);
+
+    const result = await service.getCsvFileHealth();
+
+    expect(result.files[0].parseStatus).toBe('success');
+    expect(result.files[0].parseSuccessCount).toBe(100);
+    expect(result.files[0].parseErrorCount).toBe(0);
+    expect(result.files[0].lastLoadedAt).toEqual(loadedAt);
+  });
+
+  it('keeps load counters after a later failed profile rerun', async () => {
+    mockQuery.mockResolvedValueOnce([
+      buildFileRow({
+        latest_completed_load_job_status: 'success',
+        latest_completed_load_records_fetched: 100,
+        latest_completed_load_records_staged: 100,
+        latest_completed_load_records_failed: 0,
+        latest_completed_profile_job_status: 'failed',
+      }),
+    ]);
+
+    const result = await service.getCsvFileHealth();
+
+    expect(result.files[0].parseStatus).toBe('success');
+    expect(result.files[0].parseSuccessCount).toBe(100);
+    expect(result.files[0].parseErrorCount).toBe(0);
   });
 });

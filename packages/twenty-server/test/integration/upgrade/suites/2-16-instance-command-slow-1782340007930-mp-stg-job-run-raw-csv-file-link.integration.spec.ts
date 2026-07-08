@@ -10,6 +10,7 @@ import { MpStgJobRunFastInstanceCommand } from 'src/database/commands/upgrade-ve
 import { DropRawCsvFileIngestionJobIdFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1783191615514-drop-raw-csv-file-ingestion-job-id';
 import { MpStgJobRunRawCsvFileLinkSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1782340007930-mp-stg-job-run-raw-csv-file-link';
 import { DropRawCsvFileIngestionJobIdSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1783191615515-drop-raw-csv-file-ingestion-job-id';
+import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 
 jest.useRealTimers();
 
@@ -20,6 +21,7 @@ config({
 
 describe('2.16 CSV job-link migrations (integration)', () => {
   let dataSource: DataSource;
+  let persistenceService: MercadoPublicoPersistenceService;
 
   const seedJobRun = async ({
     id,
@@ -205,6 +207,7 @@ describe('2.16 CSV job-link migrations (integration)', () => {
       synchronize: false,
     });
     await dataSource.initialize();
+    persistenceService = new MercadoPublicoPersistenceService(dataSource);
 
     const queryRunner = dataSource.createQueryRunner();
 
@@ -300,18 +303,77 @@ describe('2.16 CSV job-link migrations (integration)', () => {
 
     await linkCommand.runDataMigration(dataSource);
 
-    expect(
-      await getJobLink('00000000-0000-4000-8000-000000000101'),
-    ).toBe('10000000-0000-4000-8000-000000000101');
-    expect(
-      await getJobLink('00000000-0000-4000-8000-000000000102'),
-    ).toBe('10000000-0000-4000-8000-000000000101');
-    expect(
-      await getJobLink('00000000-0000-4000-8000-000000000103'),
-    ).toBe('10000000-0000-4000-8000-000000000102');
-    expect(
-      await getJobLink('00000000-0000-4000-8000-000000000104'),
-    ).toBeNull();
+    expect(await getJobLink('00000000-0000-4000-8000-000000000101')).toBe(
+      '10000000-0000-4000-8000-000000000101',
+    );
+    expect(await getJobLink('00000000-0000-4000-8000-000000000102')).toBe(
+      '10000000-0000-4000-8000-000000000101',
+    );
+    expect(await getJobLink('00000000-0000-4000-8000-000000000103')).toBe(
+      '10000000-0000-4000-8000-000000000102',
+    );
+    expect(await getJobLink('00000000-0000-4000-8000-000000000104')).toBeNull();
+  });
+
+  it('creates csv job runs before the slow link column exists and links them once the slow schema is present', async () => {
+    const rawCsvFile = {
+      id: '10000000-0000-4000-8000-000000000301',
+      fileChecksum: 'checksum-job-link',
+      ingestionJobId: null,
+      rowCount: 1,
+    };
+
+    await seedRawCsvFile(rawCsvFile);
+
+    expect(await columnExists('stg_job_run', 'raw_csv_file_id')).toBe(false);
+
+    const fastOnlyJobRun = await persistenceService.createJobRun(
+      'csv-raw-load',
+      {
+        rawCsvFileId: rawCsvFile.id,
+      },
+    );
+
+    const [fastOnlyRow] = await dataSource.query<
+      Array<{ raw_csv_file_id_exists: boolean }>
+    >(
+      `
+        SELECT EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_schema = 'mp'
+            AND table_name = 'stg_job_run'
+            AND column_name = 'raw_csv_file_id'
+        ) AS raw_csv_file_id_exists
+      `,
+    );
+
+    expect(fastOnlyRow.raw_csv_file_id_exists).toBe(false);
+
+    const [legacyShapeRow] = await dataSource.query<Array<{ status: string }>>(
+      `SELECT status FROM mp.stg_job_run WHERE id = $1`,
+      [fastOnlyJobRun.id],
+    );
+
+    expect(legacyShapeRow.status).toBe('failed');
+
+    const queryRunner = dataSource.createQueryRunner();
+
+    await queryRunner.connect();
+
+    try {
+      await new MpStgJobRunRawCsvFileLinkSlowInstanceCommand().up(queryRunner);
+    } finally {
+      await queryRunner.release();
+    }
+
+    expect(await columnExists('stg_job_run', 'raw_csv_file_id')).toBe(true);
+
+    const linkedJobRun = await persistenceService.createJobRun('csv-raw-load', {
+      rawCsvFileId: rawCsvFile.id,
+    });
+
+    expect(await getJobLink(linkedJobRun.id)).toBe(rawCsvFile.id);
   });
 
   it('leaves ambiguous download and raw-load candidates unlinked', async () => {
@@ -367,18 +429,16 @@ describe('2.16 CSV job-link migrations (integration)', () => {
 
     await linkCommand.runDataMigration(dataSource);
 
-    expect(
-      await getJobLink('00000000-0000-4000-8000-000000000201'),
-    ).toBeNull();
-    expect(
-      await getJobLink('00000000-0000-4000-8000-000000000202'),
-    ).toBeNull();
+    expect(await getJobLink('00000000-0000-4000-8000-000000000201')).toBeNull();
+    expect(await getJobLink('00000000-0000-4000-8000-000000000202')).toBeNull();
   });
 
   it('keeps raw_csv_file.ingestion_job_id available through backfill and drops it only in the slow cleanup command', async () => {
-    const fastDropCommand = new DropRawCsvFileIngestionJobIdFastInstanceCommand();
+    const fastDropCommand =
+      new DropRawCsvFileIngestionJobIdFastInstanceCommand();
     const linkCommand = new MpStgJobRunRawCsvFileLinkSlowInstanceCommand();
-    const cleanupCommand = new DropRawCsvFileIngestionJobIdSlowInstanceCommand();
+    const cleanupCommand =
+      new DropRawCsvFileIngestionJobIdSlowInstanceCommand();
     const queryRunner = dataSource.createQueryRunner();
 
     await queryRunner.connect();

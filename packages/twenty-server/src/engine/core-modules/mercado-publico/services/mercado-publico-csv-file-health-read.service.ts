@@ -21,11 +21,11 @@ type RawCsvFileRow = {
   row_count: number;
   last_loaded_at: Date | null;
   has_in_flight_pipeline_job: boolean;
-  latest_completed_pipeline_job_name: string | null;
-  latest_completed_pipeline_job_status: string | null;
-  latest_completed_records_fetched: number | null;
-  latest_completed_records_staged: number | null;
-  latest_completed_records_failed: number | null;
+  latest_completed_load_job_status: string | null;
+  latest_completed_load_records_fetched: number | null;
+  latest_completed_load_records_staged: number | null;
+  latest_completed_load_records_failed: number | null;
+  latest_completed_profile_job_status: string | null;
 };
 
 const FILE_SQL = `
@@ -42,11 +42,11 @@ const FILE_SQL = `
     rf.row_count,
     latest_success_load.finished_at AS last_loaded_at,
     COALESCE(in_flight_pipeline_job.has_in_flight_pipeline_job, false) AS has_in_flight_pipeline_job,
-    latest_completed_pipeline_job.job_name AS latest_completed_pipeline_job_name,
-    latest_completed_pipeline_job.status AS latest_completed_pipeline_job_status,
-    latest_completed_pipeline_job.records_fetched AS latest_completed_records_fetched,
-    latest_completed_pipeline_job.records_staged AS latest_completed_records_staged,
-    latest_completed_pipeline_job.records_failed AS latest_completed_records_failed
+    latest_completed_load_job.status AS latest_completed_load_job_status,
+    latest_completed_load_job.records_fetched AS latest_completed_load_records_fetched,
+    latest_completed_load_job.records_staged AS latest_completed_load_records_staged,
+    latest_completed_load_job.records_failed AS latest_completed_load_records_failed,
+    latest_completed_profile_job.status AS latest_completed_profile_job_status
   FROM mp.raw_csv_file rf
   LEFT JOIN LATERAL (
     SELECT jr.finished_at
@@ -61,19 +61,28 @@ const FILE_SQL = `
   ) latest_success_load ON true
   LEFT JOIN LATERAL (
     SELECT
-      jr.job_name,
       jr.status,
       jr.records_fetched,
       jr.records_staged,
       jr.records_failed
     FROM mp.stg_job_run jr
     WHERE
-      jr.job_name IN ('csv-file-profile', 'csv-raw-load')
+      jr.job_name = 'csv-raw-load'
       AND jr.raw_csv_file_id = rf.id
       AND jr.finished_at IS NOT NULL
     ORDER BY jr.finished_at DESC, jr.started_at DESC
     LIMIT 1
-  ) latest_completed_pipeline_job ON true
+  ) latest_completed_load_job ON true
+  LEFT JOIN LATERAL (
+    SELECT jr.status
+    FROM mp.stg_job_run jr
+    WHERE
+      jr.job_name = 'csv-file-profile'
+      AND jr.raw_csv_file_id = rf.id
+      AND jr.finished_at IS NOT NULL
+    ORDER BY jr.finished_at DESC, jr.started_at DESC
+    LIMIT 1
+  ) latest_completed_profile_job ON true
   LEFT JOIN LATERAL (
     SELECT true AS has_in_flight_pipeline_job
     FROM mp.stg_job_run jr
@@ -120,8 +129,8 @@ export class MercadoPublicoCsvFileHealthReadService {
 
     const files: MercadoPublicoCsvFileHealthEntry[] = fileRows.map(
       (fileRow: RawCsvFileRow) => {
-        const errorCount = fileRow.latest_completed_records_failed ?? 0;
-        const successCount = fileRow.latest_completed_records_staged ?? 0;
+        const errorCount = fileRow.latest_completed_load_records_failed ?? 0;
+        const successCount = fileRow.latest_completed_load_records_staged ?? 0;
         const parseStatus = this.getParseStatus(fileRow);
 
         return {
@@ -151,28 +160,30 @@ export class MercadoPublicoCsvFileHealthReadService {
       return 'pending';
     }
 
-    if (!fileRow.latest_completed_pipeline_job_status) {
+    if (fileRow.latest_completed_load_job_status) {
+      if (fileRow.latest_completed_load_job_status !== 'success') {
+        return 'error';
+      }
+
+      if (fileRow.latest_completed_load_records_fetched !== fileRow.row_count) {
+        return 'error';
+      }
+
+      if ((fileRow.latest_completed_load_records_failed ?? 0) > 0) {
+        return 'error';
+      }
+
+      return 'success';
+    }
+
+    if (!fileRow.latest_completed_profile_job_status) {
       return 'pending';
     }
 
-    if (fileRow.latest_completed_pipeline_job_name === 'csv-file-profile') {
-      return fileRow.latest_completed_pipeline_job_status === 'success'
-        ? 'pending'
-        : 'error';
-    }
-
-    if (fileRow.latest_completed_pipeline_job_status !== 'success') {
+    if (fileRow.latest_completed_profile_job_status !== 'success') {
       return 'error';
     }
 
-    if (fileRow.latest_completed_records_fetched !== fileRow.row_count) {
-      return 'error';
-    }
-
-    if ((fileRow.latest_completed_records_failed ?? 0) > 0) {
-      return 'error';
-    }
-
-    return 'success';
+    return 'pending';
   }
 }
