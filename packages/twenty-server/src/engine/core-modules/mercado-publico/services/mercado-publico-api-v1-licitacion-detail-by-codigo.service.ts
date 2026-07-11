@@ -2,9 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 
 import { isNonEmptyString } from '@sniptt/guards';
 
-import {
-  MercadoPublicoApiV1LicitacionesClientService,
-} from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-licitaciones-client.service';
+import { MercadoPublicoApiV1LicitacionesClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-licitaciones-client.service';
 import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
@@ -73,7 +71,10 @@ export class MercadoPublicoApiV1LicitacionDetailByCodigoService {
           recordsFailed: 1,
         });
 
-        throw new MercadoPublicoRecordedJobFailureError(errorSummaryText);
+        throw new MercadoPublicoRecordedJobFailureError(
+          errorSummaryText,
+          apiResponse.errorSummary === 'retryable_failed',
+        );
       }
 
       const recordsFetched = apiResponse.licitaciones.length;
@@ -104,7 +105,8 @@ export class MercadoPublicoApiV1LicitacionDetailByCodigoService {
         recordsFetched,
         recordsStaged: recordsFetched,
         recordsCanonicalized,
-        recordsFailed: recordsCanonicalized === 0 && recordsFetched === 0 ? 1 : 0,
+        recordsFailed:
+          recordsCanonicalized === 0 && recordsFetched === 0 ? 1 : 0,
       });
 
       if (recordsFetched === 0) {
@@ -126,8 +128,10 @@ export class MercadoPublicoApiV1LicitacionDetailByCodigoService {
       }
 
       const errorSummary = classifyFailure(error);
-      const errorSummaryText =
-        buildMercadoPublicoUnexpectedErrorSummaryText(errorSummary, error);
+      const errorSummaryText = buildMercadoPublicoUnexpectedErrorSummaryText(
+        errorSummary,
+        error,
+      );
 
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,

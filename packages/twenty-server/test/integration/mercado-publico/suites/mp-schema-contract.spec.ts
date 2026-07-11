@@ -41,7 +41,7 @@ describe('Mercado Publico schema contract (db-backed)', () => {
     }
   });
 
-  it('has every table required by the 2.16 ingestion backbone', async () => {
+  it('should find every required mp table when the database is initialized', async () => {
     const tableRows = await rawDataSource.query<{ table_name: string }[]>(
       `
       SELECT table_name

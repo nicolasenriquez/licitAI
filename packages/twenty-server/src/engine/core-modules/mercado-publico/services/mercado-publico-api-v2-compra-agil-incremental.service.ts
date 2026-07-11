@@ -2,9 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 
 import { isNonEmptyString } from '@sniptt/guards';
 
-import {
-  MercadoPublicoApiV2CompraAgilClientService,
-} from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
+import { MercadoPublicoApiV2CompraAgilClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
@@ -83,7 +81,10 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
           recordsFailed: 1,
         });
 
-        throw new MercadoPublicoRecordedJobFailureError(errorSummaryText);
+        throw new MercadoPublicoRecordedJobFailureError(
+          errorSummaryText,
+          apiResponse.errorSummary === 'retryable_failed',
+        );
       }
 
       const persistenceResult =
@@ -120,8 +121,10 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
       }
 
       const errorSummary = classifyFailure(error);
-      const errorSummaryText =
-        buildMercadoPublicoUnexpectedErrorSummaryText(errorSummary, error);
+      const errorSummaryText = buildMercadoPublicoUnexpectedErrorSummaryText(
+        errorSummary,
+        error,
+      );
 
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,
@@ -143,10 +146,7 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
     const ttlCambioMs = payload.ttl_cambio_ms;
     const cambioDesde = payload.cambio_desde;
 
-    if (
-      ttlCambioMs === undefined &&
-      !isNonEmptyString(cambioDesde)
-    ) {
+    if (ttlCambioMs === undefined && !isNonEmptyString(cambioDesde)) {
       throw new BadRequestException(
         'Mercado Publico V2 Compra Agil incremental payload requires a non-empty "ttl_cambio_ms" or "cambio_desde" string',
       );
@@ -160,16 +160,32 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
 
     return {
       ttl_cambio_ms: typeof ttlCambioMs === 'number' ? ttlCambioMs : undefined,
-      cambio_desde: isNonEmptyString(cambioDesde) ? (cambioDesde as string) : undefined,
-      cambio_hasta: isNonEmptyString(payload.cambio_hasta) ? (payload.cambio_hasta as string) : undefined,
-      tamano_pagina: typeof payload.tamano_pagina === 'number' ? payload.tamano_pagina : undefined,
-      numero_pagina: typeof payload.numero_pagina === 'number' ? payload.numero_pagina : undefined,
+      cambio_desde: isNonEmptyString(cambioDesde)
+        ? (cambioDesde as string)
+        : undefined,
+      cambio_hasta: isNonEmptyString(payload.cambio_hasta)
+        ? (payload.cambio_hasta as string)
+        : undefined,
+      tamano_pagina:
+        typeof payload.tamano_pagina === 'number'
+          ? payload.tamano_pagina
+          : undefined,
+      numero_pagina:
+        typeof payload.numero_pagina === 'number'
+          ? payload.numero_pagina
+          : undefined,
       id: isNonEmptyString(payload.id) ? (payload.id as string) : undefined,
       q: isNonEmptyString(payload.q) ? (payload.q as string) : undefined,
-      estado: isNonEmptyString(payload.estado) ? (payload.estado as string) : undefined,
+      estado: isNonEmptyString(payload.estado)
+        ? (payload.estado as string)
+        : undefined,
       region: typeof payload.region === 'number' ? payload.region : undefined,
-      ordenar_por: isNonEmptyString(payload.ordenar_por) ? (payload.ordenar_por as string) : undefined,
-      orden: isNonEmptyString(payload.orden) ? (payload.orden as string) : undefined,
+      ordenar_por: isNonEmptyString(payload.ordenar_por)
+        ? (payload.ordenar_por as string)
+        : undefined,
+      orden: isNonEmptyString(payload.orden)
+        ? (payload.orden as string)
+        : undefined,
     };
   }
 }

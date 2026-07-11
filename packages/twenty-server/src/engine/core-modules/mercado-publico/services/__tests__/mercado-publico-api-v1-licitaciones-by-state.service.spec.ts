@@ -1,9 +1,8 @@
-import { BadRequestException } from '@nestjs/common';
-
 import { MercadoPublicoApiV1LicitacionesByStateService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-v1-licitaciones-by-state.service';
 import { MercadoPublicoApiV1LicitacionesClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-licitaciones-client.service';
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
+import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 
 describe('MercadoPublicoApiV1LicitacionesByStateService', () => {
   let service: MercadoPublicoApiV1LicitacionesByStateService;
@@ -68,20 +67,29 @@ describe('MercadoPublicoApiV1LicitacionesByStateService', () => {
     );
   });
 
-  describe('parsePayload', () => {
-    it('should throw BadRequestException when estado is missing', async () => {
-      await expect(service.run({})).rejects.toThrow(BadRequestException);
-    });
-
-    it('should throw BadRequestException when estado is empty', async () => {
-      await expect(service.run({ estado: '' })).rejects.toThrow(
-        BadRequestException,
+  describe('payload validation', () => {
+    it('should record a parameter error when estado is missing', async () => {
+      await expect(service.run({})).rejects.toThrow(
+        MercadoPublicoRecordedJobFailureError,
       );
     });
 
-    it('should reject numeric API state codes', async () => {
+    it('should record a parameter error when estado is empty', async () => {
+      await expect(service.run({ estado: '' })).rejects.toThrow(
+        MercadoPublicoRecordedJobFailureError,
+      );
+    });
+
+    it('should record a parameter error when estado is a numeric API code', async () => {
       await expect(service.run({ estado: '5' })).rejects.toThrow(
-        BadRequestException,
+        MercadoPublicoRecordedJobFailureError,
+      );
+      expect(clientService.getByEstado).not.toHaveBeenCalled();
+      expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'param_error',
+          recordsFailed: 1,
+        }),
       );
     });
   });

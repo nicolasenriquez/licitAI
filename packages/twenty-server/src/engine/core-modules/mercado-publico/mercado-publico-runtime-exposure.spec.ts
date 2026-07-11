@@ -1,36 +1,23 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { MODULE_METADATA } from '@nestjs/common/constants';
 
+import { CoreEngineModule } from 'src/engine/core-modules/core-engine.module';
+import { MercadoPublicoModule } from 'src/engine/core-modules/mercado-publico/mercado-publico.module';
+import { MercadoPublicoRunCommand } from 'src/engine/core-modules/mercado-publico/commands/mercado-publico-run.command';
+import { JobsModule } from 'src/engine/core-modules/message-queue/jobs.module';
 import { TWENTY_CURRENT_VERSION } from 'src/engine/core-modules/upgrade/constants/twenty-current-version.constant';
 
-const readServerSource = (...segments: string[]) => {
-  return readFileSync(join(process.cwd(), 'src', ...segments), 'utf8');
-};
-
 describe('MercadoPublico runtime exposure', () => {
-  it('exposes MercadoPublicoModule through the 2.16.0 app and worker composition roots', () => {
+  it('should expose MercadoPublicoModule through the 2.16.0 app and worker composition roots', () => {
     expect(TWENTY_CURRENT_VERSION).toBe('2.16.0');
 
-    const coreEngineModuleSource = readServerSource(
-      'engine',
-      'core-modules',
-      'core-engine.module.ts',
-    );
-    const jobsModuleSource = readServerSource(
-      'engine',
-      'core-modules',
-      'message-queue',
-      'jobs.module.ts',
-    );
-    const mercadoPublicoModuleSource = readServerSource(
-      'engine',
-      'core-modules',
-      'mercado-publico',
-      'mercado-publico.module.ts',
-    );
-
-    expect(coreEngineModuleSource).toContain('MercadoPublicoModule');
-    expect(jobsModuleSource).not.toContain('MercadoPublicoModule');
-    expect(mercadoPublicoModuleSource).toContain('MercadoPublicoRunCommand');
+    expect(
+      Reflect.getMetadata(MODULE_METADATA.IMPORTS, CoreEngineModule),
+    ).toContain(MercadoPublicoModule);
+    expect(
+      Reflect.getMetadata(MODULE_METADATA.IMPORTS, JobsModule),
+    ).not.toContain(MercadoPublicoModule);
+    expect(
+      Reflect.getMetadata(MODULE_METADATA.PROVIDERS, MercadoPublicoModule),
+    ).toContain(MercadoPublicoRunCommand);
   });
 });

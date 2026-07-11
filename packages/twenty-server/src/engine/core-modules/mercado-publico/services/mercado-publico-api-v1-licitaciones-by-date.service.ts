@@ -2,9 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 
 import { isNonEmptyString } from '@sniptt/guards';
 
-import {
-  MercadoPublicoApiV1LicitacionesClientService,
-} from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-licitaciones-client.service';
+import { MercadoPublicoApiV1LicitacionesClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-licitaciones-client.service';
 import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
@@ -74,7 +72,10 @@ export class MercadoPublicoApiV1LicitacionesByDateService {
           recordsFailed: 1,
         });
 
-        throw new MercadoPublicoRecordedJobFailureError(errorSummaryText);
+        throw new MercadoPublicoRecordedJobFailureError(
+          errorSummaryText,
+          apiResponse.errorSummary === 'retryable_failed',
+        );
       }
 
       const persistenceResult =
@@ -111,8 +112,10 @@ export class MercadoPublicoApiV1LicitacionesByDateService {
       }
 
       const errorSummary = classifyFailure(error);
-      const errorSummaryText =
-        buildMercadoPublicoUnexpectedErrorSummaryText(errorSummary, error);
+      const errorSummaryText = buildMercadoPublicoUnexpectedErrorSummaryText(
+        errorSummary,
+        error,
+      );
 
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,

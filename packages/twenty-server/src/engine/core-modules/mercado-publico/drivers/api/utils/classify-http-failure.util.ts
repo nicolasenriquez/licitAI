@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { BadRequestException } from '@nestjs/common';
 
 import { type MercadoPublicoErrorSummary } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 
@@ -9,9 +10,11 @@ const RETRYABLE_ERROR_CODES = new Set([
   'ETIMEDOUT',
 ]);
 
-export const classifyFailure = (
-  error: unknown,
-): MercadoPublicoErrorSummary => {
+export const classifyFailure = (error: unknown): MercadoPublicoErrorSummary => {
+  if (error instanceof BadRequestException) {
+    return 'param_error';
+  }
+
   if (!axios.isAxiosError(error)) {
     return 'hard_fail';
   }

@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import axios from 'axios';
 
 import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
@@ -23,6 +24,12 @@ const createAxiosCodeError = (code: string) =>
   new axios.AxiosError('Network error', code, undefined, undefined);
 
 describe('classifyFailure', () => {
+  it('should classify a local BadRequestException as param_error', () => {
+    expect(classifyFailure(new BadRequestException('invalid payload'))).toBe(
+      'param_error',
+    );
+  });
+
   it('should classify 400 as param_error', () => {
     expect(classifyFailure(createAxiosError(400))).toBe('param_error');
   });

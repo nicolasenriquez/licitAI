@@ -30,13 +30,13 @@ export class MercadoPublicoApiV1LicitacionesByStateService {
   ) {}
 
   async run(payload: Record<string, unknown>): Promise<void> {
-    const parsedPayload = this.parsePayload(payload);
     const jobRunRecord =
       await this.mercadoPublicoPersistenceService.createJobRun(
         'api-v1-licitaciones-by-state',
       );
 
     try {
+      const parsedPayload = this.parsePayload(payload);
       const apiResponse =
         await this.mercadoPublicoApiV1LicitacionesClientService.getByEstado(
           parsedPayload.estado,
@@ -71,7 +71,10 @@ export class MercadoPublicoApiV1LicitacionesByStateService {
           recordsFailed: 1,
         });
 
-        throw new MercadoPublicoRecordedJobFailureError(errorSummaryText);
+        throw new MercadoPublicoRecordedJobFailureError(
+          errorSummaryText,
+          apiResponse.errorSummary === 'retryable_failed',
+        );
       }
 
       const persistenceResult =
@@ -122,6 +125,13 @@ export class MercadoPublicoApiV1LicitacionesByStateService {
       });
 
       this.logger.error(errorSummaryText);
+
+      if (error instanceof BadRequestException) {
+        throw new MercadoPublicoRecordedJobFailureError(
+          errorSummaryText,
+          false,
+        );
+      }
 
       throw error;
     }

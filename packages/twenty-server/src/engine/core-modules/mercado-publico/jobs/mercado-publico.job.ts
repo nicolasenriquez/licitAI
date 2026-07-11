@@ -1,10 +1,11 @@
-import { Logger } from '@nestjs/common';
+import { BadRequestException, Logger } from '@nestjs/common';
 
 import { Process } from 'src/engine/core-modules/message-queue/decorators/process.decorator';
 import { Processor } from 'src/engine/core-modules/message-queue/decorators/processor.decorator';
 import { MessageQueue } from 'src/engine/core-modules/message-queue/message-queue.constants';
 import { type MercadoPublicoJobName } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 import { MercadoPublicoJobOrchestratorService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-job-orchestrator.service';
+import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 
 export type MercadoPublicoJobData = {
   jobName: MercadoPublicoJobName;
@@ -27,9 +28,25 @@ export class MercadoPublicoJob {
       `Dequeued Mercado Publico job "${data.jobName}" requested by ${data.requestedBy} at ${data.requestedAt}`,
     );
 
-    await this.mercadoPublicoJobOrchestratorService.run(
-      data.jobName,
-      data.payload,
-    );
+    try {
+      await this.mercadoPublicoJobOrchestratorService.run(
+        data.jobName,
+        data.payload,
+      );
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        (error instanceof MercadoPublicoRecordedJobFailureError &&
+          !error.retryable)
+      ) {
+        this.logger.warn(
+          `Mercado Publico job "${data.jobName}" completed without retry: ${error.message}`,
+        );
+
+        return;
+      }
+
+      throw error;
+    }
   }
 }
