@@ -51,10 +51,10 @@ docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/
 | Job | Payload example |
 | --- | --- |
 | `api-v1-licitaciones-by-date` | `{"date":"2026-06-30"}` |
-| `api-v1-licitaciones-by-state` | `{"estado":"<estado>"}` |
+| `api-v1-licitaciones-by-state` | `{"estado":"publicada"}` |
 | `api-v1-licitacion-detail-by-codigo` | `{"codigoExterno":"<codigo_externo>"}` |
 | `api-v1-oc-by-date` | `{"date":"2026-06-30"}` |
-| `api-v1-oc-by-state` | `{"estado":"<estado>"}` |
+| `api-v1-oc-by-state` | `{"estado":"aceptada"}` |
 | `api-v1-oc-detail-by-codigo` | `{"codigo":"<codigo_oc>"}` |
 
 V1 date payloads use ISO dates. The client formats them for the source API.

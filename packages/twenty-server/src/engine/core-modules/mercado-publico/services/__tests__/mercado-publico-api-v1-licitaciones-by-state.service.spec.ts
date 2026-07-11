@@ -26,7 +26,7 @@ describe('MercadoPublicoApiV1LicitacionesByStateService', () => {
   const mockApiSuccessResponse = {
     endpoint: 'by-state',
     source: 'api-v1-licitaciones',
-    requestParams: { estado: '5' },
+    requestParams: { estado: 'publicada' },
     requestFingerprint: 'fp',
     payloadChecksum: 'cs',
     schemaFingerprint: 'sf',
@@ -78,6 +78,12 @@ describe('MercadoPublicoApiV1LicitacionesByStateService', () => {
         BadRequestException,
       );
     });
+
+    it('should reject numeric API state codes', async () => {
+      await expect(service.run({ estado: '5' })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
   });
 
   describe('run', () => {
@@ -86,12 +92,12 @@ describe('MercadoPublicoApiV1LicitacionesByStateService', () => {
         mockApiSuccessResponse as any,
       );
 
-      await service.run({ estado: '5' });
+      await service.run({ estado: 'publicada' });
 
       expect(persistenceService.createJobRun).toHaveBeenCalledWith(
         'api-v1-licitaciones-by-state',
       );
-      expect(clientService.getByEstado).toHaveBeenCalledWith('5');
+      expect(clientService.getByEstado).toHaveBeenCalledWith('publicada');
       expect(
         persistenceService.persistV1LicitacionesSnapshot,
       ).toHaveBeenCalledWith(
@@ -117,7 +123,7 @@ describe('MercadoPublicoApiV1LicitacionesByStateService', () => {
         errorMessage: 'Server error',
       } as any);
 
-      await expect(service.run({ estado: '5' })).rejects.toThrow();
+      await expect(service.run({ estado: 'publicada' })).rejects.toThrow();
 
       expect(persistenceService.persistApiFailure).toHaveBeenCalled();
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
@@ -130,7 +136,7 @@ describe('MercadoPublicoApiV1LicitacionesByStateService', () => {
     it('should handle transport failure', async () => {
       clientService.getByEstado.mockRejectedValue(new Error('Network error'));
 
-      await expect(service.run({ estado: '5' })).rejects.toThrow();
+      await expect(service.run({ estado: 'publicada' })).rejects.toThrow();
 
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
         expect.objectContaining({

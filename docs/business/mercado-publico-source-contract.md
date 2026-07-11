@@ -73,6 +73,10 @@ Minimum implementation surface for this backbone:
 - `api-v1-licitaciones-by-state`.
 - `api-v1-licitacion-detail-by-codigo`.
 
+By-state query payloads use the source API's state name, not the numeric
+`CodigoEstado` returned in records. For example, use `publicada` for
+licitaciones. Numeric state codes remain raw/canonical record fields.
+
 Natural key:
 
 - `CodigoExterno`.
@@ -112,6 +116,10 @@ Minimum implementation surface for this backbone:
 - `api-v1-oc-by-date`.
 - `api-v1-oc-by-state`.
 - `api-v1-oc-detail-by-codigo`.
+
+By-state query payloads use the source API's state name, not the numeric
+`CodigoEstado` returned in records. For example, use `aceptada` for ordenes de
+compra. Numeric state codes remain raw/canonical record fields.
 
 Natural key:
 

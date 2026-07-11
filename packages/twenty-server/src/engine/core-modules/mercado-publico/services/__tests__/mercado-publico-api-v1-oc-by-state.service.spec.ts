@@ -26,7 +26,7 @@ describe('MercadoPublicoApiV1OcByStateService', () => {
   const mockApiSuccessResponse = {
     endpoint: 'by-state',
     source: 'api-v1-oc',
-    requestParams: { estado: '6' },
+    requestParams: { estado: 'aceptada' },
     requestFingerprint: 'fp',
     payloadChecksum: 'cs',
     schemaFingerprint: 'sf',
@@ -76,6 +76,12 @@ describe('MercadoPublicoApiV1OcByStateService', () => {
         BadRequestException,
       );
     });
+
+    it('should reject numeric API state codes', async () => {
+      await expect(service.run({ estado: '6' })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
   });
 
   describe('run', () => {
@@ -84,12 +90,12 @@ describe('MercadoPublicoApiV1OcByStateService', () => {
         mockApiSuccessResponse as any,
       );
 
-      await service.run({ estado: '6' });
+      await service.run({ estado: 'aceptada' });
 
       expect(persistenceService.createJobRun).toHaveBeenCalledWith(
         'api-v1-oc-by-state',
       );
-      expect(clientService.getByEstado).toHaveBeenCalledWith('6');
+      expect(clientService.getByEstado).toHaveBeenCalledWith('aceptada');
       expect(
         persistenceService.persistV1OrdenesDeCompraSnapshot,
       ).toHaveBeenCalledWith(
@@ -115,7 +121,7 @@ describe('MercadoPublicoApiV1OcByStateService', () => {
         errorMessage: 'Server error',
       } as any);
 
-      await expect(service.run({ estado: '6' })).rejects.toThrow();
+      await expect(service.run({ estado: 'aceptada' })).rejects.toThrow();
 
       expect(persistenceService.persistApiFailure).toHaveBeenCalled();
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
@@ -128,7 +134,7 @@ describe('MercadoPublicoApiV1OcByStateService', () => {
     it('should handle transport failure', async () => {
       clientService.getByEstado.mockRejectedValue(new Error('Network error'));
 
-      await expect(service.run({ estado: '6' })).rejects.toThrow();
+      await expect(service.run({ estado: 'aceptada' })).rejects.toThrow();
 
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
         expect.objectContaining({

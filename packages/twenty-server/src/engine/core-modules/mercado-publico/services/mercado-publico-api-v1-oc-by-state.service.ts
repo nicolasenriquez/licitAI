@@ -2,9 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 
 import { isNonEmptyString } from '@sniptt/guards';
 
-import {
-  MercadoPublicoApiV1OrdenesDeCompraClientService,
-} from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-ordenes-de-compra-client.service';
+import { MercadoPublicoApiV1OrdenesDeCompraClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-ordenes-de-compra-client.service';
 import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
@@ -110,8 +108,10 @@ export class MercadoPublicoApiV1OcByStateService {
       }
 
       const errorSummary = classifyFailure(error);
-      const errorSummaryText =
-        buildMercadoPublicoUnexpectedErrorSummaryText(errorSummary, error);
+      const errorSummaryText = buildMercadoPublicoUnexpectedErrorSummaryText(
+        errorSummary,
+        error,
+      );
 
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,
@@ -132,9 +132,9 @@ export class MercadoPublicoApiV1OcByStateService {
   ): MercadoPublicoApiV1OcByStatePayload {
     const estado = payload.estado;
 
-    if (!isNonEmptyString(estado)) {
+    if (!isNonEmptyString(estado) || /^\d+$/.test(estado)) {
       throw new BadRequestException(
-        'Mercado Publico V1 OC by-state payload requires a non-empty "estado" string',
+        'Mercado Publico V1 OC by-state payload requires a source state name in "estado" (for example, "aceptada")',
       );
     }
 
