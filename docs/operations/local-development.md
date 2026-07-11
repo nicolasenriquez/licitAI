@@ -13,7 +13,7 @@ Define the local-development contract for the Twenty CRM monorepo. This document
 Engineers and AI agents setting up or extending the repository locally.
 
 ## Executive Summary
-Twenty provides a one-command setup via `setup-dev-env.sh` that auto-detects Docker vs local services, starts PostgreSQL 16 and Redis 7, creates databases, copies `.env` files, and initializes the database schema. Development services are defined in `docker-compose.dev.yml`. The application stack (NestJS backend + React frontend + BullMQ worker) runs from source using Nx targets.
+Twenty provides a one-command setup via `setup-dev-env.sh` that starts PostgreSQL 16 and Redis 7 via Docker Compose (canonical), creates databases, copies `.env` files, and initializes the database schema. Development services are defined in `docker-compose.dev.yml`. The application stack (NestJS backend + React frontend + BullMQ worker) runs from source using Nx targets.
 
 ## Defined Stack
 
@@ -55,7 +55,7 @@ This script handles:
 4. Initializes the database schema (runs migrations) on a fresh database
 
 Flags:
-- `--docker` — Force Docker mode (uses `packages/twenty-docker/docker-compose.dev.yml`)
+- `--docker` — No-op (Docker is the default; accepted for backwards compatibility)
 - `--down` — Stop services
 - `--reset` — Wipe data and restart fresh
 

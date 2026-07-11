@@ -1,0 +1,10 @@
+{
+  "codigo": "FIXTURE-CA-001",
+  "estado": "cerrada",
+  "region": 13,
+  "orden_compra": {
+    "id_orden_compra": "FIXTURE-ID-OC-001",
+    "id_oc": "FIXTURE-ID-OC-ALT-001",
+    "codigo_orden_compra": "FIXTURE-OC-001"
+  }
+}

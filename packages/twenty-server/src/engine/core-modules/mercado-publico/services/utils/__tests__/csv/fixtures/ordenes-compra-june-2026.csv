@@ -1,0 +1,4 @@
+Codigo;ID;IDItem;CodigoLicitacion;FechaEnvio;Estado;MontoTotalOC_PesosChilenos;EsCompraAgil;CodigoAbreviadoTipoOC;NombreProveedor;Descripcion/Obervaciones;EsTratoDirecto;Codigo_ConvenioMarco;NombreroductoGenerico;Forma de Pago;CodigoTipo;DescripcionTipoOC
+FIXTURE-OC-001;FIXTURE-ROW-001;FIXTURE-ITEM-001;FIXTURE-LIC-001;2026-06-01;Enviada;20700794,94;Si;AG;Proveedor de prueba;"Entrega en bodega";No;NA;Producto A;30 dias;140;Compra Agil
+FIXTURE-OC-001;FIXTURE-ROW-002;FIXTURE-ITEM-002; ;1900-01-01;Cerrada;0,1;No;OC;Proveedor de prueba; ;No;;Producto B;NA;140;Convenio
+FIXTURE-OC-002;FIXTURE-ROW-003;FIXTURE-ITEM-003;;2026-06-03;Publicada;NA;No;OC;Proveedor alternativo;Observacion;NA;FIXTURE-CM-001;Producto C;Pago contado;140;Convenio

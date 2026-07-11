@@ -218,14 +218,14 @@ packages/
 ```bash
 bash packages/twenty-utils/setup-dev-env.sh        # idempotent
 # flags:
-#   --docker   force Docker (uses packages/twenty-docker/docker-compose.dev.yml)
+#   --docker   canonical Docker mode (default; uses packages/twenty-docker/docker-compose.dev.yml)
 #   --down     stop services
 #   --reset    wipe data and restart fresh
 ```
 
-Starts Postgres + Redis (auto-detects local services vs Docker), creates
-databases, copies `.env` files, runs migrations. **Skip this for tasks that
-only read code** (architecture review, doc edits, code review).
+Starts Postgres + Redis via Docker Compose (canonical), creates databases,
+copies `.env` files, runs migrations. **Skip this for tasks that only read
+code** (architecture review, doc edits, code review).
 
 CI (`.github/workflows/`) uses Actions service containers and runs setup
 steps individually — it does not call this script.

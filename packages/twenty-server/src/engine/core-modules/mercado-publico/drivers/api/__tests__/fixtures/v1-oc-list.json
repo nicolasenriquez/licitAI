@@ -1,0 +1,16 @@
+{
+  "Listado": [
+    {
+      "Codigo": "FIXTURE-OC-001",
+      "CodigoEstado": 4,
+      "Estado": "Enviada",
+      "EstadoProveedor": "Aceptada",
+      "CodigoLicitacion": "FIXTURE-LIC-001",
+      "FechaEnvio": "2026-06-05",
+      "TipoMonedaOC": "CLP",
+      "MontoTotalOC": "20700794,94",
+      "ImpuestosOC": "3940000",
+      "NombreProveedor": "Proveedor de prueba"
+    }
+  ]
+}

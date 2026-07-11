@@ -114,8 +114,7 @@ export class MercadoPublicoReconciliationService {
       async (entityManager) => this.reconcileUnmatched(entityManager),
     );
     const stateMismatchEvents = await this.coreDataSource.transaction(
-      async (entityManager) =>
-        this.reconcileStateMismatchEvents(entityManager),
+      async (entityManager) => this.reconcileStateMismatchEvents(entityManager),
     );
     const sourcePeriodEvents = await this.coreDataSource.transaction(
       async (entityManager) =>
@@ -147,7 +146,8 @@ export class MercadoPublicoReconciliationService {
     entityManager: EntityManager,
   ): Promise<number> {
     // ponytail: same tolerance constant for _amount heuristics, split when supplier/item ratios diverge
-    const tolerance = MERCADO_PUBLICO_RECONCILIATION_HEURISTIC_ITEM_AMOUNT_TOLERANCE_RATIO;
+    const tolerance =
+      MERCADO_PUBLICO_RECONCILIATION_HEURISTIC_ITEM_AMOUNT_TOLERANCE_RATIO;
 
     const rows = await entityManager.query<
       { api_codigo: string; csv_codigo: string }[]
@@ -203,7 +203,8 @@ export class MercadoPublicoReconciliationService {
     entityManager: EntityManager,
   ): Promise<number> {
     // ponytail: same tolerance constant as reconcileCandidateSupplier, split when item/supplier diverge
-    const tolerance = MERCADO_PUBLICO_RECONCILIATION_HEURISTIC_ITEM_AMOUNT_TOLERANCE_RATIO;
+    const tolerance =
+      MERCADO_PUBLICO_RECONCILIATION_HEURISTIC_ITEM_AMOUNT_TOLERANCE_RATIO;
 
     const rows = await entityManager.query<
       { codigo_externo: string; codigoitem: string }[]
@@ -303,12 +304,15 @@ export class MercadoPublicoReconciliationService {
 
     await this.bulkInsertEvents(entityManager, events);
 
-    const insertedUnmatchedRows: { entity_a_key: string; entity_a_type: string }[] =
-      [];
+    const insertedUnmatchedRows: {
+      entity_a_key: string;
+      entity_a_type: string;
+    }[] = [];
     const unmatchedPairs = events.map((event) => ({
-      entityASource: event.entityType === 'licitacion'
-        ? MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_LICITACIONES
-        : MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_OC,
+      entityASource:
+        event.entityType === 'licitacion'
+          ? MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_LICITACIONES
+          : MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_OC,
       entityAType: event.entityType,
       entityAKey: event.entityKey,
       entityBSource: MERCADO_PUBLICO_RECONCILIATION_SOURCE_CSV,
@@ -371,11 +375,13 @@ export class MercadoPublicoReconciliationService {
       insertedUnmatchedRows.push(...chunkInsertedRows);
     }
 
-    const goldUpdates: GoldStatusUpdate[] = insertedUnmatchedRows.map((row) => ({
-      processType: row.entity_a_type,
-      processCode: row.entity_a_key,
-      status: 'unmatched',
-    }));
+    const goldUpdates: GoldStatusUpdate[] = insertedUnmatchedRows.map(
+      (row) => ({
+        processType: row.entity_a_type,
+        processCode: row.entity_a_key,
+        status: 'unmatched',
+      }),
+    );
 
     // ponytail: per-row gold UPSERT, set-based when reconciliation volume proves it
     for (const goldUpdate of goldUpdates) {
@@ -611,9 +617,7 @@ export class MercadoPublicoReconciliationService {
   private async reconcileExactCodigoExterno(
     entityManager: EntityManager,
   ): Promise<number> {
-    const rows = await entityManager.query<
-      { codigo_externo: string }[]
-    >(
+    const rows = await entityManager.query<{ codigo_externo: string }[]>(
       `
         SELECT sa.codigo_externo
         FROM mp.stg_api_v1_licitacion sa
@@ -710,7 +714,8 @@ export class MercadoPublicoReconciliationService {
       seen.add(dedupeKey);
 
       pairs.push({
-        entityASource: MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_LICITACIONES,
+        entityASource:
+          MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_LICITACIONES,
         entityAType: 'licitacion',
         entityAKey: r.codigo_externo,
         entityBSource: MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_OC,
@@ -803,8 +808,10 @@ export class MercadoPublicoReconciliationService {
       return 0;
     }
 
-    const confidence = matchConfidence ?? MERCADO_PUBLICO_RECONCILIATION_MATCH_CONFIDENCE;
-    const matchedByValue = matchedBy ?? MERCADO_PUBLICO_RECONCILIATION_MATCHED_BY;
+    const confidence =
+      matchConfidence ?? MERCADO_PUBLICO_RECONCILIATION_MATCH_CONFIDENCE;
+    const matchedByValue =
+      matchedBy ?? MERCADO_PUBLICO_RECONCILIATION_MATCHED_BY;
     const maxRowsPerInsert = 5000;
 
     let inserted = 0;
@@ -833,9 +840,7 @@ export class MercadoPublicoReconciliationService {
         paramIndex += 9;
       }
 
-      const result = await entityManager.query<
-        { upserted: number }[]
-      >(
+      const result = await entityManager.query<{ upserted: number }[]>(
         `
           INSERT INTO mp.reconciliation_public_market_entities (
             entity_a_source,

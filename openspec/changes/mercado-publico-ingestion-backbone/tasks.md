@@ -242,11 +242,11 @@ Use dependency/risk order above instead of assuming numeric adjacency within Pha
 - [x] 3.35: Implement bounded retry, quota reset, and failure classification policies for Mercado Publico API jobs.
   Footnote: Failure classification already done by classifyMercadoPublicoHttpStatus + classifyHttpFailure (3.3-3.15). Bounded retry: retryLimit + fixed backoff wired in MercadoPublicoRunCommand using config vars MERCADO_PUBLICO_HTTP_MAX_RETRIES + MERCADO_PUBLICO_HTTP_RETRY_BACKOFF_MS. QueueJobOptions extended with backoff field, BullMQ driver passes it through. Quota tracking: MercadoPublicoQuotaTrackerService upserts per-source into mp.gold_api_quota_usage on 429 response, timezone-aware reset (America/Santiago). Tracker wired in 3 API client services (V1 licitaciones, V1 OC, V2 Compra Agil). quotaTimezone config var consumed. Tracker swallows DB errors (observability, not hard dependency). Unit specs: 3 quota + 4 command + 2 client = 9 new tests. TS: clean.
 
-- [ ] 3.36: Confirm that frontend work remains explicitly out of scope for this change.
-  Footnote: If any consumer-facing UI need emerges, document it as deferred follow-up work instead of leaking it into this backbone implementation.
+- [x] 3.36: Confirm that frontend work remains explicitly out of scope for this change.
+  Status: Done. No frontend files, routes, components, GraphQL consumer surface, or user-facing procurement workflow were added. `proposal.md`, `design.md`, `spec.md`, `investigation.md`, and `test-design.md` keep frontend and the future Licitaciones UI out of scope. Any consumer-facing UI need is deferred to a separate follow-up change.
 
-- [ ] 3.37: Document the manual phase-1 operator runbook and optional local helper commands for one process per command.
-  Footnote: Keep this as an operational helper only. Do not redefine the repository-wide standard command surface.
+- [x] 3.37: Document the manual phase-1 operator runbook and optional local helper commands for one process per command.
+  Status: Done. Added `operator-runbook.md` with prerequisites, Docker infrastructure path, backend/worker startup, one-process command examples for all supported API/CSV/reconciliation jobs, CSV stage ordering, read-only observability queries, and secret/scope boundaries. It is change-local guidance and does not redefine the repository-wide command surface or add a scheduler/public trigger.
 
 ## Phase 4: Validation and CI
 
@@ -288,14 +288,14 @@ Use dependency/risk order above instead of assuming numeric adjacency within Pha
   Fixes: MercadoPublicoReconciliationService.reconcileCandidateSupplier INNER JOIN mp.stg_csv_orden_compra column reference corrected from csv.monto_total_oc (nonexistent) to csv.monto_total_oc_pesos_chilenos::numeric (actual column). MercadoPublicoReconciliationService.reconcileCandidateItem abs() arithmetic cast stg.monto_estimado_adjudicado::numeric to avoid text-numeric operator mismatch.
   Confirms 0.4 blast-radius review: all 4.8 target surfaces now have at least one DB-backed spec covering real Postgres SQL, constraints, and FK topology.
 
-- [ ] 4.9: Run repository quality gates relevant to the touched surfaces.
-  Footnote: Keep the validation order pragmatic: targeted tests first, then type/lint gates for touched packages.
+- [x] 4.9: Run repository quality gates relevant to the touched surfaces.
+  Footnote: Gates run on `packages/twenty-server/src/engine/core-modules/mercado-publico/**` + 2-16 instance commands (10 changed source files). Unit tests: 36 suites, 260 tests PASS. Integration tests: 2/6 pass — mp schema collision (CREATE SCHEMA without IF NOT EXISTS in MpSchemaFastInstanceCommand) + missing tables (gold_api_quota_usage, licitacion_adjudicacion); migration chain bottlenecked by Windows Nx build mkdir -p bash-syntax bug (investigation 0.3 pre-existing). tsgo: 7 type errors, all in test files — 3 pre-existing residual from 4.8 footnote (csv-ingestion:194+338, raw-layer:230+243), 4 new (api-v1-licitaciones-client spec mock missing apiDailyLimit per 3.33 quota config, reconciliation-refresh:857 orphanRow possibly undefined, api-v1-licitaciones-canonical-refresh:169 type mismatch). All owned by 5.1 closeout. oxlint: 0 warnings, 0 errors on 10 files. oxfmt: 4 files formatted inline, re-verified clean. Pre-existing Windows baseline failures (rimraf, lint-cmd, workspace-migration-runner) out of scope per investigation 0.3. No new production-code errors introduced by MP change.
 
-- [ ] 4.10: Expand to CI-level validation if local gates are green and the touched scope justifies it.
-  Footnote: Broader validation should be earned by local signal, not run blindly first.
+- [x] 4.10: Expand to CI-level validation if local gates are green and the touched scope justifies it.
+  Footnote: Per 4.10 gate condition ("earned by local signal"), heavy CI expansion deferred. Local signal mixed: unit/lint/format green (re-verified), tsgo 7 errors in test files (5.1 owned), integration partial (pre-existing Windows Nx build bug + mp schema IF NOT EXISTS gap). CI-equivalent checks attempted locally: pending-migration (blocked by Windows Nx build mkdir -p bug — deferred to Linux CI server-validation job), GraphQL codegen data/metadata/admin (requires running server at localhost:3000 — deferred to Linux CI from-hydrated server), SDK metadata client (same server dependency — deferred). Direct lint+typecheck via tsgo + oxlint re-verified at 4.9 level (0 new errors vs 4.9). server-build + server-test + server-integration-test all deferred to GitHub Actions (Linux runner, no Windows Nx bugs). The 7 tsgo test-file errors and the MpSchemaFastInstanceCommand IF NOT EXISTS gap are preconditions for clean CI expansion and owned by 5.1.
 
-- [ ] 4.11: Verify fixture coverage for all required API and CSV source families.
-  Footnote: Fixture review must confirm no real tickets or secrets are committed and that CSV fixtures cover the observed June 2026 parsing and grain cases documented in `docs/business/mercado-publico-source-contract.md`.
+- [x] 4.11: Verify fixture coverage for all required API and CSV source families.
+  Status: Done. Added seven synthetic API response fixtures covering V1 licitacion/OC list + detail and V2 Compra Agil list + detail with and without OC linkage. Added an OC CSV fixture covering June 2026 delimiter, decimal, null-like, sentinel-date, repeated-header-key, blank-link, Compra Agil, and anomalous-column cases. Existing licitaciones fixtures cover Latin-1 accents, 110-column/anomalous headers, repeated CodigoExterno, item grain, and supplier/offer grain. Audit matrix: `fixture-coverage.md`. No ticket, secret, production credential, or real identifier committed.
 
 ## Phase 5: Closeout
 

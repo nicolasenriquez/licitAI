@@ -4,14 +4,10 @@ import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 import { mapMercadoPublicoErrorSummaryToJobRunStatus } from 'src/engine/core-modules/mercado-publico/services/utils/map-mercado-publico-error-summary-to-job-run-status.util';
-import {
-  buildMercadoPublicoUnexpectedErrorSummaryText,
-} from 'src/engine/core-modules/mercado-publico/services/utils/build-mercado-publico-error-summary-text.util';
+import { buildMercadoPublicoUnexpectedErrorSummaryText } from 'src/engine/core-modules/mercado-publico/services/utils/build-mercado-publico-error-summary-text.util';
 import { OC_STAGING_COLUMN_MAP } from 'src/engine/core-modules/mercado-publico/services/utils/csv/oc-staging-column-map.constant';
 import { LICITACIONES_STAGING_COLUMN_MAP } from 'src/engine/core-modules/mercado-publico/services/utils/csv/licitaciones-staging-column-map.constant';
-import {
-  projectStagingRow,
-} from 'src/engine/core-modules/mercado-publico/services/utils/csv/project-staging-row.util';
+import { projectStagingRow } from 'src/engine/core-modules/mercado-publico/services/utils/csv/project-staging-row.util';
 
 type MercadoPublicoCsvStagingProjectionPayload = {
   raw_csv_file_id: string;
@@ -106,8 +102,10 @@ export class MercadoPublicoCsvStagingProjectionService {
       }
 
       const errorSummary = classifyFailure(error);
-      const errorSummaryText =
-        buildMercadoPublicoUnexpectedErrorSummaryText(errorSummary, error);
+      const errorSummaryText = buildMercadoPublicoUnexpectedErrorSummaryText(
+        errorSummary,
+        error,
+      );
 
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,
@@ -139,9 +137,7 @@ export class MercadoPublicoCsvStagingProjectionService {
     };
   }
 
-  private async getObservedColumns(
-    rawCsvFileId: string,
-  ): Promise<string[]> {
+  private async getObservedColumns(rawCsvFileId: string): Promise<string[]> {
     return this.mercadoPublicoPersistenceService.getRawCsvFileObservedColumns(
       rawCsvFileId,
     );
@@ -189,9 +185,9 @@ export class MercadoPublicoCsvStagingProjectionService {
         return;
       }
 
-      await this.mercadoPublicoPersistenceService.insertStgCsvOrdenCompraRows(
-        { rows: batch },
-      );
+      await this.mercadoPublicoPersistenceService.insertStgCsvOrdenCompraRows({
+        rows: batch,
+      });
       batch = [];
     };
 
@@ -212,7 +208,10 @@ export class MercadoPublicoCsvStagingProjectionService {
       for (const row of rows) {
         lastRowNumber = row.row_number;
 
-        if (row.parse_status !== 'success' || !Array.isArray(row.raw_row_json)) {
+        if (
+          row.parse_status !== 'success' ||
+          !Array.isArray(row.raw_row_json)
+        ) {
           continue;
         }
 
@@ -301,9 +300,9 @@ export class MercadoPublicoCsvStagingProjectionService {
         return;
       }
 
-      await this.mercadoPublicoPersistenceService.insertStgCsvLicitacionRows(
-        { rows: batch },
-      );
+      await this.mercadoPublicoPersistenceService.insertStgCsvLicitacionRows({
+        rows: batch,
+      });
       batch = [];
     };
 
@@ -324,7 +323,10 @@ export class MercadoPublicoCsvStagingProjectionService {
       for (const row of rows) {
         lastRowNumber = row.row_number;
 
-        if (row.parse_status !== 'success' || !Array.isArray(row.raw_row_json)) {
+        if (
+          row.parse_status !== 'success' ||
+          !Array.isArray(row.raw_row_json)
+        ) {
           continue;
         }
 

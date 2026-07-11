@@ -1,17 +1,11 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 
 import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
 import { MercadoPublicoCsvProfilingService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-profiling.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 import { mapMercadoPublicoErrorSummaryToJobRunStatus } from 'src/engine/core-modules/mercado-publico/services/utils/map-mercado-publico-error-summary-to-job-run-status.util';
-import {
-  buildMercadoPublicoUnexpectedErrorSummaryText,
-} from 'src/engine/core-modules/mercado-publico/services/utils/build-mercado-publico-error-summary-text.util';
+import { buildMercadoPublicoUnexpectedErrorSummaryText } from 'src/engine/core-modules/mercado-publico/services/utils/build-mercado-publico-error-summary-text.util';
 
 type MercadoPublicoCsvProfilePayload = {
   raw_csv_file_id: string;
@@ -19,9 +13,7 @@ type MercadoPublicoCsvProfilePayload = {
 
 @Injectable()
 export class MercadoPublicoCsvProfileService {
-  private readonly logger = new Logger(
-    MercadoPublicoCsvProfileService.name,
-  );
+  private readonly logger = new Logger(MercadoPublicoCsvProfileService.name);
 
   constructor(
     private readonly mercadoPublicoCsvProfilingService: MercadoPublicoCsvProfilingService,
@@ -63,8 +55,10 @@ export class MercadoPublicoCsvProfileService {
       }
 
       const errorSummary = classifyFailure(error);
-      const errorSummaryText =
-        buildMercadoPublicoUnexpectedErrorSummaryText(errorSummary, error);
+      const errorSummaryText = buildMercadoPublicoUnexpectedErrorSummaryText(
+        errorSummary,
+        error,
+      );
 
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,

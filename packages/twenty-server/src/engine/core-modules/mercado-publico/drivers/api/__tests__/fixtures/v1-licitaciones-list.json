@@ -1,0 +1,16 @@
+{
+  "Listado": [
+    {
+      "CodigoExterno": "FIXTURE-LIC-001",
+      "Codigo": "FIXTURE-COD-001",
+      "CodigoEstado": 5,
+      "Estado": "Publicada",
+      "CodigoTipo": 1,
+      "Nombre": "Servicio de prueba",
+      "FechaPublicacion": "2026-06-01",
+      "FechaCierre": "2026-06-30",
+      "CodigoOrganismo": "FIXTURE-ORG-001",
+      "NombreOrganismo": "Organismo de prueba"
+    }
+  ]
+}

@@ -5,7 +5,7 @@
 # Single entry point for setting up a dev environment. Idempotent.
 #
 # What it does:
-#   1. Starts Postgres + Redis (local services or Docker, auto-detected)
+#   1. Starts Postgres + Redis via Docker Compose (canonical default)
 #   2. Creates 'default' and 'test' databases
 #   3. Copies .env.example -> .env for front and server
 #   4. Initializes database schema (runs migrations) when not already present
@@ -14,7 +14,7 @@
 #   bash packages/twenty-utils/setup-dev-env.sh          # start + configure
 #   bash packages/twenty-utils/setup-dev-env.sh --down    # stop services
 #   bash packages/twenty-utils/setup-dev-env.sh --reset   # wipe data + restart
-#   bash packages/twenty-utils/setup-dev-env.sh --docker  # force Docker mode
+#   bash packages/twenty-utils/setup-dev-env.sh --docker  # no-op: Docker is the default
 # =============================================================================
 set -euo pipefail
 
@@ -91,7 +91,7 @@ schema_exists() {
 }
 
 # --------------- parse flags ---------------
-USE_DOCKER=false
+USE_DOCKER=true
 ACTION="up"
 
 while [ $# -gt 0 ]; do
@@ -103,6 +103,13 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+
+# ponytail: self-check. Promote to --check flag if a 2nd caller (pre-commit,
+# devcontainer, CI smoke) ever needs the resolved mode without running setup.
+if [ "$USE_DOCKER" != "true" ]; then
+  echo "ASSERT FAIL: canonical default must be docker (USE_DOCKER=true). See packages/twenty-utils/setup-dev-env.sh." >&2
+  exit 1
+fi
 
 # --------------- stop ---------------
 stop_docker() {
@@ -158,7 +165,8 @@ if [ "$ACTION" = "reset" ]; then
 fi
 
 # =============================================================================
-# 1. Start services (auto-detect: local > Docker)
+# 1. Start services (canonical: docker > host-local)
+# Reference: docs/operations/local-development.md
 # =============================================================================
 start_pg() {
   if pg_is_up; then

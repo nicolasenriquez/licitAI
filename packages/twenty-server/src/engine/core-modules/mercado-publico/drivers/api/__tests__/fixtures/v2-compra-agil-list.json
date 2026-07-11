@@ -1,0 +1,11 @@
+{
+  "Items": [
+    {
+      "codigo": "FIXTURE-CA-001",
+      "estado": "publicada",
+      "region": 13,
+      "publicado_desde": "2026-06-01",
+      "publicado_hasta": "2026-06-30"
+    }
+  ]
+}
