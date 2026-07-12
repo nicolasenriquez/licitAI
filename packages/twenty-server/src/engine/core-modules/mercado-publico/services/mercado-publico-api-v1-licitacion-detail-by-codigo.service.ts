@@ -30,13 +30,13 @@ export class MercadoPublicoApiV1LicitacionDetailByCodigoService {
   ) {}
 
   async run(payload: Record<string, unknown>): Promise<void> {
-    const parsedPayload = this.parsePayload(payload);
     const jobRunRecord =
       await this.mercadoPublicoPersistenceService.createJobRun(
         'api-v1-licitacion-detail-by-codigo',
       );
 
     try {
+      const parsedPayload = this.parsePayload(payload);
       const apiResponse =
         await this.mercadoPublicoApiV1LicitacionesClientService.getByCodigoExterno(
           parsedPayload.codigoExterno,
@@ -79,7 +79,6 @@ export class MercadoPublicoApiV1LicitacionDetailByCodigoService {
 
       const recordsFetched = apiResponse.licitaciones.length;
       let recordsCanonicalized = 0;
-      let rawApiPayloadId: string | undefined;
 
       if (recordsFetched > 0) {
         const persistenceResult =
@@ -91,7 +90,6 @@ export class MercadoPublicoApiV1LicitacionDetailByCodigoService {
             },
           );
 
-        rawApiPayloadId = persistenceResult.rawApiPayloadId;
         recordsCanonicalized =
           await this.mercadoPublicoCanonicalRefreshService.refreshV1LicitacionesFromApiSnapshot(
             persistenceResult.rawApiPayloadId,
@@ -142,6 +140,13 @@ export class MercadoPublicoApiV1LicitacionDetailByCodigoService {
       });
 
       this.logger.error(errorSummaryText);
+
+      if (error instanceof BadRequestException) {
+        throw new MercadoPublicoRecordedJobFailureError(
+          errorSummaryText,
+          false,
+        );
+      }
 
       throw error;
     }

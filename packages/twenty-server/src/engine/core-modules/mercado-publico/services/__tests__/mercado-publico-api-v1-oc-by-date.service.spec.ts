@@ -1,9 +1,8 @@
-import { BadRequestException } from '@nestjs/common';
-
 import { MercadoPublicoApiV1OcByDateService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-v1-oc-by-date.service';
 import { MercadoPublicoApiV1OrdenesDeCompraClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-ordenes-de-compra-client.service';
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
+import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 
 describe('MercadoPublicoApiV1OcByDateService', () => {
   let service: MercadoPublicoApiV1OcByDateService;
@@ -66,22 +65,25 @@ describe('MercadoPublicoApiV1OcByDateService', () => {
   });
 
   describe('parsePayload', () => {
-    it('should throw BadRequestException when date is missing', async () => {
-      await expect(service.run({})).rejects.toThrow(BadRequestException);
+    it('should record and reject when date is missing', async () => {
+      await expect(service.run({})).rejects.toThrow(
+        MercadoPublicoRecordedJobFailureError,
+      );
+      expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'param_error', recordsFailed: 1 }),
+      );
     });
 
-    it('should throw BadRequestException when date is empty', async () => {
+    it('should record and reject when date is empty', async () => {
       await expect(service.run({ date: '' })).rejects.toThrow(
-        BadRequestException,
+        MercadoPublicoRecordedJobFailureError,
       );
     });
   });
 
   describe('run', () => {
     it('should persist and canonicalize OC on success', async () => {
-      clientService.getByDate.mockResolvedValue(
-        mockApiSuccessResponse as any,
-      );
+      clientService.getByDate.mockResolvedValue(mockApiSuccessResponse as any);
 
       await service.run({ date: '2026-06-15' });
 

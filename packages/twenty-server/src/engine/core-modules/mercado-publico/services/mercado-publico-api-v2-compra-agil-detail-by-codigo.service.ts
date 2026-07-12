@@ -30,13 +30,13 @@ export class MercadoPublicoApiV2CompraAgilDetailByCodigoService {
   ) {}
 
   async run(payload: Record<string, unknown>): Promise<void> {
-    const parsedPayload = this.parsePayload(payload);
     const jobRunRecord =
       await this.mercadoPublicoPersistenceService.createJobRun(
         'api-v2-compra-agil-detail-by-codigo',
       );
 
     try {
+      const parsedPayload = this.parsePayload(payload);
       const apiResponse =
         await this.mercadoPublicoApiV2CompraAgilClientService.getByCodigo(
           parsedPayload.codigo,
@@ -79,7 +79,6 @@ export class MercadoPublicoApiV2CompraAgilDetailByCodigoService {
 
       const recordsFetched = apiResponse.compraAgil.length;
       let recordsCanonicalized = 0;
-      let rawApiPayloadId: string | undefined;
 
       if (recordsFetched > 0) {
         const persistenceResult =
@@ -91,7 +90,6 @@ export class MercadoPublicoApiV2CompraAgilDetailByCodigoService {
             },
           );
 
-        rawApiPayloadId = persistenceResult.rawApiPayloadId;
         recordsCanonicalized =
           await this.mercadoPublicoCanonicalRefreshService.refreshV2CompraAgilFromApiSnapshot(
             persistenceResult.rawApiPayloadId,
@@ -142,6 +140,13 @@ export class MercadoPublicoApiV2CompraAgilDetailByCodigoService {
       });
 
       this.logger.error(errorSummaryText);
+
+      if (error instanceof BadRequestException) {
+        throw new MercadoPublicoRecordedJobFailureError(
+          errorSummaryText,
+          false,
+        );
+      }
 
       throw error;
     }

@@ -17,7 +17,7 @@ class GoldApiQuotaUsageStore {
     this.rows = [...rows];
   }
 
-  query<T>(sql: string): T[] {
+  query<T>(): T[] {
     const sorted = [...this.rows].sort((a, b) =>
       a.source.localeCompare(b.source),
     );
@@ -35,7 +35,7 @@ describe('MercadoPublicoApiQuotaUsageReadService (integration-shaped)', () => {
   const store = new GoldApiQuotaUsageStore();
   const buildDataSource = () =>
     ({
-      query: jest.fn(async (sql: string) => store.query(sql)),
+      query: jest.fn(async () => store.query()),
     }) as unknown as jest.Mocked<DataSource>;
 
   const mockConfigService = {

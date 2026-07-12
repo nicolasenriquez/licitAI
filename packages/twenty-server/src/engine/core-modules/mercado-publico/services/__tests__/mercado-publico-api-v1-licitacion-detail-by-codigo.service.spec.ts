@@ -1,9 +1,8 @@
-import { BadRequestException } from '@nestjs/common';
-
 import { MercadoPublicoApiV1LicitacionDetailByCodigoService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-v1-licitacion-detail-by-codigo.service';
 import { MercadoPublicoApiV1LicitacionesClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-licitaciones-client.service';
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
+import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 
 describe('MercadoPublicoApiV1LicitacionDetailByCodigoService', () => {
   let service: MercadoPublicoApiV1LicitacionDetailByCodigoService;
@@ -64,19 +63,24 @@ describe('MercadoPublicoApiV1LicitacionDetailByCodigoService', () => {
   });
 
   describe('parsePayload', () => {
-    it('should throw BadRequestException when codigoExterno is missing', async () => {
-      await expect(service.run({})).rejects.toThrow(BadRequestException);
-    });
-
-    it('should throw BadRequestException when codigoExterno is empty', async () => {
-      await expect(service.run({ codigoExterno: '' })).rejects.toThrow(
-        BadRequestException,
+    it('should record and reject when codigoExterno is missing', async () => {
+      await expect(service.run({})).rejects.toThrow(
+        MercadoPublicoRecordedJobFailureError,
+      );
+      expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'param_error', recordsFailed: 1 }),
       );
     });
 
-    it('should throw BadRequestException when codigoExterno is not a string', async () => {
+    it('should record and reject when codigoExterno is empty', async () => {
+      await expect(service.run({ codigoExterno: '' })).rejects.toThrow(
+        MercadoPublicoRecordedJobFailureError,
+      );
+    });
+
+    it('should record and reject when codigoExterno is not a string', async () => {
       await expect(service.run({ codigoExterno: 123 })).rejects.toThrow(
-        BadRequestException,
+        MercadoPublicoRecordedJobFailureError,
       );
     });
   });
@@ -138,9 +142,7 @@ describe('MercadoPublicoApiV1LicitacionDetailByCodigoService', () => {
 
       clientService.getByCodigoExterno.mockRejectedValue(networkError);
 
-      await expect(
-        service.run({ codigoExterno: 'LIC-123' }),
-      ).rejects.toThrow();
+      await expect(service.run({ codigoExterno: 'LIC-123' })).rejects.toThrow();
 
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
         expect.objectContaining({

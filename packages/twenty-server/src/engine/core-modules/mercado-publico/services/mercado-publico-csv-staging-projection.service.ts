@@ -27,14 +27,17 @@ export class MercadoPublicoCsvStagingProjectionService {
   ) {}
 
   async run(payload: Record<string, unknown>): Promise<void> {
-    const parsedPayload = this.parsePayload(payload);
     const jobRunRecord =
       await this.mercadoPublicoPersistenceService.createJobRun(
         'csv-staging-projection',
-        { rawCsvFileId: parsedPayload.raw_csv_file_id },
       );
 
     try {
+      const parsedPayload = this.parsePayload(payload);
+      await this.mercadoPublicoPersistenceService.linkJobRunToRawCsvFile(
+        jobRunRecord.id,
+        parsedPayload.raw_csv_file_id,
+      );
       const rawFileRow =
         await this.mercadoPublicoPersistenceService.getRawCsvFileById(
           parsedPayload.raw_csv_file_id,
@@ -116,6 +119,13 @@ export class MercadoPublicoCsvStagingProjectionService {
       });
 
       this.logger.error(errorSummaryText);
+
+      if (error instanceof BadRequestException) {
+        throw new MercadoPublicoRecordedJobFailureError(
+          errorSummaryText,
+          false,
+        );
+      }
 
       throw error;
     }

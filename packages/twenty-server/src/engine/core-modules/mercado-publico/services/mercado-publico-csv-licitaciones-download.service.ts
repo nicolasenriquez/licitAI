@@ -8,9 +8,7 @@ import { MercadoPublicoCsvDownloadSharedService } from 'src/engine/core-modules/
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 import { mapMercadoPublicoErrorSummaryToJobRunStatus } from 'src/engine/core-modules/mercado-publico/services/utils/map-mercado-publico-error-summary-to-job-run-status.util';
-import {
-  buildMercadoPublicoUnexpectedErrorSummaryText,
-} from 'src/engine/core-modules/mercado-publico/services/utils/build-mercado-publico-error-summary-text.util';
+import { buildMercadoPublicoUnexpectedErrorSummaryText } from 'src/engine/core-modules/mercado-publico/services/utils/build-mercado-publico-error-summary-text.util';
 import { MERCADO_PUBLICO_CSV_LICITACIONES_DATASET } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 
 type MercadoPublicoCsvLicitacionesDownloadPayload = {
@@ -31,13 +29,13 @@ export class MercadoPublicoCsvLicitacionesDownloadService {
   ) {}
 
   async run(payload: Record<string, unknown>): Promise<void> {
-    const parsedPayload = this.parsePayload(payload);
     const jobRunRecord =
       await this.mercadoPublicoPersistenceService.createJobRun(
         'csv-licitaciones-download',
       );
 
     try {
+      const parsedPayload = this.parsePayload(payload);
       const settings = this.mercadoPublicoConfigService.getSettings();
 
       if (!settings.csvDownloadEnabled) {
@@ -72,6 +70,11 @@ export class MercadoPublicoCsvLicitacionesDownloadService {
           sourceModality: parsedPayload.source_modality,
         });
 
+      await this.mercadoPublicoPersistenceService.linkJobRunToRawCsvFile(
+        jobRunRecord.id,
+        result.rawCsvFileId,
+      );
+
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,
         status: 'success',
@@ -93,8 +96,10 @@ export class MercadoPublicoCsvLicitacionesDownloadService {
       }
 
       const errorSummary = classifyFailure(error);
-      const errorSummaryText =
-        buildMercadoPublicoUnexpectedErrorSummaryText(errorSummary, error);
+      const errorSummaryText = buildMercadoPublicoUnexpectedErrorSummaryText(
+        errorSummary,
+        error,
+      );
 
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,
@@ -105,6 +110,13 @@ export class MercadoPublicoCsvLicitacionesDownloadService {
       });
 
       this.logger.error(errorSummaryText);
+
+      if (error instanceof BadRequestException) {
+        throw new MercadoPublicoRecordedJobFailureError(
+          errorSummaryText,
+          false,
+        );
+      }
 
       throw error;
     }

@@ -98,7 +98,7 @@ type PersistMercadoPublicoCsvDownloadInput = {
   sourceUrl: string;
   sourceFileName: string;
   sourcePeriod: string;
-  sourceModality?: string;
+  sourceModality?: string | null;
   fileChecksum: string;
   fileSizeBytes: number;
   compressionType: string | null;
@@ -273,6 +273,29 @@ export class MercadoPublicoPersistenceService {
       jobRunId,
       startedAt,
     };
+  }
+
+  async linkJobRunToRawCsvFile(
+    jobRunRecordId: string,
+    rawCsvFileId: string,
+  ): Promise<void> {
+    if (!(await this.stgJobRunSupportsRawCsvFileId())) {
+      return;
+    }
+
+    await this.coreDataSource.query(
+      `
+        UPDATE mp.stg_job_run
+        SET raw_csv_file_id = $2
+        WHERE id = $1
+          AND EXISTS (
+            SELECT 1
+            FROM mp.raw_csv_file
+            WHERE id = $2
+          )
+      `,
+      [jobRunRecordId, rawCsvFileId],
+    );
   }
 
   private async stgJobRunSupportsRawCsvFileId(): Promise<boolean> {

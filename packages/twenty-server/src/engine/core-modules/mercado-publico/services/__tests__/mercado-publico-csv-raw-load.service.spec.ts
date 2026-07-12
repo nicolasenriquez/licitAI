@@ -1,8 +1,7 @@
-import { BadRequestException } from '@nestjs/common';
-
 import { MercadoPublicoCsvRawLoadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-raw-load.service';
 import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
+import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 
 describe('MercadoPublicoCsvRawLoadService', () => {
   let service: MercadoPublicoCsvRawLoadService;
@@ -27,6 +26,7 @@ describe('MercadoPublicoCsvRawLoadService', () => {
   beforeEach(() => {
     persistenceService = {
       createJobRun: jest.fn().mockResolvedValue(mockJobRunRecord),
+      linkJobRunToRawCsvFile: jest.fn(),
       finalizeJobRun: jest.fn(),
       getRawCsvFileMetaById: jest.fn().mockResolvedValue(mockFileMeta),
       insertRawCsvRows: jest.fn(),
@@ -45,13 +45,15 @@ describe('MercadoPublicoCsvRawLoadService', () => {
   });
 
   describe('parsePayload', () => {
-    it('should throw BadRequestException when raw_csv_file_id is missing', async () => {
-      await expect(service.run({})).rejects.toThrow(BadRequestException);
+    it('should record and reject when raw_csv_file_id is missing', async () => {
+      await expect(service.run({})).rejects.toBeInstanceOf(
+        MercadoPublicoRecordedJobFailureError,
+      );
     });
 
-    it('should throw BadRequestException when raw_csv_file_id is empty', async () => {
-      await expect(service.run({ raw_csv_file_id: '' })).rejects.toThrow(
-        BadRequestException,
+    it('should record and reject when raw_csv_file_id is empty', async () => {
+      await expect(service.run({ raw_csv_file_id: '' })).rejects.toBeInstanceOf(
+        MercadoPublicoRecordedJobFailureError,
       );
     });
   });
@@ -97,9 +99,9 @@ describe('MercadoPublicoCsvRawLoadService', () => {
         'MERCADO_PUBLICO_CSV_STORAGE_ROOT',
       );
 
-      expect(persistenceService.createJobRun).toHaveBeenCalledWith(
-        'csv-raw-load',
-        { rawCsvFileId: 'csv-file-id' },
+      expect(persistenceService.linkJobRunToRawCsvFile).toHaveBeenCalledWith(
+        mockJobRunRecord.id,
+        'csv-file-id',
       );
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
         expect.objectContaining({

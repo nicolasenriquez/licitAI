@@ -28,14 +28,14 @@ export class MercadoPublicoApiV1OcByDateService {
   ) {}
 
   async run(payload: Record<string, unknown>): Promise<void> {
-    const parsedPayload = this.parsePayload(payload);
-    const requestedDate = new Date(`${parsedPayload.date}T00:00:00.000Z`);
     const jobRunRecord =
       await this.mercadoPublicoPersistenceService.createJobRun(
         'api-v1-oc-by-date',
       );
 
     try {
+      const parsedPayload = this.parsePayload(payload);
+      const requestedDate = new Date(`${parsedPayload.date}T00:00:00.000Z`);
       const apiResponse =
         await this.mercadoPublicoApiV1OrdenesDeCompraClientService.getByDate(
           requestedDate,
@@ -124,6 +124,13 @@ export class MercadoPublicoApiV1OcByDateService {
       });
 
       this.logger.error(errorSummaryText);
+
+      if (error instanceof BadRequestException) {
+        throw new MercadoPublicoRecordedJobFailureError(
+          errorSummaryText,
+          false,
+        );
+      }
 
       throw error;
     }

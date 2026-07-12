@@ -89,6 +89,36 @@ describe('MercadoPublicoPersistenceService', () => {
     expect(executedQueries[1]?.params[3]).toBe('raw-file-id');
   });
 
+  it('links a job run to an existing raw CSV file without requiring a foreign-key insert', async () => {
+    const executedQueries: Array<{ sql: string; params: unknown[] }> = [];
+    const mockDataSource = {
+      query: jest
+        .fn()
+        .mockImplementation(async (sql: string, params: unknown[]) => {
+          executedQueries.push({ sql, params });
+
+          if (sql.includes('information_schema.columns')) {
+            return [{ exists: true }];
+          }
+
+          return [];
+        }),
+    };
+    const service = new MercadoPublicoPersistenceService(
+      mockDataSource as never,
+    );
+
+    await service.linkJobRunToRawCsvFile('job-run-row-id', 'raw-file-id');
+
+    expect(executedQueries).toHaveLength(2);
+    expect(executedQueries[1]?.sql).toContain('UPDATE mp.stg_job_run');
+    expect(executedQueries[1]?.sql).toContain('EXISTS');
+    expect(executedQueries[1]?.params).toEqual([
+      'job-run-row-id',
+      'raw-file-id',
+    ]);
+  });
+
   it('should persist raw payload and list snapshots without canonical writes', async () => {
     const executedSql: string[] = [];
     const mockEntityManager = {

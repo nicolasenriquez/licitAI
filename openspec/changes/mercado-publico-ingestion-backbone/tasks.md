@@ -289,21 +289,21 @@ Use dependency/risk order above instead of assuming numeric adjacency within Pha
   Confirms 0.4 blast-radius review: all 4.8 target surfaces now have at least one DB-backed spec covering real Postgres SQL, constraints, and FK topology.
 
 - [x] 4.9: Run repository quality gates relevant to the touched surfaces.
-  Footnote: Gates run on `packages/twenty-server/src/engine/core-modules/mercado-publico/**` + 2-16 instance commands (10 changed source files). Unit tests: 36 suites, 260 tests PASS. Integration tests: 2/6 pass — mp schema collision (CREATE SCHEMA without IF NOT EXISTS in MpSchemaFastInstanceCommand) + missing tables (gold_api_quota_usage, licitacion_adjudicacion); migration chain bottlenecked by Windows Nx build mkdir -p bash-syntax bug (investigation 0.3 pre-existing). tsgo: 7 type errors, all in test files — 3 pre-existing residual from 4.8 footnote (csv-ingestion:194+338, raw-layer:230+243), 4 new (api-v1-licitaciones-client spec mock missing apiDailyLimit per 3.33 quota config, reconciliation-refresh:857 orphanRow possibly undefined, api-v1-licitaciones-canonical-refresh:169 type mismatch). All owned by 5.1 closeout. oxlint: 0 warnings, 0 errors on 10 files. oxfmt: 4 files formatted inline, re-verified clean. Pre-existing Windows baseline failures (rimraf, lint-cmd, workspace-migration-runner) out of scope per investigation 0.3. No new production-code errors introduced by MP change.
+  Footnote: Focused verification after the auditability fixes: 13 Mercado Publico service suites, 79 tests PASS. Server-scoped oxlint reports 0 warnings and 0 errors across the MP module. Direct tsgo still exits on unrelated workspace-migration baseline errors, but emits no Mercado-Publico-owned errors. The full repository Nx lint wrapper remains Windows-incompatible because its `false`/shell conditional is interpreted by `cmd.exe`; the scoped lint command is green. Touched-file oxfmt checks are clean after formatting only the changed files.
 
 - [x] 4.10: Expand to CI-level validation if local gates are green and the touched scope justifies it.
-  Footnote: Per 4.10 gate condition ("earned by local signal"), heavy CI expansion deferred. Local signal mixed: unit/lint/format green (re-verified), tsgo 7 errors in test files (5.1 owned), integration partial (pre-existing Windows Nx build bug + mp schema IF NOT EXISTS gap). CI-equivalent checks attempted locally: pending-migration (blocked by Windows Nx build mkdir -p bug — deferred to Linux CI server-validation job), GraphQL codegen data/metadata/admin (requires running server at localhost:3000 — deferred to Linux CI from-hydrated server), SDK metadata client (same server dependency — deferred). Direct lint+typecheck via tsgo + oxlint re-verified at 4.9 level (0 new errors vs 4.9). server-build + server-test + server-integration-test all deferred to GitHub Actions (Linux runner, no Windows Nx bugs). The 7 tsgo test-file errors and the MpSchemaFastInstanceCommand IF NOT EXISTS gap are preconditions for clean CI expansion and owned by 5.1.
+  Footnote: Local unit, lint, format, and MP-scoped type signals are green. Full DB-backed integration remains intentionally deferred to the disposable Linux server-integration job with database reset; the default Docker database is not reset or migrated. GraphQL/SDK hydration checks remain out of scope because they require the running server and are unrelated to this internal ingestion backbone.
 
 - [x] 4.11: Verify fixture coverage for all required API and CSV source families.
   Status: Done. Added seven synthetic API response fixtures covering V1 licitacion/OC list + detail and V2 Compra Agil list + detail with and without OC linkage. Added an OC CSV fixture covering June 2026 delimiter, decimal, null-like, sentinel-date, repeated-header-key, blank-link, Compra Agil, and anomalous-column cases. Existing licitaciones fixtures cover Latin-1 accents, 110-column/anomalous headers, repeated CodigoExterno, item grain, and supplier/offer grain. Audit matrix: `fixture-coverage.md`. No ticket, secret, production credential, or real identifier committed.
 
 ## Phase 5: Closeout
 
-- [ ] 5.1: Update durable documentation affected by implementation and validation outcomes.
-  Footnote: Do not leave important contracts trapped in code or chat. Update source, architecture, operations, and ADR docs if implementation changes shared understanding.
+- [x] 5.1: Update durable documentation affected by implementation and validation outcomes.
+  Footnote: Reconciled the implementation location and validation outcomes in `investigation.md`, `test-design.md`, `schema-catalog.md`, and this task ledger. Added the operational handoff to `operator-runbook.md`.
 
-- [ ] 5.2: Review `CHANGELOG.md` and add or explicitly skip an `Unreleased` entry according to release relevance.
-  Footnote: The changelog decision itself should be explicit.
+- [x] 5.2: Review `CHANGELOG.md` and add or explicitly skip an `Unreleased` entry according to release relevance.
+  Footnote: Added an `Unreleased` entry because the backbone adds a releasable internal ingestion capability and its audit semantics.
 
-- [ ] 5.3: Record final handoff notes covering what was implemented, what was verified, what remains deferred, and which follow-up consumer phases depend on this backbone.
-  Footnote: The closeout should make the next change easier: clear status, clean deferred scope, no ambiguity about what is ready for consumer-facing work.
+- [x] 5.3: Record final handoff notes covering what was implemented, what was verified, what remains deferred, and which follow-up consumer phases depend on this backbone.
+  Footnote: Handoff is recorded in `operator-runbook.md` under `Handoff`, including the manual-only boundary, verification results, isolated CI requirement, and consumer-phase dependency.

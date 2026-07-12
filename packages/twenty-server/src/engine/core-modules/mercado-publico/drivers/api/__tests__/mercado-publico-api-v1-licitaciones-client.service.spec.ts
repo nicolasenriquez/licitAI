@@ -139,6 +139,7 @@ describe('MercadoPublicoApiV1LicitacionesClientService', () => {
     mockMercadoPublicoConfigService.getSettings.mockReturnValue({
       apiTicket: 'fake-ticket',
       apiV1BaseUrl: 'https://api.mercadopublico.cl',
+      apiDailyLimit: 10_000,
       httpTimeoutMs: 30_000,
       httpMaxRetries: 3,
       httpRetryBackoffMs: 1_000,
@@ -164,6 +165,7 @@ describe('MercadoPublicoApiV1LicitacionesClientService', () => {
       .mockReturnValueOnce({
         apiTicket: 'fake-ticket',
         apiV1BaseUrl: 'https://api.mercadopublico.cl',
+        apiDailyLimit: 10_000,
         httpTimeoutMs: 30_000,
         httpMaxRetries: 3,
         httpRetryBackoffMs: 1_000,

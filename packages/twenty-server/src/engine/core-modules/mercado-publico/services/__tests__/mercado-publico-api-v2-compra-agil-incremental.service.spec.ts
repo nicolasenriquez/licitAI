@@ -1,9 +1,8 @@
-import { BadRequestException } from '@nestjs/common';
-
 import { MercadoPublicoApiV2CompraAgilIncrementalService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-v2-compra-agil-incremental.service';
 import { MercadoPublicoApiV2CompraAgilClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
+import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 
 describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
   let service: MercadoPublicoApiV2CompraAgilIncrementalService;
@@ -68,28 +67,31 @@ describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
   });
 
   describe('parsePayload', () => {
-    it('should throw BadRequestException when neither ttl_cambio_ms nor cambio_desde provided', async () => {
-      await expect(service.run({})).rejects.toThrow(BadRequestException);
-    });
-
-    it('should throw BadRequestException when ttl_cambio_ms is zero', async () => {
-      await expect(service.run({ ttl_cambio_ms: 0 })).rejects.toThrow(
-        BadRequestException,
+    it('should record and reject when neither ttl_cambio_ms nor cambio_desde provided', async () => {
+      await expect(service.run({})).rejects.toThrow(
+        MercadoPublicoRecordedJobFailureError,
+      );
+      expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'param_error', recordsFailed: 1 }),
       );
     });
 
-    it('should throw BadRequestException when cambio_desde is empty', async () => {
+    it('should record and reject when ttl_cambio_ms is zero', async () => {
+      await expect(service.run({ ttl_cambio_ms: 0 })).rejects.toThrow(
+        MercadoPublicoRecordedJobFailureError,
+      );
+    });
+
+    it('should record and reject when cambio_desde is empty', async () => {
       await expect(service.run({ cambio_desde: '' })).rejects.toThrow(
-        BadRequestException,
+        MercadoPublicoRecordedJobFailureError,
       );
     });
   });
 
   describe('run', () => {
     it('should persist and canonicalize on success with ttl_cambio_ms', async () => {
-      clientService.getList.mockResolvedValue(
-        mockApiSuccessResponse as any,
-      );
+      clientService.getList.mockResolvedValue(mockApiSuccessResponse as any);
 
       await service.run({ ttl_cambio_ms: 5000 });
 
@@ -117,9 +119,7 @@ describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
     });
 
     it('should pass cambio_desde and cambio_hasta to client when provided', async () => {
-      clientService.getList.mockResolvedValue(
-        mockApiSuccessResponse as any,
-      );
+      clientService.getList.mockResolvedValue(mockApiSuccessResponse as any);
 
       await service.run({
         cambio_desde: '2026-06-01T00:00:00Z',
@@ -156,7 +156,9 @@ describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
     it('should handle transport failure', async () => {
       clientService.getList.mockRejectedValue(new Error('Network error'));
 
-      await expect(service.run({ cambio_desde: '2026-06-01T00:00:00Z' })).rejects.toThrow();
+      await expect(
+        service.run({ cambio_desde: '2026-06-01T00:00:00Z' }),
+      ).rejects.toThrow();
 
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
         expect.objectContaining({

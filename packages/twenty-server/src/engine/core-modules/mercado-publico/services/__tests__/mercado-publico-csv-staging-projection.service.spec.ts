@@ -1,7 +1,6 @@
-import { BadRequestException } from '@nestjs/common';
-
 import { MercadoPublicoCsvStagingProjectionService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-staging-projection.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
+import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 
 describe('MercadoPublicoCsvStagingProjectionService', () => {
   let service: MercadoPublicoCsvStagingProjectionService;
@@ -16,6 +15,7 @@ describe('MercadoPublicoCsvStagingProjectionService', () => {
   beforeEach(() => {
     persistenceService = {
       createJobRun: jest.fn().mockResolvedValue(mockJobRunRecord),
+      linkJobRunToRawCsvFile: jest.fn(),
       finalizeJobRun: jest.fn(),
       getRawCsvFileMetaById: jest.fn(),
       getRawCsvFileById: jest.fn(),
@@ -28,20 +28,20 @@ describe('MercadoPublicoCsvStagingProjectionService', () => {
       deleteStgCsvLicitacionRowsByRawFileId: jest.fn(),
     } as unknown as jest.Mocked<MercadoPublicoPersistenceService>;
 
-    service = new MercadoPublicoCsvStagingProjectionService(
-      persistenceService,
-    );
+    service = new MercadoPublicoCsvStagingProjectionService(persistenceService);
   });
 
   describe('parsePayload', () => {
-    it('should throw when raw_csv_file_id is missing', async () => {
-      await expect(service.run({})).rejects.toThrow(BadRequestException);
+    it('should record and reject when raw_csv_file_id is missing', async () => {
+      await expect(service.run({})).rejects.toBeInstanceOf(
+        MercadoPublicoRecordedJobFailureError,
+      );
     });
 
-    it('should throw when raw_csv_file_id is empty', async () => {
-      await expect(
-        service.run({ raw_csv_file_id: '' }),
-      ).rejects.toThrow(BadRequestException);
+    it('should record and reject when raw_csv_file_id is empty', async () => {
+      await expect(service.run({ raw_csv_file_id: '' })).rejects.toBeInstanceOf(
+        MercadoPublicoRecordedJobFailureError,
+      );
     });
   });
 
@@ -68,26 +68,52 @@ describe('MercadoPublicoCsvStagingProjectionService', () => {
       compression_type: null,
     };
 
-    const observedColumns = ['Codigo', 'IDItem', 'FechaEnvio', 'Estado', 'UnknownCol_X'];
+    const observedColumns = [
+      'Codigo',
+      'IDItem',
+      'FechaEnvio',
+      'Estado',
+      'UnknownCol_X',
+    ];
 
     const rawRows = [
       {
         id: 'raw-row-1',
-        raw_row_json: ['OC-001', 'ITEM-1', '2026-01-15', 'Enviada a proveedor', 'extra-val'],
+        raw_row_json: [
+          'OC-001',
+          'ITEM-1',
+          '2026-01-15',
+          'Enviada a proveedor',
+          'extra-val',
+        ],
         parse_status: 'success',
       },
       {
         id: 'raw-row-2',
-        raw_row_json: ['OC-001', 'ITEM-2', '2026-01-16', 'En proceso', 'extra-val-2'],
+        raw_row_json: [
+          'OC-001',
+          'ITEM-2',
+          '2026-01-16',
+          'En proceso',
+          'extra-val-2',
+        ],
         parse_status: 'success',
       },
     ];
 
     beforeEach(() => {
-      persistenceService.getRawCsvFileMetaById = jest.fn().mockResolvedValue(fileMeta);
-      persistenceService.getRawCsvFileById = jest.fn().mockResolvedValue(rawFileRow);
-      persistenceService.getRawCsvFileObservedColumns = jest.fn().mockResolvedValue(observedColumns);
-      persistenceService.countRawCsvRowsByFileId = jest.fn().mockResolvedValue(2);
+      persistenceService.getRawCsvFileMetaById = jest
+        .fn()
+        .mockResolvedValue(fileMeta);
+      persistenceService.getRawCsvFileById = jest
+        .fn()
+        .mockResolvedValue(rawFileRow);
+      persistenceService.getRawCsvFileObservedColumns = jest
+        .fn()
+        .mockResolvedValue(observedColumns);
+      persistenceService.countRawCsvRowsByFileId = jest
+        .fn()
+        .mockResolvedValue(2);
       persistenceService.getRawCsvRowsPageByFileId = jest
         .fn()
         .mockResolvedValueOnce(
@@ -104,9 +130,14 @@ describe('MercadoPublicoCsvStagingProjectionService', () => {
 
       expect(persistenceService.createJobRun).toHaveBeenCalledWith(
         'csv-staging-projection',
-        { rawCsvFileId: 'csv-file-oc-id' },
       );
-      expect(persistenceService.insertStgCsvOrdenCompraRows).toHaveBeenCalledTimes(1);
+      expect(persistenceService.linkJobRunToRawCsvFile).toHaveBeenCalledWith(
+        mockJobRunRecord.id,
+        'csv-file-oc-id',
+      );
+      expect(
+        persistenceService.insertStgCsvOrdenCompraRows,
+      ).toHaveBeenCalledTimes(1);
 
       const call = persistenceService.insertStgCsvOrdenCompraRows.mock.calls[0];
 
@@ -145,7 +176,9 @@ describe('MercadoPublicoCsvStagingProjectionService', () => {
     });
 
     it('should skip rows with parseStatus !== success', async () => {
-      persistenceService.countRawCsvRowsByFileId = jest.fn().mockResolvedValue(3);
+      persistenceService.countRawCsvRowsByFileId = jest
+        .fn()
+        .mockResolvedValue(3);
       persistenceService.getRawCsvRowsPageByFileId = jest
         .fn()
         .mockResolvedValueOnce([
@@ -220,21 +253,45 @@ describe('MercadoPublicoCsvStagingProjectionService', () => {
     const rawRows = [
       {
         id: 'rl-1',
-        raw_row_json: ['L1', '1', 'P001', 'Oferta A', 'Si', 'Publicada', 'Municipio X'],
+        raw_row_json: [
+          'L1',
+          '1',
+          'P001',
+          'Oferta A',
+          'Si',
+          'Publicada',
+          'Municipio X',
+        ],
         parse_status: 'success',
       },
       {
         id: 'rl-2',
-        raw_row_json: ['L1', '1', 'P002', 'Oferta B', 'No', 'Publicada', 'Municipio X'],
+        raw_row_json: [
+          'L1',
+          '1',
+          'P002',
+          'Oferta B',
+          'No',
+          'Publicada',
+          'Municipio X',
+        ],
         parse_status: 'success',
       },
     ];
 
     beforeEach(() => {
-      persistenceService.getRawCsvFileMetaById = jest.fn().mockResolvedValue(fileMeta);
-      persistenceService.getRawCsvFileById = jest.fn().mockResolvedValue(rawFileRow);
-      persistenceService.getRawCsvFileObservedColumns = jest.fn().mockResolvedValue(licObservedColumns);
-      persistenceService.countRawCsvRowsByFileId = jest.fn().mockResolvedValue(2);
+      persistenceService.getRawCsvFileMetaById = jest
+        .fn()
+        .mockResolvedValue(fileMeta);
+      persistenceService.getRawCsvFileById = jest
+        .fn()
+        .mockResolvedValue(rawFileRow);
+      persistenceService.getRawCsvFileObservedColumns = jest
+        .fn()
+        .mockResolvedValue(licObservedColumns);
+      persistenceService.countRawCsvRowsByFileId = jest
+        .fn()
+        .mockResolvedValue(2);
       persistenceService.getRawCsvRowsPageByFileId = jest
         .fn()
         .mockResolvedValueOnce(
@@ -249,7 +306,9 @@ describe('MercadoPublicoCsvStagingProjectionService', () => {
     it('should insert licitacion staging rows', async () => {
       await service.run({ raw_csv_file_id: 'csv-file-lic-id' });
 
-      expect(persistenceService.insertStgCsvLicitacionRows).toHaveBeenCalledTimes(1);
+      expect(
+        persistenceService.insertStgCsvLicitacionRows,
+      ).toHaveBeenCalledTimes(1);
 
       const call = persistenceService.insertStgCsvLicitacionRows.mock.calls[0];
 

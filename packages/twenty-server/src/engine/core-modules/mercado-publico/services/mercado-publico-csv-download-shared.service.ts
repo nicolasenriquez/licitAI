@@ -18,7 +18,7 @@ export type CsvDownloadInput = {
   sourceDataset: string;
   sourceUrl: string;
   sourcePeriod: string;
-  sourceModality?: string;
+  sourceModality?: string | null;
 };
 
 export type CsvDownloadResult = {
@@ -41,7 +41,9 @@ export class MercadoPublicoCsvDownloadSharedService {
     private readonly secureHttpClientService: SecureHttpClientService,
   ) {}
 
-  async downloadAndPersist(input: CsvDownloadInput): Promise<CsvDownloadResult> {
+  async downloadAndPersist(
+    input: CsvDownloadInput,
+  ): Promise<CsvDownloadResult> {
     const settings = this.mercadoPublicoConfigService.getSettings();
 
     if (!settings.csvStorageRoot) {

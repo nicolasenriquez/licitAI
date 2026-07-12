@@ -2,6 +2,7 @@ import { MercadoPublicoApiV1LicitacionesByDateService } from 'src/engine/core-mo
 import { MercadoPublicoApiV1LicitacionesClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-licitaciones-client.service';
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
+import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 
 describe('MercadoPublicoApiV1LicitacionesByDateService', () => {
   const mockMercadoPublicoApiV1LicitacionesClientService = {
@@ -144,5 +145,24 @@ describe('MercadoPublicoApiV1LicitacionesByDateService', () => {
         recordsFailed: 1,
       }),
     );
+  });
+
+  it('should record invalid payloads before rejecting them', async () => {
+    await expect(service.run({})).rejects.toBeInstanceOf(
+      MercadoPublicoRecordedJobFailureError,
+    );
+
+    expect(
+      mockMercadoPublicoPersistenceService.finalizeJobRun,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jobRunRecordId: 'job-run-record-id',
+        status: 'param_error',
+        recordsFailed: 1,
+      }),
+    );
+    expect(
+      mockMercadoPublicoApiV1LicitacionesClientService.getByDate,
+    ).not.toHaveBeenCalled();
   });
 });

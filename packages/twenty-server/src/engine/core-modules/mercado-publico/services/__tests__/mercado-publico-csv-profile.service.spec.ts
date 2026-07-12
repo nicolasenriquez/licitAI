@@ -1,8 +1,7 @@
-import { BadRequestException } from '@nestjs/common';
-
 import { MercadoPublicoCsvProfileService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-profile.service';
 import { MercadoPublicoCsvProfilingService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-profiling.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
+import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 
 describe('MercadoPublicoCsvProfileService', () => {
   let service: MercadoPublicoCsvProfileService;
@@ -36,6 +35,7 @@ describe('MercadoPublicoCsvProfileService', () => {
 
     persistenceService = {
       createJobRun: jest.fn().mockResolvedValue(mockJobRunRecord),
+      linkJobRunToRawCsvFile: jest.fn(),
       finalizeJobRun: jest.fn(),
     } as unknown as jest.Mocked<MercadoPublicoPersistenceService>;
 
@@ -46,14 +46,19 @@ describe('MercadoPublicoCsvProfileService', () => {
   });
 
   describe('parsePayload', () => {
-    it('should throw BadRequestException when raw_csv_file_id is missing', async () => {
-      await expect(service.run({})).rejects.toThrow(BadRequestException);
+    it('should record and reject when raw_csv_file_id is missing', async () => {
+      await expect(service.run({})).rejects.toBeInstanceOf(
+        MercadoPublicoRecordedJobFailureError,
+      );
+      expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'param_error', recordsFailed: 1 }),
+      );
     });
 
-    it('should throw BadRequestException when raw_csv_file_id is empty', async () => {
-      await expect(
-        service.run({ raw_csv_file_id: '' }),
-      ).rejects.toThrow(BadRequestException);
+    it('should record and reject when raw_csv_file_id is empty', async () => {
+      await expect(service.run({ raw_csv_file_id: '' })).rejects.toBeInstanceOf(
+        MercadoPublicoRecordedJobFailureError,
+      );
     });
   });
 
@@ -65,7 +70,10 @@ describe('MercadoPublicoCsvProfileService', () => {
 
       expect(persistenceService.createJobRun).toHaveBeenCalledWith(
         'csv-file-profile',
-        { rawCsvFileId: 'test-file-id' },
+      );
+      expect(persistenceService.linkJobRunToRawCsvFile).toHaveBeenCalledWith(
+        mockJobRunRecord.id,
+        'test-file-id',
       );
       expect(profilingService.profileFileById).toHaveBeenCalledWith(
         'test-file-id',

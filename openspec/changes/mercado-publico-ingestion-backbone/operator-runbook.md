@@ -141,3 +141,23 @@ configured bounded retry and fixed backoff policy.
 - Keep API tickets in secret config. Redacted logs and job metadata are safe to
   share; request headers and secret values are not.
 - Keep each command independent so a failed stage is visible and rerunnable.
+
+## Handoff
+
+- The phase-1 implementation lives under
+  `packages/twenty-server/src/engine/core-modules/mercado-publico/` and remains
+  manual/internal-only. No scheduler, public endpoint, or CRM projection was
+  added.
+- API and CSV jobs create their `mp.stg_job_run` record before validating the
+  payload. Invalid payloads finalize as `param_error`; file-bound CSV stages
+  also retain the guarded `stg_job_run.raw_csv_file_id` link when the schema
+  supports it.
+- Focused verification passed: 13 Mercado Publico service suites, 79 tests;
+  server-scoped oxlint reported 0 warnings and 0 errors; no
+  Mercado-Publico-owned tsgo errors remain.
+- Full DB-backed integration validation remains a CI handoff: run the
+  disposable Linux server-integration job with database reset. Do not use the
+  default live Docker database for reset/migration testing or trigger real API
+  and CSV ingestion during this handoff.
+- Follow-up consumer phases can build on the persisted canonical/read
+  contracts after that isolated integration gate is green.

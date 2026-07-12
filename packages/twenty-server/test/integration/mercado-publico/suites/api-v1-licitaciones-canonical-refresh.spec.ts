@@ -11,6 +11,7 @@ import { MpRawCsvFileDedupeModalityFastInstanceCommand } from 'src/database/comm
 import { DropRawCsvFileIngestionJobIdFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1783191615514-drop-raw-csv-file-ingestion-job-id';
 import { MpStgJobRunRawCsvFileLinkSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1782340007930-mp-stg-job-run-raw-csv-file-link';
 import { rawDataSource } from 'src/database/typeorm/raw/raw.datasource';
+import { type MercadoPublicoApiV1LicitacionesByDateResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-licitaciones-client.service';
 import {
   MERCADO_PUBLICO_API_V1_LICITACIONES_BY_DATE_ENDPOINT,
   MERCADO_PUBLICO_API_V1_LICITACIONES_DETAIL_BY_CODIGO_ENDPOINT,
@@ -162,13 +163,14 @@ describe('Mercado Publico V1 licitaciones list-to-detail canonical refresh (db-b
           NombreOrganismo: 'Municipalidad Dos',
         },
       ],
-    };
+    } satisfies MercadoPublicoApiV1LicitacionesByDateResponse;
 
-    const persistedList = await persistenceService.persistV1LicitacionesSnapshot({
-      jobRunRecordId: listJobRun.id,
-      apiResponse: listResponse,
-      snapshotKind: 'list',
-    });
+    const persistedList =
+      await persistenceService.persistV1LicitacionesSnapshot({
+        jobRunRecordId: listJobRun.id,
+        apiResponse: listResponse,
+        snapshotKind: 'list',
+      });
     const canonicalizedCount =
       await canonicalRefreshService.refreshV1LicitacionesFromApiSnapshot(
         persistedList.rawApiPayloadId,
@@ -294,8 +296,8 @@ describe('Mercado Publico V1 licitaciones list-to-detail canonical refresh (db-b
     const listJobRun = await persistenceService.createJobRun(
       'api-v1-licitaciones-by-date',
     );
-    const listSnapshot =
-      await persistenceService.persistV1LicitacionesSnapshot({
+    const listSnapshot = await persistenceService.persistV1LicitacionesSnapshot(
+      {
         jobRunRecordId: listJobRun.id,
         snapshotKind: 'list',
         apiResponse: {
@@ -338,7 +340,8 @@ describe('Mercado Publico V1 licitaciones list-to-detail canonical refresh (db-b
             },
           ],
         },
-      });
+      },
+    );
 
     await canonicalRefreshService.refreshV1LicitacionesFromApiSnapshot(
       listSnapshot.rawApiPayloadId,
@@ -352,7 +355,8 @@ describe('Mercado Publico V1 licitaciones list-to-detail canonical refresh (db-b
         jobRunRecordId: sparseDetailJobRun.id,
         snapshotKind: 'detail',
         apiResponse: {
-          endpoint: MERCADO_PUBLICO_API_V1_LICITACIONES_DETAIL_BY_CODIGO_ENDPOINT,
+          endpoint:
+            MERCADO_PUBLICO_API_V1_LICITACIONES_DETAIL_BY_CODIGO_ENDPOINT,
           source: MERCADO_PUBLICO_API_V1_LICITACIONES_SOURCE,
           requestParams: { codigo: 'L1' },
           requestFingerprint: 'req-detail-l1',
@@ -393,7 +397,8 @@ describe('Mercado Publico V1 licitaciones list-to-detail canonical refresh (db-b
         jobRunRecordId: richDetailJobRun.id,
         snapshotKind: 'detail',
         apiResponse: {
-          endpoint: MERCADO_PUBLICO_API_V1_LICITACIONES_DETAIL_BY_CODIGO_ENDPOINT,
+          endpoint:
+            MERCADO_PUBLICO_API_V1_LICITACIONES_DETAIL_BY_CODIGO_ENDPOINT,
           source: MERCADO_PUBLICO_API_V1_LICITACIONES_SOURCE,
           requestParams: { codigo: 'L1' },
           requestFingerprint: 'req-detail-l1',

@@ -30,14 +30,14 @@ export class MercadoPublicoApiV1LicitacionesByDateService {
   ) {}
 
   async run(payload: Record<string, unknown>): Promise<void> {
-    const parsedPayload = this.parsePayload(payload);
-    const requestedDate = new Date(`${parsedPayload.date}T00:00:00.000Z`);
     const jobRunRecord =
       await this.mercadoPublicoPersistenceService.createJobRun(
         'api-v1-licitaciones-by-date',
       );
 
     try {
+      const parsedPayload = this.parsePayload(payload);
+      const requestedDate = new Date(`${parsedPayload.date}T00:00:00.000Z`);
       const apiResponse =
         await this.mercadoPublicoApiV1LicitacionesClientService.getByDate(
           requestedDate,
@@ -126,6 +126,13 @@ export class MercadoPublicoApiV1LicitacionesByDateService {
       });
 
       this.logger.error(errorSummaryText);
+
+      if (error instanceof BadRequestException) {
+        throw new MercadoPublicoRecordedJobFailureError(
+          errorSummaryText,
+          false,
+        );
+      }
 
       throw error;
     }

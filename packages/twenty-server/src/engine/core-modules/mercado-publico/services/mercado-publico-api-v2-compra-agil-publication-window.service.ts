@@ -37,13 +37,13 @@ export class MercadoPublicoApiV2CompraAgilPublicationWindowService {
   ) {}
 
   async run(payload: Record<string, unknown>): Promise<void> {
-    const parsedPayload = this.parsePayload(payload);
     const jobRunRecord =
       await this.mercadoPublicoPersistenceService.createJobRun(
         'api-v2-compra-agil-by-publication-window',
       );
 
     try {
+      const parsedPayload = this.parsePayload(payload);
       const apiResponse =
         await this.mercadoPublicoApiV2CompraAgilClientService.getList(
           parsedPayload,
@@ -132,6 +132,13 @@ export class MercadoPublicoApiV2CompraAgilPublicationWindowService {
       });
 
       this.logger.error(errorSummaryText);
+
+      if (error instanceof BadRequestException) {
+        throw new MercadoPublicoRecordedJobFailureError(
+          errorSummaryText,
+          false,
+        );
+      }
 
       throw error;
     }

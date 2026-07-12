@@ -66,12 +66,6 @@ describe('MercadoPublicoReconciliationService', () => {
     mockEntityManager.query.mockResolvedValueOnce(rows);
   }
 
-  function mockOcLookup(exists: boolean) {
-    mockEntityManager.query.mockResolvedValueOnce(
-      exists ? [{ exists: true }] : [],
-    );
-  }
-
   function mockOcBulkLookup(codigos: string[]) {
     mockEntityManager.query.mockResolvedValueOnce(
       codigos.map((c) => ({ codigo: c })),
@@ -82,26 +76,41 @@ describe('MercadoPublicoReconciliationService', () => {
     mockEntityManager.query.mockResolvedValueOnce([]);
   }
 
-  function mockSelectCandidateSupplier(rows: { api_codigo: string; csv_codigo: string }[]) {
+  function mockSelectCandidateSupplier(
+    rows: { api_codigo: string; csv_codigo: string }[],
+  ) {
     mockEntityManager.query.mockResolvedValueOnce(rows);
   }
 
-  function mockSelectCandidateItem(rows: { codigo_externo: string; codigoitem: string }[]) {
+  function mockSelectCandidateItem(
+    rows: { codigo_externo: string; codigoitem: string }[],
+  ) {
     mockEntityManager.query.mockResolvedValueOnce(rows);
   }
 
-  function mockSelectUnmatched(rows: { entity_key: string; entity_type: string }[]) {
+  function mockSelectUnmatched(
+    rows: { entity_key: string; entity_type: string }[],
+  ) {
     mockEntityManager.query.mockResolvedValueOnce(rows);
   }
 
   function mockSelectStateMismatch(
-    rows: { codigo_externo: string; canonical_state: string; latest_staging_estado: string }[],
+    rows: {
+      codigo_externo: string;
+      canonical_state: string;
+      latest_staging_estado: string;
+    }[],
   ) {
     mockEntityManager.query.mockResolvedValueOnce(rows);
   }
 
   function mockSelectSourcePeriodRerun(
-    rows: { source_dataset: string; source_period: string; checksum_older: string; checksum_newer: string }[],
+    rows: {
+      source_dataset: string;
+      source_period: string;
+      checksum_older: string;
+      checksum_newer: string;
+    }[],
   ) {
     mockEntityManager.query.mockResolvedValueOnce(rows);
   }
@@ -248,7 +257,9 @@ describe('MercadoPublicoReconciliationService', () => {
     });
 
     it('records candidate_supplier_amount when same provider, no exact key', async () => {
-      mockSelectCandidateSupplier([{ api_codigo: 'OC1', csv_codigo: 'CSV-OC1' }]);
+      mockSelectCandidateSupplier([
+        { api_codigo: 'OC1', csv_codigo: 'CSV-OC1' },
+      ]);
       mockInsert(1);
       mockSelectCandidateItem([]);
       mockSelectUnmatched([]);
@@ -345,15 +356,12 @@ describe('MercadoPublicoReconciliationService', () => {
 
       await service.refreshAllHeuristicReconciliation();
 
-      const unmatchedCall = (mockEntityManager.query as jest.Mock).mock.calls[2];
+      const unmatchedCall = (mockEntityManager.query as jest.Mock).mock
+        .calls[2];
       const unmatchedSql = unmatchedCall?.[0] as string;
 
-      expect(unmatchedSql).toContain(
-        "r.entity_b_type = 'licitacion'",
-      );
-      expect(unmatchedSql).toContain(
-        "AND r.entity_a_type = 'licitacion'",
-      );
+      expect(unmatchedSql).toContain("r.entity_b_type = 'licitacion'");
+      expect(unmatchedSql).toContain("AND r.entity_a_type = 'licitacion'");
     });
 
     it('does not let candidate_supplier suppress unmatched ordenes_compra', async () => {
@@ -365,12 +373,11 @@ describe('MercadoPublicoReconciliationService', () => {
 
       await service.refreshAllHeuristicReconciliation();
 
-      const unmatchedCall = (mockEntityManager.query as jest.Mock).mock.calls[2];
+      const unmatchedCall = (mockEntityManager.query as jest.Mock).mock
+        .calls[2];
       const unmatchedSql = unmatchedCall?.[0] as string;
 
-      expect(unmatchedSql).toContain(
-        'AND r.match_type = ANY($1::text[])',
-      );
+      expect(unmatchedSql).toContain('AND r.match_type = ANY($1::text[])');
     });
 
     it('records state_mismatch event when canonical state differs from latest staging', async () => {
@@ -378,7 +385,11 @@ describe('MercadoPublicoReconciliationService', () => {
       mockSelectCandidateItem([]);
       mockSelectUnmatched([]);
       mockSelectStateMismatch([
-        { codigo_externo: 'L1', canonical_state: 'Publicada', latest_staging_estado: 'Cerrada' },
+        {
+          codigo_externo: 'L1',
+          canonical_state: 'Publicada',
+          latest_staging_estado: 'Cerrada',
+        },
       ]);
       mockInsert(1);
       mockSelectSourcePeriodRerun([]);
@@ -397,7 +408,12 @@ describe('MercadoPublicoReconciliationService', () => {
       mockSelectUnmatched([]);
       mockSelectStateMismatch([]);
       mockSelectSourcePeriodRerun([
-        { source_dataset: 'oc', source_period: '2026-06', checksum_older: 'abc123', checksum_newer: 'def456' },
+        {
+          source_dataset: 'oc',
+          source_period: '2026-06',
+          checksum_older: 'abc123',
+          checksum_newer: 'def456',
+        },
       ]);
       mockInsert(1);
 
@@ -530,8 +546,8 @@ describe('MercadoPublicoReconciliationService', () => {
 
       await service.refreshAllHeuristicReconciliation();
 
-      const unmatchedCall = (mockEntityManager.query as jest.Mock).mock.calls[2];
-      const unmatchedSql = unmatchedCall?.[0] as string;
+      const unmatchedCall = (mockEntityManager.query as jest.Mock).mock
+        .calls[2];
 
       const unmatchedParams = unmatchedCall?.[1] as unknown[] | undefined;
 
@@ -584,9 +600,9 @@ describe('MercadoPublicoReconciliationService', () => {
       mockSelectCandidateItem([]);
       mockSelectUnmatched([]);
 
-      await expect(
-        service.refreshAllHeuristicReconciliation(),
-      ).rejects.toThrow('phase failed');
+      await expect(service.refreshAllHeuristicReconciliation()).rejects.toThrow(
+        'phase failed',
+      );
       expect(transactionCalls).toEqual([
         'candidateSupplier',
         'candidateItem',
@@ -606,7 +622,9 @@ describe('MercadoPublicoReconciliationService', () => {
 
       const calls = (mockEntityManager.query as jest.Mock).mock.calls;
       const caBulkLookups = calls.filter(
-        (c: unknown[]) => typeof c[0] === 'string' && (c[0] as string).includes('WHERE codigo = ANY'),
+        (c: unknown[]) =>
+          typeof c[0] === 'string' &&
+          (c[0] as string).includes('WHERE codigo = ANY'),
       );
 
       expect(caBulkLookups.length).toBeLessThanOrEqual(1);
@@ -625,7 +643,9 @@ describe('MercadoPublicoReconciliationService', () => {
 
     const result = await service.refreshAllExactReconciliation();
 
-    const insertCalls = (mockEntityManager.query as jest.Mock).mock.calls.filter(
+    const insertCalls = (
+      mockEntityManager.query as jest.Mock
+    ).mock.calls.filter(
       (call: unknown[]) =>
         typeof call[0] === 'string' &&
         (call[0] as string).includes(

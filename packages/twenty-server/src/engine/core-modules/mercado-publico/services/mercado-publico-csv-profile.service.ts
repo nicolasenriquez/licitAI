@@ -21,14 +21,17 @@ export class MercadoPublicoCsvProfileService {
   ) {}
 
   async run(payload: Record<string, unknown>): Promise<void> {
-    const parsedPayload = this.parsePayload(payload);
     const jobRunRecord =
       await this.mercadoPublicoPersistenceService.createJobRun(
         'csv-file-profile',
-        { rawCsvFileId: parsedPayload.raw_csv_file_id },
       );
 
     try {
+      const parsedPayload = this.parsePayload(payload);
+      await this.mercadoPublicoPersistenceService.linkJobRunToRawCsvFile(
+        jobRunRecord.id,
+        parsedPayload.raw_csv_file_id,
+      );
       const profile =
         await this.mercadoPublicoCsvProfilingService.profileFileById(
           parsedPayload.raw_csv_file_id,
@@ -69,6 +72,13 @@ export class MercadoPublicoCsvProfileService {
       });
 
       this.logger.error(errorSummaryText);
+
+      if (error instanceof BadRequestException) {
+        throw new MercadoPublicoRecordedJobFailureError(
+          errorSummaryText,
+          false,
+        );
+      }
 
       throw error;
     }

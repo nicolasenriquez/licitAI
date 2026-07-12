@@ -1,9 +1,8 @@
-import { BadRequestException } from '@nestjs/common';
-
 import { MercadoPublicoCsvLicitacionesDownloadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-licitaciones-download.service';
 import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
 import { MercadoPublicoCsvDownloadSharedService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-download-shared.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
+import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 
 describe('MercadoPublicoCsvLicitacionesDownloadService', () => {
   let service: MercadoPublicoCsvLicitacionesDownloadService;
@@ -31,6 +30,7 @@ describe('MercadoPublicoCsvLicitacionesDownloadService', () => {
 
     persistenceService = {
       createJobRun: jest.fn().mockResolvedValue(mockJobRunRecord),
+      linkJobRunToRawCsvFile: jest.fn(),
       finalizeJobRun: jest.fn(),
     } as unknown as jest.Mocked<MercadoPublicoPersistenceService>;
 
@@ -50,13 +50,15 @@ describe('MercadoPublicoCsvLicitacionesDownloadService', () => {
   });
 
   describe('parsePayload', () => {
-    it('should throw BadRequestException when source_period is missing', async () => {
-      await expect(service.run({})).rejects.toThrow(BadRequestException);
+    it('should record and reject when source_period is missing', async () => {
+      await expect(service.run({})).rejects.toBeInstanceOf(
+        MercadoPublicoRecordedJobFailureError,
+      );
     });
 
-    it('should throw BadRequestException when source_period is empty', async () => {
-      await expect(service.run({ source_period: '' })).rejects.toThrow(
-        BadRequestException,
+    it('should record and reject when source_period is empty', async () => {
+      await expect(service.run({ source_period: '' })).rejects.toBeInstanceOf(
+        MercadoPublicoRecordedJobFailureError,
       );
     });
   });
@@ -73,6 +75,10 @@ describe('MercadoPublicoCsvLicitacionesDownloadService', () => {
           sourceDataset: 'licitaciones',
           sourcePeriod: '2026-06',
         }),
+      );
+      expect(persistenceService.linkJobRunToRawCsvFile).toHaveBeenCalledWith(
+        mockJobRunRecord.id,
+        mockDownloadResult.rawCsvFileId,
       );
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -115,9 +121,7 @@ describe('MercadoPublicoCsvLicitacionesDownloadService', () => {
         new Error('Network error'),
       );
 
-      await expect(
-        service.run({ source_period: '2026-06' }),
-      ).rejects.toThrow();
+      await expect(service.run({ source_period: '2026-06' })).rejects.toThrow();
 
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
         expect.objectContaining({

@@ -103,7 +103,7 @@ Lens applied to each category: depth (small interface, concentrated complexity),
 - Integration: `test/integration/<feature>/suites/<name>.integration-spec.ts`. Setup: `setup-test.ts:8-21`, app factory `create-app.ts:43-107` (uses `SyncDriver` for queue tests, line 38/71).
 - Mocks: co-located `src/**/mocks/` (e.g. `gmail-api-error-mocks.ts`, `microsoft-api-examples.ts`).
 - Run single: `cd packages/twenty-server && npx jest "filename"` (per AGENTS.md). Integration: `npx nx run twenty-server:test:integration:with-db-reset`.
-- **Leverage**: MP unit specs co-located beside driver/service. Integration specs in `test/integration/mercado-publico/suites/`. Mock API responses in `src/modules/mercado-publico/mocks/`. Use `SyncDriver` for queue tests. DB-backed tests via `createApp` + `rawDataSource`.
+- **Leverage**: MP unit specs co-located beside driver/service. Integration specs in `test/integration/mercado-publico/suites/`. Mock API responses in `src/engine/core-modules/mercado-publico/mocks/`. Use `SyncDriver` for queue tests. DB-backed tests via `createApp` + `rawDataSource`.
 
 ### Logging / Observability — EXISTS, deep
 
@@ -233,7 +233,7 @@ For each surface the MP change touches: files affected, blast radius, regression
 
 ### 6. MP Module + Services + Jobs (new `modules/mercado-publico/`)
 
-- **Files touched**: entirely new directory `packages/twenty-server/src/modules/mercado-publico/`. Registered in `ModulesModule` (`modules.module.ts:10-22` — add `MercadoPublicoModule` to imports).
+- **Files touched**: entirely new directory `packages/twenty-server/src/engine/core-modules/mercado-publico/`. Registered in `CoreEngineModule` and `JobsModule`.
 - **Blast radius**: Additive. No existing module modified except `ModulesModule` (one import added). MP module imports `SecureHttpClientModule`, `TwentyConfigModule`, `TypeOrmModule.forFeature([...MP entities])`.
 - **Regression checks**:
   - `ModulesModule` still bootstraps — existing business features (calendar, messaging, connected-account, workflow, workspace-member, onboarding) unaffected.

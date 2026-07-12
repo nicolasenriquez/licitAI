@@ -111,15 +111,15 @@ Tests target these public surfaces only (no private method spies, no internal co
 
 ### Fixture Strategy
 
-- **API mocks**: co-located `src/modules/mercado-publico/drivers/api/mocks/*.example.ts`. Synthetic JSON payloads shaped per source contract. NO real tickets.
-- **CSV fixtures**: `src/modules/mercado-publico/csv/mocks/fixtures/*.{csv,csv.gz}`. Small synthetic files covering observed June 2026 formats (latin-1, `;`, `"`, comma decimals, `NA`, `1900-01-01`, repeated keys). ≤10 rows each for unit speed.
+- **API mocks**: co-located `src/engine/core-modules/mercado-publico/drivers/api/mocks/*.example.ts`. Synthetic JSON payloads shaped per source contract. NO real tickets.
+- **CSV fixtures**: `src/engine/core-modules/mercado-publico/csv/mocks/fixtures/*.{csv,csv.gz}`. Small synthetic files covering observed June 2026 formats (latin-1, `;`, `"`, comma decimals, `NA`, `1900-01-01`, repeated keys). ≤10 rows each for unit speed.
 - **DB fixtures**: integration tests use `createApp` + `rawDataSource` (per `setup-test.ts:8-21`), insert raw payloads directly, then invoke services. No pre-seeded `mp` data files.
 - **Queue fixtures**: `SyncDriver` processes jobs synchronously (per `create-app.ts:38,71`).
 
 ### Test File Layout
 
 ```
-packages/twenty-server/src/modules/mercado-publico/
+packages/twenty-server/src/engine/core-modules/mercado-publico/
   drivers/api/utils/format-v1-date.util.spec.ts
   drivers/api/utils/classify-http-failure.util.spec.ts
   drivers/api/utils/validate-compra-agil-params.util.spec.ts
@@ -731,7 +731,7 @@ Target: `getCsvFileHealth()` — per `spec.md:447-450`, `design.md:539-551`.
 
 ### Placement
 
-Per `investigation.md` §0.2 "Existing API Client Modules" — mocks co-located in `src/modules/mercado-publico/drivers/api/mocks/`. Synthetic JSON, NO real tickets or secrets.
+Per `investigation.md` §0.2 "Existing API Client Modules" — mocks co-located in `src/engine/core-modules/mercado-publico/drivers/api/mocks/`. Synthetic JSON, NO real tickets or secrets.
 
 ### Required API Fixtures (per `design.md:446-455`, `source-contract.md:490-516`)
 
@@ -772,7 +772,7 @@ Per `investigation.md` §0.2 "Existing API Client Modules" — mocks co-located 
 
 ### Placement
 
-Per `investigation.md` §0.2 — CSV fixtures in `src/modules/mercado-publico/csv/mocks/fixtures/`. Small synthetic files (≤10 rows each for unit speed). Binary-safe encoding (latin-1 bytes preserved).
+Per `investigation.md` §0.2 — CSV fixtures in `src/engine/core-modules/mercado-publico/csv/mocks/fixtures/`. Small synthetic files (≤10 rows each for unit speed). Binary-safe encoding (latin-1 bytes preserved).
 
 ### Required CSV Fixtures (per `design.md:456-468`, `source-contract.md:490-516`)
 

@@ -1,9 +1,8 @@
-import { BadRequestException } from '@nestjs/common';
-
 import { MercadoPublicoApiV2CompraAgilPublicationWindowService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-v2-compra-agil-publication-window.service';
 import { MercadoPublicoApiV2CompraAgilClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
+import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 
 describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
   let service: MercadoPublicoApiV2CompraAgilPublicationWindowService;
@@ -67,22 +66,25 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
   });
 
   describe('parsePayload', () => {
-    it('should throw BadRequestException when both publicado_desde and publicado_hasta are missing', async () => {
-      await expect(service.run({})).rejects.toThrow(BadRequestException);
+    it('should record and reject when both publicado_desde and publicado_hasta are missing', async () => {
+      await expect(service.run({})).rejects.toThrow(
+        MercadoPublicoRecordedJobFailureError,
+      );
+      expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'param_error', recordsFailed: 1 }),
+      );
     });
 
-    it('should throw BadRequestException when both are empty strings', async () => {
+    it('should record and reject when both are empty strings', async () => {
       await expect(
         service.run({ publicado_desde: '', publicado_hasta: '' }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(MercadoPublicoRecordedJobFailureError);
     });
   });
 
   describe('run', () => {
     it('should persist and canonicalize on success with publicado_desde only', async () => {
-      clientService.getList.mockResolvedValue(
-        mockApiSuccessResponse as any,
-      );
+      clientService.getList.mockResolvedValue(mockApiSuccessResponse as any);
 
       await service.run({ publicado_desde: '2026-06-01T00:00:00Z' });
 
@@ -112,9 +114,7 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
     });
 
     it('should pass both publicado_desde and publicado_hasta when both provided', async () => {
-      clientService.getList.mockResolvedValue(
-        mockApiSuccessResponse as any,
-      );
+      clientService.getList.mockResolvedValue(mockApiSuccessResponse as any);
 
       await service.run({
         publicado_desde: '2026-06-01T00:00:00Z',
@@ -130,9 +130,7 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
     });
 
     it('should pass only publicado_hasta when publicado_desde is not provided', async () => {
-      clientService.getList.mockResolvedValue(
-        mockApiSuccessResponse as any,
-      );
+      clientService.getList.mockResolvedValue(mockApiSuccessResponse as any);
 
       await service.run({
         publicado_hasta: '2026-06-30T23:59:59Z',

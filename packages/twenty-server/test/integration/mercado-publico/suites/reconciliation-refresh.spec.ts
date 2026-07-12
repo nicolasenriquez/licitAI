@@ -296,9 +296,7 @@ const insertJobRun = async (
       jobRunId,
       input.status,
       new Date('2026-06-30T12:00:00.000Z'),
-      input.status === 'success'
-        ? new Date('2026-06-30T12:05:00.000Z')
-        : null,
+      input.status === 'success' ? new Date('2026-06-30T12:05:00.000Z') : null,
       input.rawCsvFileId ?? null,
     ],
   );
@@ -319,9 +317,7 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
 
     await applyMercadoPublicoReconciliationCommands(dataSource);
 
-    reconciliationService = new MercadoPublicoReconciliationService(
-      dataSource,
-    );
+    reconciliationService = new MercadoPublicoReconciliationService(dataSource);
   });
 
   beforeEach(async () => {
@@ -388,7 +384,12 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
         )
         VALUES ($1, $2, $3, 'list', 'L1', '1', '5', 'Publicada', $4)
       `,
-      [makeUuid(), apiPayloadId, MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_LICITACIONES, makeFetchedAt()],
+      [
+        makeUuid(),
+        apiPayloadId,
+        MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_LICITACIONES,
+        makeFetchedAt(),
+      ],
     );
 
     await dataSource.query(
@@ -425,7 +426,9 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
     );
     expect(reconRow.entity_b_type).toBe('licitacion');
     expect(reconRow.entity_b_key).toBe('L1');
-    expect(reconRow.match_confidence).toBe(MERCADO_PUBLICO_RECONCILIATION_MATCH_CONFIDENCE);
+    expect(reconRow.match_confidence).toBe(
+      MERCADO_PUBLICO_RECONCILIATION_MATCH_CONFIDENCE,
+    );
     expect(reconRow.review_status).toBe('pending');
   });
 
@@ -479,7 +482,12 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
         )
         VALUES ($1, $2, $3, 'list', 'OC-1', $4)
       `,
-      [makeUuid(), apiPayloadId, MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_OC, makeFetchedAt()],
+      [
+        makeUuid(),
+        apiPayloadId,
+        MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_OC,
+        makeFetchedAt(),
+      ],
     );
 
     await dataSource.query(
@@ -643,8 +651,16 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
       endpoint: 'by-state',
       rawPayload: { Listado: [] },
     });
-    await insertJobRun(dataSource, { id: apiJobRunId, jobName: 'api-v1-oc-by-state', status: 'success' });
-    await insertJobRun(dataSource, { id: csvJobRunId, jobName: 'csv-raw-load', status: 'success' });
+    await insertJobRun(dataSource, {
+      id: apiJobRunId,
+      jobName: 'api-v1-oc-by-state',
+      status: 'success',
+    });
+    await insertJobRun(dataSource, {
+      id: csvJobRunId,
+      jobName: 'csv-raw-load',
+      status: 'success',
+    });
 
     await insertRawCsvFile(dataSource, {
       fileId: csvFileId,
@@ -661,7 +677,11 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
       fileName: 'oc-2026-06.csv',
       rowNumber: 1,
       rawRowText: 'OC-H1;Acme;1000',
-      rawRowJson: { codigo: 'OC-H1', nombre_proveedor: 'Acme', monto_total_oc: '1000' },
+      rawRowJson: {
+        codigo: 'OC-H1',
+        nombre_proveedor: 'Acme',
+        monto_total_oc: '1000',
+      },
     });
 
     await dataSource.query(
@@ -672,7 +692,12 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
         )
         VALUES ($1, $2, $3, 'list', 'OC-H1-API', 'Acme', '1000', $4)
       `,
-      [makeUuid(), apiPayloadId, MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_OC, makeFetchedAt()],
+      [
+        makeUuid(),
+        apiPayloadId,
+        MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_OC,
+        makeFetchedAt(),
+      ],
     );
 
     await dataSource.query(
@@ -698,7 +723,9 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
     expect(reconRow).toBeDefined();
     expect(reconRow.entity_a_key).toBe('OC-H1-API');
     expect(reconRow.entity_b_key).toBe('OC-H1-CSV');
-    expect(reconRow.match_confidence).toBe(MERCADO_PUBLICO_RECONCILIATION_MATCH_CONFIDENCE_MEDIUM);
+    expect(reconRow.match_confidence).toBe(
+      MERCADO_PUBLICO_RECONCILIATION_MATCH_CONFIDENCE_MEDIUM,
+    );
   });
 
   // -- heuristic: candidate_item_amount --
@@ -707,7 +734,11 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
     const csvRowId = makeUuid();
     const csvJobRunId = makeUuid();
 
-    await insertJobRun(dataSource, { id: csvJobRunId, jobName: 'csv-raw-load', status: 'success' });
+    await insertJobRun(dataSource, {
+      id: csvJobRunId,
+      jobName: 'csv-raw-load',
+      status: 'success',
+    });
     await insertRawCsvFile(dataSource, {
       fileId: csvFileId,
       sourceDataset: 'licitaciones',
@@ -766,7 +797,9 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
     );
 
     expect(reconRow).toBeDefined();
-    expect(reconRow.match_confidence).toBe(MERCADO_PUBLICO_RECONCILIATION_MATCH_CONFIDENCE_LOW);
+    expect(reconRow.match_confidence).toBe(
+      MERCADO_PUBLICO_RECONCILIATION_MATCH_CONFIDENCE_LOW,
+    );
   });
 
   // -- heuristic: unmatched --
@@ -790,8 +823,16 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
       endpoint: 'by-date',
       rawPayload: { Listado: [] },
     });
-    await insertJobRun(dataSource, { id: apiJobRunId, jobName: 'api-v1-licitaciones-by-date', status: 'success' });
-    await insertJobRun(dataSource, { id: csvJobRunId, jobName: 'csv-raw-load', status: 'success' });
+    await insertJobRun(dataSource, {
+      id: apiJobRunId,
+      jobName: 'api-v1-licitaciones-by-date',
+      status: 'success',
+    });
+    await insertJobRun(dataSource, {
+      id: csvJobRunId,
+      jobName: 'csv-raw-load',
+      status: 'success',
+    });
     await insertRawCsvFile(dataSource, {
       fileId: csvFileId,
       sourceDataset: 'licitaciones',
@@ -825,7 +866,12 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
         )
         VALUES ($1, $2, $3, 'list', 'MATCHED-1', $4)
       `,
-      [makeUuid(), apiPayloadId, MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_LICITACIONES, makeFetchedAt()],
+      [
+        makeUuid(),
+        apiPayloadId,
+        MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_LICITACIONES,
+        makeFetchedAt(),
+      ],
     );
 
     await dataSource.query(
@@ -853,8 +899,9 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
     );
 
     const orphanRow = unmatchedRows.find((r) => r.entity_a_key === 'ORPHAN-1');
-    expect(orphanRow).toBeDefined();
-    expect(orphanRow.entity_a_type).toBe('licitacion');
+    expect(orphanRow).toMatchObject({
+      entity_a_type: 'licitacion',
+    });
 
     // Verify gold_detected_process was updated
     const goldRows = await dataSource.query<
@@ -881,8 +928,16 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
       endpoint: 'by-date',
       rawPayload: { Listado: [] },
     });
-    await insertJobRun(dataSource, { id: apiJobRunId, jobName: 'api-v1-licitaciones-by-date', status: 'success' });
-    await insertJobRun(dataSource, { id: csvJobRunId, jobName: 'csv-raw-load', status: 'success' });
+    await insertJobRun(dataSource, {
+      id: apiJobRunId,
+      jobName: 'api-v1-licitaciones-by-date',
+      status: 'success',
+    });
+    await insertJobRun(dataSource, {
+      id: csvJobRunId,
+      jobName: 'csv-raw-load',
+      status: 'success',
+    });
     await insertRawCsvFile(dataSource, {
       fileId: csvFileId,
       sourceDataset: 'licitaciones',
@@ -916,7 +971,12 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
         )
         VALUES ($1, $2, $3, 'list', 'SM-1', '5', 'Publicada', $4, '100')
       `,
-      [makeUuid(), apiPayloadId, MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_LICITACIONES, makeFetchedAt()],
+      [
+        makeUuid(),
+        apiPayloadId,
+        MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_LICITACIONES,
+        makeFetchedAt(),
+      ],
     );
 
     await dataSource.query(
@@ -1004,9 +1064,7 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
 
     await reconciliationService.refreshAllHeuristicReconciliation();
 
-    const [{ count: firstCount }] = await dataSource.query<
-      { count: string }[]
-    >(
+    const [{ count: firstCount }] = await dataSource.query<{ count: string }[]>(
       `SELECT COUNT(*)::text AS count FROM mp.reconciliation_event WHERE event_type = 'source_period_rerun_mismatch'`,
     );
 
@@ -1039,9 +1097,7 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
 
     await reconciliationService.refreshAllExactReconciliation();
 
-    const [{ count: firstCount }] = await dataSource.query<
-      { count: string }[]
-    >(
+    const [{ count: firstCount }] = await dataSource.query<{ count: string }[]>(
       `SELECT COUNT(*)::text AS count FROM mp.reconciliation_public_market_entities WHERE match_type = 'exact_codigo_licitacion'`,
     );
 

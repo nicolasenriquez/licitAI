@@ -16,6 +16,7 @@ The format follows [Semantic Versioning](https://semver.org/) and the
 ## Unreleased
 
 ### Added
+- Mercado Publico phase-1 ingestion backbone with auditable API and CSV job runs
 - Email/calendar timelines derived from object relations (#21684)
 - Gmail folder backfill in messaging (#21753)
 - Enterprise instance metadata reporting on license validation (#21793)

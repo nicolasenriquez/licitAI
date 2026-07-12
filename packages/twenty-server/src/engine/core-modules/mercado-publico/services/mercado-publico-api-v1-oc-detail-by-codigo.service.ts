@@ -30,13 +30,13 @@ export class MercadoPublicoApiV1OcDetailByCodigoService {
   ) {}
 
   async run(payload: Record<string, unknown>): Promise<void> {
-    const parsedPayload = this.parsePayload(payload);
     const jobRunRecord =
       await this.mercadoPublicoPersistenceService.createJobRun(
         'api-v1-oc-detail-by-codigo',
       );
 
     try {
+      const parsedPayload = this.parsePayload(payload);
       const apiResponse =
         await this.mercadoPublicoApiV1OrdenesDeCompraClientService.getByCodigo(
           parsedPayload.codigo,
@@ -79,7 +79,6 @@ export class MercadoPublicoApiV1OcDetailByCodigoService {
 
       const recordsFetched = apiResponse.ordenesDeCompra.length;
       let recordsCanonicalized = 0;
-      let rawApiPayloadId: string | undefined;
 
       if (recordsFetched > 0) {
         const persistenceResult =
@@ -91,7 +90,6 @@ export class MercadoPublicoApiV1OcDetailByCodigoService {
             },
           );
 
-        rawApiPayloadId = persistenceResult.rawApiPayloadId;
         recordsCanonicalized =
           await this.mercadoPublicoCanonicalRefreshService.refreshV1OrdenesDeCompraFromApiSnapshot(
             persistenceResult.rawApiPayloadId,
@@ -142,6 +140,13 @@ export class MercadoPublicoApiV1OcDetailByCodigoService {
       });
 
       this.logger.error(errorSummaryText);
+
+      if (error instanceof BadRequestException) {
+        throw new MercadoPublicoRecordedJobFailureError(
+          errorSummaryText,
+          false,
+        );
+      }
 
       throw error;
     }

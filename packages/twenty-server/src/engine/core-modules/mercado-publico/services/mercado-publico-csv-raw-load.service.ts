@@ -56,23 +56,23 @@ export class MercadoPublicoCsvRawLoadService {
   ) {}
 
   async run(payload: Record<string, unknown>): Promise<void> {
-    const parsedPayload = this.parsePayload(payload);
-    const fileMeta =
-      await this.mercadoPublicoPersistenceService.getRawCsvFileMetaById(
-        parsedPayload.raw_csv_file_id,
-      );
-    const jobRunRecord = fileMeta
-      ? await this.mercadoPublicoPersistenceService.createJobRun(
-          'csv-raw-load',
-          {
-            rawCsvFileId: fileMeta.id,
-          },
-        )
-      : await this.mercadoPublicoPersistenceService.createJobRun(
-          'csv-raw-load',
-        );
+    const jobRunRecord =
+      await this.mercadoPublicoPersistenceService.createJobRun('csv-raw-load');
 
     try {
+      const parsedPayload = this.parsePayload(payload);
+      const fileMeta =
+        await this.mercadoPublicoPersistenceService.getRawCsvFileMetaById(
+          parsedPayload.raw_csv_file_id,
+        );
+
+      if (fileMeta) {
+        await this.mercadoPublicoPersistenceService.linkJobRunToRawCsvFile(
+          jobRunRecord.id,
+          fileMeta.id,
+        );
+      }
+
       if (!fileMeta) {
         throw new Error(
           `raw_csv_file row not found for id ${parsedPayload.raw_csv_file_id}`,
@@ -116,6 +116,13 @@ export class MercadoPublicoCsvRawLoadService {
       });
 
       this.logger.error(errorSummaryText);
+
+      if (error instanceof BadRequestException) {
+        throw new MercadoPublicoRecordedJobFailureError(
+          errorSummaryText,
+          false,
+        );
+      }
 
       throw error;
     }

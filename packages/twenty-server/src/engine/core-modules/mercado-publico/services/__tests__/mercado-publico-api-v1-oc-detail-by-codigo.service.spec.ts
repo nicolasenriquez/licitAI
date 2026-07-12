@@ -1,9 +1,8 @@
-import { BadRequestException } from '@nestjs/common';
-
 import { MercadoPublicoApiV1OcDetailByCodigoService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-v1-oc-detail-by-codigo.service';
 import { MercadoPublicoApiV1OrdenesDeCompraClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-ordenes-de-compra-client.service';
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
+import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 
 describe('MercadoPublicoApiV1OcDetailByCodigoService', () => {
   let service: MercadoPublicoApiV1OcDetailByCodigoService;
@@ -65,19 +64,24 @@ describe('MercadoPublicoApiV1OcDetailByCodigoService', () => {
   });
 
   describe('parsePayload', () => {
-    it('should throw BadRequestException when codigo is missing', async () => {
-      await expect(service.run({})).rejects.toThrow(BadRequestException);
-    });
-
-    it('should throw BadRequestException when codigo is empty', async () => {
-      await expect(service.run({ codigo: '' })).rejects.toThrow(
-        BadRequestException,
+    it('should record and reject when codigo is missing', async () => {
+      await expect(service.run({})).rejects.toThrow(
+        MercadoPublicoRecordedJobFailureError,
+      );
+      expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'param_error', recordsFailed: 1 }),
       );
     });
 
-    it('should throw BadRequestException when codigo is not a string', async () => {
+    it('should record and reject when codigo is empty', async () => {
+      await expect(service.run({ codigo: '' })).rejects.toThrow(
+        MercadoPublicoRecordedJobFailureError,
+      );
+    });
+
+    it('should record and reject when codigo is not a string', async () => {
       await expect(service.run({ codigo: 123 })).rejects.toThrow(
-        BadRequestException,
+        MercadoPublicoRecordedJobFailureError,
       );
     });
   });
@@ -122,9 +126,7 @@ describe('MercadoPublicoApiV1OcDetailByCodigoService', () => {
 
       clientService.getByCodigo.mockResolvedValue(errorResponse);
 
-      await expect(
-        service.run({ codigo: 'OC-NONEXIST' }),
-      ).rejects.toThrow();
+      await expect(service.run({ codigo: 'OC-NONEXIST' })).rejects.toThrow();
 
       expect(persistenceService.persistApiFailure).toHaveBeenCalled();
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
@@ -139,9 +141,7 @@ describe('MercadoPublicoApiV1OcDetailByCodigoService', () => {
 
       clientService.getByCodigo.mockRejectedValue(networkError);
 
-      await expect(
-        service.run({ codigo: 'OC-1' }),
-      ).rejects.toThrow();
+      await expect(service.run({ codigo: 'OC-1' })).rejects.toThrow();
 
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
         expect.objectContaining({
