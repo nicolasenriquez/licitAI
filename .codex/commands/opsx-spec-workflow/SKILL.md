@@ -11,7 +11,7 @@ user explicitly requests the legacy OpenSpec workflow.
 Read only what is needed:
 
 - the active change folder under `openspec/changes/<change-name>/`
-- `.codex/commands/grill-with-docs/SKILL.md`
+- `.agents/skills/grill-with-docs/SKILL.md`
 - [references/opsx-command-contract.md](references/opsx-command-contract.md)
 - [references/opsx-house-style.md](references/opsx-house-style.md)
 - [references/artifact-templates.md](references/artifact-templates.md)
@@ -173,3 +173,38 @@ Stop and report a blocker when:
 - accounting, export, canon, schema, approval, or workflow behavior would widen
   silently
 - human and artifact understanding are still materially misaligned
+## Authoring Quality Gates
+
+Before planning slices, Phase 0 must identify the highest existing Seam, its
+owning Module and Interface, and the highest test Seam through which callers and
+tests can observe the behavior. Prefer an existing Seam; explain why a lower
+Seam is necessary when one is proposed.
+
+When runtime, contract, persistence, integration, UI, or regression risk exists,
+Phase 1 must name the first failing behavior or contract proof and relevant test
+prior art. The proof crosses the chosen Seam and asserts external behavior.
+
+Phase 2 tasks must be vertical, bounded, demoable or verifiable on their own,
+and small enough for one fresh context when practical. Use real Blocked by edges
+only when a dependency gates work. Use expand -> migrate -> contract for wide
+refactors. Add Execution Order when there is more than one slice, a real
+dependency between phases, parallel work, or a wide refactor that could be
+misread as numeric order. Keep numeric IDs stable, list each task once in that
+block, and reject missing IDs or cycles. Layer headings group tasks; they do not
+define execution order.
+
+Use the selected Matt rules as guidance only:
+
+- grilling / grill-with-docs: clarify intent, ownership, and scope one question
+  at a time; preserve the Opsx protocol of exactly three alternatives and one
+  recommendation. The available skill is .agents/skills/grill-with-docs/SKILL.md.
+- codebase-design: use Module, Interface, Seam, Adapter, Depth, Locality, and
+  Leverage.
+- to-spec: prefer the highest existing Seam, external behavior, and test prior
+  art.
+- to-tickets: use vertical tracer-bullet slices, genuine blockers, and
+  expand-contract.
+
+OpenSpec remains the sole source of truth. Do not run Matt commands that publish
+tracker work or create parallel artifacts during normal Opsx authoring; in
+particular, do not invoke to-spec or to-tickets as authoring steps.

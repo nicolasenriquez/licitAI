@@ -45,6 +45,15 @@ describe('MercadoPublicoCsvStagingProjectionService', () => {
     });
   });
 
+  it('does not link a missing raw CSV file', async () => {
+    persistenceService.getRawCsvFileById = jest.fn().mockResolvedValue(null);
+
+    await expect(
+      service.run({ raw_csv_file_id: 'missing-id' }),
+    ).rejects.toThrow('raw_csv_file row not found');
+
+    expect(persistenceService.linkJobRunToRawCsvFile).not.toHaveBeenCalled();
+  });
   describe('OC staging projection', () => {
     const fileMeta = {
       id: 'csv-file-oc-id',

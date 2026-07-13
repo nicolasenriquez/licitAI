@@ -19,6 +19,7 @@ import { MpReconciliationPublicMarketEntitiesFastInstanceCommand } from 'src/dat
 import { MpReconciliationEventFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007900-mp-reconciliation-event';
 import { MpGoldReadObjectsFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007910-mp-gold-read-objects';
 import { MpRawCsvFileDedupeModalityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007920-mp-raw-csv-file-dedupe-modality';
+import { MpRawCsvFileDedupeNullsNotDistinctFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1783191615520-mp-raw-csv-file-dedupe-nulls-not-distinct';
 import { DropRawCsvFileIngestionJobIdFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1783191615514-drop-raw-csv-file-ingestion-job-id';
 import { MpStgJobRunRawCsvFileLinkSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1782340007930-mp-stg-job-run-raw-csv-file-link';
 import { rawDataSource } from 'src/database/typeorm/raw/raw.datasource';
@@ -98,6 +99,9 @@ const applyMercadoPublicoReconciliationCommands = async (
     await new MpReconciliationEventFastInstanceCommand().up(queryRunner);
     await new MpGoldReadObjectsFastInstanceCommand().up(queryRunner);
     await new MpRawCsvFileDedupeModalityFastInstanceCommand().up(queryRunner);
+    await new MpRawCsvFileDedupeNullsNotDistinctFastInstanceCommand().up(
+      queryRunner,
+    );
     await new DropRawCsvFileIngestionJobIdFastInstanceCommand().up(queryRunner);
     await new MpStgJobRunRawCsvFileLinkSlowInstanceCommand().up(queryRunner);
 

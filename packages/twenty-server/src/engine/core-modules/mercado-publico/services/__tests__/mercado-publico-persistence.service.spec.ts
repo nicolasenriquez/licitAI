@@ -28,6 +28,33 @@ describe('MercadoPublicoPersistenceService', () => {
     expect(executedQueries[0]?.params).toHaveLength(3);
   });
 
+  it('does not use the raw-file insert path for an empty raw file id', async () => {
+    const executedQueries: Array<{ sql: string; params: unknown[] }> = [];
+    const mockDataSource = {
+      query: jest
+        .fn()
+        .mockImplementation(async (sql: string, params: unknown[]) => {
+          executedQueries.push({ sql, params });
+
+          if (sql.includes('information_schema.columns')) {
+            return [{ exists: true }];
+          }
+
+          return [{ id: 'job-run-row-id' }];
+        }),
+    };
+    const service = new MercadoPublicoPersistenceService(
+      mockDataSource as never,
+    );
+
+    await service.createJobRun('csv-raw-load', {
+      rawCsvFileId: '',
+    });
+
+    expect(executedQueries).toHaveLength(1);
+    expect(executedQueries[0]?.sql).not.toContain('raw_csv_file_id');
+    expect(executedQueries[0]?.params).toHaveLength(3);
+  });
   it('creates a legacy-safe job run when file context is provided but the schema column is unavailable', async () => {
     const executedQueries: Array<{ sql: string; params: unknown[] }> = [];
     const mockDataSource = {

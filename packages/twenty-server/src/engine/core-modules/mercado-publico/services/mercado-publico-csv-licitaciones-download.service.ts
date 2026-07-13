@@ -62,7 +62,6 @@ export class MercadoPublicoCsvLicitacionesDownloadService {
 
       const result =
         await this.mercadoPublicoCsvDownloadSharedService.downloadAndPersist({
-          jobRunRecordId: jobRunRecord.id,
           sourceSystem: 'datos-abiertos',
           sourceDataset: MERCADO_PUBLICO_CSV_LICITACIONES_DATASET,
           sourceUrl: settings.csvLicitacionesSourceUrl,

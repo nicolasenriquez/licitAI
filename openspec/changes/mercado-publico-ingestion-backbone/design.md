@@ -74,8 +74,9 @@ Minimum object contract:
   - Required fields: `source`, `endpoint`, `request_fingerprint`, `payload_checksum`, `request_params`, `http_status`, `fetched_at`, `raw_payload`, `schema_fingerprint`
 - `mp.raw_csv_file`
   - PK: surrogate `id`
-  - UK: `source_dataset + source_period + file_checksum`
+  - UK: `source_dataset + source_period + source_modality + file_checksum`
   - Required fields: `source_dataset`, `source_period`, `source_file_name`, `file_checksum`, `file_size_bytes`, `detected_encoding`, `detected_delimiter`, `quotechar`, `header_raw`, `observed_columns`, `column_count`, `schema_fingerprint`, `row_count`, `downloaded_at`
+  - File-to-job-run linkage is stored on `stg_job_run.raw_csv_file_id`; `raw_csv_file` has no `ingestion_job_id` column.
 - `mp.raw_csv_row`
   - PK: surrogate `id`
   - UK: `raw_csv_file_id + row_number + row_checksum`
@@ -384,7 +385,7 @@ Every CSV file run must persist:
 - `column_count`
 - `schema_fingerprint`
 - `row_count`
-- `ingestion_job_id`
+- `stg_job_run.raw_csv_file_id`
 
 Every CSV row must persist:
 
@@ -403,7 +404,7 @@ Every CSV row must persist:
 ## Idempotency
 
 - Deduplicate raw API payloads by request fingerprint plus payload checksum.
-- Deduplicate raw CSV files by source identity plus file checksum.
+- Deduplicate raw CSV files by source identity, source modality, plus file checksum; NULL modality is treated as equal.
 - Deduplicate raw CSV rows by file checksum plus row number plus row checksum.
 - Deduplicate canonical entities by natural key.
 - Deduplicate reconciliation events by logical mismatch fingerprint.

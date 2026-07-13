@@ -34,10 +34,6 @@ export class MercadoPublicoCsvStagingProjectionService {
 
     try {
       const parsedPayload = this.parsePayload(payload);
-      await this.mercadoPublicoPersistenceService.linkJobRunToRawCsvFile(
-        jobRunRecord.id,
-        parsedPayload.raw_csv_file_id,
-      );
       const rawFileRow =
         await this.mercadoPublicoPersistenceService.getRawCsvFileById(
           parsedPayload.raw_csv_file_id,
@@ -48,6 +44,11 @@ export class MercadoPublicoCsvStagingProjectionService {
           `raw_csv_file row not found for id ${parsedPayload.raw_csv_file_id}`,
         );
       }
+
+      await this.mercadoPublicoPersistenceService.linkJobRunToRawCsvFile(
+        jobRunRecord.id,
+        rawFileRow.id,
+      );
 
       const observedColumns: string[] = await this.getObservedColumns(
         parsedPayload.raw_csv_file_id,

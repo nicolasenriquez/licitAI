@@ -37,6 +37,14 @@ yarn nx run twenty-server:start
 yarn nx run twenty-server:worker
 ```
 
+## Release Gate for Existing Deployments
+
+For an existing deployment, quiesce Mercado Público workers and queued Mercado Público jobs before applying the schema/link rollout. Run the instance-command runner with both safety flags:
+
+`docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml exec server yarn command:prod run-instance-commands --force --include-slow`
+
+Verify that `mp.stg_job_run.raw_csv_file_id` exists, the slow backfill populated eligible legacy CSV runs, and the NULL-modality dedupe constraint reports `pg_index.indnullsnotdistinct = true`. If the dedupe preflight reports duplicate groups, stop and remediate those rows separately; the migration does not delete or merge audit data. Restart the application and Mercado Público workers only after verification.
+
 ## Trigger One Process
 
 Run one command at a time. The command enqueues work to the existing internal

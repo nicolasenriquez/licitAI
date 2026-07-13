@@ -6,6 +6,7 @@ import { MpRawCsvFileFastInstanceCommand } from 'src/database/commands/upgrade-v
 import { MpRawCsvRowFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007700-mp-raw-csv-row';
 import { MpStgJobRunFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007800-mp-stg-job-run';
 import { MpRawCsvFileDedupeModalityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007920-mp-raw-csv-file-dedupe-modality';
+import { MpRawCsvFileDedupeNullsNotDistinctFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1783191615520-mp-raw-csv-file-dedupe-nulls-not-distinct';
 import { DropRawCsvFileIngestionJobIdFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1783191615514-drop-raw-csv-file-ingestion-job-id';
 import { MpStgJobRunRawCsvFileLinkSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1782340007930-mp-stg-job-run-raw-csv-file-link';
 import { rawDataSource } from 'src/database/typeorm/raw/raw.datasource';
@@ -42,6 +43,9 @@ describe('Mercado Publico CSV file health (db-backed)', () => {
       await new MpRawCsvRowFastInstanceCommand().up(queryRunner);
       await new MpStgJobRunFastInstanceCommand().up(queryRunner);
       await new MpRawCsvFileDedupeModalityFastInstanceCommand().up(queryRunner);
+      await new MpRawCsvFileDedupeNullsNotDistinctFastInstanceCommand().up(
+        queryRunner,
+      );
       await new DropRawCsvFileIngestionJobIdFastInstanceCommand().up(
         queryRunner,
       );

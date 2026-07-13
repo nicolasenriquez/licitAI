@@ -165,3 +165,46 @@ Keep final documentation and release work in `## 4. Release Hygiene and Closeout
 
 Allow earlier doc edits only when they close a design ambiguity before
 implementation begins.
+## Execution Order
+
+Numeric order is sufficient for a simple change with one implementation slice
+and no real dependency edge. Add this section when there is more than one slice,
+a dependency between phases, parallel work, or a wide refactor that could be
+misread as numeric order.
+
+Use this shape:
+
+### Slice 1 — <name>
+- Tasks: `0.1 -> 1.1 -> 2.1 -> 3.1`
+- Checkpoint: <observable proof or evidence>
+- Blocks: <another slice or None>
+
+If a slice has an incoming dependency, add only the real edge:
+
+- Blocked by: <existing task IDs or slice names>
+
+Rules:
+
+- Every task ID in the tasks file appears exactly once in this block.
+- Every referenced task ID exists.
+- Blocked by: appears only for a genuine dependency.
+- The dependency graph is acyclic.
+- Checkpoints are observable, demoable, or otherwise verifiable.
+- Layer headings such as Schema, Backend, and API are grouping only.
+- Vertical slices cross the complete relevant path.
+- Wide refactors use expand -> migrate -> contract; the contract step is
+  blocked by every migration batch.
+- OpenSpec remains the sole source of truth; do not mirror the graph into a
+  tracker or tickets.md.
+
+Numeric task IDs remain stable after implementation begins. New tasks keep
+Traceability: as the canonical line. Historical Footnote: lines remain
+compatible and are not migrated automatically.
+
+## Matt Skill Integration
+
+Use grilling / grill-with-docs for one-question clarification, codebase-design
+for Module, Interface, Seam, Adapter, Depth, Locality, and Leverage, to-spec for
+the highest existing Seam and external-behavior prior art, and to-tickets for
+vertical slices, real blockers, and expand-contract. These skills do not publish
+tracker work or create parallel OpenSpec artifacts during normal authoring.

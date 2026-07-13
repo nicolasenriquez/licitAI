@@ -218,3 +218,50 @@ The system SHALL <behavior>.
 - **WHEN** <condition>
 - **THEN** <boundary-preserving behavior>
 ```
+## Quality-Gated Additions
+
+Add these fields to proposal.md without removing its existing sections:
+
+`## Ownership and Test Seam`
+
+- Highest existing Seam: <where behavior can be observed>
+- Owning Module: <Module responsible for the behavior>
+- Interface: <what callers and tests must know>
+- Highest test Seam: <the seam crossed by the first proof>
+- Adapter: <concrete adapter at the Seam, or None>
+- Depth / Leverage / Locality: <why this seam is valuable>
+
+`## Prior Art and First Proof`
+
+- Prior art: <similar external-behavior test or artifact>
+- First failing behavior or contract proof: <what would fail before the change>
+- If no fail-first proof is required: <explicit docs/governance justification>
+
+`## Execution Order Decision`
+
+- Required: <yes|no>
+- Why: <dependency, parallelism, slice count, or wide-refactor reason>
+
+Enrich design.md with ownership expressed using Module, Interface, Seam,
+Adapter, Depth, Leverage, and Locality; a behavior-first verification strategy;
+and the relationship between slices and their real dependencies.
+
+When tasks.md has multiple slices, dependencies, parallel work, or a wide
+refactor, add:
+
+`## Execution Order`
+
+### Slice 1 — <name>
+- Tasks: `0.1 -> 2.1 -> 3.1`
+- Checkpoint: <observable proof or evidence>
+- Blocks: None
+
+### Slice 2 — <name>
+- Tasks: 2.2 -> 3.2
+- Checkpoint: <observable proof or evidence>
+- Blocked by: 2.1
+- Blocks: <another slice or None>
+
+For a wide refactor, show expand, migrate batches, and contract. Keep each
+task's Traceability: line adjacent. Existing historical Footnote: lines are
+accepted; new tasks use Traceability:.

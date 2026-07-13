@@ -98,3 +98,19 @@ Use one exact next command only while the spec is incomplete or blocked:
 
 When the spec is already `Proposal Ready for Implementation`, do not recommend
 an automatic next command.
+## Quality-Gate Compatibility
+
+Execution Order is required only when the house-style dependency rule applies:
+more than one slice, a real dependency between phases, parallel work, or a wide
+refactor that could be misread as numeric order. A simple single-slice change
+remains compatible without it.
+
+Traceability: remains the canonical line for new or materially edited tasks.
+Blocked by: is optional, must point to existing task or slice IDs, and is valid
+only for a genuine dependency in an acyclic graph. Historical changes are not
+invalidated solely because they lack Execution Order, and historical Footnote:
+lines remain compatible.
+
+OpenSpec remains the only source of truth. Normal authoring does not invoke
+to-spec or to-tickets to publish tracker work and does not create a parallel
+tickets.md.

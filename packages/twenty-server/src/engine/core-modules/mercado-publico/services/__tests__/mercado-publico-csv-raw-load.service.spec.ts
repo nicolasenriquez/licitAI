@@ -74,6 +74,7 @@ describe('MercadoPublicoCsvRawLoadService', () => {
       expect(persistenceService.createJobRun).toHaveBeenCalledWith(
         'csv-raw-load',
       );
+      expect(persistenceService.linkJobRunToRawCsvFile).not.toHaveBeenCalled();
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
         expect.objectContaining({
           jobRunRecordId: mockJobRunRecord.id,

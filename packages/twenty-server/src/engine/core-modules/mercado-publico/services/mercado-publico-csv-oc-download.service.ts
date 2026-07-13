@@ -60,7 +60,6 @@ export class MercadoPublicoCsvOcDownloadService {
 
       const result =
         await this.mercadoPublicoCsvDownloadSharedService.downloadAndPersist({
-          jobRunRecordId: jobRunRecord.id,
           sourceSystem: 'datos-abiertos',
           sourceDataset: MERCADO_PUBLICO_CSV_OC_DATASET,
           sourceUrl: settings.csvOrdenesDeCompraSourceUrl,

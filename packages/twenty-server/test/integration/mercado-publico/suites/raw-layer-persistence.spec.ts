@@ -8,6 +8,7 @@ import { MpRawCsvFileFastInstanceCommand } from 'src/database/commands/upgrade-v
 import { MpRawCsvRowFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007700-mp-raw-csv-row';
 import { MpStgJobRunFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007800-mp-stg-job-run';
 import { MpRawCsvFileDedupeModalityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007920-mp-raw-csv-file-dedupe-modality';
+import { MpRawCsvFileDedupeNullsNotDistinctFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1783191615520-mp-raw-csv-file-dedupe-nulls-not-distinct';
 import { DropRawCsvFileIngestionJobIdFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1783191615514-drop-raw-csv-file-ingestion-job-id';
 import { MpStgJobRunRawCsvFileLinkSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1782340007930-mp-stg-job-run-raw-csv-file-link';
 import { rawDataSource } from 'src/database/typeorm/raw/raw.datasource';
@@ -44,6 +45,9 @@ const applyMercadoPublicoRawLayerCommands = async (dataSource: DataSource) => {
     await new MpRawCsvRowFastInstanceCommand().up(queryRunner);
     await new MpStgJobRunFastInstanceCommand().up(queryRunner);
     await new MpRawCsvFileDedupeModalityFastInstanceCommand().up(queryRunner);
+    await new MpRawCsvFileDedupeNullsNotDistinctFastInstanceCommand().up(
+      queryRunner,
+    );
     await new MpStgJobRunRawCsvFileLinkSlowInstanceCommand().up(queryRunner);
     await new DropRawCsvFileIngestionJobIdFastInstanceCommand().up(queryRunner);
 
@@ -135,6 +139,17 @@ describe('Mercado Publico raw layer persistence (db-backed)', () => {
       'uk_mp_raw_csv_file_dedupe',
       'uk_mp_raw_csv_row_dedupe',
     ]);
+
+    const [{ indnullsnotdistinct: nullsNotDistinct }] = await dataSource.query<
+      { indnullsnotdistinct: boolean }[]
+    >(`
+      SELECT pg_index.indnullsnotdistinct
+      FROM pg_index
+      JOIN pg_constraint ON pg_constraint.conindid = pg_index.indexrelid
+      WHERE pg_constraint.conname = 'uk_mp_raw_csv_file_dedupe'
+    `);
+
+    expect(nullsNotDistinct).toBe(true);
   });
 
   it('dedupes raw_api_payload rows by source endpoint fingerprint and checksum', async () => {
@@ -216,12 +231,7 @@ describe('Mercado Publico raw layer persistence (db-backed)', () => {
   });
 
   it('dedupes raw_csv_file and raw_csv_row rows by their raw-layer keys', async () => {
-    const downloadJobRun = await persistenceService.createJobRun(
-      'csv-oc-download',
-    );
-
     const firstFile = await persistenceService.persistCsvDownload({
-      jobRunRecordId: downloadJobRun.id,
       sourceSystem: MERCADO_PUBLICO_CSV_SOURCE_SYSTEM,
       sourceDataset: MERCADO_PUBLICO_CSV_OC_DATASET,
       sourceUrl: 'https://example.com/oc-2026-06.csv',
@@ -234,7 +244,6 @@ describe('Mercado Publico raw layer persistence (db-backed)', () => {
     });
 
     const duplicateFile = await persistenceService.persistCsvDownload({
-      jobRunRecordId: downloadJobRun.id,
       sourceSystem: MERCADO_PUBLICO_CSV_SOURCE_SYSTEM,
       sourceDataset: MERCADO_PUBLICO_CSV_OC_DATASET,
       sourceUrl: 'https://example.com/oc-2026-06.csv',

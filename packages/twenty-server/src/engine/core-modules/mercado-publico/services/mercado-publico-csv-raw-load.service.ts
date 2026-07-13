@@ -66,18 +66,16 @@ export class MercadoPublicoCsvRawLoadService {
           parsedPayload.raw_csv_file_id,
         );
 
-      if (fileMeta) {
-        await this.mercadoPublicoPersistenceService.linkJobRunToRawCsvFile(
-          jobRunRecord.id,
-          fileMeta.id,
-        );
-      }
-
       if (!fileMeta) {
         throw new Error(
           `raw_csv_file row not found for id ${parsedPayload.raw_csv_file_id}`,
         );
       }
+
+      await this.mercadoPublicoPersistenceService.linkJobRunToRawCsvFile(
+        jobRunRecord.id,
+        fileMeta.id,
+      );
 
       const result = await this.loadRawCsvRows(fileMeta, jobRunRecord.id);
 

@@ -8,6 +8,7 @@ import { MpStgJobRunFastInstanceCommand } from 'src/database/commands/upgrade-ve
 import { MpStgApiV1LicitacionFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007810-mp-stg-api-v1-licitacion';
 import { MpCanonicalLicitacionFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007860-mp-canonical-licitacion';
 import { MpRawCsvFileDedupeModalityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007920-mp-raw-csv-file-dedupe-modality';
+import { MpRawCsvFileDedupeNullsNotDistinctFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1783191615520-mp-raw-csv-file-dedupe-nulls-not-distinct';
 import { DropRawCsvFileIngestionJobIdFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1783191615514-drop-raw-csv-file-ingestion-job-id';
 import { MpStgJobRunRawCsvFileLinkSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1782340007930-mp-stg-job-run-raw-csv-file-link';
 import { rawDataSource } from 'src/database/typeorm/raw/raw.datasource';
@@ -49,6 +50,9 @@ const applyMercadoPublicoApiCommands = async (dataSource: DataSource) => {
     await new MpStgApiV1LicitacionFastInstanceCommand().up(queryRunner);
     await new MpCanonicalLicitacionFastInstanceCommand().up(queryRunner);
     await new MpRawCsvFileDedupeModalityFastInstanceCommand().up(queryRunner);
+    await new MpRawCsvFileDedupeNullsNotDistinctFastInstanceCommand().up(
+      queryRunner,
+    );
     await new MpStgJobRunRawCsvFileLinkSlowInstanceCommand().up(queryRunner);
     await new DropRawCsvFileIngestionJobIdFastInstanceCommand().up(queryRunner);
 

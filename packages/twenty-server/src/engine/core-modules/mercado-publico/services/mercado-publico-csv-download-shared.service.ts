@@ -13,7 +13,6 @@ import { resolveCsvStorageTargetPath } from 'src/engine/core-modules/mercado-pub
 import { buildCsvSourceFileName } from 'src/engine/core-modules/mercado-publico/services/utils/csv/build-csv-source-file-name.util';
 
 export type CsvDownloadInput = {
-  jobRunRecordId: string;
   sourceSystem: string;
   sourceDataset: string;
   sourceUrl: string;
@@ -110,7 +109,6 @@ export class MercadoPublicoCsvDownloadSharedService {
 
     const persistenceResult =
       await this.mercadoPublicoPersistenceService.persistCsvDownload({
-        jobRunRecordId: input.jobRunRecordId,
         sourceSystem: input.sourceSystem,
         sourceDataset: input.sourceDataset,
         sourceUrl: input.sourceUrl,

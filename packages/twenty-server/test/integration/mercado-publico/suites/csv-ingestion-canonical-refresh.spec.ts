@@ -14,6 +14,7 @@ import { MpStgCsvLicitacionFastInstanceCommand } from 'src/database/commands/upg
 import { MpCanonicalLicitacionFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007860-mp-canonical-licitacion';
 import { MpCanonicalOrdenCompraFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007870-mp-canonical-orden-compra';
 import { MpRawCsvFileDedupeModalityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007920-mp-raw-csv-file-dedupe-modality';
+import { MpRawCsvFileDedupeNullsNotDistinctFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1783191615520-mp-raw-csv-file-dedupe-nulls-not-distinct';
 import { DropRawCsvFileIngestionJobIdFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1783191615514-drop-raw-csv-file-ingestion-job-id';
 import { MpStgJobRunRawCsvFileLinkSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1782340007930-mp-stg-job-run-raw-csv-file-link';
 import { rawDataSource } from 'src/database/typeorm/raw/raw.datasource';
@@ -66,6 +67,9 @@ const applyMercadoPublicoCsvCommands = async (dataSource: DataSource) => {
     await new MpCanonicalLicitacionFastInstanceCommand().up(queryRunner);
     await new MpCanonicalOrdenCompraFastInstanceCommand().up(queryRunner);
     await new MpRawCsvFileDedupeModalityFastInstanceCommand().up(queryRunner);
+    await new MpRawCsvFileDedupeNullsNotDistinctFastInstanceCommand().up(
+      queryRunner,
+    );
     await new MpStgJobRunRawCsvFileLinkSlowInstanceCommand().up(queryRunner);
     await new DropRawCsvFileIngestionJobIdFastInstanceCommand().up(queryRunner);
 
@@ -181,11 +185,7 @@ describe('Mercado Publico CSV profiling -> raw load -> canonical refresh (db-bac
         'OC-1;SRC-2;ITEM-2;;2026-05-20;En proceso;;;;NA;;Unidad Central;Proveedor Uno;30005678;0,1;;;;\r\n',
     });
 
-    const downloadJobRun = await persistenceService.createJobRun(
-      'csv-oc-download',
-    );
     const download = await persistenceService.persistCsvDownload({
-      jobRunRecordId: downloadJobRun.id,
       sourceSystem: MERCADO_PUBLICO_CSV_SOURCE_SYSTEM,
       sourceDataset: MERCADO_PUBLICO_CSV_OC_DATASET,
       sourceUrl: 'https://example.com/oc-2026-06.csv',
@@ -325,11 +325,7 @@ describe('Mercado Publico CSV profiling -> raw load -> canonical refresh (db-bac
         'L1;COD-001;1;P002;22222222-2;Oferta alternativa;Rechazada;No;80;7500000,00;LP;2026-01-15;2026-03-10;Publicada;Unidad de Compras;Producto gen\xe9rico;40;14000000,25\r\n',
     });
 
-    const downloadJobRun = await persistenceService.createJobRun(
-      'csv-licitaciones-download',
-    );
     const download = await persistenceService.persistCsvDownload({
-      jobRunRecordId: downloadJobRun.id,
       sourceSystem: MERCADO_PUBLICO_CSV_SOURCE_SYSTEM,
       sourceDataset: MERCADO_PUBLICO_CSV_LICITACIONES_DATASET,
       sourceUrl: 'https://example.com/licitaciones-2026-06.csv',

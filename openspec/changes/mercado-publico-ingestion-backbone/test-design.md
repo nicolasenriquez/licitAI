@@ -485,6 +485,8 @@ Note: reconciliation rules are the highest-regression canonical rules (per `task
 
 ## 1.7 Integration and DB Verification: Schema Creation and Raw-Layer Idempotency
 
+Migration rollout preflight: quiesce Mercado Público workers, run instance commands with `--force --include-slow`, verify `stg_job_run.raw_csv_file_id` exists and legacy CSV download/row runs are backfilled, then restart workers. No duplicate cleanup is automatic; a duplicate preflight failure requires separate remediation.
+
 ### `schema-creation.integration-spec.ts`
 
 Target: instance command creates `mp` schema + all required tables. DB-backed (per `setup-test.ts:8-21`, `create-app.ts:43-107`). Run via `npx nx run twenty-server:test:integration:with-db-reset`.
@@ -493,7 +495,8 @@ Target: instance command creates `mp` schema + all required tables. DB-backed (p
 | --- | --- | --- |
 | `should create mp schema after instance commands run` | DB reset + migrations applied | `SELECT schema_name FROM information_schema.schemata WHERE schema_name='mp'` returns row |
 | `should create mp.raw_api_payload with required columns and unique constraint` | migrations applied | table exists with columns `id, source, endpoint, request_fingerprint, payload_checksum, request_params, http_status, fetched_at, raw_payload, schema_fingerprint`; UK on `(source, endpoint, request_fingerprint, payload_checksum)` |
-| `should create mp.raw_csv_file with required columns and unique constraint` | migrations applied | table exists with columns per `design.md:67-70`; UK on `(source_dataset, source_period, file_checksum)` |
+| `should create mp.raw_csv_file with required columns and unique constraint` | migrations applied | table exists with columns per `design.md:67-70`; UK on `(source_dataset, source_period, source_modality, file_checksum)` with `pg_index.indnullsnotdistinct = true` |
+| `should fail the NULL modality dedupe migration before dropping the old constraint when duplicate groups exist` | seed duplicate rows with the same dataset, period, NULL modality, and checksum | migration throws; the existing constraint remains in place |
 | `should create mp.raw_csv_row with required columns and unique constraint` | migrations applied | table exists with columns per `design.md:72-74`; UK on `(raw_csv_file_id, row_number, row_checksum)` |
 | `should create mp.stg_api_v1_licitacion, stg_api_v1_orden_compra, stg_api_v2_compra_agil, stg_csv_licitacion, stg_csv_orden_compra, stg_job_run` | migrations applied | all staging tables exist |
 | `should create canonical tables with natural-key unique constraints` | migrations applied | `mp.licitacion` UK `CodigoExterno`; `mp.orden_compra` UK `Codigo`; `mp.compra_agil` UK `codigo`; `mp.licitacion_item` UK `(CodigoExterno, Codigoitem)`; `mp.orden_compra_item` UK `IDItem`; etc per `design.md:117-125` |
@@ -519,12 +522,13 @@ Target: raw API payload dedupe by `(source, endpoint, request_fingerprint, paylo
 
 ### `raw-csv-file-and-row-idempotency.integration-spec.ts`
 
-Target: raw CSV file dedupe by `(source_dataset, source_period, file_checksum)` + raw row dedupe by `(raw_csv_file_id, row_number, row_checksum)` — per `design.md:390-391`, `spec.md:286-290`.
+Target: raw CSV file dedupe by `(source_dataset, source_period, source_modality, file_checksum)` with NULL modality equal + raw row dedupe by `(raw_csv_file_id, row_number, row_checksum)` — per `design.md:390-391`, `spec.md:286-290`.
 
 | Test name | Setup | Assert |
 | --- | --- | --- |
 | `should persist raw CSV file with all metadata fields` | insert raw_csv_file row | all fields per `design.md:67-70` populated |
-| `should deduplicate raw CSV file on same source_dataset, source_period, file_checksum` | insert same file metadata twice | one row |
+| `should deduplicate raw CSV file on same source_dataset, source_period, source_modality, file_checksum` | insert same file metadata twice, including NULL modality | one row |
+| `should return one raw file when persistCsvDownload is repeated with NULL modality` | call `persistCsvDownload` twice with the same four-column key | both calls return the same `rawCsvFileId`; one row |
 | `should keep separate raw CSV files when checksum differs for same source_period` | insert file A (period 2026-06, checksum X), file B (period 2026-06, checksum Y) | two rows (re-download conflict case, per `spec.md:152-158`) |
 | `should keep separate raw CSV files for different source_period` | file A (period 2026-06), file B (period 2026-05) | two rows |
 | `should persist raw CSV rows with row_number, raw_row_text, raw_row_json, row_checksum` | insert rows | all fields populated per `design.md:72-74` |

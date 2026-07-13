@@ -92,7 +92,6 @@ type PersistMercadoPublicoV2CompraAgilSnapshotResult = {
 };
 
 type PersistMercadoPublicoCsvDownloadInput = {
-  jobRunRecordId: string;
   sourceSystem: string;
   sourceDataset: string;
   sourceUrl: string;
@@ -237,6 +236,7 @@ export class MercadoPublicoPersistenceService {
     const jobRunId = crypto.randomUUID();
     const shouldLinkRawCsvFile =
       typeof input.rawCsvFileId === 'string' &&
+      input.rawCsvFileId.length > 0 &&
       (await this.stgJobRunSupportsRawCsvFileId());
     const insertedJobRunRows = await this.coreDataSource.query<
       { id: string }[]
