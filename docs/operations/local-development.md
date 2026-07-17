@@ -13,7 +13,10 @@ Define the local-development contract for the Twenty CRM monorepo. This document
 Engineers and AI agents setting up or extending the repository locally.
 
 ## Executive Summary
-Twenty provides a one-command setup via `setup-dev-env.sh` that starts PostgreSQL 16 and Redis 7 via Docker Compose (canonical), creates databases, copies `.env` files, and initializes the database schema. Development services are defined in `docker-compose.dev.yml`. The application stack (NestJS backend + React frontend + BullMQ worker) runs from source using Nx targets.
+The default local runtime is the complete Docker Compose stack. It runs the
+NestJS application (API and frontend), BullMQ worker, PostgreSQL, and Redis in
+containers, using `packages/twenty-docker/.env` as the only local runtime
+environment file.
 
 ## Defined Stack
 
@@ -27,67 +30,100 @@ Twenty provides a one-command setup via `setup-dev-env.sh` that starts PostgreSQ
 | Worker | BullMQ | — | Background job processor |
 | Database | PostgreSQL | 16 | Port 5432 |
 | Cache / Queue | Redis | 7 | Port 6379 |
-| Containerization | Docker + Docker Compose | — | Infrastructure services |
+| Containerization | Docker + Docker Compose | — | Complete local runtime |
 
 ## Default Local Runtime
 
 | Runtime Path | Position | Details |
 | --- | --- | --- |
-| Docker (infrastructure) | Canonical path | PostgreSQL 16 + Redis 7 run in Docker Compose. Application runs from source on the host. |
-| Host-local services | Fallback path | If PostgreSQL/Redis are already running natively, `setup-dev-env.sh` detects them and skips Docker. |
+| Complete Docker Compose | Canonical path | Application (API and frontend), worker, PostgreSQL, and Redis run in containers from `docker-compose.yml`. |
+| Host-local Nx services | Not the default path | Use only for an explicitly requested advanced workflow; Compose remains the local runtime path. |
 
 Rationale:
-- Docker ensures reproducible infrastructure services across machines.
-- Application code runs from source for fast iteration with hot-reload.
+- One Compose project keeps application and infrastructure configuration aligned.
+- A single Docker environment file prevents host and container configuration drift.
 
-## Setup Script
+## Local Compose Setup
 
-All dev environments use one idempotent script:
+Create the single local environment file once:
 
 ```bash
-bash packages/twenty-utils/setup-dev-env.sh
+test -f packages/twenty-docker/.env || cp packages/twenty-docker/.env.example packages/twenty-docker/.env
 ```
 
-This script handles:
-1. Starts PostgreSQL + Redis (auto-detects local services vs Docker)
-2. Creates required databases
-3. Copies `.env` files from `.env.example` templates
-4. Initializes the database schema (runs migrations) on a fresh database
+Fill `MERCADO_PUBLICO_API_TICKET` and `COMPRA_AGIL_API_TICKET` in that file
+locally. Do not create or rely on host-level `.env` files for the application.
 
-Flags:
-- `--docker` — No-op (Docker is the default; accepted for backwards compatibility)
-- `--down` — Stop services
-- `--reset` — Wipe data and restart fresh
+Start the complete stack with the same explicit environment file:
 
-**Important**: The script is idempotent — safe to run multiple times. Skip the setup script for tasks that only read code (architecture questions, code review, documentation).
+```bash
+docker compose --env-file packages/twenty-docker/.env \
+  -f packages/twenty-docker/docker-compose.yml up -d
+```
+
+Useful lifecycle commands:
+
+```bash
+docker compose --env-file packages/twenty-docker/.env \
+  -f packages/twenty-docker/docker-compose.yml ps
+docker compose --env-file packages/twenty-docker/.env \
+  -f packages/twenty-docker/docker-compose.yml logs -f server worker
+docker compose --env-file packages/twenty-docker/.env \
+  -f packages/twenty-docker/docker-compose.yml down
+```
+
+The Compose file waits for healthy PostgreSQL and Redis before starting the
+application services. Skip environment startup for tasks that only read code
+(architecture questions, code review, documentation).
 
 **CI note**: GitHub Actions workflows manage services via Actions service containers and run setup steps individually. They do not use this script.
 
 ## Docker Compose Baseline
 
-Development infrastructure services from `packages/twenty-docker/docker-compose.dev.yml`:
+The complete local runtime is defined in
+`packages/twenty-docker/docker-compose.yml`:
 
 ```bash
-# Start infrastructure services
-docker compose -f packages/twenty-docker/docker-compose.dev.yml up -d
+# Start the complete application and infrastructure stack
+docker compose --env-file packages/twenty-docker/.env \
+  -f packages/twenty-docker/docker-compose.yml up -d
 
-# Stop services
-docker compose -f packages/twenty-docker/docker-compose.dev.yml down
+# Stop the complete stack
+docker compose --env-file packages/twenty-docker/.env \
+  -f packages/twenty-docker/docker-compose.yml down
 
-# Stop services and wipe data
-docker compose -f packages/twenty-docker/docker-compose.dev.yml down -v
+# Validate configuration without printing resolved values
+docker compose --env-file packages/twenty-docker/.env \
+  -f packages/twenty-docker/docker-compose.yml config --quiet
 ```
 
 | Service | Image | Port | Health Check | Notes |
 | --- | --- | --- | --- | --- |
-| `db` | `postgres:16` | 5432 | `pg_isready -U postgres -h localhost -d postgres` | Volume: `dev-db-data`. User/password: `postgres/postgres`. Default DB: `default`. |
-| `redis` | `redis:7` | 6379 | `redis-cli ping` | Memory policy: `noeviction`. Restart: `unless-stopped`. |
+| `server` | `twentycrm/twenty:${TAG}` | 3000 | `GET /healthz` | Depends on healthy `db` and `redis`. |
+| `worker` | `twentycrm/twenty:${TAG}` | — | Depends on healthy `server` | BullMQ worker; shares server local storage. |
+| `db` | `postgres:16` | 5432 | `pg_isready` | Persistent volume: `db-data`. |
+| `redis` | `redis` | — | `redis-cli ping` | Memory policy: `noeviction`. |
 
-Container-internal database host is service DNS (`db`), not `localhost`. When running the application from the host, connect to `localhost:5432`.
+### Optional advanced infrastructure-only mode
+
+`packages/twenty-docker/docker-compose.dev.yml` starts only PostgreSQL and
+Redis. Keep it for advanced workflows that intentionally run application
+source on the host or isolate infrastructure debugging; it is not the local
+runtime default.
+
+```bash
+docker compose -f packages/twenty-docker/docker-compose.dev.yml up -d
+docker compose -f packages/twenty-docker/docker-compose.dev.yml down
+```
+
+Container-internal database and Redis hosts are service DNS names (`db` and
+`redis`), not `localhost`.
 
 ## Environment Configuration
 
-Environment variables are defined in `packages/twenty-docker/.env.example`. Secrets must never be committed to version control. `.env` is gitignored.
+Environment variables are defined in `packages/twenty-docker/.env.example` and
+the only local runtime file is `packages/twenty-docker/.env`. Secrets must
+never be committed to version control; `.env` is gitignored.
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
@@ -107,33 +143,20 @@ Environment variables are defined in `packages/twenty-docker/.env.example`. Secr
 | `STORAGE_S3_ENDPOINT` | Optional | S3 endpoint URL |
 | `STORAGE_S3_ACCESS_KEY_ID` | Optional | S3 access key |
 | `STORAGE_S3_SECRET_ACCESS_KEY` | Optional | S3 secret key |
+| `MERCADO_PUBLICO_API_TICKET` | Optional | Mercado Público API ticket |
+| `COMPRA_AGIL_API_TICKET` | Optional | Compra Ágil API ticket |
 
 ## Startup Sequence
 
-### Full stack (recommended)
+Start the complete stack through Docker Compose:
 
 ```bash
-yarn start
+docker compose --env-file packages/twenty-docker/.env \
+  -f packages/twenty-docker/docker-compose.yml up -d
 ```
 
-Runs concurrently:
-1. `npx nx start twenty-server` (NestJS, port 3000)
-2. `npx nx start twenty-front` (Vite, port 3001)
-3. Waits for `tcp:3000`, then starts `npx nx run twenty-server:worker` (BullMQ)
-
-### Individual services
-
-```bash
-npx nx start twenty-server          # Backend only, port 3000
-npx nx start twenty-front           # Frontend only, port 3001
-npx nx run twenty-server:worker     # Worker only
-```
-
-### Infrastructure only
-
-```bash
-docker compose -f packages/twenty-docker/docker-compose.dev.yml up -d
-```
+Compose starts PostgreSQL and Redis first, then the server and worker. Inspect
+`docker compose ... ps` and logs when diagnosing startup.
 
 ## Local Persistence Baseline
 
@@ -164,19 +187,17 @@ docker compose -f packages/twenty-docker/docker-compose.dev.yml up -d
 
 Before starting development work:
 
-1. Run `bash packages/twenty-utils/setup-dev-env.sh` to ensure infrastructure is running and databases are initialized.
-2. Verify PostgreSQL: `docker compose -f packages/twenty-docker/docker-compose.dev.yml ps` shows `healthy`.
-3. Verify Redis: `redis-cli ping` returns `PONG`.
-4. Run `npx nx database:reset twenty-server` if you need a fresh database with seed data.
-5. Run `yarn start` to verify the full stack starts without errors.
+1. Ensure `packages/twenty-docker/.env` exists and contains the local tickets.
+2. Validate Compose: `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml config --quiet`.
+3. Start the stack with `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml up -d`.
+4. Verify service health: `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml ps` and `curl http://localhost:3000/healthz`.
 
 ## Current Assumptions
 
-- Docker for infrastructure services is the canonical local runtime.
-- Full Docker Compose (`docker compose -f docker-compose.yml up --build -d`) is a valid and supported development path for running all services (server, worker, frontend, PostgreSQL, Redis) in containers.
-- Application code can also run from source on the host for faster hot-reload iteration. Both paths are supported.
-- The `setup-dev-env.sh` script remains the single entry point for environment setup.
-- Local development uses `localhost` for service connections; container DNS (`db`, `redis`) for Docker-internal.
+- Full Docker Compose is the canonical and default local runtime for the application (API and frontend), worker, PostgreSQL, and Redis.
+- `packages/twenty-docker/.env` is the only local runtime environment source.
+- `docker-compose.dev.yml` remains available only as optional infrastructure for advanced host-source workflows.
+- Local development uses container DNS (`db`, `redis`) for Docker-internal connections.
 - Environment separation stays minimal: development and production are the only required environments.
 - Seed data is minimal bootstrap (1 workspace, 1 admin user). Additional data is populated manually.
 
@@ -184,9 +205,9 @@ Before starting development work:
 
 | Decision | Resolution |
 | --- | --- |
-| Fully-containerized development | Full Docker Compose is a supported path. Application code can also run from source on the host for faster iteration. Both are valid. |
+| Fully-containerized development | Full Docker Compose is the default and supported local runtime. |
 | Seed data availability | Minimal bootstrap data (1 workspace, 1 admin user). Data population is manual beyond the bootstrap. |
-| Frontend proxy to backend | No. Separate ports (:3000 backend, :3001 frontend) for clear debugging. |
+| Local runtime source | `packages/twenty-docker/.env` is the sole local runtime environment file. |
 
 ## Open Decisions
 

@@ -73,11 +73,13 @@ in normal prose when the file is inside this repository.
 
 ### Development
 ```bash
-yarn start                                       # server + front + worker, concurrent
-npx nx start twenty-front                        # frontend dev server
-npx nx start twenty-server                       # backend dev server
-npx nx run twenty-server:worker                  # BullMQ background worker
+docker compose --env-file packages/twenty-docker/.env \
+  -f packages/twenty-docker/docker-compose.yml up -d
 ```
+
+The full Docker Compose stack is the default local runtime for the application
+(API and frontend), worker, PostgreSQL, and Redis. Do not use host-local Nx
+start targets as the local runtime path.
 
 ### Testing
 ```bash
@@ -151,8 +153,11 @@ npx nx run twenty-front:mock:generate                   # regenerate mock data f
 
 ### Env
 ```bash
-npx nx run twenty-server:reset:env                      # cp .env.example .env
+test -f packages/twenty-docker/.env || cp packages/twenty-docker/.env.example packages/twenty-docker/.env
 ```
+
+Keep local runtime configuration in `packages/twenty-docker/.env` only. Fill
+the Mercado Público and Compra Ágil tickets there; never commit the file.
 
 ## Architecture Overview
 
@@ -215,20 +220,23 @@ packages/
 
 ## Dev Environment Setup
 
+Create `packages/twenty-docker/.env` from its example, add local secrets, and
+start the complete stack:
+
 ```bash
-bash packages/twenty-utils/setup-dev-env.sh        # idempotent
-# flags:
-#   --docker   canonical Docker mode (default; uses packages/twenty-docker/docker-compose.dev.yml)
-#   --down     stop services
-#   --reset    wipe data and restart fresh
+cp packages/twenty-docker/.env.example packages/twenty-docker/.env
+docker compose --env-file packages/twenty-docker/.env \
+  -f packages/twenty-docker/docker-compose.yml up -d
 ```
 
-Starts Postgres + Redis via Docker Compose (canonical), creates databases,
-copies `.env` files, runs migrations. **Skip this for tasks that only read
-code** (architecture review, doc edits, code review).
+Use the same Compose command for local runtime operations. The
+`docker-compose.dev.yml` file is infrastructure-only (PostgreSQL and Redis)
+and is reserved for optional advanced workflows; it is not the default local
+path. **Skip environment startup for tasks that only read code** (architecture
+review, doc edits, code review).
 
 CI (`.github/workflows/`) uses Actions service containers and runs setup
-steps individually — it does not call this script.
+steps individually.
 
 ## Database Inspection (Postgres MCP)
 
