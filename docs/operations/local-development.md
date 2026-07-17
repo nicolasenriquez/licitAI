@@ -26,7 +26,7 @@ environment file.
 | Package manager | Yarn | 4.13.0 (Berry) | With Corepack |
 | Monorepo tool | Nx | 22.7.5 | Task orchestration |
 | Backend | NestJS | 11 | API server on port 3000 |
-| Frontend | React | 19 | Vite dev server on port 3001 |
+| Frontend | React | 19 | Compiled frontend served by the application on port 3000 |
 | Worker | BullMQ | — | Background job processor |
 | Database | PostgreSQL | 16 | Port 5432 |
 | Cache / Queue | Redis | 7 | Port 6379 |
@@ -60,6 +60,11 @@ Start the complete stack with the same explicit environment file:
 docker compose --env-file packages/twenty-docker/.env \
   -f packages/twenty-docker/docker-compose.yml up -d
 ```
+
+This command automatically builds the final `twenty` target for `server` and
+`worker`. The `server` container serves both the API and compiled frontend at
+`http://localhost:3000`; no separate frontend service or `--build` flag is
+required.
 
 Useful lifecycle commands:
 
@@ -99,7 +104,7 @@ docker compose --env-file packages/twenty-docker/.env \
 
 | Service | Image | Port | Health Check | Notes |
 | --- | --- | --- | --- | --- |
-| `server` | `twentycrm/twenty:${TAG}` | 3000 | `GET /healthz` | Depends on healthy `db` and `redis`. |
+| `server` | `twentycrm/twenty:${TAG}` (`twenty` build target) | 3000 | `GET /healthz` and `/` | API and compiled frontend; depends on healthy `db` and `redis`. |
 | `worker` | `twentycrm/twenty:${TAG}` | — | Depends on healthy `server` | BullMQ worker; shares server local storage. |
 | `db` | `postgres:16` | 5432 | `pg_isready` | Persistent volume: `db-data`. |
 | `redis` | `redis` | — | `redis-cli ping` | Memory policy: `noeviction`. |
