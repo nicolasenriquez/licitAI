@@ -7,7 +7,7 @@ okf_version: "0.1"
 # Change Proposal: mercado-publico-ingestion-cue-hardening
 ## Why
 
-The Mercado Público ingestion backbone has the right persistence layers but its production-shaped CUE path still has contract gaps: V2 payload normalization and detail envelopes do not fully match live responses, missing details can become silent successes, and mounted CSV execution does not yet prove bounded, correctly parsed, idempotent imports. This follow-up hardens those seams so API V1, API V2, and the four June/July CSV profiles can be run repeatedly without a destructive reset.
+The Mercado Público ingestion backbone has the right persistence layers but its production-shaped API and CSV paths still have contract gaps: V2 payload normalization and detail envelopes do not fully match live responses, missing details can become silent successes, and CSV execution does not yet prove bounded, correctly parsed, idempotent imports. This follow-up hardens those seams so API V1, API V2, and operator-provided CSV profiles can be run repeatedly without a destructive reset.
 
 ## Investigation / Current State
 
@@ -20,14 +20,14 @@ The Mercado Público ingestion backbone has the right persistence layers but its
 ## Change Profile
 
 - Profile: `mixed-change`
-- Why this profile fits: the change modifies runtime API/CSV behavior and persistence contracts while also adding Docker CUE configuration and operational verification documentation.
+- Why this profile fits: the change modifies runtime API/CSV behavior and persistence contracts while also adding operational verification documentation.
 
 ## What Changes
 
 - Normalize API V2 `estado` from object-shaped production responses while retaining scalar compatibility.
 - Persist V2 detail raw responses before extraction and make missing detail records failed and auditable.
 - Validate Compra Ágil page sizes as 10 through 50 before upstream calls.
-- Add a Docker CUE override with a read-only host CSV bind mount using the existing CSV storage-root loader.
+- Keep CSV file location and transport operator-owned through the existing CSV storage-root loader; add no repository Docker mount.
 - Stream and batch large CSVs; validate semicolon delimiters, quoted fields, Latin-1-compatible encoding, `NA`/blank values, comma decimals, and date sentinels.
 - Make disabled CSV jobs explicit `skipped` runs and reject positive zero-record no-ops as successful imports.
 - Add per-run counter reconciliation, repeat-run idempotency checks, and a CUE runbook using `records_staged` and `records_canonicalized`.
@@ -45,13 +45,14 @@ None. The existing backbone change remains unchanged; this is a follow-up capabi
 ## Out Of Scope
 
 - Replacing the existing Mercado Público module, queue, persistence topology, or storage-root loader.
+  - Exception: an additive refinement that removes the undocumented redundant `mp.raw_csv_file.ingestion_job_id` FK and replaces it with the documented `mp.stg_job_run.raw_csv_file_id` link is in-scope; see design.md.
 - Adding a public API, scheduler, frontend workflow, CRM projection, new importer path, or new dependency.
 - Resetting, destructively reseeding, deleting, or rewriting existing raw audit data.
 - Committing, copying, fabricating, or embedding production CSV files, tickets, credentials, or identifiers.
 
 ## Impact
 
-The change affects the existing `twenty-server` Mercado Público adapters, raw/staging/canonical persistence and job-run status paths, CSV parsing/loading flow, Docker CUE override, tests, and operational documentation. It adds no dependency, no new path-based importer, no committed CSV files, and no destructive database operation.
+The change affects the existing `twenty-server` Mercado Público adapters, raw/staging/canonical persistence and job-run status paths, CSV parsing/loading flow, tests, and operational documentation. It adds no dependency, no Docker topology change, no new path-based importer, no committed CSV files, and no destructive database operation.
 
 ## Ownership and Test Seam
 

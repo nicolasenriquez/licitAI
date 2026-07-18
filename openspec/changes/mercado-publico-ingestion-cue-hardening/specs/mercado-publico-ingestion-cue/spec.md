@@ -23,6 +23,20 @@ The system MUST accept scalar `estado` values unchanged. When V2 `estado` is an 
 - **WHEN** an object has no usable `codigo` but has a usable `glosa` or existing scalar fallback
 - **THEN** the canonical scalar uses that fallback and never stores the object
 
+### Requirement: Preserve V2 imported attributes separately from query filters
+
+The system MUST normalize the real V2 `payload.items` list and `payload` detail
+envelopes while retaining the legacy flat shapes. `institucion.region` MUST map
+to the imported region. `fechas.fecha_publicacion`, `fecha_cierre`, and
+`fecha_ultimo_cambio` MUST retain auditable raw text in staging and normalize to
+timestamps; filter fields such as `publicado_desde` and `cambio_desde` MUST NOT
+be repurposed as process attributes. Offset-free timestamps use
+`America/Santiago`; invalid input retains raw text with a null timestamp.
+
+#### Scenario: Invalid imported date remains auditable
+- **WHEN** a V2 `fechas` value is invalid
+- **THEN** staging stores its raw text and a null normalized timestamp without aborting the import
+
 ### Requirement: Persist and extract detail envelopes
 
 The system MUST persist the complete upstream V2 detail response in the raw API layer before extracting the production envelope into staging and canonical persistence.
@@ -37,7 +51,7 @@ The system MUST persist the complete upstream V2 detail response in the raw API 
 
 ### Requirement: Report missing detail records as failures
 
-If a detail response contains no usable record, the system MUST mark the run `failed`, MUST set `records_failed` greater than zero, and MUST write a non-empty `error_summary`.
+If a detail response (API V1 licitacion, API V1 OC, or API V2 Compra Agil) contains no usable record, the system MUST mark the run `failed`, MUST set `records_failed` greater than zero, and MUST write a non-empty `error_summary`.
 
 #### Scenario: Missing detail is auditable
 - **WHEN** a requested detail code returns an envelope without a usable detail record
@@ -59,18 +73,6 @@ The system MUST accept Compra Ágil page sizes from 10 through 50 inclusive and 
 - **WHEN** a list job is requested with page size `1`
 - **THEN** validation fails deterministically, no upstream request is made, and no false-success job is recorded
 
-### Requirement: Mount CSV input through the existing storage root
-
-The Docker CUE override MUST bind the host CSV directory read-only at the configured storage root, and the importer MUST discover the four source files through the existing CSV storage-root loader. The repository MUST NOT contain copies of the CUE CSV files.
-
-#### Scenario: Mounted source is discovered
-- **WHEN** the read-only host directory contains a supported June or July CSV
-- **THEN** the existing loader discovers it without a path-specific importer
-
-#### Scenario: Mount is unavailable
-- **WHEN** the configured directory is absent or not readable by the container
-- **THEN** preflight fails with an operator-visible non-empty reason and no successful import is recorded
-
 ### Requirement: Stream and batch large CSV input
 
 The CSV importer MUST process input as a bounded stream and batches and MUST NOT upload a complete file or materialize a whole-file payload in memory.
@@ -83,7 +85,7 @@ The CSV importer MUST process input as a bounded stream and batches and MUST NOT
 - **WHEN** a batch fails during processing
 - **THEN** the run reports the failure and preserves raw row/error evidence without claiming a successful complete import
 
-### Requirement: Parse the CUE CSV profile
+### Requirement: Parse the observed CSV profile
 
 The parser MUST handle semicolon delimiters, quoted fields, Latin-1-compatible encoding, `NA` and blank values, comma decimal amounts, and date sentinels without mutating the raw source representation.
 
@@ -109,15 +111,15 @@ Disabled CSV jobs MUST create `skipped` runs with a non-empty reason. If the cur
 
 ### Requirement: Reconcile per-run persistence counters
 
-For each positive run, the system MUST expose auditable per-run deltas keyed by the `stg_job_run` identifier for raw files/rows, staging, and canonical records. CUE assertions MUST use `records_staged` and `records_canonicalized`, MUST reject the nonexistent `records_written` counter, and MUST require zero failed records for positive scenarios. Identity checks MUST use the existing backbone keys for raw API payloads, raw CSV files/rows, and canonical natural keys.
+For each positive run, the system MUST expose auditable per-run deltas keyed by the `stg_job_run` identifier for raw files/rows, staging, and canonical records. Verification assertions MUST use `records_staged` and `records_canonicalized`, MUST reject the nonexistent `records_written` counter, and MUST require zero failed records for positive scenarios. Identity checks MUST use the existing backbone keys for raw API payloads, raw CSV files/rows, and canonical natural keys.
 
 #### Scenario: Positive CSV counters reconcile
-- **WHEN** one of the four mounted CSV profiles completes successfully
+- **WHEN** one of the four operator-provided CSV profiles completes successfully
 - **THEN** its run delta has non-zero raw input, matching staged and canonical counters, and zero failed records
 
-#### Scenario: Global totals cannot satisfy CUE
+#### Scenario: Global totals cannot satisfy verification
 - **WHEN** prior runs have populated the same tables
-- **THEN** CUE evaluates the current run's baseline/delta rather than global totals
+- **THEN** verification evaluates the current run's baseline/delta rather than global totals
 
 ### Requirement: Preserve repeat-run idempotency
 
@@ -131,15 +133,15 @@ Repeating the same API or CSV input MUST NOT create duplicate raw files, raw row
 - **WHEN** the same API request/detail payload is ingested again
 - **THEN** raw payload identity and downstream natural-key persistence remain idempotent
 
-### Requirement: Provide a complete CUE gate
+### Requirement: Provide a complete ingestion verification gate
 
-The CUE runbook MUST verify Docker health, read-only mount configuration, execution order, per-run baselines/deltas, positive statuses, failure criteria, and repeat-run idempotency. The final gate MUST pass only when all positive jobs are successful, counters reconcile, and no silent no-op exists.
+The runbook MUST verify Docker health, operator-provided storage-root readiness, execution order, per-run baselines/deltas, positive statuses, failure criteria, and repeat-run idempotency. The final gate MUST pass only when all positive jobs are successful, counters reconcile, and no silent no-op exists.
 
-#### Scenario: Fully green CUE
+#### Scenario: Fully green verification
 - **WHEN** Docker is healthy, all required sources are available, and every positive scenario passes
-- **THEN** the CUE gate passes with recorded run identifiers and assertions
+- **THEN** the verification gate passes with recorded run identifiers and assertions
 
-#### Scenario: CUE failure criteria
+#### Scenario: Verification failure criteria
 - **WHEN** Docker is unhealthy, a positive job fails, counters do not reconcile, or a silent no-op is observed
-- **THEN** the CUE gate fails and reports the violated criterion
+- **THEN** the verification gate fails and reports the violated criterion
 

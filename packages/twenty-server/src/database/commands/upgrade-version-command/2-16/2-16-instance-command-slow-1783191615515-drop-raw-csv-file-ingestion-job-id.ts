@@ -7,6 +7,11 @@ import { SlowInstanceCommand } from 'src/engine/core-modules/upgrade/interfaces/
 export class DropRawCsvFileIngestionJobIdSlowInstanceCommand
   implements SlowInstanceCommand
 {
+  // ponytail: no-op runDataMigration. ceiling: slow classification is required so
+  // the drop runs AFTER MpStgJobRunRawCsvFileLinkSlowInstanceCommand.runDataMigration
+  // in the slow phase. No data backfill is needed here. upgrade: if the framework
+  // gains a "slow-DDL only" type, reclassify; if the link command is ever deleted,
+  // fold this drop into link.up() per append-don't-mutate.
   public async runDataMigration(_dataSource: DataSource): Promise<void> {
     return;
   }

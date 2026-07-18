@@ -95,6 +95,23 @@ export class MercadoPublicoApiV1LicitacionDetailByCodigoService {
           );
       }
 
+      if (recordsFetched === 0) {
+        const errorSummary = `No usable V1 licitacion detail record found for codigo externo ${parsedPayload.codigoExterno}`;
+
+        await this.mercadoPublicoPersistenceService.finalizeJobRun({
+          jobRunRecordId: jobRunRecord.id,
+          status: 'failed',
+          finishedAt: new Date(),
+          errorSummary,
+          recordsFetched: 0,
+          recordsStaged: persistenceResult.recordsStaged,
+          recordsCanonicalized: 0,
+          recordsFailed: 1,
+        });
+
+        throw new MercadoPublicoRecordedJobFailureError(errorSummary, false);
+      }
+
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,
         status: 'success',
@@ -102,17 +119,8 @@ export class MercadoPublicoApiV1LicitacionDetailByCodigoService {
         recordsFetched,
         recordsStaged: persistenceResult.recordsStaged,
         recordsCanonicalized,
-        recordsFailed:
-          recordsCanonicalized === 0 && recordsFetched === 0 ? 1 : 0,
+        recordsFailed: 0,
       });
-
-      if (recordsFetched === 0) {
-        this.logger.log(
-          `No detail record found for licitacion codigo externo ${parsedPayload.codigoExterno} (soft miss)`,
-        );
-
-        return;
-      }
 
       this.logger.log(
         `Ingested V1 licitacion detail for codigo ${parsedPayload.codigoExterno}`,

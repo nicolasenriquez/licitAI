@@ -1,11 +1,16 @@
 {
-  "Items": [
-    {
-      "codigo": "FIXTURE-CA-001",
-      "estado": "publicada",
-      "region": 13,
-      "publicado_desde": "2026-06-01",
-      "publicado_hasta": "2026-06-30"
-    }
-  ]
+  "payload": {
+    "items": [
+      {
+        "codigo": "FIXTURE-CA-001",
+        "estado": { "codigo": "publicada", "glosa": "Publicada" },
+        "fechas": {
+          "fecha_publicacion": "2026-06-01T09:30:00",
+          "fecha_cierre": "2026-06-30T12:00:00-04:00",
+          "fecha_ultimo_cambio": "not-a-date"
+        },
+        "institucion": { "region": 13 }
+      }
+    ]
+  }
 }

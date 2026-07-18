@@ -43,16 +43,6 @@ const coerceToNullableInteger = (value: unknown): number | null => {
   return Number.isInteger(numericValue) ? numericValue : null;
 };
 
-const extractRecordArray = (
-  value: unknown,
-): MercadoPublicoApiV2CompraAgilRecord[] => {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.filter(isV2CompraAgilRecord).map(normalizeV2CompraAgilRecord);
-};
-
 const normalizeV2CompraAgilRecord = (
   record: MercadoPublicoApiV2CompraAgilRecord,
 ): MercadoPublicoApiV2CompraAgilRecord => {
@@ -87,6 +77,16 @@ const normalizeV2CompraAgilRecord = (
       ? { fecha_ultimo_cambio: fechaUltimoCambio }
       : {}),
   };
+};
+
+const extractRecordArray = (
+  value: unknown,
+): MercadoPublicoApiV2CompraAgilRecord[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter(isV2CompraAgilRecord).map(normalizeV2CompraAgilRecord);
 };
 
 const recursivelyExtractRecords = (

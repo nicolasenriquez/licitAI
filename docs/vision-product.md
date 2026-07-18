@@ -36,7 +36,7 @@ Twenty solves this by treating the CRM as a software product rather than a confi
 
 | Category | Current State | Target State |
 | --- | --- | --- |
-| Business model | Open-source (AGPL-3.0). Self-hosted. Cloud hosting available at twenty.com. | Self-hosted-first deployment. Cloud as convenience option. |
+| Business model | Open-source (AGPL-3.0). Self-hosted-first. Upstream Twenty Cloud is external context, not this deployment's runtime contract. | Self-hosted-first deployment. |
 | Monetization | None. Open-source under free license. No subscription billing, no Stripe integration for this deployment. | Open-source libre. Monetization not a goal for this deployment. |
 | Product type | Open-source CRM platform. Self-hosted. | Mature platform with app ecosystem and community contributions. |
 | Primary ICP | Technical teams (startups, scale-ups) that build their own software and want a CRM that matches their engineering practices. | Technical teams that self-host and customize their CRM as code. |
@@ -112,8 +112,8 @@ These primitives are complemented by:
 
 ## Current State
 
-- **Active production**: Twenty Cloud available at twenty.com. Regular releases (version 0.2.1).
-- **22-package monorepo**: Full CI/CD with 40+ GitHub Actions workflows.
+- **Deployment identity**: This checkout is the `licitai` fork; inherited Twenty product references describe upstream context, not a managed cloud runtime here.
+- **22-package monorepo**: 22 GitHub Actions CI workflows. Deployment and promotion CD workflows are not part of the current repository contract.
 - **SDK published**: `twenty-sdk` v2.15.0 on npm. CLI scaffolding and app publishing.
 - **12 internal apps**: Slack, Linear, Discord, Fireflies, and more.
 - **Community**: Discord server, GitHub discussions, public roadmap, Crowdin translations.

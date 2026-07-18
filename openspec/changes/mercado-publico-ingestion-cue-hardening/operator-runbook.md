@@ -8,45 +8,38 @@ commit credentials, production identifiers, or source CSVs.
 - Docker and Compose are healthy.
 - Operator sets `MERCADO_PUBLICO_API_TICKET` and `COMPRA_AGIL_API_TICKET` in
   the environment; never put them in payloads or this file.
-- `HOST_CSV_DIR` contains the four operator-provided profiles under:
-  `licitaciones/{2026-06,2026-07}/_default/` and
-  `oc/{2026-06,2026-07}/_default/`.
+- The operator configures the CSV storage root and supplies the four profiles
+  outside the repository. The repository does not define host paths or Docker
+  bind mounts for these files.
 - Apply pending instance commands through the normal runner. Do not reset or
   reseed the database.
 
-## Start CUE Compose
+## Start the canonical Compose stack
 
 ```bash
-export HOST_CSV_DIR=/operator/path/mercado-publico
 docker compose --env-file packages/twenty-docker/.env \
-  -f packages/twenty-docker/docker-compose.yml \
-  -f packages/twenty-docker/docker-compose.cue.yml up -d
+  -f packages/twenty-docker/docker-compose.yml up -d
 ```
 
-The override mounts `HOST_CSV_DIR` read-only at `/var/mp-csv` in both server
-and worker. `MERCADO_PUBLICO_CSV_STORAGE_ROOT` points to that mount. The CUE
-path uses the existing storage-root loader; it does not add a path importer.
+Set `MERCADO_PUBLICO_CSV_STORAGE_ROOT` through the deployment environment when
+running CSV jobs. The existing storage-root loader discovers operator-provided
+files; no repository-local mount or path-specific importer is added.
 
 Preflight:
 
 ```bash
-docker compose -f packages/twenty-docker/docker-compose.yml \
-  -f packages/twenty-docker/docker-compose.cue.yml ps
-docker compose -f packages/twenty-docker/docker-compose.yml \
-  -f packages/twenty-docker/docker-compose.cue.yml exec server \
-  sh -lc 'test -r /var/mp-csv && find /var/mp-csv -type f -name "*.csv" -print'
+docker compose -f packages/twenty-docker/docker-compose.yml ps
 ```
 
-Any missing or unreadable mount is a failed preflight. No successful import may
-be recorded in that case.
+An unset or unreadable configured storage root is a failed CSV preflight. No
+successful import may be recorded in that case.
 
 ## Trigger Jobs
 
 Trigger one job at a time through the existing internal command:
 
 ```bash
-docker compose -f packages/twenty-docker/docker-compose.yml \
-  -f packages/twenty-docker/docker-compose.cue.yml exec server \
+docker compose -f packages/twenty-docker/docker-compose.yml exec server \
   yarn command:prod mercado-publico:run --job-name <job_name> \
   --payload '<json_object>'
 ```
@@ -70,7 +63,8 @@ are mutually exclusive. Run the known missing-detail code separately and
 expect `failed`, `records_failed > 0`, a non-empty `error_summary`, and raw
 payload evidence.
 
-For each of the four mounted profiles, run in order:
+For each operator-provided profile discovered through the configured storage
+root, run in order:
 
 ```text
 csv-file-profile          {"raw_csv_file_id":"<file-id>"}
@@ -137,7 +131,7 @@ The two Jest commands below run from `packages/twenty-server`.
 - Scoped `oxlint --type-aware` over Mercado Público and the new migration — 0 warnings, 0 errors.
 - Scoped `oxfmt --check` over changed TypeScript files — passed.
 - `openspec validate mercado-publico-ingestion-cue-hardening` — valid.
-- Docker Compose override config — valid with a temporary host directory; no source CSV was mounted or imported.
+- Canonical Docker Compose config — used for service health only; CSV transport remains operator-owned and no source CSV was mounted or imported.
 
 The full server typecheck is currently blocked by unrelated existing errors in
 workspace-migration and page-layout-widget files. The unfiltered Mercado
@@ -147,7 +141,7 @@ that baseline environment failure.
 
 ## Failure Criteria and Handoff
 
-Fail CUE when Docker or the mount is unhealthy, a positive job is not
+Fail verification when Docker or the configured storage root is unhealthy, a positive job is not
 `success`, `records_failed` is non-zero, counters do not reconcile, raw detail
 evidence is missing, or a zero-record positive run is reported as success.
 

@@ -8,10 +8,9 @@ export class MpStgJobRunRawCsvFileLinkSlowInstanceCommand
   implements SlowInstanceCommand
 {
   async runDataMigration(dataSource: DataSource): Promise<void> {
-    await dataSource.query(`
-      ALTER TABLE mp.stg_job_run
-      ADD COLUMN IF NOT EXISTS raw_csv_file_id uuid NULL
-    `);
+    // up() has already added mp.stg_job_run.raw_csv_file_id before this phase runs.
+    // Only the two backfills belong in runDataMigration per AGENTS upgrade rules:
+    // the file-level link for download jobs, and the row-level link for raw-load jobs.
 
     await dataSource.query(`
       UPDATE mp.stg_job_run jr

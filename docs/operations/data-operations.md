@@ -88,6 +88,27 @@ database:migrate:prod
 
 Separate from instance commands. Iterate over all active/suspended workspaces for per-workspace data changes. Use `@RegisteredWorkspaceCommand` decorator.
 
+## Mercado Publico Job Runs
+
+The deployment-local `mp` schema records ingestion evidence and job outcomes for
+API V1, API V2 Compra Agil, and Datos Abiertos CSV jobs. Run jobs through the
+Docker Compose server container; do not reset or reseed the database as part of
+an ingestion check.
+
+Each `mp.stg_job_run` row records `records_fetched`, `records_staged`,
+`records_canonicalized`, `records_failed`, and `error_summary`. Valid statuses
+are `success`, `failed`, `soft_miss`, `param_error`, `retryable_failed`, and
+`skipped`. `skipped` represents an intentionally disabled CSV job; it is not a
+successful import.
+
+Operational assertions must use the current `stg_job_run.id` and its linked raw
+rows. Global table totals cannot prove a run. Positive runs require `success`,
+zero `records_failed`, and reconciled run-scoped counters. Missing API detail
+must remain auditable and finalize as `failed` with raw evidence and a reason.
+
+See [Mercado Publico ingestion](mercado-publico-ingestion.md) for the command,
+environment, CSV, and read-only verification contract.
+
 ## Seed Data
 
 ### Development Seed

@@ -51,6 +51,13 @@ Surface: `openspec/`. Consulted: root `AGENTS.md`, `index.md`, `openspec/AGENTS.
 | `mp.stg_api_v1_orden_compra` | `id` (uuid) | `2-16-instance-command-fast-1782340007800-mp-stg-api-v1-oc` |
 | `mp.stg_api_v2_compra_agil` | `id` (uuid) | `2-16-instance-command-fast-1782340007800-mp-stg-api-v2-compra-agil` |
 
+V2 Compra Ágil attributes added by the durable response-shape correction are
+`raw_fecha_publicacion`, `raw_fecha_cierre`, `raw_fecha_ultimo_cambio` (`text`),
+`fecha_publicacion`, `fecha_cierre`, `fecha_ultimo_cambio` (`timestamptz`), and
+`region` (`integer`) in staging. `mp.compra_agil` receives the three normalized
+timestamp columns. The existing `publicado_*` and `cambio_*` values remain query
+filter evidence, not imported process attributes.
+
 ### Staging Layer (CSV)
 
 | Table | Primary Key | Unique Constraints |

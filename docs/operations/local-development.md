@@ -52,7 +52,10 @@ test -f packages/twenty-docker/.env || cp packages/twenty-docker/.env.example pa
 ```
 
 Fill `MERCADO_PUBLICO_API_TICKET` and `COMPRA_AGIL_API_TICKET` in that file
-locally. Do not create or rely on host-level `.env` files for the application.
+locally. CSV variables and host paths remain deployment-owned; the current
+Compose file does not pass them or define a CSV bind mount, so CSV operators
+must supply deployment-specific Compose/environment wiring. Do not create or
+rely on host-level `.env` files for the application.
 
 Start the complete stack with the same explicit environment file:
 
@@ -150,6 +153,10 @@ never be committed to version control; `.env` is gitignored.
 | `STORAGE_S3_SECRET_ACCESS_KEY` | Optional | S3 secret key |
 | `MERCADO_PUBLICO_API_TICKET` | Optional | Mercado Público API ticket |
 | `COMPRA_AGIL_API_TICKET` | Optional | Compra Ágil API ticket |
+| `MERCADO_PUBLICO_CSV_STORAGE_ROOT` | Required for CSV jobs | Operator-owned CSV storage root; no repository-owned bind mount |
+| `MERCADO_PUBLICO_CSV_OC_SOURCE_URL` | Required for OC downloads | Datos Abiertos OC source URL |
+| `MERCADO_PUBLICO_CSV_LICITACIONES_SOURCE_URL` | Required for licitacion downloads | Datos Abiertos licitaciones source URL |
+| `MERCADO_PUBLICO_CSV_DOWNLOAD_ENABLED` | Required for CSV downloads | Enables download jobs; disabled jobs finalize as `skipped` |
 
 ## Startup Sequence
 

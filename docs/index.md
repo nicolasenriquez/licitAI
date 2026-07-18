@@ -21,7 +21,7 @@ without replacing the existing `docs/README.md` baseline.
 | Decisions | `decisions/` | Repository ADRs and long-lived architectural choices |
 | Design | `design/` | Design system and wireframe guidance |
 | Governance | `governance/` | Delivery rules, ownership boundaries, operating model |
-| Operations | `operations/` | Command surface, local development, authoring guidance |
+| Operations | `operations/` | Command surface, local development, database and Mercado Publico ingestion operations, authoring guidance |
 | Standards | `standards/` | Repository documentation and technology standards |
 | Templates | `templates/` | ADR and documentation templates |
 

@@ -138,6 +138,10 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
             publicado_hasta: null,
             cambio_desde: null,
             cambio_hasta: null,
+            fecha_publicacion: new Date('2026-06-01T13:30:00.000Z'),
+            fecha_cierre: new Date('2026-06-30T16:00:00.000Z'),
+            fecha_ultimo_cambio: null,
+            region: 13,
             fetched_at: new Date('2026-06-16T12:00:00.000Z'),
             created_at: new Date('2026-06-16T12:00:01.000Z'),
           },
@@ -163,6 +167,9 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
         'OC-123',
         null,
         null,
+        13,
+        new Date('2026-06-01T13:30:00.000Z'),
+        new Date('2026-06-30T16:00:00.000Z'),
         null,
         new Date('2026-06-16T12:00:00.000Z'),
       ]);
@@ -184,6 +191,10 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
             publicado_hasta: null,
             cambio_desde: null,
             cambio_hasta: null,
+            fecha_publicacion: null,
+            fecha_cierre: null,
+            fecha_ultimo_cambio: null,
+            region: null,
             fetched_at: new Date('2026-06-17T12:00:00.000Z'),
             created_at: new Date('2026-06-17T12:00:01.000Z'),
           },
@@ -195,12 +206,17 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
 
       expect(refreshedCount).toBe(1);
 
-    const upsertParams = mockEntityManager.query.mock.calls[1]![1] as unknown[];
+      const upsertParams = mockEntityManager.query.mock
+        .calls[1]![1] as unknown[];
 
       expect(upsertParams[1]).toBeNull();
       expect(upsertParams[2]).toBeNull();
       expect(upsertParams[3]).toBeNull();
       expect(upsertParams[4]).toBeNull();
+      expect(upsertParams[5]).toBeNull();
+      expect(upsertParams[6]).toBeNull();
+      expect(upsertParams[7]).toBeNull();
+      expect(upsertParams[8]).toBeNull();
     });
   });
 
@@ -219,14 +235,14 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
         .mockResolvedValueOnce([]);
 
       const refreshedCount =
-        await service.refreshLicitacionItemsFromCsvSnapshot(
-          'raw-csv-file-id',
-        );
+        await service.refreshLicitacionItemsFromCsvSnapshot('raw-csv-file-id');
 
       expect(refreshedCount).toBe(1);
       expect(mockEntityManager.query).toHaveBeenNthCalledWith(
         1,
-        expect.stringContaining('SELECT DISTINCT ON (codigo_externo, codigoitem)'),
+        expect.stringContaining(
+          'SELECT DISTINCT ON (codigo_externo, codigoitem)',
+        ),
         ['raw-csv-file-id'],
       );
       expect(mockEntityManager.query.mock.calls[0]?.[0]).toContain(
@@ -236,12 +252,7 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
       const [upsertSql, upsertParams] = mockEntityManager.query.mock.calls[1];
 
       expect(upsertSql).toContain('INSERT INTO mp.licitacion_item');
-      expect(upsertParams).toEqual([
-        'L1',
-        'ITEM-1',
-        'Producto X',
-        '100',
-      ]);
+      expect(upsertParams).toEqual(['L1', 'ITEM-1', 'Producto X', '100']);
     });
   });
 
@@ -346,9 +357,7 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
         .mockResolvedValueOnce([]);
 
       const refreshedCount =
-        await service.refreshOrdenCompraItemsFromCsvSnapshot(
-          'raw-csv-file-id',
-        );
+        await service.refreshOrdenCompraItemsFromCsvSnapshot('raw-csv-file-id');
 
       expect(refreshedCount).toBe(1);
       expect(mockEntityManager.query).toHaveBeenNthCalledWith(

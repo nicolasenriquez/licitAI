@@ -55,6 +55,10 @@ type MercadoPublicoApiV2CompraAgilStagingRow = {
   publicado_hasta: string | null;
   cambio_desde: string | null;
   cambio_hasta: string | null;
+  fecha_publicacion: Date | null;
+  fecha_cierre: Date | null;
+  fecha_ultimo_cambio: Date | null;
+  region: number | null;
   fetched_at: Date;
   created_at: Date;
 };
@@ -336,6 +340,10 @@ export class MercadoPublicoCanonicalRefreshService {
           publicado_hasta,
           cambio_desde,
           cambio_hasta,
+          fecha_publicacion,
+          fecha_cierre,
+          fecha_ultimo_cambio,
+          region,
           fetched_at,
           created_at
         FROM mp.stg_api_v2_compra_agil
@@ -361,6 +369,9 @@ export class MercadoPublicoCanonicalRefreshService {
           id_oc,
           codigo_orden_compra,
           region,
+          fecha_publicacion,
+          fecha_cierre,
+          fecha_ultimo_cambio,
           last_seen_at,
           updated_at
         )
@@ -372,6 +383,9 @@ export class MercadoPublicoCanonicalRefreshService {
           $5,
           $6,
           $7,
+          $8,
+          $9,
+          $10,
           now()
         )
         ON CONFLICT (codigo) DO UPDATE
@@ -381,7 +395,10 @@ export class MercadoPublicoCanonicalRefreshService {
           id_oc = COALESCE($4, mp.compra_agil.id_oc),
           codigo_orden_compra = COALESCE($5, mp.compra_agil.codigo_orden_compra),
           region = COALESCE($6, mp.compra_agil.region),
-          last_seen_at = GREATEST(mp.compra_agil.last_seen_at, $7),
+          fecha_publicacion = COALESCE($7, mp.compra_agil.fecha_publicacion),
+          fecha_cierre = COALESCE($8, mp.compra_agil.fecha_cierre),
+          fecha_ultimo_cambio = COALESCE($9, mp.compra_agil.fecha_ultimo_cambio),
+          last_seen_at = GREATEST(mp.compra_agil.last_seen_at, $10),
           updated_at = now()
       `,
       [
@@ -390,7 +407,10 @@ export class MercadoPublicoCanonicalRefreshService {
         stagingRow.id_orden_compra,
         stagingRow.id_oc,
         stagingRow.codigo_orden_compra,
-        null,
+        stagingRow.region,
+        stagingRow.fecha_publicacion,
+        stagingRow.fecha_cierre,
+        stagingRow.fecha_ultimo_cambio,
         stagingRow.fetched_at,
       ],
     );

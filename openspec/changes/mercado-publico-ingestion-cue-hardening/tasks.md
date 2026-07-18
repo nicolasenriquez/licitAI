@@ -51,8 +51,8 @@ okf_version: "0.1"
 
 ### CSV and auditability
 
-- [x] 2.5 Add the Docker CUE override with a read-only host CSV bind mount at the configured storage root and retain the existing storage-root discovery path.
-  Traceability: preserves provenance and prevents a second path-specific importer from being introduced.
+- [x] 2.5 Confirm CSV location and transport remain operator-owned through the existing storage-root discovery path; add no repository Docker override.
+  Traceability: preserves provenance and prevents a second path-specific importer or repository mount contract from being introduced.
 
 - [x] 2.6 Process the four June/July CSV profiles as bounded streams and batches using the existing loader, with coverage for semicolon delimiters, quoted fields, Latin-1-compatible text, `NA`/blank values, comma decimals, and date sentinels.
   Traceability: makes large-file and observed-source parsing behavior bounded, reproducible, and directly testable.
@@ -63,7 +63,7 @@ okf_version: "0.1"
 - [x] 2.8 Reconcile run-specific raw files/rows, `records_staged`, and `records_canonicalized` deltas using existing identity constraints; remove `records_written` from the CUE contract and prove repeat-run idempotency.
   Traceability: keeps CUE assertions tied to the current run and the existing deduplication keys instead of polluted global totals.
 
-- [x] 2.9 Create or update the change-local CUE runbook with Docker/credential/mount preflight, execution order, read-only baseline/delta queries, expected statuses, failure criteria, repeat-run checks, and the no-reset/no-source-copy safety boundary.
+- [x] 2.9 Create or update the change-local verification runbook with Docker/credential/storage-root preflight, execution order, read-only baseline/delta queries, expected statuses, failure criteria, repeat-run checks, and the no-reset/no-source-copy safety boundary.
   Traceability: turns the runtime contract into an operator-verifiable handoff without adding a repository-wide command surface.
 
 ## 3. Verification
@@ -76,6 +76,8 @@ okf_version: "0.1"
 
 - [ ] [BLOCKED] 3.3 Run the complete CUE flow in the documented order without a destructive database reset; record run identifiers, observed deltas, statuses, and any unavailable operator prerequisites.
   Traceability: proves the real operational gate or preserves an explicit evidence-based limitation.
+  Status: blocked-on-operator-prereqs.
+  ponytail: ceiling = runbook gated behind operator-supplied live credentials and a host CSV directory; CI cannot execute this. upgrade = when an operator supplies valid rent ticket + redacted production detail fixture + on-host CSV directory, run operator-runbook.md step "Implementation Verification Record" and paste run ids + per-run deltas here.
 
 - [x] 3.4 Run the relevant repository quality gates, scan for committed/copied CSVs and secrets, and record environment-only limitations separately from code failures.
   Traceability: closes the package, provenance, and safety checks without masking unrelated baseline failures.
@@ -84,6 +86,8 @@ okf_version: "0.1"
 
 - [ ] [BLOCKED] 4.1 Update the change-local handoff with exact verified commands, run identifiers, observed deltas, final status criteria, and unresolved operator prerequisites. Code verification is recorded; live run identifiers/deltas are unavailable.
   Traceability: preserves reproducible evidence for review and future execution.
+  Status: blocked-on-operator-prereqs.
+  ponytail: ceiling = handoff requires live run identifiers/deltas that CI cannot produce. upgrade = blocked by 3.3; once 3.3 produces a recorded run id + per-run deltas, paste them into operator-runbook.md "Implementation Verification Record" and close 4.1.
 
 - [x] 4.2 Update user or operational documentation only where the implemented behavior changed; do not add production data, credentials, or a parallel ticket artifact.
   Traceability: keeps release documentation aligned with verified behavior and the OpenSpec-only source-of-truth boundary.
@@ -116,7 +120,7 @@ okf_version: "0.1"
 ### Slice 3 — CSV ingestion and idempotency
 
 - Tasks: `1.4 -> 2.5 -> 2.6 -> 2.7 -> 2.8`
-- Checkpoint: mounted profiles stream in bounded batches, preserve raw evidence, classify outcomes, reconcile counters, and remain idempotent on rerun.
+- Checkpoint: operator-provided profiles stream in bounded batches, preserve raw evidence, classify outcomes, reconcile counters, and remain idempotent on rerun.
 - Blocked by: Slice 0.
 - Blocks: Slice 4.
 

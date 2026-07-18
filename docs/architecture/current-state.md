@@ -7,13 +7,13 @@ okf_version: "0.1"
 # Current State Architecture
 
 ## Purpose
-Describe the current architecture of the Twenty CRM monorepo as visible in the codebase and CI/CD configuration. This document captures what exists and is supportable today, not what is proposed or planned.
+Describe the current architecture of the licitai/Twenty monorepo as visible in the codebase and CI configuration. This document captures what exists and is supportable today, not what is proposed or planned.
 
 ## Primary Audience
 AI agents, engineers, architects onboarding to the Twenty codebase.
 
 ## Executive Summary
-Twenty is a production-grade, open-source CRM with a 22-package Nx monorepo. The architecture follows a metadata-driven design: object definitions, field definitions, views, roles, and permissions are stored as metadata and drive both the backend API and the frontend UI dynamically. The backend is a NestJS application with a custom ORM layer (TwentyORM) for multi-tenant per-workspace PostgreSQL schemas. The frontend is a React 19 SPA using Jotai for state management and Linaria for styling. Background jobs run via BullMQ with Redis. The monorepo is managed by Nx with Yarn 4.
+Licitai is a Twenty-derived, production-grade open-source CRM with a 22-package Nx monorepo. The architecture follows a metadata-driven design: object definitions, field definitions, views, roles, and permissions are stored as metadata and drive both the backend API and the frontend UI dynamically. The backend is a NestJS application with a custom ORM layer (TwentyORM) for multi-tenant per-workspace PostgreSQL schemas. The frontend is a React 19 SPA using Jotai for state management and Linaria for styling. Background jobs run via BullMQ with Redis. The monorepo is managed by Nx with Yarn 4.
 
 ## Confirmed Current State
 
@@ -42,7 +42,7 @@ Twenty is a production-grade, open-source CRM with a 22-package Nx monorepo. The
 | Styling | Linaria (zero-runtime CSS-in-JS), styled-components API. CSS variables for theming. |
 | i18n | Lingui. Extract/compile workflow. Crowdin for translations. |
 | Testing | Jest (unit/integration), Playwright (E2E), Vitest (Vite-native). |
-| CI/CD | GitHub Actions (40+ workflows). Per-package CI, E2E, deploy, release, i18n. |
+| CI | GitHub Actions (22 workflows). Per-package CI, documentation checks, integration/E2E coverage, and package-specific validation. No deployment or promotion workflow is part of the current contract. |
 | Containerization | Docker Compose for dev/prod. Kubernetes Helm charts available. |
 
 ### Package Structure
@@ -155,10 +155,16 @@ Apps are installed via `npx twenty app:install` and published with `npx twenty a
 
 ### Infrastructure
 
-- **Development**: Docker Compose with PostgreSQL 16 + Redis 7. `setup-dev-env.sh` for one-command setup.
-- **Production**: Docker Compose with server + worker + PostgreSQL + Redis. Kubernetes Helm charts available.
+- **Development**: The complete Docker Compose stack is the canonical local runtime for the server, compiled frontend, worker, PostgreSQL 16, and Redis 7.
+- **Deployment artifacts**: Docker Compose and Kubernetes Helm charts remain available; deployment is outside the current CI contract.
 - **Monitoring**: OpenTelemetry collector, Grafana dashboards, Sentry error tracking, Prometheus metrics.
-- **CI/CD**: GitHub Actions (40+ workflows). Per-package CI (lint, typecheck, test, build), E2E, deploy to main/tag, release drafter, i18n sync, app testing.
+- **CI**: GitHub Actions (22 workflows) cover package checks, documentation, integration/E2E, and targeted application validation. Deployment and promotion CD workflows are absent.
+
+### Mercado Publico ingestion
+
+- Deployment-local `mp` schema stores raw API/CSV evidence, staging rows, canonical procurement entities, reconciliation records, and gold/read objects.
+- API V1, API V2 Compra Agil, and Datos Abiertos CSV remain separate source families; raw provenance is retained before normalization.
+- Manual ingestion jobs run through the internal `mercado-publico:run` command and persist job status plus run-scoped counters. See `docs/operations/mercado-publico-ingestion.md`.
 
 ### Quality Gates
 

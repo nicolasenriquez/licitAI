@@ -91,10 +91,14 @@ import { MpReconciliationPublicMarketEntitiesFastInstanceCommand } from 'src/dat
 import { MpReconciliationEventFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007900-mp-reconciliation-event';
 import { MpGoldReadObjectsFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007910-mp-gold-read-objects';
 import { MpRawCsvFileDedupeModalityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007920-mp-raw-csv-file-dedupe-modality';
+// ponytail: registered no-op; original drop moved to slow 1783191615515 for ordering.
 import { DropRawCsvFileIngestionJobIdFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1783191615514-drop-raw-csv-file-ingestion-job-id';
 import { MpRawCsvFileDedupeNullsNotDistinctFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1783191615520-mp-raw-csv-file-dedupe-nulls-not-distinct';
 import { MpStgJobRunRawCsvFileLinkSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1782340007930-mp-stg-job-run-raw-csv-file-link';
 import { DropRawCsvFileIngestionJobIdSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1783191615515-drop-raw-csv-file-ingestion-job-id';
+import { MpStgJobRunAddSkippedStatusFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1784000000000-mp-stg-job-run-add-skipped-status';
+import { MpCompraAgilV2DatesFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1784100000000-mp-compra-agil-v2-dates';
+import { MpCompraAgilV2DatesBackfillSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1784100000010-mp-compra-agil-v2-dates-backfill';
 
 export const INSTANCE_COMMANDS = [
   AddViewFieldGroupIdIndexOnViewFieldFastInstanceCommand,
@@ -192,4 +196,7 @@ export const INSTANCE_COMMANDS = [
   MpRawCsvFileDedupeNullsNotDistinctFastInstanceCommand,
   MpStgJobRunRawCsvFileLinkSlowInstanceCommand,
   DropRawCsvFileIngestionJobIdSlowInstanceCommand,
+  MpStgJobRunAddSkippedStatusFastInstanceCommand,
+  MpCompraAgilV2DatesFastInstanceCommand,
+  MpCompraAgilV2DatesBackfillSlowInstanceCommand,
 ];

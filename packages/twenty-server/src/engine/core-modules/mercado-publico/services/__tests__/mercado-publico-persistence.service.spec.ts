@@ -328,6 +328,10 @@ describe('MercadoPublicoPersistenceService', () => {
           {
             codigo: 'CA-1',
             estado: 'publicada',
+            region: 13,
+            fecha_publicacion: '2026-06-01T09:30:00',
+            fecha_cierre: '2026-06-30T12:00:00-04:00',
+            fecha_ultimo_cambio: 'not-a-date',
             orden_compra: { id_orden_compra: 'OC-123' },
           },
           {
@@ -352,6 +356,7 @@ describe('MercadoPublicoPersistenceService', () => {
         sql.includes('INSERT INTO mp.stg_api_v2_compra_agil'),
       ),
     ).toHaveLength(1);
+    expect(executedSql[1]).toContain('raw_fecha_publicacion');
   });
 
   it('does not restage a duplicate V2 Compra Agil raw payload', async () => {

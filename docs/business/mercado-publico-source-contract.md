@@ -178,7 +178,7 @@ Endpoints:
 | `region` | integer | Region code. |
 | `id` | string | Exact Compra Agil code. |
 | `q` | string | Text search. |
-| `tamano_pagina` | integer | Default 15, maximum 50. |
+| `tamano_pagina` | integer | Default 15, minimum 10, maximum 50. |
 | `numero_pagina` | integer | Starts at 1. |
 | `ordenar_por` | string | Sort field. |
 | `orden` | string | Sort direction. |
@@ -186,7 +186,7 @@ Endpoints:
 Parameter rules:
 
 - `id` and `q` are mutually exclusive.
-- `tamano_pagina` must not exceed 50.
+- `tamano_pagina` must be between 10 and 50, inclusive.
 - `numero_pagina` starts at 1.
 - There is no documented `codigo_organismo` filter for this API.
 
@@ -207,6 +207,18 @@ OC linkage rule:
 - Do not depend only on state `oc_emitida`.
 
 All Compra Agil fields are modeled as optional unless fixtures prove they are always present.
+
+Observed response-shape rules:
+
+- `estado` may arrive as a scalar or an object containing source code/label
+  data. Normalize it at the API boundary; never pass an object into scalar
+  staging or canonical columns.
+- Preserve raw `fecha_publicacion`, `fecha_cierre`, and
+  `fecha_ultimo_cambio` values, then store valid normalized timestamps in the
+  corresponding canonical fields. Preserve `region` as an integer when present.
+- Persist the complete detail response before extraction. A missing detail
+  record is a failed job with non-zero `records_failed`, a non-empty reason, and
+  retained raw evidence; it is not a successful empty result.
 
 ## CSV Datos Abiertos
 
@@ -540,10 +552,14 @@ The source contract is implementation-ready when:
 - API V1 OC supports query by state.
 - API V1 OC supports query by `Codigo`.
 - API V2 Compra Agil supports paginated listing.
+- API V2 Compra Agil rejects `tamano_pagina` outside `10..50` before the HTTP request.
 - API V2 Compra Agil supports `ttl_cambio_ms`.
 - API V2 Compra Agil supports `cambio_desde` and `cambio_hasta`.
 - API V2 Compra Agil supports detail by `codigo`.
 - API V2 Compra Agil uses `id_orden_compra` or `id_oc` for OC linkage.
+- API V2 Compra Agil normalizes scalar/object `estado` without widening scalar persistence.
+- API V2 Compra Agil preserves raw date evidence alongside normalized timestamps.
+- Missing detail responses finalize as auditable failures, not false-success empty results.
 - HTTP 429 is handled explicitly.
 - Tickets are not hardcoded.
 - CSV downloads are stored before parsing.

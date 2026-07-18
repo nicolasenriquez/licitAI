@@ -406,25 +406,12 @@ Mercado Publico env vars declared for both `server` and `worker` services:
 - `COMPRA_AGIL_API_TICKET` env var (required for V2 API)
 - `COMPRA_AGIL_API_BASE_URL` env var (required for V2 API)
 - `MERCADO_PUBLICO_CSV_DOWNLOAD_ENABLED` env var
-- CSV volume mount of any kind
-- CUE override compose file
+- CSV volume mount or Compose override: intentionally out of repository scope.
 
-Task 2.5 must create a `docker-compose.cue.yml` override with:
-```yaml
-services:
-  server:
-    environment:
-      MERCADO_PUBLICO_CSV_STORAGE_ROOT: /var/mp-csv
-      MERCADO_PUBLICO_CSV_DOWNLOAD_ENABLED: "false"
-    volumes:
-      - ${HOST_CSV_DIR:?err}:/var/mp-csv:ro
-  worker:
-    environment:
-      MERCADO_PUBLICO_CSV_STORAGE_ROOT: /var/mp-csv
-      MERCADO_PUBLICO_CSV_DOWNLOAD_ENABLED: "false"
-    volumes:
-      - ${HOST_CSV_DIR:?err}:/var/mp-csv:ro
-```
+Task 2.5 keeps CSV location and transport operator-owned. The deployment must
+provide `MERCADO_PUBLICO_CSV_STORAGE_ROOT` through its own environment and
+make the files readable there; this change does not prescribe a host path,
+bind mount, or additional Compose file.
 
 ### csvDownloadEnabled gate
 

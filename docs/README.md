@@ -13,9 +13,11 @@ Provide a single navigation layer for Twenty CRM monorepo documentation. This in
 AI agents (Claude Code, Codex), engineers, architects, and reviewers working on the Twenty CRM monorepo.
 
 ## Executive Summary
-Twenty is a mature, production-grade open-source CRM with a 22-package Nx
-monorepo, full CI/CD pipelines, and a metadata-driven architecture. This
-repository now exposes a coherent internal documentation baseline that
+This checkout is the `licitai` fork of the Twenty CRM monorepo. Internal package
+names and inherited product references remain `twenty-*`; the repository now
+also carries a deployment-local Mercado Publico ingestion domain. The 22-package
+Nx monorepo has CI workflows, Docker-canonical local runtime, and a
+metadata-driven architecture. This repository now exposes a coherent internal documentation baseline that
 consolidates architecture, decisions, governance, and operations. Root
 `AGENTS.md` remains the operational entrypoint, root `index.md` is the
 canonical routing map, and `docs/` adds depth, traceability, and durable
@@ -31,7 +33,7 @@ context.
 | Docs topology | `architecture/documentation-topology.md` | OKF bundle shape, index hierarchy, and documentation topology. |
 | Design | `design/` | Design system, visual tokens, interaction patterns, and wireframe grammar. |
 | Governance | `governance/` | Ownership, decision boundaries, AI-assisted delivery rules, and domain operating model. |
-| Operations | `operations/` | Local development, command surface, database operations, CI/CD, release expectations, and documentation authoring guidance. |
+| Operations | `operations/` | Local development, command surface, database operations, CI, release expectations, ingestion operations, and documentation authoring guidance. |
 | Decisions | `decisions/` | ADR index and repository-level architectural decisions. |
 | Templates | `templates/` | Standard templates for ADR creation and governance assets. |
 | Standards | `standards/` | Technology-specific standards plus repository documentation standards such as OKF adoption guidance. |
@@ -54,10 +56,11 @@ context.
 12. `operations/command-surface.md` — Developer command contract
 13. `operations/local-development.md` — Local setup and runtime
 14. `operations/okf-authoring-guide.md` — Safe additive documentation authoring rules
-15. `design/design-system.md` — Visual and interaction rules
-16. `standards/okf-standard.md` — Repository OKF taxonomy and frontmatter rules
-17. `decisions/` — Key architectural decisions with rationale
-18. `../.cursor/rules/` — Cursor-specific development rules (16 `.mdc` files)
+15. `operations/mercado-publico-ingestion.md` — Ingestion command and operator contract
+16. `design/design-system.md` — Visual and interaction rules
+17. `standards/okf-standard.md` — Repository OKF taxonomy and frontmatter rules
+18. `decisions/` — Key architectural decisions with rationale
+19. `../.cursor/rules/` — Cursor-specific development rules (16 `.mdc` files)
 
 ### For architecture and delivery
 
@@ -84,8 +87,8 @@ context.
 
 | Topic | Current State |
 | --- | --- |
-| Repository maturity | Production-grade. 22 packages, full CI/CD (40+ GitHub Actions workflows), published SDK (`twenty-sdk` v2.15.0), Docker Compose + Kubernetes Helm charts. |
-| Product maturity | Active. Twenty Cloud available at twenty.com. Self-hosting supported. App ecosystem with internal, community, and example apps. |
+| Repository maturity | Production-grade. 22 packages, 22 GitHub Actions CI workflows, published SDK (`twenty-sdk` v2.15.0), Docker Compose + Kubernetes Helm charts. Deployment and promotion CD workflows are not part of the current repository contract. |
+| Product maturity | Active licitai fork. Self-hosted deployment is the current product boundary; inherited Twenty app and package surfaces remain available in the monorepo. |
 | Architecture maturity | High but implicit. Architecture is visible in code and `CLAUDE.md` but not consolidated in a single durable document. |
 | Documentation maturity | Structured. Public docs at docs.twenty.com (Mintlify), root routing via `AGENTS.md` + `index.md`, and an internal baseline under `docs/`. |
 | Technical certainty | High. Stack is ratified: NestJS 11, React 19, TypeScript strict, PostgreSQL 16, Redis 7, BullMQ, GraphQL Yoga, Jotai, Linaria, Nx. |

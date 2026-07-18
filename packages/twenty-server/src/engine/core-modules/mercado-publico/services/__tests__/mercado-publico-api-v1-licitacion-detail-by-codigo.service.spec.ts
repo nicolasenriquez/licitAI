@@ -137,6 +137,40 @@ describe('MercadoPublicoApiV1LicitacionDetailByCodigoService', () => {
       );
     });
 
+    it('should fail auditable when detail response has no usable record (recordsFetched=0)', async () => {
+      const emptyDetailResponse = {
+        ...mockApiSuccessResponse,
+        licitaciones: [],
+      } as any;
+
+      clientService.getByCodigoExterno.mockResolvedValue(
+        emptyDetailResponse,
+      );
+
+      persistenceService.persistV1LicitacionesSnapshot.mockResolvedValue({
+        rawApiPayloadId: 'raw-payload-id',
+        recordsFetched: 0,
+        recordsStaged: 0,
+        recordsCanonicalized: 0,
+      });
+
+      await expect(
+        service.run({ codigoExterno: 'LIC-MISSING' }),
+      ).rejects.toThrow(MercadoPublicoRecordedJobFailureError);
+
+      expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          jobRunRecordId: 'job-run-id',
+          status: 'failed',
+          recordsFetched: 0,
+          recordsStaged: 0,
+          recordsCanonicalized: 0,
+          recordsFailed: 1,
+          errorSummary: 'No usable V1 licitacion detail record found for codigo externo LIC-MISSING',
+        }),
+      );
+    });
+
     it('should handle unexpected error with transport failure classification', async () => {
       const networkError = new Error('Network error');
 

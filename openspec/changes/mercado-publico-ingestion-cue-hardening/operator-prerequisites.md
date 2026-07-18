@@ -104,9 +104,9 @@ CSV profiles:
 - Ordenes de Compra June 2026
 - Ordenes de Compra July 2026
 
-The directory is mounted read-only into the Docker container at the path
-configured by `MERCADO_PUBLICO_CSV_STORAGE_ROOT`. Files must follow the
-discovery layout:
+The deployment must make the directory readable at the path configured by
+`MERCADO_PUBLICO_CSV_STORAGE_ROOT`. The transport is operator-owned and is not
+defined by this repository. Files must follow the discovery layout:
 ```
 {host_dir}/
   licitaciones/
@@ -125,14 +125,14 @@ discovery layout:
         <sourceFile>.csv
 ```
 
-**Used by**: Tasks 0.3 (scope lock — confirms storage-root contract), 2.5
-(Docker CUE override), 2.6 (CSV profile processing), 3.3 (CUE gate execution).
+**Used by**: Tasks 0.3 (scope lock — confirms storage-root contract), 2.6
+(CSV profile processing), 3.3 (CUE gate execution).
 
 **Format**: Absolute filesystem path on the Docker host.
 
-**Status**: The override and read-only mount were implemented and Compose was
-validated with a temporary host directory. The operator's real source
-directory remains required before live CUE execution.
+**Status**: The repository intentionally does not provide a Compose override or
+mount contract. The operator's real source directory and deployment wiring
+remain required before live CSV execution.
 
 ---
 

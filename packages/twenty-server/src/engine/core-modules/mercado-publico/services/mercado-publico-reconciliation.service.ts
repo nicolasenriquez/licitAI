@@ -153,6 +153,10 @@ export class MercadoPublicoReconciliationService {
       { api_codigo: string; csv_codigo: string }[]
     >(
       `
+        -- Source contract: docs/business/mercado-publico-source-contract.md
+        -- (CSV column \`MontoTotalOC_PesosChilenos\` line 309; comma-decimal rule
+        -- line 361-366: "Convert comma decimals only in validated numeric canonical
+        -- fields; record parse failures instead of dropping the row or column.")
         SELECT DISTINCT
           api.codigo AS api_codigo,
           csv.codigo AS csv_codigo

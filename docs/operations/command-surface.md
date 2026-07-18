@@ -7,13 +7,13 @@ okf_version: "0.1"
 # Command Surface
 
 ## Purpose
-Define the public developer command surface for the Twenty CRM monorepo. Every command that an engineer or AI agent should use during development, testing, and operations is documented here.
+Define the public developer command surface for the licitai/Twenty monorepo. Every command that an engineer or AI agent should use during development, testing, and operations is documented here.
 
 ## Primary Audience
 Engineers, AI agents, and reviewers working on the Twenty codebase.
 
 ## Executive Summary
-Twenty exposes a structured command surface through Nx targets and Yarn scripts. There is one root-level entry point (`yarn start`) for the full stack, plus per-package Nx targets for granular workflows. The command surface is organized into six categories: development, testing, code quality, build, database, and GraphQL code generation.
+The repository exposes a structured command surface through Docker Compose, Nx targets, and Yarn scripts. Docker Compose is the canonical local runtime; Nx/Yarn remain the package-level and advanced host-source surfaces. The command surface is organized into development, testing, code quality, build, database, GraphQL code generation, and documentation operations.
 
 ## Public Command Contract
 
@@ -21,11 +21,12 @@ Twenty exposes a structured command surface through Nx targets and Yarn scripts.
 
 | Command | Purpose | Details |
 | --- | --- | --- |
-| `yarn start` | Start full development stack | Starts `twenty-server` (port 3000) + `twenty-front` (port 3001) concurrently, then starts the BullMQ worker once the server is ready. Uses `concurrently` + `wait-on`. |
-| `npx nx start twenty-server` | Start backend only | NestJS API server on port 3000. Hot-reload enabled. |
-| `npx nx start twenty-front` | Start frontend only | Vite dev server. Serves the React SPA. |
-| `npx nx run twenty-server:worker` | Start background worker | BullMQ queue worker process. Requires Redis and PostgreSQL running. |
-| `docker compose -f packages/twenty-docker/docker-compose.dev.yml up -d` | Start infrastructure services | PostgreSQL 16 + Redis 7 only. For development against source code. |
+| `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml up -d` | Start full local runtime | Canonical path. Runs server/API, compiled frontend, worker, PostgreSQL, and Redis in containers. |
+| `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml ps` | Inspect local runtime | Shows service state and health. |
+| `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml logs -f server worker` | Follow application logs | Use for startup and ingestion diagnosis. |
+| `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml down` | Stop local runtime | Stops the Compose project without deleting named volumes. |
+| `yarn start` | Advanced host-source runtime | Legacy host-local Nx path; not the default local runtime. Use only when explicitly required. |
+| `docker compose -f packages/twenty-docker/docker-compose.dev.yml up -d` | Advanced infrastructure-only mode | Starts PostgreSQL and Redis only for intentional host-source or infrastructure debugging. |
 
 ### Testing Commands
 
@@ -104,11 +105,15 @@ Twenty exposes a structured command surface through Nx targets and Yarn scripts.
 
 ## CI Contract
 
-The CI pipeline in `.github/workflows/` enforces the following stage order across 40+ workflow files:
+The CI surface in `.github/workflows/` currently contains 22 workflow files.
+Deployment and promotion CD workflows are not part of this repository contract;
+each workflow owns its applicable checks.
 
-1. **Secret scan** — Gitleaks detects secrets before any code runs.
-2. **Per-package CI** — Each package runs independently: `lint` (oxlint + oxfmt), `typecheck` (tsgo), `test` (Jest/Vitest), `build`.
-3. **Integration & E2E** — Integration tests (`test:integration:with-db-reset`) and Playwright E2E tests run against the full stack.
+Common CI checks include:
+
+1. **Per-package validation** — `lint` (oxlint + oxfmt), `typecheck` (tsgo), `test` (Jest/Vitest), and `build` where the package workflow requires them.
+2. **Integration and E2E** — Server integration, Playwright E2E, SDK, app, and Docker Compose checks where their workflow scope requires them.
+3. **Documentation and change routing** — Documentation validation and changed-file routing for workflows that opt into those checks.
 
 Key CI characteristics:
 - CI uses GitHub Actions service containers for PostgreSQL/Redis, not the `setup-dev-env.sh` script.
@@ -129,7 +134,7 @@ This server is read-only. For write operations (reset, migrations, sync), use th
 ## Current Assumptions
 
 - Nx remains the command orchestration layer; commands are invoked through `npx nx <target> <package>`.
-- The `yarn start` convenience command remains the primary full-stack entry point.
+- Docker Compose remains the primary full-stack entry point. `yarn start` is an advanced host-source path.
 - `lint:diff-with-main` is the preferred lint strategy for PRs and local development.
 - Instance commands remain the authoritative migration mechanism.
 - GraphQL codegen remains a manual step after schema changes.
