@@ -41,8 +41,11 @@ design system and the BullMQ queue-jobs monitoring precedent.
   file health. Add two small read services over `mp.stg_job_run` and
   `mp.raw_api_payload` (compute live, mirroring `PipelineHealthRead`; do not
   write gold rows).
-- Add a new top-level route `/mercado-publico` with a tabbed page:
-  **Licitaciones**, **Compra Ágil**, **Centro de Control**. Page mirrors the
+- Add a new top-level route `/mercado-publico#compra-agil` with a tabbed page:
+  **Compra Ágil**, **Licitaciones**, **Centro de Control**. Compra Ágil is the
+  canonical entry because the provider's primary task is to find actionable
+  opportunities; technical observability remains a supporting third-level
+  concern. Page mirrors the
   design system (`PageCardLayout`, `SettingsTabBar` pattern, twenty-ui `Tag`,
   table primitives) and the `SettingsAdminQueueJobsTable` monitoring shape.
 - Add a LINK `NavigationMenuItem` so the view appears in the main navigation
@@ -51,6 +54,10 @@ design system and the BullMQ queue-jobs monitoring precedent.
   process type, state, exact buyer code, publication/changed dates, and sort;
   browse paging is `page`/`limit`/`total`. Monitoring logs alone use
   `limit`/`offset`/`hasMore`.
+- Preserve independent local browse state for each tab (applied filters, page,
+  selected row, and scroll position) while switching tabs or opening/closing a
+  detail panel. Do not add global Jotai state unless a later cross-surface
+  consumer demonstrates the need.
 
 ## Change Profile
 
@@ -108,8 +115,9 @@ design system and the BullMQ queue-jobs monitoring precedent.
   `PageCardLayout`, and existing Mercado Público integration suites.
 - First failing behavior or contract proof: core `/graphql` lacks these
   queries, and the authenticated app lacks the route/navigation entry.
-- UI proof: fixtures cover exact buyer-code filtering, browse paging, bounded
-  log loading, keyboard detail flow, redaction, and independent states.
+- UI proof: fixtures cover canonical `#compra-agil` fallback, exact buyer-code
+  filtering, browse paging and context preservation, bounded log loading,
+  keyboard detail flow, redaction, and independent states.
 
 ## Execution Order Decision
 

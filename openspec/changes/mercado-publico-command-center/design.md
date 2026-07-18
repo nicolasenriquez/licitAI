@@ -142,11 +142,13 @@ Alternatives considered:
 - Hardcoded `NavigationDrawerItem` in `NavigationDrawerOtherSection` —
   rejected: bypasses the data-driven drawer and increases divergence.
 
-### Monitoring tables mirror `SettingsAdminQueueJobsTable`
+### Monitoring investigation mirrors `SettingsAdminQueueJobsTable`
 
-The job-run and API-call-log tables reuse the shape of the existing BullMQ
+The job-run and API-call-log views reuse the shape of the existing BullMQ
 queue-jobs table: filter select, status `Tag` badge, expandable row detail,
-`limit/offset + hasMore` pagination, `network-only` fetch.
+`limit/offset + hasMore` pagination, `network-only` fetch. A local selector
+shows one heavy investigation table at a time; it does not mount both tables
+simultaneously.
 
 Rationale: proven interaction shape, design tokens, and a11y already exist.
 
@@ -215,13 +217,29 @@ Consequences:
   Do not wrap every dashboard section in another card or create nested cards.
 - Header has `IconWorld` and localized title. First version has no run, retry,
   delete, scheduling, or other write action.
-- Tabs are URL-hash backed. Canonical entry is
-  `/mercado-publico#licitaciones`; missing/unknown hashes fall back to
-  `licitaciones`. Hash changes preserve the current page without full reload.
-- `Limpiar filtros` appears only when at least one filter is active. Filter
-  state is scoped per tab and survives detail-panel open/close.
+- Tabs are URL-hash backed. Canonical entry and drawer destination are
+  `/mercado-publico#compra-agil`; missing/unknown hashes are replaced with
+  `compra-agil`. Hash changes preserve the current page without full reload.
+- Filter state is local to each browse-tab instance and survives tab switches
+  and detail-panel open/close: applied filters, page, selected row, and scroll
+  position are not shared across Compra Ágil and Licitaciones. `Limpiar
+  filtros` appears only when at least one filter is active.
+- Browse controls show state, publication range, and sort first. Exact buyer
+  code and changed-since live under `Más filtros`; active-filter chips reflect
+  applied values, not unsubmitted drafts. Every filter application resets only
+  that tab to page 1.
+- Browse table hierarchy is title/object, buyer, textual state, closing date,
+  publication date, process code. Closing is primary; a missing value says
+  `Cierre no informado`. Tablet hides code and publication before primary
+  columns, while mobile uses a compact representation that keeps object, state,
+  and closing date visible.
 - Row selection is keyboard reachable. `Enter`/`Space` opens detail; close
-  restores focus to the originating row. `Escape` closes the panel.
+  restores focus to the originating row. `Escape` closes the modal panel; the
+  panel owns internal scroll and background content is not keyboard reachable.
+- The sticky detail header contains title, code, textual status, and an
+  accessible close control. Detail order is identity, buyer, dates, items,
+  adjudications, related OCs, reconciliation, sources, and a collapsed
+  technical-information disclosure.
 - Color never carries status alone: every status uses localized text plus a
   `Tag`. Unknown or null status renders `No informado` with neutral styling.
 - Dates, times, counts, and CLP amounts use workspace locale/timezone. Raw API
@@ -288,27 +306,27 @@ does not replace the home route or add a hardcoded row to “Other”.
 │   🌐 Mercado Público                 SELECTED  │
 │      28 px item, existing selected background  │
 └────────────────────────────────────────────────┘
-                         → /mercado-publico#licitaciones
+                         → /mercado-publico#compra-agil
 ```
 
 Acceptance focus: route match supplies selected state; label and icon are not
 duplicated in page-local navigation.
 
-### Frame 3 — Licitaciones browse view
+### Frame 3 — Compra Ágil browse view
 
 ```text
 ┌─ PageCardLayout, white surface / shell remains gray ─────────────────────┐
 │ [🌐] Mercado Público                                      PageHeader     │
 ├─────────────────────────────────────────────────────────────────────────┤
-│  Licitaciones   Compra Ágil   Centro de Control           URL-hash tabs │
+│  Compra Ágil   Licitaciones   Centro de Control           URL-hash tabs │
 │  ━━━━━━━━━━━                                                            │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ Estado [Todos ▾]  Código organismo [________]                           │
-│ Publicada [Desde] [Hasta]  Último cambio [Desde]  [Limpiar filtros]     │
+│ Estado [Todos ▾]  Publicada [Desde] [Hasta]  Orden [Cierre ▾]           │
+│ [Más filtros ▾]   [Estado: Publicada ×]          [Limpiar filtros]      │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ Código       Estado       Nombre                 Organismo      Publicada│
-│ ML1-23-LP24  [Publicada]  Suministro de…         MINSAL         01 dic   │
-│ ML1-23-LE25  [Cerrada]    Arriendo de…           SSS            20 nov   │
+│ Objeto       Organismo    Estado       Cierre       Publicada  Código   │
+│ Insumos…     MINSAL       [Publicada]  15 ene 17:00 01 dic    CA-123    │
+│ Arriendo…    SSS          [Cerrada]    Cierre no informado   CA-124    │
 │                                                                         │
 │             1–25 de 847                [Anterior] Página 1 [Siguiente]   │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -316,14 +334,14 @@ duplicated in page-local navigation.
 
 Acceptance focus:
 
-- list fixed to process type `licitacion`
+- list fixed to process type `compra_agil`
 - filters map one-to-one to existing service inputs
 - title truncates with accessible full-text tooltip
 - pagination uses `page`/`limit`/`total`
 - selected row opens Frame 4
 
-Compra Ágil reuses this list with process type `compra_agil` and its known
-state values. It does not add unsupported region, free-text, or related-OC
+Licitaciones reuses this list with process type `licitacion` and its known
+state values. Neither tab adds unsupported region, free-text, or related-OC
 columns.
 
 ### Frame 4 — Browse view with process detail
@@ -331,12 +349,12 @@ columns.
 ```text
 ┌─ browse content shrinks, selection remains visible ─────┬─ 500 px panel ─┐
 │ [🌐] Mercado Público                                    │ [×] ML1-23-LP24│
-│ Licitaciones | Compra Ágil | Centro de Control          │ Suministro de… │
+│ Compra Ágil | Licitaciones | Centro de Control          │ Suministro de… │
 │                                                        ├────────────────┤
-│ Estado [Todos ▾]  Código organismo [____]              │ [Publicada]    │
-│                                                        │ MINSAL         │
-│ ML1-23-LP24 [Publicada] Suministro de…  ← selected     │ 01 dic → 15 ene│
-│ ML1-23-LE25 [Cerrada]   Arriendo de…                   ├────────────────┤
+│ Estado [Todos ▾]  Publicada [Desde] [Hasta]            │ CA-123 [Publicada]│
+│                                                        │ Comprador: MINSAL│
+│ Insumos… [Publicada] Cierra 15 ene ← selected           │ Fechas          │
+│ Arriendo… [Cerrada] Cierre no informado                 │ 01 dic → 15 ene│
 │                                                        │ Ítems (3)      │
 │                                                        │ código, nombre │
 │                                                        │ cantidad, monto│
@@ -358,6 +376,7 @@ columns.
 │                                                        │ Fuentes        │
 │                                                        │ fuente, filas, │
 │                                                        │ última vista   │
+│                                                        │ [Información técnica ▸]│
 └────────────────────────────────────────────────────────┴────────────────┘
 ```
 
@@ -371,7 +390,7 @@ the viewport and returns focus/context on close.
 ```text
 ┌─ PageCardLayout ─────────────────────────────────────────────────────────┐
 │ [🌐] Mercado Público                                                    │
-│ Licitaciones   Compra Ágil   Centro de Control                          │
+│ Compra Ágil   Licitaciones   Centro de Control                          │
 │                                 ━━━━━━━━━━━━━━━━━                        │
 ├─ Salud del pipeline, compact health matrix ─────────────────────────────┤
 │ Job                            Estado       Últ. éxito  Últ. fallo  Lag  │
@@ -381,21 +400,15 @@ the viewport and returns focus/context on close.
 ├─ Cuota API ──────────────────────────────────────────────────────────────┤
 │ api-v1-licitaciones  1.234 / 10.000  [████░░░░░░]  reset 00:00          │
 │ api-v2-compra-agil     456 /  2.000  [██░░░░░░░░]  último 429: 03:11    │
-├─ Ejecuciones de jobs ───────────────────────────────────────────────────┤
+├─ Investigación: [Ejecuciones] [Llamadas API] ───────────────────────────┤
 │ Estado [Todos ▾] Job [Todos ▾]                                          │
 │ Job                     Estado       Inicio  Fin    Obten. Canon. Error  │
 │ v2-compra-agil-list     [Correcta]   03:10   03:12  120    120    0     │
 │ csv-ordenes-compra      [Fallida]    03:00   03:05    0      0    1     │
 │   expanded → resumen del error + vínculo de archivo CSV, si existe      │
 │                         [Anterior]  Página 1  [Siguiente]                  │
-├─ Llamadas a la API ──────────────────────────────────────────────────────┤
-│ Fuente [Todas ▾] Endpoint [Todos ▾] HTTP [Todos ▾]                      │
-│ Fuente                  Endpoint           HTTP   Registros  Hora        │
-│ api-v2-compra-agil      list               [200]  120        03:11       │
-│ api-v1-licitaciones     detail-by-codigo   [404]    0        02:46       │
-│   expanded → parámetros redactados + error + vínculo a ejecución        │
-│                         [Anterior]  Página 1  [Siguiente]                  │
-├─ Salud de archivos CSV ──────────────────────────────────────────────────┤
+│ (Al elegir Llamadas API, esta tabla se sustituye — no se monta a la vez.)│
+├─ Integridad de fuentes: Salud de archivos CSV ───────────────────────────┤
 │ Dataset       Archivo       Filas  Parse correcto  Carga       Frescura │
 │ oc            oc_junio.csv  12,4k  99,92 %         hoy 03:00  No config.│
 │ licitaciones  lic_julio.csv 48,1k  100 %           hoy 03:01  No config.│
@@ -405,6 +418,8 @@ the viewport and returns focus/context on close.
 Acceptance focus:
 
 - one continuous monitoring surface, not nested identical card grids
+- Diagnóstico, Investigación e Integridad de fuentes ordenan la lectura; el
+  selector de Investigación mantiene una sola tabla pesada visible
 - sections load and fail independently
 - request parameters redact ticket, authorization, cookie, token, password,
   secret, and equivalent keys before rendering
@@ -437,6 +452,75 @@ State rules:
 - refetch keeps previous data visible and marks only affected section busy
 - error/loading updates use appropriate live-region semantics without
   announcing every skeleton row
+
+### Frames 7–12 — Progressive disclosure and responsive states
+
+```text
+7. More filters (desktop)
+Estado [Publicada ▾] Publicada [Desde] [Hasta] Orden [Cierre ▾]
+[Más filtros ▴]
+  Código exacto de organismo [____________]
+  Último cambio desde        [____________]       [Aplicar]
+
+8. Filtered no-results (desktop/tablet)
+[Estado: Cerrada ×] [Organismo: 1234 ×] [Limpiar filtros]
+                 No encontramos resultados con estos filtros.
+                              [Limpiar filtros]
+
+9. Detail technical disclosure (side panel)
+Identidad / Comprador / Fechas / Ítems
+Adjudicaciones                         Sin información
+Órdenes de compra relacionadas / Conciliación / Fuentes
+[Información técnica ▸] prioridad · última observación · evidencia
+
+10. Investigation: API calls, partial refetch error
+INVESTIGACIÓN  [Ejecuciones] [Llamadas API]
+Fuente [Todas] Endpoint [Todos] HTTP [Todos]
+! No pudimos actualizar esta sección. [Reintentar]
+Datos anteriores visibles; parámetros redactados en el detalle expandido.
+
+11. Tablet
+[Compra Ágil] [Licitaciones] [Centro]
+Estado [Todas] Publicada [Desde] [Hasta] [Filtros 1]
+Objeto                         Estado        Cierre
+Insumos hospitalarios          Publicada     Hoy 17:00
+
+12. Mobile list and full-screen detail
+Mercado Público                 Compra de insumos          [Cerrar]
+Compra Ágil | Licitaciones      CA-123 · Publicada
+[Filtros 2] [Cierre]           Comprador: Hospital X
+Insumos clínicos                Cierre: Hoy, 17:00
+Hospital X · Publicada          Ítems … [Información técnica ▸]
+```
+
+The responsive frames are contract examples, not visual-compliance evidence.
+Tablet hides code, publication, then technical columns before primary browse
+data. Mobile uses stacked filters or a full-screen disclosure, horizontally
+reachable tabs, a full-screen detail panel with sticky close action, and no
+viewport-level horizontal overflow.
+
+## State and Accessibility Matrix
+
+| State | Presentation and localized action |
+| --- | --- |
+| Initial loading | Geometry-matched skeleton; do not repeatedly announce rows. |
+| Background refetch | Keep prior data visible and identify only the affected section as updating. |
+| First ingestion | `Aún no hay datos. Aparecerán después de la primera ingesta por CLI.` plus documentation link. |
+| Filtered no-results | `No encontramos resultados con estos filtros.` plus `Limpiar filtros`. |
+| Optional absence | Neutral value or subsection: `Sin información`. |
+| Partial error | Section-local `InlineBanner` with `Reintentar`; other sections remain usable. |
+| Total error | Content-level retry banner while shell and tabs stay stable. |
+| Stale data | Informational banner with last update; retain the data. |
+| Unknown state | Neutral `Tag` with `No informado`. |
+| Missing configuration | `No configurado` or `No disponible`; never synthesize a score or percentage. |
+
+Accessibility requirements are implementation and test obligations: one `h1`;
+named selected tabs; visible focus; semantically actionable rows; Enter/Space
+open; Escape closes; focus returns to the activating row; text accompanies
+color; decorative icons are hidden from assistive technology; date ranges have
+complete labels; `Más filtros` exposes `aria-expanded`; and reduced motion,
+keyboard traversal, reflow, screen-reader behavior, and 200% zoom require
+real verification. These wireframes do not claim WCAG conformance.
 
 ## Responsive Behavior
 

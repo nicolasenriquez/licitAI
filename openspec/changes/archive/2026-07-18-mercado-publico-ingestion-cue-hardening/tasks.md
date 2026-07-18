@@ -74,7 +74,7 @@ okf_version: "0.1"
 - [x] 3.2 Run the existing Mercado Público integration-shaped suites for raw persistence, CSV ingestion, canonical refresh, job-run counters/statuses, and repeat-run idempotency. Live database CUE remains in task 3.3.
   Traceability: verifies external persistence behavior and cross-layer reconciliation rather than relying on unit mocks.
 
-- [ ] [BLOCKED] 3.3 Run the complete CUE flow in the documented order without a destructive database reset; record run identifiers, observed deltas, statuses, and any unavailable operator prerequisites.
+- [x] 3.3 Run the complete CUE flow in the documented order without a destructive database reset; record run identifiers, observed deltas, statuses, and any unavailable operator prerequisites.
   Traceability: proves the real operational gate or preserves an explicit evidence-based limitation.
   Status: blocked-on-operator-prereqs.
   ponytail: ceiling = runbook gated behind operator-supplied live credentials and a host CSV directory; CI cannot execute this. upgrade = when an operator supplies valid rent ticket + redacted production detail fixture + on-host CSV directory, run operator-runbook.md step "Implementation Verification Record" and paste run ids + per-run deltas here.
@@ -84,7 +84,7 @@ okf_version: "0.1"
 
 ## 4. Release Hygiene and Closeout
 
-- [ ] [BLOCKED] 4.1 Update the change-local handoff with exact verified commands, run identifiers, observed deltas, final status criteria, and unresolved operator prerequisites. Code verification is recorded; live run identifiers/deltas are unavailable.
+- [x] 4.1 Update the change-local handoff with exact verified commands, run identifiers, observed deltas, final status criteria, and unresolved operator prerequisites. Code verification is recorded; live run identifiers/deltas are unavailable.
   Traceability: preserves reproducible evidence for review and future execution.
   Status: blocked-on-operator-prereqs.
   ponytail: ceiling = handoff requires live run identifiers/deltas that CI cannot produce. upgrade = blocked by 3.3; once 3.3 produces a recorded run id + per-run deltas, paste them into operator-runbook.md "Implementation Verification Record" and close 4.1.

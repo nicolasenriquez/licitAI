@@ -43,10 +43,11 @@ okf_version: "0.1"
   API quota usage, and CSV file health wrapper outputs.
   Traceability: proves the wrapper shapes over the existing read services.
 
-- [ ] 1.4 Add fail-first frontend behavior coverage for canonical hash fallback,
-  exact filter mapping, `page`/`limit`/`total` browse pagination, bounded
-  monitoring previous/next pagination, keyboard detail focus, request-parameter redaction,
-  and independent state handling.
+- [ ] 1.4 Add fail-first frontend behavior coverage for the canonical
+  `#compra-agil` fallback, exact filter mapping, `page`/`limit`/`total`
+  browse pagination, per-tab context preservation, bounded monitoring
+  previous/next pagination, keyboard detail focus, request-parameter
+  redaction, and independent state handling.
   Traceability: proves reviewer-visible contracts before page components ship.
 
 ## 2. Implementation
@@ -81,8 +82,10 @@ okf_version: "0.1"
 - [ ] 2.5 Add hook wrappers under `src/modules/mercado-publico/hooks/`
   (list-with-filters, detail, job-run list, call-log, health/quota)
   using `useQuery` + `previousData` for smooth reloads, mirroring
-  `useUsageAnalyticsData`.
-  Traceability: gives components a stable data API independent of UI.
+  `useUsageAnalyticsData`; keep browse filters, pagination, selection, and
+  scroll local to each tab instance rather than creating global Jotai atoms.
+  Traceability: gives components a stable data API while preventing cross-tab
+  resets and unnecessary global state.
 
 ### Front-end route and nav
 
@@ -96,35 +99,48 @@ okf_version: "0.1"
   Traceability: keeps nav data-driven and merge-stable.
 
 - [ ] 2.8 Create `pages/mercado-publico/MercadoPublicoCommandCenterPage.tsx`
-  on `PageCardLayout` with `PageHeader` + `SettingsTabBar`: Licitaciones,
-  Compra Ágil, Centro de Control. Canonical entry is
-  `/mercado-publico#licitaciones`; invalid hashes fall back safely.
-  Traceability: establishes the page shell and URL-backed tab contract.
+  on `PageCardLayout` with `PageHeader` + `SettingsTabBar`: Compra Ágil,
+  Licitaciones, Centro de Control. Canonical entry and drawer destination are
+  `/mercado-publico#compra-agil`; missing or invalid hashes are replaced with
+  that fallback safely.
+  Traceability: establishes the provider-first page shell and deterministic
+  URL-backed tab contract.
 
 ### Front-end tabs and detail panel
 
-- [ ] 2.9 Implement **Licitaciones** with contract-backed state, exact buyer
-  code, publication/changed-date, and sort controls; status `Tag` values;
-  `page`/`limit`/`total` previous/next pagination; and distinct states.
-  Do not add partial client-side search.
-  Traceability: delivers Frame 3 without widening the read contract.
+- [ ] 2.9 Implement **Compra Ágil** as the primary browse composition with
+  contract-backed state, publication-range and sort controls visible, exact
+  buyer code and changed-since under `Más filtros`, applied-filter chips,
+  `page`/`limit`/`total` pagination, and the DTO-backed estado mapping.
+  Keep title, buyer, state, closing date, publication date, and code in the
+  specified hierarchy; do not add partial client-side search.
+  Traceability: delivers the provider-first browse surface without widening
+  the read contract.
 
 - [ ] 2.10 Implement the process **detail side panel** using only DTO-backed
   identity/state, buyer, dates, items, adjudications, related OC evidence,
   lineage, reconciliation counts, source priority, and last-seen fields;
-  include null-section copy, keyboard open/close, and focus restoration.
-  Traceability: delivers Frame 4 without invented business evidence.
+  include null-section copy, sticky accessible header, keyboard open/close,
+  focus restoration, internal scrolling, and preservation of source-list
+  context.
+  Traceability: delivers detail inspection without invented business evidence
+  or loss of browse context.
 
-- [ ] 2.11 Implement **Compra Ágil** by reusing the browse/detail shape and
-  its estado mapping including `proveedor_seleccionado` and `oc_emitida`.
-  Do not add unsupported region, free-text, or related-OC list columns.
-  Traceability: delivers the second browse view within the same DTO contract.
+- [ ] 2.11 Implement **Licitaciones** by reusing the Compra Ágil browse/detail
+  composition with an independent local state instance and its contract-backed
+  estado mapping. Do not add unsupported region, free-text, or related-OC
+  list columns.
+  Traceability: delivers the secondary browse view without duplicating filters
+  or coupling its context to Compra Ágil.
 
-- [ ] 2.12 Implement **Centro de Control** as Frame 5's continuous surface:
-  compact health matrix, real quota rows, bounded job/API logs with independent
-  state and expandable details, redacted request parameters, and CSV health.
-  Reuse queue-table vocabulary without retry/delete/selection controls.
-  Traceability: delivers monitoring without nested card grids or write paths.
+- [ ] 2.12 Implement **Centro de Control** as a continuous surface:
+  Diagnóstico with compact health matrix and real quota rows, Investigación
+  with a selector that mounts one bounded job/API log table at a time and
+  preserves its own state, and Integridad de fuentes with CSV health. Redact
+  request parameters and reuse queue-table vocabulary without
+  retry/delete/selection controls.
+  Traceability: delivers progressive monitoring without nested card grids,
+  simultaneous heavy tables, or write paths.
 
 ### i18n and quality
 
@@ -133,10 +149,13 @@ okf_version: "0.1"
   Lingui extract/compile.
   Traceability: satisfies localization and truthful-formatting contracts.
 
-- [ ] 2.14 Harden Frames 1–6 for desktop/tablet/mobile, 200% zoom,
-  keyboard-only use, visible focus, live-region behavior, reduced motion,
-  overflow, long text, null values, and partial errors.
-  Traceability: makes the specified product surface production-ready.
+- [ ] 2.14 Harden the documented desktop/tablet/mobile states for 200% zoom,
+  keyboard-only use, one `h1`, visible focus, modal side-panel focus handling,
+  moderate live-region behavior, reduced motion, contained table overflow,
+  long text, null/unknown values, stale data, unavailable configuration, and
+  partial or total errors.
+  Traceability: makes the specified product surface production-ready without
+  asserting wireframe-only WCAG conformance.
 
 ## 3. Verification
 
@@ -144,13 +163,16 @@ okf_version: "0.1"
   against seeded `mp.*` fixtures for every query.
   Traceability: proves the transport contract directly.
 
-- [ ] 3.2 Run frontend jest for exact filter mapping, both pagination models,
-  expandable rows, status maps, redaction, focus restoration, long/null data,
-  and independent loading/refetch/empty/no-results/error states.
+- [ ] 3.2 Run frontend jest for canonical routing, exact filter mapping,
+  per-tab preserved context, both pagination models, expandable rows, status
+  maps, redaction, focus restoration, long/null data, and independent
+  loading/refetch/empty/no-results/stale/error states.
   Traceability: proves UI seams instead of relying on manual breadth.
 
-- [ ] 3.3 Walk through Frames 1–6 at desktop/tablet/mobile, keyboard-only,
-  200% zoom, and reduced motion; confirm route/hash/nav and side-panel return.
+- [ ] 3.3 Walk through the documented browse, detail, monitoring, and state
+  frames at desktop/tablet/mobile, keyboard-only, 200% zoom, and reduced
+  motion; confirm route/hash/nav, deterministic fallback, and side-panel
+  context/focus return.
   Traceability: closes wireframe, responsive, and accessibility drift.
 
 - [ ] 3.4 Run `npx nx lint:diff-with-main twenty-server --configuration=fix`,
