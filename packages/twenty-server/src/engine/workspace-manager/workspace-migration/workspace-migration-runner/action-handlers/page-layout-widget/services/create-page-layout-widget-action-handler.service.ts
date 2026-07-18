@@ -46,7 +46,6 @@ export class CreatePageLayoutWidgetActionHandlerService extends WorkspaceMigrati
         flatFieldMetadataMaps: allFlatEntityMaps.flatFieldMetadataMaps,
         flatFrontComponentMaps: allFlatEntityMaps.flatFrontComponentMaps,
         flatViewMaps: allFlatEntityMaps.flatViewMaps,
-        flatViewFieldGroupMaps: allFlatEntityMaps.flatViewFieldGroupMaps,
       });
 
     const overrides = isDefined(action.flatEntity.universalOverrides)

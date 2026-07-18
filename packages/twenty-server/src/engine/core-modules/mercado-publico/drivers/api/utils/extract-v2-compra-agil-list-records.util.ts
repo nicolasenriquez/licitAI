@@ -4,6 +4,7 @@ import { type MercadoPublicoApiV2CompraAgilRecord } from 'src/engine/core-module
 import { coerceToNullableString } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/coerce-to-nullable-string.util';
 
 const PREFERRED_ARRAY_KEYS = [
+  'items',
   'Items',
   'Data',
   'Resultados',
@@ -25,6 +26,23 @@ const isV2CompraAgilRecord = (
   return isNonEmptyString(coerceToNullableString(value.codigo));
 };
 
+const coerceToNullableInteger = (value: unknown): number | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const nullableString = coerceToNullableString(value);
+
+  if (nullableString === null) {
+    return null;
+  }
+
+  const numericValue =
+    typeof value === 'number' ? value : Number(nullableString);
+
+  return Number.isInteger(numericValue) ? numericValue : null;
+};
+
 const extractRecordArray = (
   value: unknown,
 ): MercadoPublicoApiV2CompraAgilRecord[] => {
@@ -38,16 +56,36 @@ const extractRecordArray = (
 const normalizeV2CompraAgilRecord = (
   record: MercadoPublicoApiV2CompraAgilRecord,
 ): MercadoPublicoApiV2CompraAgilRecord => {
-  if (typeof record.estado === 'string' || record.estado === undefined) {
-    return record;
-  }
+  const estado =
+    typeof record.estado === 'string'
+      ? record.estado
+      : (coerceToNullableString(record.estado?.codigo) ??
+        coerceToNullableString(record.estado?.glosa) ??
+        undefined);
+  const fechas = record.fechas;
+  const institucion = record.institucion;
+  const region = coerceToNullableInteger(institucion?.region) ?? record.region;
+  const fechaPublicacion =
+    coerceToNullableString(fechas?.fecha_publicacion) ??
+    coerceToNullableString(record.fecha_publicacion);
+  const fechaCierre =
+    coerceToNullableString(fechas?.fecha_cierre) ??
+    coerceToNullableString(record.fecha_cierre);
+  const fechaUltimoCambio =
+    coerceToNullableString(fechas?.fecha_ultimo_cambio) ??
+    coerceToNullableString(record.fecha_ultimo_cambio);
 
   return {
     ...record,
-    estado:
-      coerceToNullableString(record.estado.codigo) ??
-      coerceToNullableString(record.estado.glosa) ??
-      undefined,
+    estado,
+    ...(region !== undefined ? { region } : {}),
+    ...(fechaPublicacion !== null
+      ? { fecha_publicacion: fechaPublicacion }
+      : {}),
+    ...(fechaCierre !== null ? { fecha_cierre: fechaCierre } : {}),
+    ...(fechaUltimoCambio !== null
+      ? { fecha_ultimo_cambio: fechaUltimoCambio }
+      : {}),
   };
 };
 

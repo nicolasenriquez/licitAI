@@ -31,6 +31,23 @@ describe('extractV2CompraAgilListRecords', () => {
     expect(records).toHaveLength(2);
   });
 
+  it('should normalize the production-shaped payload.items envelope', () => {
+    const records = extractV2CompraAgilListRecords(
+      readFixture('v2-compra-agil-list.json'),
+    );
+
+    expect(records).toEqual([
+      expect.objectContaining({
+        codigo: 'FIXTURE-CA-001',
+        estado: 'publicada',
+        region: 13,
+        fecha_publicacion: '2026-06-01T09:30:00',
+        fecha_cierre: '2026-06-30T12:00:00-04:00',
+        fecha_ultimo_cambio: 'not-a-date',
+      }),
+    ]);
+  });
+
   it('should extract records from Data key', () => {
     const payload = {
       Data: [{ codigo: 'CA-1' }],
@@ -125,6 +142,30 @@ describe('extractV2CompraAgilListRecords', () => {
       codigo: 'FIXTURE-CA-DETAIL',
       estado: 'publicada',
     });
+  });
+
+  it('should fall back to the top-level region when nested region is blank', () => {
+    const records = extractV2CompraAgilListRecords([
+      {
+        codigo: 'CA-REGION-FALLBACK',
+        institucion: { region: '' },
+        region: 13,
+      },
+    ]);
+
+    expect(records[0]?.region).toBe(13);
+  });
+
+  it('should fall back to the top-level region when nested region is non-scalar', () => {
+    const records = extractV2CompraAgilListRecords([
+      {
+        codigo: 'CA-REGION-FALLBACK',
+        institucion: { region: { value: 13 } },
+        region: 13,
+      },
+    ]);
+
+    expect(records[0]?.region).toBe(13);
   });
 
   it('should return no record for a detail envelope without a usable record', () => {

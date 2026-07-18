@@ -1,4 +1,4 @@
-import { readdir, rm, unlink } from 'node:fs/promises';
+import { cp, readdir, rm, unlink } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -7,7 +7,6 @@ const currentDirectoryPath = dirname(dirname(fileURLToPath(import.meta.url)));
 const directoryPathsToPrune = [
   join(currentDirectoryPath, 'dist', 'define'),
   join(currentDirectoryPath, 'dist', 'billing'),
-  join(currentDirectoryPath, 'dist', 'front-component'),
   join(currentDirectoryPath, 'dist', 'logic-function'),
   join(currentDirectoryPath, 'dist', 'utils'),
 ];
@@ -21,7 +20,12 @@ const removeDeclarationArtifactsRecursively = async (directoryPath) => {
   try {
     directoryEntries = await readdir(directoryPath, { withFileTypes: true });
   } catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      error.code === 'ENOENT'
+    ) {
       return;
     }
 
@@ -41,6 +45,23 @@ const removeDeclarationArtifactsRecursively = async (directoryPath) => {
     }
   }
 };
+
+const sdkFrontComponentDeclarationsPath = join(
+  currentDirectoryPath,
+  'dist',
+  'sdk',
+  'front-component',
+);
+const frontComponentDeclarationsPath = join(
+  currentDirectoryPath,
+  'dist',
+  'front-component',
+);
+
+await cp(sdkFrontComponentDeclarationsPath, frontComponentDeclarationsPath, {
+  recursive: true,
+  force: true,
+});
 
 await rm(join(currentDirectoryPath, 'dist', 'sdk'), {
   force: true,

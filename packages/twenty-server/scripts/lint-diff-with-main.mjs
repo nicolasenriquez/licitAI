@@ -10,7 +10,15 @@ const npxExecutableName = isWindows ? 'npx.cmd' : 'npx';
 
 const changedFilesOutput = execFileSync(
   'git',
-  ['diff', '--name-only', '--relative', '--diff-filter=d', 'main...HEAD', '--', 'src/'],
+  [
+    'diff',
+    '--name-only',
+    '--relative',
+    '--diff-filter=d',
+    'main...HEAD',
+    '--',
+    'src/',
+  ],
   {
     cwd: packageRootPath,
     encoding: 'utf8',
@@ -22,6 +30,17 @@ const changedTypeScriptFilePaths = changedFilesOutput
   .map((line) => line.trim())
   .filter((line) => line.length > 0)
   .filter((line) => /\.(ts|tsx)$/u.test(line));
+const FILE_PATHS_PER_BATCH = 20;
+const changedTypeScriptFilePathBatches = Array.from(
+  {
+    length: Math.ceil(changedTypeScriptFilePaths.length / FILE_PATHS_PER_BATCH),
+  },
+  (_, batchIndex) =>
+    changedTypeScriptFilePaths.slice(
+      batchIndex * FILE_PATHS_PER_BATCH,
+      (batchIndex + 1) * FILE_PATHS_PER_BATCH,
+    ),
+);
 
 if (changedTypeScriptFilePaths.length === 0) {
   console.log('No changed files.');
@@ -35,38 +54,43 @@ const runNpx = (argumentsList) => {
     stdio: 'inherit',
   });
 
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
-  }
+  return result.status;
 };
 
-runNpx([
-  'oxlint',
-  '--type-aware',
-  ...(isFixMode ? ['--fix'] : []),
-  '-c',
-  '.oxlintrc.json',
-  ...changedTypeScriptFilePaths,
-]);
+for (const filePathBatch of changedTypeScriptFilePathBatches) {
+  const status = runNpx([
+    'oxlint',
+    '--type-aware',
+    ...(isFixMode ? ['--fix'] : []),
+    '-c',
+    '.oxlintrc.json',
+    ...filePathBatch,
+  ]);
+
+  if (status !== 0) {
+    process.exit(status ?? 1);
+  }
+}
 
 if (isFixMode) {
-  runNpx(['oxfmt', ...changedTypeScriptFilePaths]);
+  for (const filePathBatch of changedTypeScriptFilePathBatches) {
+    const status = runNpx(['oxfmt', ...filePathBatch]);
+
+    if (status !== 0) {
+      process.exit(status ?? 1);
+    }
+  }
+
   process.exit(0);
 }
 
-const oxfmtResult = spawnSync(
-  npxExecutableName,
-  ['oxfmt', '--check', ...changedTypeScriptFilePaths],
-  {
-    cwd: packageRootPath,
-    shell: isWindows,
-    stdio: 'inherit',
-  },
-);
+for (const filePathBatch of changedTypeScriptFilePathBatches) {
+  const status = runNpx(['oxfmt', '--check', ...filePathBatch]);
 
-if (oxfmtResult.status !== 0) {
-  console.error(
-    'ERROR: oxfmt formatting check failed! Fix with: npx nx lint:diff-with-main twenty-server --configuration=fix',
-  );
-  process.exit(oxfmtResult.status ?? 1);
+  if (status !== 0) {
+    console.error(
+      'ERROR: oxfmt formatting check failed! Fix with: npx nx lint:diff-with-main twenty-server --configuration=fix',
+    );
+    process.exit(status ?? 1);
+  }
 }

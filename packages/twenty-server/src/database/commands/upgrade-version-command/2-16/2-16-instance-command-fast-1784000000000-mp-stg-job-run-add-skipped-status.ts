@@ -34,6 +34,17 @@ export class MpStgJobRunAddSkippedStatusFastInstanceCommand
     `);
 
     await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF to_regclass('mp.stg_job_run') IS NOT NULL THEN
+          UPDATE mp.stg_job_run
+          SET status = 'soft_miss'
+          WHERE status = 'skipped';
+        END IF;
+      END $$;
+    `);
+
+    await queryRunner.query(`
       ALTER TABLE IF EXISTS mp.stg_job_run
       ADD CONSTRAINT "ck_mp_stg_job_run_status"
         CHECK (status IN (

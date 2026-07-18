@@ -163,8 +163,10 @@ export class MercadoPublicoReconciliationService {
           AND csv.nombre_proveedor IS NOT NULL
           AND api.monto_total_oc IS NOT NULL
           AND csv.monto_total_oc_pesos_chilenos IS NOT NULL
-          AND abs(api.monto_total_oc::numeric - csv.monto_total_oc_pesos_chilenos::numeric)
-              / NULLIF(api.monto_total_oc::numeric, 0) <= $1
+          AND api.monto_total_oc ~ '^-?[0-9]+([.,][0-9]+)?$'
+          AND csv.monto_total_oc_pesos_chilenos ~ '^-?[0-9]+([.,][0-9]+)?$'
+          AND abs(replace(api.monto_total_oc, ',', '.')::numeric - replace(csv.monto_total_oc_pesos_chilenos, ',', '.')::numeric)
+              / NULLIF(replace(api.monto_total_oc, ',', '.')::numeric, 0) <= $1
           AND NOT EXISTS (
             SELECT 1 FROM mp.reconciliation_public_market_entities r
             WHERE r.match_type = 'csv_api_same_business_key'
@@ -219,7 +221,8 @@ export class MercadoPublicoReconciliationService {
           AND stg.codigo_externo = lic_item.codigo_externo
         WHERE lic_item.monto_estimado IS NOT NULL
           AND stg.monto_estimado_adjudicado IS NOT NULL
-          AND abs(lic_item.monto_estimado - stg.monto_estimado_adjudicado::numeric)
+          AND stg.monto_estimado_adjudicado ~ '^-?[0-9]+([.,][0-9]+)?$'
+          AND abs(lic_item.monto_estimado - replace(stg.monto_estimado_adjudicado, ',', '.')::numeric)
               / NULLIF(lic_item.monto_estimado, 0) <= $1
           AND NOT EXISTS (
             SELECT 1 FROM mp.reconciliation_public_market_entities r
