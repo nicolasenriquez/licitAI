@@ -96,9 +96,11 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
           },
         );
       const recordsCanonicalized =
-        await this.mercadoPublicoCanonicalRefreshService.refreshV2CompraAgilFromApiSnapshot(
-          persistenceResult.rawApiPayloadId,
-        );
+        persistenceResult.recordsStaged === 0
+          ? 0
+          : await this.mercadoPublicoCanonicalRefreshService.refreshV2CompraAgilFromApiSnapshot(
+              persistenceResult.rawApiPayloadId,
+            );
 
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,

@@ -331,5 +331,28 @@ describe('MercadoPublicoCsvRawLoadService — licitaciones', () => {
         MercadoPublicoRecordedJobFailureError,
       );
     });
+
+    it('should fail an enabled zero-record file with an auditable reason', async () => {
+      storageRoot = prepareStorageRoot(
+        'empty-data.csv',
+        'licitaciones',
+        '2026-06',
+      );
+      service = createService();
+
+      await expect(
+        service.run({ raw_csv_file_id: 'csv-lic-file-id' }),
+      ).rejects.toBeInstanceOf(MercadoPublicoRecordedJobFailureError);
+
+      expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'failed',
+          recordsFetched: 0,
+          recordsStaged: 0,
+          recordsFailed: 0,
+          errorSummary: expect.any(String),
+        }),
+      );
+    });
   });
 });

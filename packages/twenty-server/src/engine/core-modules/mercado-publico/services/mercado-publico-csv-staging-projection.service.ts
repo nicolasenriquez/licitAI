@@ -85,15 +85,27 @@ export class MercadoPublicoCsvStagingProjectionService {
         );
       }
 
+      const errorSummary =
+        stagedCount === 0
+          ? 'CSV staging projection found no importable rows'
+          : stagedCount < recordsFetched
+            ? `CSV staging projection skipped ${recordsFetched - stagedCount} raw rows`
+            : undefined;
+
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,
-        status: 'success',
+        status: errorSummary === undefined ? 'success' : 'failed',
         finishedAt: new Date(),
         recordsFetched,
         recordsStaged: stagedCount,
         recordsCanonicalized: 0,
-        recordsFailed: 0,
+        recordsFailed: errorSummary === undefined ? 0 : 1,
+        errorSummary,
       });
+
+      if (errorSummary !== undefined) {
+        throw new MercadoPublicoRecordedJobFailureError(errorSummary, false);
+      }
 
       this.logger.log(
         `Staging projection complete for ${rawFileRow.source_dataset}/${rawFileRow.source_period}: ${stagedCount} rows staged`,

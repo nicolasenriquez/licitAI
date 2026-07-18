@@ -1,6 +1,11 @@
+export type MercadoPublicoApiV2CompraAgilEstado = {
+  codigo?: string;
+  glosa?: string;
+};
+
 export type MercadoPublicoApiV2CompraAgilRecord = {
   codigo: string;
-  estado?: string;
+  estado?: string | MercadoPublicoApiV2CompraAgilEstado;
   region?: number;
   publicado_desde?: string;
   publicado_hasta?: string;

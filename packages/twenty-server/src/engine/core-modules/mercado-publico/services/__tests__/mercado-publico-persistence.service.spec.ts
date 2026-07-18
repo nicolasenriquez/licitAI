@@ -354,6 +354,62 @@ describe('MercadoPublicoPersistenceService', () => {
     ).toHaveLength(1);
   });
 
+  it('does not restage a duplicate V2 Compra Agil raw payload', async () => {
+    const executedSql: string[] = [];
+    const mockEntityManager = {
+      query: jest.fn().mockImplementation(async (sql: string) => {
+        executedSql.push(sql);
+
+        if (sql.includes('INSERT INTO mp.raw_api_payload')) {
+          return [];
+        }
+
+        if (sql.includes('FROM mp.raw_api_payload')) {
+          return [{ id: 'existing-raw-api-payload-id' }];
+        }
+
+        return [];
+      }),
+    };
+    const mockDataSource = {
+      transaction: jest.fn().mockImplementation(async (callback) => {
+        return callback(mockEntityManager);
+      }),
+    };
+    const service = new MercadoPublicoPersistenceService(
+      mockDataSource as never,
+    );
+
+    const result = await service.persistV2CompraAgilSnapshot({
+      jobRunRecordId: 'job-run-record-id',
+      snapshotKind: 'list',
+      apiResponse: {
+        endpoint: 'list',
+        source: 'api-v2-compra-agil',
+        requestParams: { ttl_cambio_ms: 5000 },
+        requestFingerprint: 'request-fingerprint',
+        payloadChecksum: 'payload-checksum',
+        schemaFingerprint: 'schema-fingerprint',
+        httpStatus: 200,
+        fetchedAt: new Date('2026-06-15T00:00:00.000Z'),
+        rawPayload: { Items: [{ codigo: 'CA-1' }] },
+        compraAgil: [{ codigo: 'CA-1', estado: 'publicada' }],
+      },
+    });
+
+    expect(result).toEqual({
+      rawApiPayloadId: 'existing-raw-api-payload-id',
+      recordsFetched: 1,
+      recordsStaged: 0,
+      recordsCanonicalized: 0,
+    });
+    expect(
+      executedSql.some((sql) =>
+        sql.includes('INSERT INTO mp.stg_api_v2_compra_agil'),
+      ),
+    ).toBe(false);
+  });
+
   it('does not insert raw_csv_file_id into stg_csv_orden_compra rows', async () => {
     const executedQueries: Array<{ sql: string; params: unknown[] }> = [];
     const mockDataSource = {

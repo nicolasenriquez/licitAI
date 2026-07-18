@@ -78,22 +78,38 @@ export class MercadoPublicoApiV2CompraAgilDetailByCodigoService {
       }
 
       const recordsFetched = apiResponse.compraAgil.length;
+      const persistenceResult =
+        await this.mercadoPublicoPersistenceService.persistV2CompraAgilSnapshot(
+          {
+            jobRunRecordId: jobRunRecord.id,
+            apiResponse,
+            snapshotKind: 'detail',
+          },
+        );
       let recordsCanonicalized = 0;
 
-      if (recordsFetched > 0) {
-        const persistenceResult =
-          await this.mercadoPublicoPersistenceService.persistV2CompraAgilSnapshot(
-            {
-              jobRunRecordId: jobRunRecord.id,
-              apiResponse,
-              snapshotKind: 'detail',
-            },
-          );
-
+      if (recordsFetched > 0 && persistenceResult.recordsStaged > 0) {
         recordsCanonicalized =
           await this.mercadoPublicoCanonicalRefreshService.refreshV2CompraAgilFromApiSnapshot(
             persistenceResult.rawApiPayloadId,
           );
+      }
+
+      if (recordsFetched === 0) {
+        const errorSummary = `No usable V2 Compra Agil detail record found for codigo ${parsedPayload.codigo}`;
+
+        await this.mercadoPublicoPersistenceService.finalizeJobRun({
+          jobRunRecordId: jobRunRecord.id,
+          status: 'failed',
+          finishedAt: new Date(),
+          errorSummary,
+          recordsFetched: 0,
+          recordsStaged: 0,
+          recordsCanonicalized: 0,
+          recordsFailed: 1,
+        });
+
+        throw new MercadoPublicoRecordedJobFailureError(errorSummary, false);
       }
 
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
@@ -101,19 +117,10 @@ export class MercadoPublicoApiV2CompraAgilDetailByCodigoService {
         status: 'success',
         finishedAt: new Date(),
         recordsFetched,
-        recordsStaged: recordsFetched,
+        recordsStaged: persistenceResult.recordsStaged,
         recordsCanonicalized,
-        recordsFailed:
-          recordsCanonicalized === 0 && recordsFetched === 0 ? 1 : 0,
+        recordsFailed: 0,
       });
-
-      if (recordsFetched === 0) {
-        this.logger.log(
-          `No detail record found for Compra Agil codigo ${parsedPayload.codigo} (soft miss)`,
-        );
-
-        return;
-      }
 
       this.logger.log(
         `Ingested V2 Compra Agil detail for codigo ${parsedPayload.codigo}`,

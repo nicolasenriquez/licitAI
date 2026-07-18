@@ -109,9 +109,10 @@ describe('MercadoPublicoCsvLicitacionesDownloadService', () => {
       expect(sharedService.downloadAndPersist).not.toHaveBeenCalled();
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'success',
+          status: 'skipped',
           recordsFetched: 0,
           recordsFailed: 0,
+          errorSummary: expect.any(String),
         }),
       );
     });

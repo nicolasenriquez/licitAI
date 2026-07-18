@@ -1,0 +1,16 @@
+{
+  "data": {
+    "codigo": "FIXTURE-CA-DETAIL",
+    "estado": {
+      "codigo": "publicada",
+      "glosa": "Publicada"
+    },
+    "region": 13,
+    "orden_compra": {
+      "id_orden_compra": "FIXTURE-OC-DETAIL"
+    }
+  },
+  "metadata": {
+    "request_id": "fixture-request"
+  }
+}

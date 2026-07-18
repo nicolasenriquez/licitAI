@@ -34,7 +34,7 @@ export const validateCompraAgilListParams = (
   }
 
   if (params.tamano_pagina !== undefined) {
-    if (params.tamano_pagina <= 0) {
+    if (params.tamano_pagina < 10) {
       errors.push({ field: 'tamano_pagina', code: 'out_of_range' });
     } else if (params.tamano_pagina > 50) {
       errors.push({ field: 'tamano_pagina', code: 'exceeds_max' });

@@ -374,7 +374,7 @@ export class MercadoPublicoPersistenceService {
     input: PersistMercadoPublicoV1LicitacionesSnapshotInput,
   ): Promise<PersistMercadoPublicoV1LicitacionesSnapshotResult> {
     return this.coreDataSource.transaction(async (entityManager) => {
-      const rawApiPayloadId = await this.insertRawApiPayload(entityManager, {
+      const rawApiPayload = await this.insertRawApiPayload(entityManager, {
         jobRunRecordId: input.jobRunRecordId,
         source: input.apiResponse.source,
         endpoint: input.apiResponse.endpoint,
@@ -388,17 +388,21 @@ export class MercadoPublicoPersistenceService {
         recordsFetched: input.apiResponse.licitaciones.length,
       });
 
-      await this.insertV1LicitacionesStagingRows(
-        entityManager,
-        rawApiPayloadId,
-        input.apiResponse,
-        input.snapshotKind,
-      );
+      if (rawApiPayload.inserted) {
+        await this.insertV1LicitacionesStagingRows(
+          entityManager,
+          rawApiPayload.id,
+          input.apiResponse,
+          input.snapshotKind,
+        );
+      }
 
       return {
-        rawApiPayloadId,
+        rawApiPayloadId: rawApiPayload.id,
         recordsFetched: input.apiResponse.licitaciones.length,
-        recordsStaged: input.apiResponse.licitaciones.length,
+        recordsStaged: rawApiPayload.inserted
+          ? input.apiResponse.licitaciones.length
+          : 0,
         recordsCanonicalized: 0,
       };
     });
@@ -420,7 +424,7 @@ export class MercadoPublicoPersistenceService {
       errorSummary?: string;
       recordsFetched?: number;
     },
-  ): Promise<string> {
+  ): Promise<{ id: string; inserted: boolean }> {
     const insertedRawApiPayloadRows = await entityManager.query<
       { id: string }[]
     >(
@@ -478,7 +482,7 @@ export class MercadoPublicoPersistenceService {
     );
 
     if (insertedRawApiPayloadRows.length > 0) {
-      return insertedRawApiPayloadRows[0].id;
+      return { id: insertedRawApiPayloadRows[0].id, inserted: true };
     }
 
     const existingRawApiPayloadRows = await entityManager.query<
@@ -502,7 +506,7 @@ export class MercadoPublicoPersistenceService {
       ],
     );
 
-    return existingRawApiPayloadRows[0].id;
+    return { id: existingRawApiPayloadRows[0].id, inserted: false };
   }
 
   private async insertV1LicitacionesStagingRows(
@@ -584,7 +588,7 @@ export class MercadoPublicoPersistenceService {
     input: PersistMercadoPublicoV1OrdenesDeCompraSnapshotInput,
   ): Promise<PersistMercadoPublicoV1OrdenesDeCompraSnapshotResult> {
     return this.coreDataSource.transaction(async (entityManager) => {
-      const rawApiPayloadId = await this.insertRawApiPayload(entityManager, {
+      const rawApiPayload = await this.insertRawApiPayload(entityManager, {
         jobRunRecordId: input.jobRunRecordId,
         source: input.apiResponse.source,
         endpoint: input.apiResponse.endpoint,
@@ -598,17 +602,21 @@ export class MercadoPublicoPersistenceService {
         recordsFetched: input.apiResponse.ordenesDeCompra.length,
       });
 
-      await this.insertV1OrdenesDeCompraStagingRows(
-        entityManager,
-        rawApiPayloadId,
-        input.apiResponse,
-        input.snapshotKind,
-      );
+      if (rawApiPayload.inserted) {
+        await this.insertV1OrdenesDeCompraStagingRows(
+          entityManager,
+          rawApiPayload.id,
+          input.apiResponse,
+          input.snapshotKind,
+        );
+      }
 
       return {
-        rawApiPayloadId,
+        rawApiPayloadId: rawApiPayload.id,
         recordsFetched: input.apiResponse.ordenesDeCompra.length,
-        recordsStaged: input.apiResponse.ordenesDeCompra.length,
+        recordsStaged: rawApiPayload.inserted
+          ? input.apiResponse.ordenesDeCompra.length
+          : 0,
         recordsCanonicalized: 0,
       };
     });
@@ -689,7 +697,7 @@ export class MercadoPublicoPersistenceService {
     input: PersistMercadoPublicoV2CompraAgilSnapshotInput,
   ): Promise<PersistMercadoPublicoV2CompraAgilSnapshotResult> {
     return this.coreDataSource.transaction(async (entityManager) => {
-      const rawApiPayloadId = await this.insertRawApiPayload(entityManager, {
+      const rawApiPayload = await this.insertRawApiPayload(entityManager, {
         jobRunRecordId: input.jobRunRecordId,
         source: input.apiResponse.source,
         endpoint: input.apiResponse.endpoint,
@@ -703,17 +711,21 @@ export class MercadoPublicoPersistenceService {
         recordsFetched: input.apiResponse.compraAgil.length,
       });
 
-      await this.insertV2CompraAgilStagingRows(
-        entityManager,
-        rawApiPayloadId,
-        input.apiResponse,
-        input.snapshotKind,
-      );
+      if (rawApiPayload.inserted) {
+        await this.insertV2CompraAgilStagingRows(
+          entityManager,
+          rawApiPayload.id,
+          input.apiResponse,
+          input.snapshotKind,
+        );
+      }
 
       return {
-        rawApiPayloadId,
+        rawApiPayloadId: rawApiPayload.id,
         recordsFetched: input.apiResponse.compraAgil.length,
-        recordsStaged: input.apiResponse.compraAgil.length,
+        recordsStaged: rawApiPayload.inserted
+          ? input.apiResponse.compraAgil.length
+          : 0,
         recordsCanonicalized: 0,
       };
     });

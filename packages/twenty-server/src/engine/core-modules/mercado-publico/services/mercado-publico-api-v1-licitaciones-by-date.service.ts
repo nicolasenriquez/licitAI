@@ -87,9 +87,11 @@ export class MercadoPublicoApiV1LicitacionesByDateService {
           },
         );
       const recordsCanonicalized =
-        await this.mercadoPublicoCanonicalRefreshService.refreshV1LicitacionesFromApiSnapshot(
-          persistenceResult.rawApiPayloadId,
-        );
+        persistenceResult.recordsStaged === 0
+          ? 0
+          : await this.mercadoPublicoCanonicalRefreshService.refreshV1LicitacionesFromApiSnapshot(
+              persistenceResult.rawApiPayloadId,
+            );
 
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,

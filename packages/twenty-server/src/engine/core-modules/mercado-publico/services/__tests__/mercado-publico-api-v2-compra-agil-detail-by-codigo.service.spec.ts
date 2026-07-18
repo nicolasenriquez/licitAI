@@ -113,19 +113,34 @@ describe('MercadoPublicoApiV2CompraAgilDetailByCodigoService', () => {
       );
     });
 
-    it('should finalize with recordsFailed 1 when no detail record found (soft miss)', async () => {
+    it('should retain raw evidence and fail when no detail record is found', async () => {
       clientService.getByCodigo.mockResolvedValue({
         ...mockApiSuccessResponse,
         compraAgil: [],
       } as any);
 
-      await service.run({ codigo: 'CA-NONEXIST' });
+      await expect(
+        service.run({ codigo: 'CA-NONEXIST' }),
+      ).rejects.toBeInstanceOf(MercadoPublicoRecordedJobFailureError);
+
+      expect(
+        persistenceService.persistV2CompraAgilSnapshot,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiResponse: expect.objectContaining({
+            rawPayload: mockApiSuccessResponse.rawPayload,
+          }),
+          snapshotKind: 'detail',
+        }),
+      );
 
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'success',
+          status: 'failed',
           recordsFetched: 0,
+          recordsStaged: 0,
           recordsFailed: 1,
+          errorSummary: expect.any(String),
         }),
       );
     });

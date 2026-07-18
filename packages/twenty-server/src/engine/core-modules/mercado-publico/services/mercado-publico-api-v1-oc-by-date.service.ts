@@ -85,9 +85,11 @@ export class MercadoPublicoApiV1OcByDateService {
           },
         );
       const recordsCanonicalized =
-        await this.mercadoPublicoCanonicalRefreshService.refreshV1OrdenesDeCompraFromApiSnapshot(
-          persistenceResult.rawApiPayloadId,
-        );
+        persistenceResult.recordsStaged === 0
+          ? 0
+          : await this.mercadoPublicoCanonicalRefreshService.refreshV1OrdenesDeCompraFromApiSnapshot(
+              persistenceResult.rawApiPayloadId,
+            );
 
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,

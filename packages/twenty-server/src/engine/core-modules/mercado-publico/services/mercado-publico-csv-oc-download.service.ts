@@ -39,9 +39,13 @@ export class MercadoPublicoCsvOcDownloadService {
       if (!settings.csvDownloadEnabled) {
         await this.mercadoPublicoPersistenceService.finalizeJobRun({
           jobRunRecordId: jobRunRecord.id,
-          status: 'success',
+          status: 'skipped',
           finishedAt: new Date(),
+          errorSummary:
+            'CSV OC download disabled by MERCADO_PUBLICO_CSV_DOWNLOAD_ENABLED',
           recordsFetched: 0,
+          recordsStaged: 0,
+          recordsCanonicalized: 0,
           recordsFailed: 0,
         });
 

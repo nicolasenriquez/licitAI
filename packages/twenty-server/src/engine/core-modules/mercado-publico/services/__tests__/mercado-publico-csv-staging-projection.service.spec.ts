@@ -212,7 +212,9 @@ describe('MercadoPublicoCsvStagingProjectionService', () => {
         ])
         .mockResolvedValueOnce([]);
 
-      await service.run({ raw_csv_file_id: 'csv-file-oc-id' });
+      await expect(
+        service.run({ raw_csv_file_id: 'csv-file-oc-id' }),
+      ).rejects.toBeInstanceOf(MercadoPublicoRecordedJobFailureError);
 
       const call = persistenceService.insertStgCsvOrdenCompraRows.mock.calls[0];
 
@@ -351,6 +353,29 @@ describe('MercadoPublicoCsvStagingProjectionService', () => {
           status: 'success',
           recordsFetched: 2,
           recordsStaged: 2,
+        }),
+      );
+    });
+
+    it('should fail an enabled zero-record projection with a reason', async () => {
+      persistenceService.countRawCsvRowsByFileId = jest
+        .fn()
+        .mockResolvedValue(0);
+      persistenceService.getRawCsvRowsPageByFileId = jest
+        .fn()
+        .mockResolvedValue([]);
+
+      await expect(
+        service.run({ raw_csv_file_id: 'csv-file-lic-id' }),
+      ).rejects.toBeInstanceOf(MercadoPublicoRecordedJobFailureError);
+
+      expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'failed',
+          recordsFetched: 0,
+          recordsStaged: 0,
+          recordsFailed: 1,
+          errorSummary: expect.any(String),
         }),
       );
     });

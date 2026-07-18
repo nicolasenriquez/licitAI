@@ -10,6 +10,25 @@ describe('validateCompraAgilListParams', () => {
     expect(errors).toEqual([]);
   });
 
+  it('should return no errors when tamano_pagina is exactly 10', () => {
+    const errors = validateCompraAgilListParams({
+      tamano_pagina: 10,
+      numero_pagina: 1,
+    });
+
+    expect(errors).toEqual([]);
+  });
+
+  it('should return error when tamano_pagina is below 10', () => {
+    expect(
+      validateCompraAgilListParams({ tamano_pagina: 9, numero_pagina: 1 }),
+    ).toEqual([{ field: 'tamano_pagina', code: 'out_of_range' }]);
+
+    expect(
+      validateCompraAgilListParams({ tamano_pagina: 1, numero_pagina: 1 }),
+    ).toEqual([{ field: 'tamano_pagina', code: 'out_of_range' }]);
+  });
+
   it('should return no errors when tamano_pagina is exactly 50', () => {
     const errors = validateCompraAgilListParams({
       tamano_pagina: 50,
@@ -25,9 +44,7 @@ describe('validateCompraAgilListParams', () => {
       numero_pagina: 1,
     });
 
-    expect(errors).toEqual([
-      { field: 'tamano_pagina', code: 'exceeds_max' },
-    ]);
+    expect(errors).toEqual([{ field: 'tamano_pagina', code: 'exceeds_max' }]);
   });
 
   it('should return error when tamano_pagina is zero or negative', () => {
@@ -60,9 +77,7 @@ describe('validateCompraAgilListParams', () => {
       numero_pagina: 1,
     });
 
-    expect(errors).toEqual([
-      { field: 'id_q', code: 'mutually_exclusive' },
-    ]);
+    expect(errors).toEqual([{ field: 'id_q', code: 'mutually_exclusive' }]);
   });
 
   it('should return no errors when only id is provided', () => {

@@ -32,7 +32,23 @@ const extractRecordArray = (
     return [];
   }
 
-  return value.filter(isV2CompraAgilRecord);
+  return value.filter(isV2CompraAgilRecord).map(normalizeV2CompraAgilRecord);
+};
+
+const normalizeV2CompraAgilRecord = (
+  record: MercadoPublicoApiV2CompraAgilRecord,
+): MercadoPublicoApiV2CompraAgilRecord => {
+  if (typeof record.estado === 'string' || record.estado === undefined) {
+    return record;
+  }
+
+  return {
+    ...record,
+    estado:
+      coerceToNullableString(record.estado.codigo) ??
+      coerceToNullableString(record.estado.glosa) ??
+      undefined,
+  };
 };
 
 const recursivelyExtractRecords = (
@@ -48,10 +64,12 @@ const recursivelyExtractRecords = (
     return [];
   }
 
+  if (isV2CompraAgilRecord(value)) {
+    return [normalizeV2CompraAgilRecord(value)];
+  }
+
   for (const preferredArrayKey of PREFERRED_ARRAY_KEYS) {
-    const preferredArrayRecords = extractRecordArray(
-      value[preferredArrayKey],
-    );
+    const preferredArrayRecords = extractRecordArray(value[preferredArrayKey]);
 
     if (preferredArrayRecords.length > 0) {
       return preferredArrayRecords;
@@ -79,7 +97,7 @@ export const extractV2CompraAgilListRecords = (
   }
 
   if (isV2CompraAgilRecord(payload)) {
-    return [payload];
+    return [normalizeV2CompraAgilRecord(payload)];
   }
 
   return [];

@@ -78,18 +78,17 @@ export class MercadoPublicoApiV1OcDetailByCodigoService {
       }
 
       const recordsFetched = apiResponse.ordenesDeCompra.length;
+      const persistenceResult =
+        await this.mercadoPublicoPersistenceService.persistV1OrdenesDeCompraSnapshot(
+          {
+            jobRunRecordId: jobRunRecord.id,
+            apiResponse,
+            snapshotKind: 'detail',
+          },
+        );
       let recordsCanonicalized = 0;
 
-      if (recordsFetched > 0) {
-        const persistenceResult =
-          await this.mercadoPublicoPersistenceService.persistV1OrdenesDeCompraSnapshot(
-            {
-              jobRunRecordId: jobRunRecord.id,
-              apiResponse,
-              snapshotKind: 'detail',
-            },
-          );
-
+      if (persistenceResult.recordsStaged > 0) {
         recordsCanonicalized =
           await this.mercadoPublicoCanonicalRefreshService.refreshV1OrdenesDeCompraFromApiSnapshot(
             persistenceResult.rawApiPayloadId,
@@ -101,7 +100,7 @@ export class MercadoPublicoApiV1OcDetailByCodigoService {
         status: 'success',
         finishedAt: new Date(),
         recordsFetched,
-        recordsStaged: recordsFetched,
+        recordsStaged: persistenceResult.recordsStaged,
         recordsCanonicalized,
         recordsFailed:
           recordsCanonicalized === 0 && recordsFetched === 0 ? 1 : 0,

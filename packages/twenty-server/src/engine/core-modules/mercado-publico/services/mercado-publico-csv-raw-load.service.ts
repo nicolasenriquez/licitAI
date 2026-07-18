@@ -78,16 +78,28 @@ export class MercadoPublicoCsvRawLoadService {
       );
 
       const result = await this.loadRawCsvRows(fileMeta, jobRunRecord.id);
+      const hasImportableRows = result.successCount > 0;
+      const hasErrors = result.errorCount > 0;
+      const errorSummary = !hasImportableRows
+        ? 'CSV raw load found no importable rows'
+        : hasErrors
+          ? `CSV raw load completed with ${result.errorCount} parse errors`
+          : undefined;
 
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,
-        status: 'success',
+        status: errorSummary === undefined ? 'success' : 'failed',
         finishedAt: new Date(),
         recordsFetched: result.totalLines,
         recordsStaged: result.successCount,
         recordsCanonicalized: 0,
         recordsFailed: result.errorCount,
+        errorSummary,
       });
+
+      if (errorSummary !== undefined) {
+        throw new MercadoPublicoRecordedJobFailureError(errorSummary, false);
+      }
 
       this.logger.log(
         `Loaded ${result.successCount} rows (${result.errorCount} errors) from ${parsedPayload.raw_csv_file_id}`,
