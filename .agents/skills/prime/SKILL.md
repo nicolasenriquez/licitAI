@@ -1,5 +1,7 @@
 ---
-description: Prime agent with codebase understanding
+name: prime
+description: Load project context: structure, docs, key files, current state.
+disable-model-invocation: true
 ---
 
 # Prime: Load Project Context
@@ -12,11 +14,9 @@ Build comprehensive understanding of the codebase by analyzing structure, docume
 
 ### 1. Analyze Project Structure
 
-List all tracked files:
-!`git ls-files`
+List all tracked files (`git ls-files`).
 
-Show directory structure:
-On Linux, run: `tree -L 3 -I 'node_modules|__pycache__|.git|dist|build'`
+Show directory structure: on Linux, run `tree -L 3 -I 'node_modules|__pycache__|.git|dist|build'`.
 
 ### 2. Read Core Documentation
 
@@ -34,11 +34,9 @@ Based on the structure, identify and read:
 
 ### 4. Understand Current State
 
-Check recent activity:
-!`git log -10 --oneline`
+Check recent activity (`git log -10 --oneline`).
 
-Check current branch and status:
-!`git status`
+Check current branch and status (`git status`).
 
 ## Output Report
 

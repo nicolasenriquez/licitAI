@@ -52,4 +52,4 @@ mapped leaf package surface.
 - If it does not, stay in `packages/` and do not invent a new leaf-local
   routing contract.
 - Bounce back through root `index.md` when the task is really `docs/`,
-  `openspec/`, `.codex/`, or `.opencode/`.
+  `openspec/`, or `.opencode/`.

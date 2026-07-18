@@ -17,4 +17,4 @@ Route all repository-local, harness-agnostic skills through `.agents/skills/`.
 - Keep one canonical directory per skill name.
 - Keep `SKILL.md` small enough to load the main path without unnecessary reference material.
 - Read references only when the skill's current branch requires them.
-- Do not create a second full skill copy under `.codex/` or `.opencode/`.
+- Do not create a second full skill copy under any other harness-specific path.

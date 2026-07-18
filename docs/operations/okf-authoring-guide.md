@@ -22,7 +22,6 @@ In this repository, that includes:
 - routing contracts such as `AGENTS.md`, `CLAUDE.md`, and `CONTEXT.md`
 - durable docs under `docs/`
 - OpenSpec change artifacts
-- repo-local `.codex/` and `.opencode/` command and skill docs
 - mapped package-surface entry docs and durable package docs
 
 ## When To Add `index.md`

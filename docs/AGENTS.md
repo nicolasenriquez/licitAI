@@ -32,7 +32,7 @@ Before substantive work in this surface, read:
 
 - The prompt is about an active OpenSpec change or change artifacts under `openspec/`.
 - The task is to apply, archive, or sync an OpenSpec change.
-- The task is general repo code work under `packages/` or `.codex/` that is not documentation-led.
+- The task is general repo code work under `packages/` that is not documentation-led.
 
 When that happens, return to `../index.md` first and reroute from there. Do
 not keep working from `docs/`.

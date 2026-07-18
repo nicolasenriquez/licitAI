@@ -49,7 +49,7 @@ disclosure.
 
 #### Scenario: Major surfaces provide local navigation
 
-- **WHEN** a user or agent enters `docs/`, `openspec/`, `packages/`, `.codex/`,
+- **WHEN** a user or agent enters `docs/`, `openspec/`, `packages/`,
   or `.opencode/`
 - **THEN** that surface provides a local `index.md`
 - **AND** the index helps route from the surface contract to durable leaf docs
@@ -85,8 +85,8 @@ documentation corpus for this slice.
 #### Scenario: File selection for metadata rollout
 
 - **WHEN** implementation selects existing docs for additive metadata
-- **THEN** the selection is limited to root markdown docs, `docs/**`,
-  `openspec/**`, `.codex/**` markdown, `.opencode/**` markdown, and mapped
+- **THEN**   the selection is limited to root markdown docs, `docs/**`,
+  `openspec/**`, `.opencode/**` markdown, and mapped
   package-surface entry docs plus durable package docs
 - **AND** vendor or generated markdown such as `node_modules/**`, build output,
   and third-party cache trees are excluded

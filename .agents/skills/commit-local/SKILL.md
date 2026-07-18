@@ -1,8 +1,8 @@
 ---
-type: skill
-title: "Commit Local Skill"
-description: "Repo-local OpenCode skill for creating one local commit."
-okf_version: "0.1"
+name: commit-local
+description: Create one local commit from the working tree and stop before push.
+argument-hint: "[intent-hint]"
+disable-model-invocation: true
 ---
 Create one single local commit from the current working tree and stop before any push.
 

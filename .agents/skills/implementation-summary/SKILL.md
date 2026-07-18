@@ -1,6 +1,8 @@
 ---
-description: Summarize and audit an implementation from an OpenSpec spec path or change, grounded in code, tests, migrations, and docs rather than plan text alone
+name: implementation-summary
+description: Audit an OpenSpec-backed change against shipped code, tests, and migrations.
 argument-hint: <spec-path|change-path|change-name> [audience=exec|product|engineering] [depth=short|standard|deep] [audit=balanced|strict]
+disable-model-invocation: true
 ---
 
 # Implementation Summary

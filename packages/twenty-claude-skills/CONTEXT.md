@@ -21,7 +21,7 @@ Describe the role of `packages/twenty-claude-skills` during the workspace routin
 - `packages/twenty-claude-skills` is mapped as a docs-heavy leaf surface (wave 2).
 - The `packages/` index surface must be consulted before entering this surface.
 - The package currently exposes skill files such as `skills/twenty-record-presentation/SKILL.md`.
-- This is a package-scoped skill surface, not the root `.codex` configuration surface and not the `twenty-codex-plugin` surface.
+- This is a package-scoped skill surface, not the `twenty-codex-plugin` surface.
 
 ## How To Use This Surface
 
@@ -35,7 +35,7 @@ Use `packages/twenty-claude-skills` for:
 
 This surface is not the durable home for:
 
-- root `.codex` routing or local Codex configuration
+- local Codex configuration
 - `packages/twenty-codex-plugin` plugin-runtime guidance
 - root `docs/` baseline docs
 - OpenSpec artifacts

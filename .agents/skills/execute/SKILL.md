@@ -1,6 +1,8 @@
 ---
-description: Execute an implementation plan
+name: execute
+description: Execute an implementation plan: read it fully, implement tasks in order, run validations.
 argument-hint: [path-to-plan]
+disable-model-invocation: true
 ---
 
 # Execute: Implement from Plan
@@ -64,12 +66,11 @@ If any command fails:
 ### 5. Final Verification
 
 Before completing:
-
-- ✅ All tasks from plan completed
-- ✅ All tests created and passing
-- ✅ All validation commands pass
-- ✅ Code follows project conventions
-- ✅ Documentation added/updated as needed
+- All tasks from plan completed
+- All tests created and passing
+- All validation commands pass
+- Code follows project conventions
+- Documentation added/updated as needed
 
 ## Output Report
 
