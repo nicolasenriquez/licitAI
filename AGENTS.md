@@ -31,11 +31,13 @@ During this routing rollout, use the contract below before acting:
 - Route into `openspec/` for active OpenSpec changes, proposal/design/tasks/spec artifacts, change review, implementation, and archive/sync work.
 - Route into `docs/` for repository architecture, business context, governance, operations, standards, and ADR reading or editing.
 - Route into `packages/` for package-scoped work and for selecting the right package surface before leaf-package work.
-- Route into `.codex/` for repo-local Codex commands, repo-local Codex skills, and local Codex workflow assets.
-- Route into `.opencode/` for repo-local OpenCode commands, repo-local OpenCode skills, and local OpenCode workflow assets.
+- Route into `.agents/` for the canonical harness-agnostic repository skills.
+- Route into `.codex/` for native repo-local Codex commands, Codex-specific adapters, and local Codex workflow assets.
+- Route into `.opencode/` for native repo-local OpenCode commands, OpenCode-specific adapters, and local OpenCode workflow assets.
 - If a task starts in `docs/` but is really about an active OpenSpec change, return to the root map and reroute into `openspec/`.
 - If a task starts in `openspec/` but is really about architecture, governance, or other repo docs, return to the root map and reroute into `docs/`.
 - If a task starts in `packages/` but is really about root docs or OpenSpec change work, return to the root map and reroute.
+- If a task starts in `.agents/` but is really about native harness configuration or the published plugin package, return to the root map and reroute.
 - If a task starts in `.codex/` but is really about the published plugin package or another mapped surface, return to the root map and reroute.
 - If a task starts in `.opencode/` but is really about repo-local Codex assets, published plugin work, or another mapped surface, return to the root map and reroute.
 - Do not invent folder-local routing rules for unmapped leaf surfaces during rollout. If the task is outside the mapped surfaces, stay on the root contract, state explicitly that the surface is unmapped, and do not wander.

@@ -13,7 +13,7 @@ Define when work should stay inside `.opencode` during the workspace routing rol
 ## Stay In `.opencode` When
 
 - The task is about repo-local OpenCode configuration.
-- The task is to add, update, or review files under `.opencode/skills/` or `.opencode/commands/`.
+- The task is to add, update, or review native OpenCode commands or adapters under `.opencode/commands/` or another explicitly harness-specific path.
 - The task is about OpenCode-oriented repo automation, local skill scaffolding, or OpenCode configuration in this checkout.
 - The task is about repo-local OpenCode behavior, not the published plugin package or `.codex` tooling.
 
@@ -26,12 +26,13 @@ Before substantive work in this surface, read:
 3. `AGENTS.md`
 4. `CONTEXT.md`
 5. `index.md`
-6. The specific skill `SKILL.md` or command file relevant to the task
+6. The specific command or adapter file relevant to the task
 
 ## Bounce Back To Root When
 
 - The prompt is about the `.codex` surface or repo-local Codex commands.
 - The prompt is about durable repository docs or OpenSpec change work.
+- The prompt is about canonical skill instructions under `.agents/skills/`.
 - The prompt is about the published plugin package in `packages/twenty-codex-plugin`.
 - The prompt is general package routing rather than OpenCode-specific configuration.
 
@@ -42,4 +43,4 @@ not keep working from `.opencode`.
 
 - Declare the routing/context files consulted before responding or editing.
 - State that the selected surface is `.opencode`.
-- Preserve the distinction between repo-local OpenCode assets and the separate `.codex` or plugin tooling surfaces.
+- Preserve the distinction between native OpenCode assets, canonical `.agents/skills/`, and the separate plugin tooling surface.

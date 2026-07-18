@@ -1,8 +1,14 @@
-# Design It Twice
+---
+type: reference
+title: "Interface Design"
+description: "Reference documentation for Interface Design."
+okf_version: "0.1"
+---
+# Interface Design
 
 When the user wants to explore alternative interfaces for a chosen deepening candidate, use this parallel sub-agent pattern. Based on "Design It Twice" (Ousterhout) — your first idea is unlikely to be the best.
 
-Uses the vocabulary in [SKILL.md](SKILL.md) — **module**, **interface**, **seam**, **adapter**, **leverage**.
+Uses the vocabulary in [LANGUAGE.md](LANGUAGE.md) — **module**, **interface**, **seam**, **adapter**, **leverage**.
 
 ## Process
 
@@ -18,9 +24,10 @@ Show this to the user, then immediately proceed to Step 2. The user reads and th
 
 ### 2. Dispatch parallel alternatives
 
-Read [references/harness-dispatch.md](references/harness-dispatch.md) and
-dispatch 3+ sub-agents in parallel using the active harness adapter. Each must
-produce a **radically different** interface for the deepened module.
+Read [harness-dispatch.md](references/harness-dispatch.md) and dispatch 3+
+sub-agents in
+parallel using the active harness adapter. Each must produce a **radically
+different** interface for the deepened module.
 
 Prompt each sub-agent with a separate technical brief (file paths, coupling details, dependency category from [DEEPENING.md](DEEPENING.md), what sits behind the seam). The brief is independent of the user-facing problem-space explanation in Step 1. Give each agent a different design constraint:
 
@@ -29,7 +36,7 @@ Prompt each sub-agent with a separate technical brief (file paths, coupling deta
 - Agent 3: "Optimise for the most common caller — make the default case trivial."
 - Agent 4 (if applicable): "Design around ports & adapters for cross-seam dependencies."
 
-Include both [SKILL.md](SKILL.md) vocabulary and CONTEXT.md vocabulary in the brief so each sub-agent names things consistently with the architecture language and the project's domain language.
+Include both [LANGUAGE.md](LANGUAGE.md) vocabulary and CONTEXT.md vocabulary in the brief so each sub-agent names things consistently with the architecture language and the project's domain language.
 
 Each sub-agent outputs:
 

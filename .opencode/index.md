@@ -8,12 +8,13 @@ Use this index to route repo-local OpenCode work inside `.opencode/`.
 
 | Path | Role |
 | --- | --- |
-| `.opencode/skills/` | Repo-local OpenCode skills and references |
+| `.opencode/skills/` | Retired legacy location; canonical skills live in `.agents/skills/` |
 | `.opencode/commands/` | Repo-local OpenCode commands, when present |
 
 ## Routing Rule
 
-- Stay in `.opencode/` for repo-local OpenCode configuration and skills.
+- Stay in `.opencode/` for repo-local OpenCode configuration and native commands.
+- Route canonical skill changes through `.agents/`.
 - Bounce back through root `index.md` when the task is really `.codex/`,
-  `docs/`, `openspec/`, the published plugin package, or general package
+  `.agents/`, `docs/`, `openspec/`, the published plugin package, or general package
   routing.

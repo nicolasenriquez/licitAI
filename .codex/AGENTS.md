@@ -12,8 +12,8 @@ Define when work should stay inside `.codex` during the workspace routing rollou
 
 ## Stay In `.codex` When
 
-- The task is about repo-local Codex commands or repo-local Codex skills.
-- The task is to add, update, or review files under `.codex/commands/` or `.codex/skills/`.
+- The task is about native repo-local Codex commands or Codex-specific adapters.
+- The task is to add, update, or review files under `.codex/commands/`.
 - The task is about Codex-oriented repo automation, local command UX, or local skill scaffolding in this checkout.
 - The task is about repo-local Codex behavior, not the published plugin package.
 
@@ -26,12 +26,13 @@ Before substantive work in this surface, read:
 3. `AGENTS.md`
 4. `CONTEXT.md`
 5. `index.md`
-6. The specific command `SKILL.md` or skill `SKILL.md` relevant to the task
+6. The specific command or adapter file relevant to the task
 
 ## Bounce Back To Root When
 
 - The prompt is about the published plugin package in `packages/twenty-codex-plugin`.
 - The prompt is about durable repository docs or OpenSpec change work.
+- The prompt is about canonical skill instructions under `.agents/skills/`.
 - The prompt is general package routing rather than repo-local Codex configuration.
 
 When that happens, return to `../index.md` first and reroute from there. Do
@@ -48,4 +49,4 @@ not keep working from `.codex`.
 - If a clickable markdown file link requires an absolute target, keep the visible link label repository-relative and use the absolute path only in the target.
 - Do not print raw absolute filesystem paths in prose unless explicitly requested by the user or required because the path is outside the repository.
 - State that the selected surface is `.codex`.
-- Preserve the distinction between repo-local Codex assets and the published plugin package.
+- Preserve the distinction between native Codex assets, canonical `.agents/skills/`, and the published plugin package.

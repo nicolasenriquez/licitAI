@@ -13,13 +13,21 @@ This command is _informed_ by the project's domain model and built on a shared d
 - Run the `/codebase-design` skill for the architecture vocabulary (**module**, **interface**, **depth**, **seam**, **adapter**, **leverage**, **locality**) and its principles (the deletion test, "the interface is the test surface", "one adapter = hypothetical seam, two = real"). Use these terms exactly in every suggestion — don't drift into "component," "service," "API," or "boundary."
 - The domain language in `CONTEXT.md` gives names to good seams; ADRs in `docs/adr/` record decisions this command should not re-litigate.
 
+Use the co-located references progressively: `LANGUAGE.md` for the full
+architecture vocabulary, `DEEPENING.md` when a candidate has multiple
+dependencies, and `INTERFACE-DESIGN.md` only when exploring alternate
+interfaces. Keep `HTML-REPORT.md` as the report-construction reference.
+
 ## Process
 
 ### 1. Explore
 
 Read the project's domain glossary (`CONTEXT.md`) and any ADRs in the area you're touching first.
 
-Then use the Agent tool with `subagent_type=Explore` to walk the codebase. Don't follow rigid heuristics — explore organically and note where you experience friction:
+Then read [references/harness-dispatch.md](references/harness-dispatch.md) and
+use the active harness's exploration adapter to walk the codebase. Don't
+follow rigid heuristics — explore organically and note where you experience
+friction:
 
 - Where does understanding one concept require bouncing between many small modules?
 - Where are modules **shallow** — interface nearly as complex as the implementation?

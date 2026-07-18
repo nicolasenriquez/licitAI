@@ -37,8 +37,9 @@ Start at the repository root:
 | `openspec/` | `openspec/AGENTS.md`, `openspec/CONTEXT.md`, `openspec/index.md` | Active OpenSpec changes, proposal/design/tasks/spec work, apply/archive/sync work |
 | `docs/` | `docs/AGENTS.md`, `docs/CONTEXT.md`, `docs/index.md` | Durable repository architecture, governance, operations, standards, business context, ADRs |
 | `packages/` | `packages/AGENTS.md`, `packages/CONTEXT.md`, `packages/index.md` | Package selection, package-scoped code, package-scoped docs, mapped leaf-package routing |
-| `.codex/` | `.codex/AGENTS.md`, `.codex/CONTEXT.md`, `.codex/index.md` | Repo-local Codex commands, skills, and workflow assets |
-| `.opencode/` | `.opencode/AGENTS.md`, `.opencode/CONTEXT.md`, `.opencode/index.md` | Repo-local OpenCode commands, skills, and workflow assets |
+| `.agents/` | `.agents/AGENTS.md`, `.agents/CONTEXT.md`, `.agents/index.md` | Canonical harness-agnostic repository skills |
+| `.codex/` | `.codex/AGENTS.md`, `.codex/CONTEXT.md`, `.codex/index.md` | Native Codex commands, adapters, and workflow assets |
+| `.opencode/` | `.opencode/AGENTS.md`, `.opencode/CONTEXT.md`, `.opencode/index.md` | Native OpenCode commands, adapters, and workflow assets |
 
 ## Package Surface Index
 
@@ -67,13 +68,14 @@ Mapped leaf-package surfaces currently include:
 4. Choose `docs/` for durable repository documentation outside an active
    change artifact.
 5. Choose `packages/` for package-scoped work or package ownership/routing.
-6. Choose `.codex/` for repo-local Codex assets.
-7. Choose `.opencode/` for repo-local OpenCode assets.
-8. If the current folder is wrong for the task, bounce back through root
+6. Choose `.agents/` for canonical repository skills.
+7. Choose `.codex/` for native Codex commands and adapters.
+8. Choose `.opencode/` for native OpenCode configuration, commands, and adapters.
+9. If the current folder is wrong for the task, bounce back through root
    `index.md` and reroute. Do not continue from the wrong surface.
-9. If no mapped surface applies, stay on the root contract and say so
+10. If no mapped surface applies, stay on the root contract and say so
    explicitly.
-10. Before substantive response or edits, declare which routing/context files
+11. Before substantive response or edits, declare which routing/context files
     were consulted and which surface was selected.
 
 ## Bounce Rules
@@ -81,6 +83,7 @@ Mapped leaf-package surfaces currently include:
 - `docs/` -> root -> `openspec/` when the task is really about an active change
 - `openspec/` -> root -> `docs/` when the task is really durable repo docs
 - `packages/` -> root -> `docs/` or `openspec/` when package scope is wrong
+- `.agents/` -> root -> `.codex/` or `.opencode/` when the task is native harness configuration
 - `.codex/` -> root -> `packages/twenty-codex-plugin` when the task is about
   the published plugin package
 - `.opencode/` -> root -> `.codex/` when the task is really repo-local Codex
@@ -89,12 +92,13 @@ Mapped leaf-package surfaces currently include:
 ## Progressive-Disclosure Order
 
 - Root routing: `AGENTS.md` -> `index.md`
+- Shared skills: `.agents/AGENTS.md` -> `.agents/index.md` -> selected skill
 - Surface routing:
   - `docs/AGENTS.md` -> `docs/index.md` -> durable docs
   - `openspec/AGENTS.md` -> `openspec/index.md` -> change artifacts
   - `packages/AGENTS.md` -> `packages/index.md` -> mapped leaf package
-  - `.codex/AGENTS.md` -> `.codex/index.md` -> command/skill docs
-  - `.opencode/AGENTS.md` -> `.opencode/index.md` -> command/skill docs
+  - `.codex/AGENTS.md` -> `.codex/index.md` -> command/adapter docs
+  - `.opencode/AGENTS.md` -> `.opencode/index.md` -> command/adapter docs
 
 ## Intentionally Root-Routed Surfaces
 

@@ -13,8 +13,8 @@ Describe the role of `.opencode` during the workspace routing rollout.
 ## What Lives Here
 
 - Repo-local OpenCode configuration and tooling.
-- Repo-local OpenCode skills under `.opencode/skills/`.
-- Repo-local OpenCode commands under `.opencode/commands/` (if any).
+- Native OpenCode commands under `.opencode/commands/` (if any).
+- OpenCode-specific adapters that cannot live portably in `.agents/skills/`.
 - Per-repo OpenCode operating assets that are local to this checkout.
 
 ## Current Routing Status
@@ -25,7 +25,6 @@ Describe the role of `.opencode` during the workspace routing rollout.
 
 Use `.opencode` for:
 
-- editing repo-local OpenCode skills
 - editing repo-local OpenCode commands
 - shaping local OpenCode workflows and configuration tied to this repo
 
@@ -33,7 +32,8 @@ Use `.opencode` for:
 
 This surface is not the durable home for:
 
-- the `.codex` commands or skills in `.codex/`
+- canonical repository skills under `.agents/skills/`
+- native Codex commands or adapters in `.codex/`
 - root repository baseline docs under `docs/`
 - OpenSpec change artifacts under `openspec/`
 - the published plugin package in `packages/twenty-codex-plugin`
