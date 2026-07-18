@@ -47,6 +47,10 @@ design system and the BullMQ queue-jobs monitoring precedent.
   table primitives) and the `SettingsAdminQueueJobsTable` monitoring shape.
 - Add a LINK `NavigationMenuItem` so the view appears in the main navigation
   drawer. Optional feature-flag gate via `useIsFeatureEnabled`.
+- Bind UI controls and values strictly to existing DTOs: browse filters are
+  process type, state, exact buyer code, publication/changed dates, and sort;
+  browse paging is `page`/`limit`/`total`. Monitoring logs alone use
+  `limit`/`offset`/`hasMore`.
 
 ## Change Profile
 
@@ -68,6 +72,9 @@ design system and the BullMQ queue-jobs monitoring precedent.
   instance-level).
 - Workspace-level permission modeling beyond an optional feature flag. A
   proper permission gate can follow a later change if required.
+- Free-text process search, Compra Ágil region filtering, or fields absent from
+  current DTOs. The UI does not synthesize OC amounts, award dates, percentage
+  confidence, approval states, quota, cadence, or metrics.
 
 ## Impact
 
@@ -81,20 +88,34 @@ design system and the BullMQ queue-jobs monitoring precedent.
 
 ## Ownership and Test Seam
 
-- Owning module (backend): new resolver under
-  `packages/twenty-server/src/engine/core-modules/mercado-publico/`
-  consuming the module's existing read services.
-- Owning module (frontend):
-  `packages/twenty-front/src/modules/mercado-publico/` plus
-  `packages/twenty-front/src/pages/mercado-publico/`.
-- Interface: read-only GraphQL queries on core `/graphql` over `mp.*`.
-- Test seam: resolver integration tests against `mp.*` with seeded fixtures
-  (co-located with
-  `packages/twenty-server/test/integration/mercado-publico/suites/`), plus
-  focused front-end jest for hooks/components.
-- Adapter: none new. The resolver is a thin wrapper over existing read
-  services; the only new data access is two read-only SQL queries over
-  existing `mp.stg_job_run` and `mp.raw_api_payload` rows.
+- Highest existing Seam: authenticated read-only queries on core `/graphql`
+  observed by the Mercado Público page.
+- Owning Module: backend resolver/read services under
+  `packages/twenty-server/src/engine/core-modules/mercado-publico/`; frontend
+  page/module under `packages/twenty-front/src/{pages,modules}/mercado-publico/`.
+- Interface: typed GraphQL reads matching existing service DTOs; callers do
+  not know SQL tables or ingestion adapters.
+- Highest test Seam: resolver integration tests against seeded `mp.*`
+  fixtures, followed by focused page/component visible-behavior tests.
+- Adapter: resolver is a thin transport adapter. No ingestion adapter,
+  standard-object registration, or persistence adapter is added.
+- Depth / Leverage / Locality: one resolver exposes all reads; one frontend
+  domain module owns mapping/presentation; shared Twenty primitives stay reused.
+
+## Prior Art and First Proof
+
+- Prior art: `SettingsAdminQueueJobsTable`, `SettingsTabBar`,
+  `PageCardLayout`, and existing Mercado Público integration suites.
+- First failing behavior or contract proof: core `/graphql` lacks these
+  queries, and the authenticated app lacks the route/navigation entry.
+- UI proof: fixtures cover exact buyer-code filtering, browse paging, bounded
+  log loading, keyboard detail flow, redaction, and independent states.
+
+## Execution Order Decision
+
+- Required: yes.
+- Why: backend contract, frontend data, shell, browse, detail, monitoring, and
+  verification are multiple dependent slices.
 
 ## Verification Policy
 
@@ -102,7 +123,8 @@ design system and the BullMQ queue-jobs monitoring precedent.
   front-end: list filters/pagination, detail, job-run list, API call log,
   pipeline health, quota, CSV file health.
 - Verify front-end directly with jest per hook/component and a manual
-  walkthrough against the design wireframes.
+  walkthrough against all six frames, including responsive, keyboard, 200%
+  zoom, reduced-motion, redaction, and partial-error behavior.
 - Do not substitute full e2e breadth for contract proof at the resolver seam.
 
 ## Notes
@@ -113,4 +135,5 @@ design system and the BullMQ queue-jobs monitoring precedent.
   resolver runs authenticated in the same workspace context as other core
  GraphQL queries. Workspace isolation is not imposed on `mp.*` (instance
   data) — the view is read-only and surfaces instance-level ingestion state.
-- Boundaries: read-only. No new dependency, no migration, no scheduling.
+- Boundaries: read-only. No new dependency, migration, scheduling, free-text
+  search, region catalogue, synthetic metric, or implementation in this pass.

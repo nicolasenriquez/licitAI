@@ -101,6 +101,29 @@ changes to `mercado-publico-ingestion-cue-hardening`.
   `/admin-panel`. This change mirrors its interaction shape but on core
   `/graphql` with MP job-run rows.
 
+## Design contract corrections confirmed
+
+- Detected-process browse supports only process type, state, exact buyer code,
+  publication range, changed-since, sort, and `page`/`limit` with `total`.
+  There is no contract-backed free-text search or region filter.
+- Process detail exposes identity, buyer, dates, items, adjudications, related
+  purchase orders, source lineage, source priority, last-seen time, and a
+  reconciliation summary. It does not expose purchase-order amount, award
+  date, percentage confidence, or approval state.
+- Reconciliation evidence is represented by exact/candidate/unmatched counts
+  and `manualReviewRequired`; the UI must not synthesize stronger evidence.
+- Navigation drawer width is constrained to 180–350 px with 220 px default;
+  desktop detail uses `--t-side-panel-width` (500 px), while mobile follows the
+  existing full-viewport side-panel behavior.
+- `PageCardLayout` supplies the white application surface and 16 px top-left
+  radius. `SettingsTabBar` supplies the URL-hash tab precedent.
+- `SettingsAdminQueueJobsTable` supplies filter, status-tag, expandable-row,
+  and previous/next pagination vocabulary. Retry, delete, and selection
+  controls are intentionally excluded from this read-only surface.
+- Root `PRODUCT.md` and `DESIGN.md` describe the marketing website, not the
+  authenticated application; application source and Twenty UI primitives are
+  therefore the binding visual authority for this change.
+
 ## Verification seam
 
 - Resolver: integration test at the `/graphql` seam against `mp.*` tables with

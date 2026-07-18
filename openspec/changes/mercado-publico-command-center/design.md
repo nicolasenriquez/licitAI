@@ -167,152 +167,300 @@ Rationale: repo standard; avoids retrofit cost.
   later change can add scoping/permissions. Documented in proposal Notes.
 - **[Large `raw_api_payload` reads]** → Job-run and call-log queries use
   `limit/offset` with indexed `ingestion_job_id`/`started_at`/`fetched_at`
-  ordering; no unbounded scans. If hot, add alater index/gold materialization.
+  ordering; no unbounded scans. If hot, add a later index or gold
+  materialization only after measurement.
 - **[Wireframe-vs-build drift]** → ASCII wireframes in this file are the
   contract; implementation review compares rendered UI against them.
 
+## Existing Data Contract
+
+The view MUST render only fields supplied by the existing read DTOs or by the
+two explicitly planned monitoring list queries. It MUST NOT imply unavailable
+search, region, monetary, adjudication-date, percentage-confidence, or manual
+approval data.
+
+| Surface | Existing source | Binding fields and paging |
+| --- | --- | --- |
+| Process list | `MercadoPublicoDetectedProcessReadService` | Process identity/title/state, buyer code/name, published/closing dates, source priority, reconciliation status, `lastSeenAt`; filters `processTypes`, `states`, exact `buyerCode`, publication range, `changedSince`, sort; `page`, `limit`, `total` |
+| Process detail | `MercadoPublicoProcessDetailReadService` | Process identity/title/state, buyer, published/closing dates, items, adjudications, related OC code/state/match type/confidence category, source lineage, reconciliation counts, source priority, `lastSeenAt` |
+| Pipeline health | `MercadoPublicoPipelineHealthReadService` | Per-job latest status, last success/failure, lag, failure count, freshness, expected cadence |
+| API quota | `MercadoPublicoApiQuotaUsageReadService` | Per-source daily limit, used, remaining, reset, last 429 |
+| CSV health | `MercadoPublicoCsvFileHealthReadService` | Dataset/modality/period/file, encoding/delimiter/fingerprint, row and parse counts/status, last load, optional freshness |
+| Job runs | New bounded read query | Status/job filters, counters, timestamps, `error_summary`, optional raw CSV link; `limit`, `offset`, `hasMore` |
+| API calls | New bounded read query | Source/endpoint/http-status filters, request params, records, timestamps, error, job link; `limit`, `offset`, `hasMore` |
+
+Consequences:
+
+- **Código de organismo** is an exact `buyerCode` input, not a fabricated
+  organism option catalogue.
+- No free-text process search or Compra Ágil region filter exists in this
+  change. Adding either requires a later read-contract change.
+- Browse lists use `page`/`limit`/`total`; monitoring logs use
+  `limit`/`offset`/`hasMore`.
+- Related OCs show code, canonical state, match type, and confidence category.
+  They do not show an amount because the detail DTO does not supply one.
+- Reconciliation shows summary counts and categorical evidence, never an
+  invented percentage or approval state.
+
+## Visual and Interaction Contract
+
+- Register: product UI. Visual strategy: restrained and token-driven.
+- Reuse `PageCardLayout`, `PageHeader`, `SettingsTabBar`, table primitives,
+  `Tag`, `AnimatedPlaceholder`, `SettingsSkeletonLoader`, `InlineBanner`,
+  and the existing side-panel shell. Do not create parallel primitives.
+- Reference desktop viewport: 1440 x 900. Navigation drawer default width is
+  220 px, user-resizable from 180 to 350 px; designs MUST not assume a fixed
+  drawer width. Desktop detail width uses `--t-side-panel-width` (500 px).
+- `PageCardLayout` owns the white content surface and 16 px top-left radius.
+  Do not wrap every dashboard section in another card or create nested cards.
+- Header has `IconWorld` and localized title. First version has no run, retry,
+  delete, scheduling, or other write action.
+- Tabs are URL-hash backed. Canonical entry is
+  `/mercado-publico#licitaciones`; missing/unknown hashes fall back to
+  `licitaciones`. Hash changes preserve the current page without full reload.
+- `Limpiar filtros` appears only when at least one filter is active. Filter
+  state is scoped per tab and survives detail-panel open/close.
+- Row selection is keyboard reachable. `Enter`/`Space` opens detail; close
+  restores focus to the originating row. `Escape` closes the panel.
+- Color never carries status alone: every status uses localized text plus a
+  `Tag`. Unknown or null status renders `No informado` with neutral styling.
+- Dates, times, counts, and CLP amounts use workspace locale/timezone. Raw API
+  identifiers remain only in secondary technical detail.
+- Motion is limited to existing drawer/panel/tab state transitions and respects
+  `prefers-reduced-motion`. No decorative page-load choreography.
+
+## Status Presentation
+
+| Domain value | Spanish label | `TagColor` intent |
+| --- | --- | --- |
+| `success` | Correcta | green |
+| `failed` | Fallida | red |
+| `retryable_failed` | Reintentable | yellow/amber |
+| `param_error` | Parámetros inválidos | yellow/amber |
+| `soft_miss` | Sin resultados | gray |
+| `skipped` | Omitida | blue |
+| HTTP 200-399 | Correcta | green |
+| HTTP 400-499 | Error de solicitud | yellow/amber |
+| HTTP 500-599 | Error del proveedor | red |
+| null/unknown | No informado | gray |
+
+Process states keep their source label when present. Known canonical states map
+as follows: `publicada=green`, `cerrada=gray`, `adjudicada=blue`,
+`desierta=red`, `suspendida=yellow/amber`, `revocada=red`,
+`cancelada=red`, `proveedor_seleccionado=blue`, `oc_emitida=purple`.
+
+
 ## Wireframes
 
-ASCII wireframes per tab. Tokens follow twenty-ui: `PageCardLayout` +
-`PageHeader` (Icon + title + action slot) and `SettingsTabBar` (URL-hash
-tabs). Status badges use `Tag`/`TagColor`.
+Values below are illustrative fixtures, never production metrics. Dimensions
+are reference values; implementation uses existing tokens.
 
-### Page shell (shared)
+### Frame 1 — Home before navigation
 
-```
-+--------------------------------------------------------------------------+
-| [IconWorld]  Mercado Público                          [refresh] [filter]  |
-| [ Licitaciones ][ Compra Ágil ][ Centro de Control ]  <- SettingsTabBar   |
-+--------------------------------------------------------------------------+
-|                                                                          |
-|  < active tab content >                                                  |
-|                                                                          |
-+--------------------------------------------------------------------------+
-   MainNavigationDrawer (LINK "Mercado Público" selected)
-```
-
-### Tab 1 — Licitaciones
-
-```
-+--------------------------------------------------------------------------+
-| Filtros: estado [todos v]  organismo [todos v]  publicada [desde|hasta]  |
-|          buscar [______]                              [Limpiar] [Aplicar] |
-+--------------------------------------------------------------------------+
-| Código externo | Estado | Nombre             | Organismo | Publ. | Cierra |
-|---------------|--------|--------------------|-----------|-------|--------|
-| ML1-23-...    | [pub]  | Suministro de...    | SSS       | 12-01 | 01-15  |
-| ML1-23-...    | [cerr] | Arriendo de...      | MINSAL    | 11-20 | 12-20  |
-| ... (limit/offset + hasMore, [Cargar más])                               |
-+--------------------------------------------------------------------------+
-   Estado badge colors: publicada=green cerrada=gray adjudicada=blue
-                        desierta=red suspendida=amber revocada=red
-   Row click -> detail side panel (below).
+```text
+┌─ navigation drawer, 220 px default / resizable ─┬─ RecordIndexPage ──────┐
+│ licitAI                                         │ PageHeader: Companies  │
+│ Search                                          │ TopBar / view controls │
+│                                                 │                        │
+│ Workspace                                       │ Record table           │
+│   People                                        │                        │
+│   Companies  ← current                          │                        │
+│   Opportunities                                 │                        │
+│   Tasks                                         │                        │
+│   Notes                                         │                        │
+│   Workflows                                     │                        │
+│   🌐 Mercado Público  ← LINK entry              │                        │
+│ Other                                           │                        │
+│   Settings                                      │                        │
+│   Ayuda                                         │                        │
+└─────────────────────────────────────────────────┴────────────────────────┘
 ```
 
-### Process detail (side panel)
+Acceptance focus: new entry joins the existing data-driven workspace list. It
+does not replace the home route or add a hardcoded row to “Other”.
 
-```
-                                      +----------------------------------+
-                                      | ML1-23-...            [x close]  |
-                                      | Suministro de material médico    |
-                                      +----------------------------------+
-                                      | Estado     [publicada]           |
-                                      | Organismo  Servicio de Salud ... |
-                                      | Publicada  2024-12-01            |
-                                      | Cierra     2025-01-15            |
-                                      | Código tipo  LP                 |
-                                      +----------------------------------+
-                                      | Items                           |
-                                      |  - codigoitem / descripción      |
-                                      +----------------------------------+
-                                      | Adjudicaciones                  |
-                                      |  - rut / monto / fecha           |
-                                      +----------------------------------+
-                                      | Órdenes de compra relacionadas  |
-                                      |  - codigo / monto_total          |
-                                      +----------------------------------+
-                                      | Reconciliación                  |
-                                      |  match_type | confidence | review |
-                                      +----------------------------------+
+### Frame 2 — Navigation selected
+
+```text
+┌─ navigation drawer ─────────────────────────────┐
+│ Workspace                                      │
+│   …                                            │
+│   🌐 Mercado Público                 SELECTED  │
+│      28 px item, existing selected background  │
+└────────────────────────────────────────────────┘
+                         → /mercado-publico#licitaciones
 ```
 
-### Tab 2 — Compra Ágil
+Acceptance focus: route match supplies selected state; label and icon are not
+duplicated in page-local navigation.
 
-```
-+--------------------------------------------------------------------------+
-| Filtros: estado [todos v]  región [todas v]  publicado [desde|hasta]    |
-|          buscar [______]                              [Limpiar] [Aplicar] |
-+--------------------------------------------------------------------------+
-| Código | Estado           | OC vinculada | Región | Publ.   | Últ. cambio |
-|--------|------------------|--------------|--------|--------|-------------|
-| CA-... | [proveedor_sel]  | OC-1234      | RM     | 12-01  | 12-10       |
-| CA-... | [publicada]      | —            | V      | 12-05  | 12-05       |
-| ... (limit/offset + hasMore)                                            |
-+--------------------------------------------------------------------------+
-   Estado colors: publicada=green cerrada=gray desierta=red cancelada=red
-                  proveedor_seleccionado=blue oc_emitida=purple
-   Row click -> detail side panel (compra ágil shape: productos solicitados,
-   cotizaciones con monto_cotizado, OC vinculada).
+### Frame 3 — Licitaciones browse view
+
+```text
+┌─ PageCardLayout, white surface / shell remains gray ─────────────────────┐
+│ [🌐] Mercado Público                                      PageHeader     │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Licitaciones   Compra Ágil   Centro de Control           URL-hash tabs │
+│  ━━━━━━━━━━━                                                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Estado [Todos ▾]  Código organismo [________]                           │
+│ Publicada [Desde] [Hasta]  Último cambio [Desde]  [Limpiar filtros]     │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Código       Estado       Nombre                 Organismo      Publicada│
+│ ML1-23-LP24  [Publicada]  Suministro de…         MINSAL         01 dic   │
+│ ML1-23-LE25  [Cerrada]    Arriendo de…           SSS            20 nov   │
+│                                                                         │
+│             1–25 de 847                [Anterior] Página 1 [Siguiente]   │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Tab 3 — Centro de Control
+Acceptance focus:
 
+- list fixed to process type `licitacion`
+- filters map one-to-one to existing service inputs
+- title truncates with accessible full-text tooltip
+- pagination uses `page`/`limit`/`total`
+- selected row opens Frame 4
+
+Compra Ágil reuses this list with process type `compra_agil` and its known
+state values. It does not add unsupported region, free-text, or related-OC
+columns.
+
+### Frame 4 — Browse view with process detail
+
+```text
+┌─ browse content shrinks, selection remains visible ─────┬─ 500 px panel ─┐
+│ [🌐] Mercado Público                                    │ [×] ML1-23-LP24│
+│ Licitaciones | Compra Ágil | Centro de Control          │ Suministro de… │
+│                                                        ├────────────────┤
+│ Estado [Todos ▾]  Código organismo [____]              │ [Publicada]    │
+│                                                        │ MINSAL         │
+│ ML1-23-LP24 [Publicada] Suministro de…  ← selected     │ 01 dic → 15 ene│
+│ ML1-23-LE25 [Cerrada]   Arriendo de…                   ├────────────────┤
+│                                                        │ Ítems (3)      │
+│                                                        │ código, nombre │
+│                                                        │ cantidad, monto│
+│                                                        ├────────────────┤
+│                                                        │ Adjudicaciones │
+│                                                        │ proveedor, cant│
+│                                                        │ monto          │
+│                                                        ├────────────────┤
+│                                                        │ OC relacionadas│
+│                                                        │ código, estado │
+│                                                        │ match, confianza│
+│                                                        ├────────────────┤
+│                                                        │ Reconciliación │
+│                                                        │ exactas 1      │
+│                                                        │ candidatas 0   │
+│                                                        │ sin match 0    │
+│                                                        │ revisión 0     │
+│                                                        ├────────────────┤
+│                                                        │ Fuentes        │
+│                                                        │ fuente, filas, │
+│                                                        │ última vista   │
+└────────────────────────────────────────────────────────┴────────────────┘
 ```
-+--------------------------------------------------------------------------+
-| Salud del pipeline                                                        |
-| +----------------+ +----------------+ +----------------+ +-------------+ |
-| | Última ejecución| | Estado jobs(7d)| | Retraso         | | Failures 7d| |
-| | api-v2 ... 03:12| | 42 ok / 3 fail | | 2h atrás         | | 3          | |
-| +----------------+ +----------------+ +----------------+ +-------------+ |
-| (Tarjetas por job_name: último éxito, último fallo, lag, conteo fallos)  |
-+--------------------------------------------------------------------------+
-| Cuota API                                                                 |
-| +------------------------+ +------------------------+ +------------------+|
-| | api-v1-licitaciones    | | api-v2-compra-agil    | | reset: 00:00 UTC ||
-| | 1.234 / 10.000 (12%)   | | 456 / 2.000 (22%)      | | last 429: 11-30  ||
-| | [====..............]   | | [=====..............]  | +------------------+|
-| +------------------------+ +------------------------+                     |
-+--------------------------------------------------------------------------+
-| Ejecuciones de jobs (mp.stg_job_run)          [estado v][job v][buscar] |
-| +---------------------------------------------------------------------+ |
-| | job_name | status | started | finished | fetched | staged | canon |err| |
-| |---------|--------|---------|----------|---------|--------|-------|---| |
-| | v2-list  |[succ]  | 03:10   | 03:12    | 120     | 120    | 120   | - | |
-| | csv-oc   |[fail]  | 03:00   | 03:05    | 0       | 0      | 0     |!! | |
-| | csv-lic  |[skip]  | 03:00   | 03:00    | 0       | 0      | 0     | - | |
-| | ... [Cargar más]   row expand -> error_summary + raw_csv_file link    | |
-| +---------------------------------------------------------------------+ |
-| status: success=green failed=red retryable_failed=amber                 |
-|         soft_miss=gray param_error=amber skipped=blue                   |
-+--------------------------------------------------------------------------+
-| Llamadas a la API (mp.raw_api_payload)        [source v][endpoint v]    |
-| +---------------------------------------------------------------------+ |
-| | source          | endpoint          | http | fetched | fetched_at    | |
-| |-----------------|-------------------|------|--------|---------------| |
-| | api-v2-compra.. | list              | 200  | 120    | 03:11         | |
-| | api-v1-licitac.. | detail-by-codigo | 404  | 0      | 03:09         | |
-| | ... row expand -> request_params + error_summary + ingestion_job link | |
-| +---------------------------------------------------------------------+ |
-| http<400=green 4xx=amber 5xx=red                                        |
-+--------------------------------------------------------------------------+
-| Salud archivos CSV                                                        |
-| +---------------------------------------------------------------------+ |
-| | source_dataset | file | rows | encoding | delim | parse ok | freshness| |
-| | oc             | ...  | 12k  | latin1  | ;     | 99.9%    | ok       | |
-| | licitaciones   | ...  | 48k  | latin1  | ;     | 100%     | ok       | |
-| +---------------------------------------------------------------------+ |
-+--------------------------------------------------------------------------+
+
+Acceptance focus: null/empty subsections say `Sin información`; they do not
+disappear silently. Panel never invents OC amount, award date, percentage
+confidence, or approval state. On mobile existing side-panel behavior occupies
+the viewport and returns focus/context on close.
+
+### Frame 5 — Centro de Control
+
+```text
+┌─ PageCardLayout ─────────────────────────────────────────────────────────┐
+│ [🌐] Mercado Público                                                    │
+│ Licitaciones   Compra Ágil   Centro de Control                          │
+│                                 ━━━━━━━━━━━━━━━━━                        │
+├─ Salud del pipeline, compact health matrix ─────────────────────────────┤
+│ Job                            Estado       Últ. éxito  Últ. fallo  Lag  │
+│ api-v2-compra-agil-incremental [Correcta]   03:12       —           2 h  │
+│ csv-oc-download                [Fallida]    ayer        03:05       1 d  │
+│ csv-licitaciones-download      [Omitida]    —           —           —    │
+├─ Cuota API ──────────────────────────────────────────────────────────────┤
+│ api-v1-licitaciones  1.234 / 10.000  [████░░░░░░]  reset 00:00          │
+│ api-v2-compra-agil     456 /  2.000  [██░░░░░░░░]  último 429: 03:11    │
+├─ Ejecuciones de jobs ───────────────────────────────────────────────────┤
+│ Estado [Todos ▾] Job [Todos ▾]                                          │
+│ Job                     Estado       Inicio  Fin    Obten. Canon. Error  │
+│ v2-compra-agil-list     [Correcta]   03:10   03:12  120    120    0     │
+│ csv-ordenes-compra      [Fallida]    03:00   03:05    0      0    1     │
+│   expanded → resumen del error + vínculo de archivo CSV, si existe      │
+│                         [Anterior]  Página 1  [Siguiente]                  │
+├─ Llamadas a la API ──────────────────────────────────────────────────────┤
+│ Fuente [Todas ▾] Endpoint [Todos ▾] HTTP [Todos ▾]                      │
+│ Fuente                  Endpoint           HTTP   Registros  Hora        │
+│ api-v2-compra-agil      list               [200]  120        03:11       │
+│ api-v1-licitaciones     detail-by-codigo   [404]    0        02:46       │
+│   expanded → parámetros redactados + error + vínculo a ejecución        │
+│                         [Anterior]  Página 1  [Siguiente]                  │
+├─ Salud de archivos CSV ──────────────────────────────────────────────────┤
+│ Dataset       Archivo       Filas  Parse correcto  Carga       Frescura │
+│ oc            oc_junio.csv  12,4k  99,92 %         hoy 03:00  No config.│
+│ licitaciones  lic_julio.csv 48,1k  100 %           hoy 03:01  No config.│
+└─────────────────────────────────────────────────────────────────────────┘
 ```
+
+Acceptance focus:
+
+- one continuous monitoring surface, not nested identical card grids
+- sections load and fail independently
+- request parameters redact ticket, authorization, cookie, token, password,
+  secret, and equivalent keys before rendering
+- percentages derive from actual counts
+- missing cadence/quota config renders `No disponible`, never synthetic data
+
+### Frame 6 — Loading, empty, no-results, and error
+
+```text
+┌─ initial loading ─────────────────────┬─ first-run empty ────────────────┐
+│ Header and tabs remain stable         │ [AnimatedPlaceholder]           │
+│ [skeleton filters]                    │ Sin ejecuciones registradas     │
+│ [skeleton row]                        │ Los datos aparecerán después de │
+│ [skeleton row]                        │ la primera ingesta por CLI.     │
+│ [skeleton row]                        │ [Consultar documentación]       │
+└───────────────────────────────────────┴─────────────────────────────────┘
+
+┌─ filtered no-results ─────────────────┬─ section error ─────────────────┐
+│ Sin resultados para estos filtros     │ No pudimos cargar llamadas API  │
+│ [Limpiar filtros]                     │ [Reintentar]                    │
+│ Existing content in other tabs stays  │ Other dashboard sections stay  │
+└───────────────────────────────────────┴─────────────────────────────────┘
+```
+
+State rules:
+
+- skeleton geometry mirrors replaced content; no centered spinner
+- first-run empty, filtered no-results, missing optional data, and transport
+  error use distinct localized copy/actions
+- refetch keeps previous data visible and marks only affected section busy
+- error/loading updates use appropriate live-region semantics without
+  announcing every skeleton row
+
+## Responsive Behavior
+
+- **Desktop (> 1024 px):** full column set, resizable drawer, 500 px detail
+  panel, dashboard uses full content width.
+- **Tablet (769–1024 px):** drawer may collapse; tables horizontally scroll
+  inside their section; secondary columns hide before identity/status.
+- **Mobile (≤ `MOBILE_VIEWPORT`):** existing full-width drawer; stacked
+  filters; horizontally scrollable tabs; process rows become compact list;
+  detail uses existing full-viewport side-panel behavior. No viewport-level
+  horizontal overflow.
+- At 200% zoom, controls remain reachable and status meaning remains visible.
+
 
 ## Verification Strategy
 
 - Resolver fail-first: integration tests at `/graphql` seeding `mp.*` fixtures
   assert list filters/pagination, detail, job-run list, API call log, health
   cards, quota, and CSV file health before the front-end consumes them.
-- Front-end: jest per hook/component (list filter state, pagination,
-  expandable row, badge color mapping, empty/loading/error states).
-- Manual: walkthrough each tab and detail panel against the wireframes; confirm
-  nav item appears and route loads under `MainAppLayoutWithSidePanel`.
+- Front-end: jest per hook/component (exact contract-backed filters, browse
+  page pagination, monitoring previous/next pagination, expandable row, badge mapping,
+  redaction, focus restoration, and all state variants).
+- Manual: Frames 1–6 at desktop/tablet/mobile, keyboard-only, 200% zoom, and
+  reduced motion; confirm nav/hash/route, focus return, and partial errors.
 - Lint/typecheck: `npx nx lint:diff-with-main twenty-server`,
   `npx nx lint:diff-with-main twenty-front`, `npx nx typecheck twenty-server`,
   `npx nx typecheck twenty-front`.

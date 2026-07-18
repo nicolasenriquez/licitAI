@@ -17,10 +17,10 @@ write, trigger, scheduler, or retry path.
 
 #### Scenario: Browse detected processes
 - **WHEN** a client queries the detected-process list with filters
-  (`processTypes`, `states`, `buyerCode`, `publishedFrom`/`To`, `changedSince`,
-  `sort`) and pagination
-- **THEN** the resolver returns paginated processes from the existing
-  `MercadoPublicoDetectedProcessReadService`
+  (`processTypes`, `states`, exact `buyerCode`, `publishedFrom`/`To`,
+  `changedSince`, `sort`) and `page`/`limit`
+- **THEN** the resolver returns `items`, `page`, `limit`, and `total`
+  from the existing `MercadoPublicoDetectedProcessReadService`
 
 #### Scenario: Process detail
 - **WHEN** a client queries a process detail by type and code
@@ -64,12 +64,15 @@ documented status union and indexed `limit/offset` ordering.
 The system MUST render a `/mercado-publico` top-level page inside
 `MainAppLayoutWithSidePanel` with `PageCardLayout`, a `PageHeader`, and
 URL-hash tabs **Licitaciones**, **Compra Ágil**, **Centro de Control**, using
-the twenty-ui design system and Lingui-localized strings from day one.
+the twenty-ui design system and Lingui-localized strings from day one. The
+canonical entry MUST be `/mercado-publico#licitaciones`; missing or unknown
+hashes MUST fall back to `licitaciones`.
 
 #### Scenario: Page loads under main layout
-- **WHEN** an authenticated user navigates to `/mercado-publico`
+- **WHEN** an authenticated user navigates to `/mercado-publico` without a
+  valid tab hash
 - **THEN** the page loads inside `MainAppLayoutWithSidePanel`, full-width,
-  with the three tabs present
+  with three tabs and Licitaciones selected
 
 #### Scenario: Tab state in the URL
 - **WHEN** the user switches tabs
@@ -77,17 +80,20 @@ the twenty-ui design system and Lingui-localized strings from day one.
 
 ### Requirement: Browse licitaciones and compra ágil
 
-The **Licitaciones** tab MUST render a filterable, paginated detected-process
-list filtered to licitaciones, with status `Tag` badges using the documented
-color map. The **Compra Ágil** tab MUST render the same list shape filtered to
-compra ágil, using the compra ágil estado enum
+The **Licitaciones** tab MUST render a detected-process list fixed to
+licitaciones and filtered only by contract-backed fields: state, exact buyer
+code, publication range, changed-since, and sort. Browse pagination MUST use
+`page`/`limit`/`total`. The **Compra Ágil** tab MUST reuse that shape,
+fixed to compra ágil and its estado enum
 (`publicada|cerrada|desierta|cancelada|proveedor_seleccionado|oc_emitida`).
-Selecting a row MUST open a detail side panel.
+This change MUST NOT add partial client-side search, a region filter, or fields
+absent from the DTO. Selecting a row MUST open the detail side panel.
 
 #### Scenario: Licitaciones filters and pagination
-- **WHEN** the user applies estado/organismo/publicado filters and paginates
-- **THEN** the list results update against the resolver with `limit/offset`
-  and "Cargar más" until `hasMore` is false
+- **WHEN** the user applies state, exact buyer-code, publication, or
+  changed-since filters, changes sort, or moves page
+- **THEN** the list sends those exact inputs plus `page`/`limit` and renders
+  the returned `total` through previous/next page controls
 
 #### Scenario: Estado badge colors
 - **WHEN** licitaciones or compra ágil rows are rendered
@@ -98,20 +104,26 @@ Selecting a row MUST open a detail side panel.
 
 #### Scenario: Process detail side panel
 - **WHEN** the user selects a process row
-- **THEN** a side panel shows items, adjudications/ cotizaciones, related
-  OCs, and the reconciliation summary from the process-detail query
+- **THEN** the side panel renders only process identity/state, buyer, dates,
+  items, adjudications, related OC code/state/match evidence, source lineage,
+  reconciliation counts, source priority, and last-seen data supplied by the
+  process-detail query
+- **AND** null or empty sections say `Sin información` without inventing OC
+  amount, award date, percentage confidence, or approval state
 
 ### Requirement: Render the Centro de Control monitoring surface
 
-The **Centro de Control** tab MUST render pipeline health cards per job,
-quota usage bars with last 429 and reset time, a job-run log table, an API
-call log table, and a CSV file health section, mirroring the
-`SettingsAdminQueueJobsTable` interaction shape.
+The **Centro de Control** tab MUST render one continuous monitoring surface:
+a compact pipeline health matrix, quota usage rows with last 429/reset time,
+a job-run log table, an API call log table, and CSV file health. It MUST reuse
+the `SettingsAdminQueueJobsTable` interaction vocabulary without copying its
+retry, delete, selection, or other write controls.
 
-#### Scenario: Pipeline health cards
+#### Scenario: Pipeline health matrix
 - **WHEN** the tab loads
-- **THEN** cards show per job_name the latest status, last success, last
-  failure, failure count (7d), and lag from `PipelineHealthRead`
+- **THEN** compact rows show per `jobName` latest status, last success,
+  last failure, failure count, lag, freshness, and expected cadence from
+  `PipelineHealthRead`
 
 #### Scenario: Job-run log table
 - **WHEN** the user filters by status/job and paginates
@@ -119,28 +131,53 @@ call log table, and a CSV file health section, mirroring the
   detail exposing `error_summary` and the `raw_csv_file` link when present
 
 #### Scenario: API call log table
-- **WHEN** the user filters by source/endpoint/http_status and paginates
-- **THEN** the table shows `raw_api_payload` rows with http_status badges
-  and expandable row detail exposing `request_params` and `error_summary`
+- **WHEN** the user filters by source/endpoint/http_status and loads a bounded
+  page
+- **THEN** the table shows `raw_api_payload` rows with HTTP status badges and
+  expandable detail exposing redacted `request_params` and `error_summary`
+- **AND** keys equivalent to ticket, authorization, cookie, token, password, or
+  secret are masked before rendering
 
 ### Requirement: Provide loading, empty, and error states
 
-Every tab and the detail panel MUST show design-system loading skeletons, an
-empty placeholder when no rows are returned, and an inline error banner when a
-query fails.
+Every tab, dashboard section, and detail panel MUST distinguish initial
+loading, background refetch, first-run empty, filtered no-results, missing
+optional data, and query error. Dashboard sections MUST fail independently.
 
-#### Scenario: Loading
+#### Scenario: Loading and refetch
 - **WHEN** a query is in flight and no previous data exists
-- **THEN** the section renders the matching skeleton placeholder
+- **THEN** the section renders a geometry-matched skeleton
+- **WHEN** a refetch starts with previous data available
+- **THEN** previous data remains visible and only the affected section is busy
 
-#### Scenario: Empty
-- **WHEN** a query succeeds with zero rows
-- **THEN** the section renders an empty placeholder with a localized message
+#### Scenario: Empty and filtered no-results
+- **WHEN** monitoring succeeds before any ingestion has run
+- **THEN** the page explains that data appears after CLI ingestion and links to
+  documentation
+- **WHEN** an active filter returns zero rows
+- **THEN** the section offers `Limpiar filtros` without presenting first-run copy
 
 #### Scenario: Error
 - **WHEN** a query fails
 - **THEN** the section renders an inline error banner and does not crash the
   page or other tabs
+
+### Requirement: Provide accessible responsive behavior
+
+The page MUST preserve the existing drawer, tab, table, and side-panel
+affordances across desktop, tablet, mobile, keyboard-only use, 200% zoom, and
+reduced-motion preferences. Status meaning MUST never rely on color alone.
+
+#### Scenario: Keyboard detail flow
+- **WHEN** a keyboard user activates a process row
+- **THEN** the detail panel opens, Escape closes it, and focus returns to the
+  originating row
+
+#### Scenario: Mobile and zoom
+- **WHEN** the viewport is mobile-sized or content is zoomed to 200%
+- **THEN** filters stack, tabs remain reachable, process rows use compact
+  presentation, detail occupies the existing mobile panel, and the viewport
+  has no horizontal overflow
 
 ### Requirement: Navigation entry is data-driven
 
@@ -150,7 +187,8 @@ flag, and MUST NOT rely on a hardcoded drawer row.
 
 #### Scenario: Nav item present
 - **WHEN** an authorized user opens the main drawer
-- **THEN** a "Mercado Público" LINK item navigates to `/mercado-publico`
+- **THEN** a "Mercado Público" LINK item navigates to
+  `/mercado-publico#licitaciones`
 
 #### Scenario: Feature flag gating
 - **WHEN** the view's feature flag is disabled
