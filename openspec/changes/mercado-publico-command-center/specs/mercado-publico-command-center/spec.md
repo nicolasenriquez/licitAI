@@ -51,7 +51,8 @@ write, trigger, scheduler, or retry path.
 
 The system MUST expose paginated, read-only queries over `mp.stg_job_run` and
 `mp.raw_api_payload` computing live (without writing gold rows), with the
-documented status union and indexed `limit/offset` ordering.
+documented status union and indexed `limit/offset` ordering. Required read
+indexes MUST be installed by a fast instance migration.
 
 #### Scenario: Job-run list with status union
 - **WHEN** a client queries job runs filtered by status and/or job name with

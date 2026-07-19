@@ -8,22 +8,23 @@ okf_version: "0.1"
 
 ## 0. Investigation and Scope Lock
 
-- [ ] 0.1 Confirm the five existing read DTOs against the binding matrix in
+- [x] 0.1 Confirm the five existing read DTOs against the binding matrix in
   `design.md`; reject unsupported search, region, OC amount, award date,
   percentage confidence, approval state, cadence, quota, or synthetic metric
   fields before freezing resolver outputs.
   Traceability: locks the real backend read surface before resolver planning
   begins.
 
-- [ ] 0.2 Confirm `usePageChangeEffectNavigateLocation` redirect fallthrough
+- [x] 0.2 Confirm `usePageChangeEffectNavigateLocation` redirect fallthrough
   for a new `AppPath` member (verify against its test table) and confirm
   `MainAppLayoutWithSidePanel` route group placement.
   Traceability: de-risks the new top-level route + onboarding redirect
   interaction before wiring.
 
-- [ ] 0.3 Confirm the two new read queries (`stg_job_run` list, `raw_api_payload`
-  list) use indexed `ingestion_job_id`/`started_at`/`fetched_at` ordering and
-  `limit/offset`; no unbounded scans, no gold writes.
+- [x] 0.3 Establish indexed bounded-read contract for the two new read queries
+  (`stg_job_run` list, `raw_api_payload` list): indexes cover
+  `ingestion_job_id`/`started_at`/`fetched_at` ordering and future queries MUST
+  use `limit/offset`; no unbounded scans, no gold writes.
   Traceability: locks the only new backend data access at the read-only seam.
 
 ## 1. Contract Coverage (Failing First)

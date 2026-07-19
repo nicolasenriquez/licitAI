@@ -86,7 +86,8 @@ design system and the BullMQ queue-jobs monitoring precedent.
 ## Impact
 
 - Affects `twenty-server`: a new module-internal resolver and two read
-  services; no changes to ingestion services, persistence, or migrations.
+  services; no changes to ingestion services or canonical/gold persistence. Add
+  one fast instance migration for bounded-read indexes.
 - Affects `twenty-front`: a new `mercado-publico` module (graphql/hooks/states/
   components), a new top-level page and route, a seeded navigation item, and a
   codegen registration.
@@ -143,5 +144,5 @@ design system and the BullMQ queue-jobs monitoring precedent.
   resolver runs authenticated in the same workspace context as other core
  GraphQL queries. Workspace isolation is not imposed on `mp.*` (instance
   data) — the view is read-only and surfaces instance-level ingestion state.
-- Boundaries: read-only. No new dependency, migration, scheduling, free-text
+- Boundaries: read-only. No new dependency, scheduling, free-text
   search, region catalogue, synthetic metric, or implementation in this pass.

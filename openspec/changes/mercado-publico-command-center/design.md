@@ -106,7 +106,7 @@ and adds two read services for job runs and API call logs that compute live
 from `mp.stg_job_run` and `mp.raw_api_payload`. Gold writers are not added;
 pipeline/XML health mirrors the live-compute pattern.
 
-Rationale: reuses tested services; no schema migration; no gold-row
+Rationale: reuses tested services; one schema-only index migration; no gold-row
 write/refresh lifecycle to maintain.
 
 Alternatives considered:
@@ -169,8 +169,8 @@ Rationale: repo standard; avoids retrofit cost.
   later change can add scoping/permissions. Documented in proposal Notes.
 - **[Large `raw_api_payload` reads]** → Job-run and call-log queries use
   `limit/offset` with indexed `ingestion_job_id`/`started_at`/`fetched_at`
-  ordering; no unbounded scans. If hot, add a later index or gold
-  materialization only after measurement.
+  ordering; no unbounded scans. Indexes are created by the fast instance
+  migration; gold materialization remains out of scope.
 - **[Wireframe-vs-build drift]** → ASCII wireframes in this file are the
   contract; implementation review compares rendered UI against them.
 

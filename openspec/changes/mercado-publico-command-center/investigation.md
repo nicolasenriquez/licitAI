@@ -140,3 +140,13 @@ The hardening change
 "frontend workflow" and "frontend surface" (proposal.md:49, :89). This change is
 the separate frontend read view; it consumes the read models produced by the
 backbone/hardening work without modifying them.
+
+## Phase 0 execution evidence
+
+- `0.1` PASS: DTOs expose only design-backed fields; unsupported search and
+  synthetic metrics are absent.
+- `0.2` PASS: authenticated normal routes fall through the navigation hook;
+  route belongs inside `MainAppLayoutWithSidePanel`.
+- `0.3` PASS: fast migration adds stable `started_at` and `fetched_at` indexes
+  plus partial `(ingestion_job_id, fetched_at, id)` index. Future read queries
+  remain bounded by `limit/offset`; no gold writes added.
