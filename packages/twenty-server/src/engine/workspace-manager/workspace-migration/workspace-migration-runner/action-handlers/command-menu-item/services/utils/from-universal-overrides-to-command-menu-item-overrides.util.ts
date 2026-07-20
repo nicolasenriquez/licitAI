@@ -33,11 +33,11 @@ export const fromUniversalOverridesToCommandMenuItemOverrides = ({
           availabilityObjectMetadataId:
             availabilityObjectMetadataUniversalIdentifier === null
               ? null
-              : findFlatEntityByUniversalIdentifier<FlatObjectMetadata>({
-                    flatEntityMaps: flatObjectMetadataMaps,
-                    universalIdentifier:
-                      availabilityObjectMetadataUniversalIdentifier,
-                  })?.id ?? null,
+              : (findFlatEntityByUniversalIdentifier<FlatObjectMetadata>({
+                  flatEntityMaps: flatObjectMetadataMaps,
+                  universalIdentifier:
+                    availabilityObjectMetadataUniversalIdentifier,
+                })?.id ?? null),
         }),
     ...(pageLayoutUniversalIdentifier === undefined
       ? {}
@@ -45,10 +45,10 @@ export const fromUniversalOverridesToCommandMenuItemOverrides = ({
           pageLayoutId:
             pageLayoutUniversalIdentifier === null
               ? null
-              : findFlatEntityByUniversalIdentifier<FlatPageLayout>({
-                    flatEntityMaps: flatPageLayoutMaps,
-                    universalIdentifier: pageLayoutUniversalIdentifier,
-                  })?.id ?? null,
+              : (findFlatEntityByUniversalIdentifier<FlatPageLayout>({
+                  flatEntityMaps: flatPageLayoutMaps,
+                  universalIdentifier: pageLayoutUniversalIdentifier,
+                })?.id ?? null),
         }),
   };
 };

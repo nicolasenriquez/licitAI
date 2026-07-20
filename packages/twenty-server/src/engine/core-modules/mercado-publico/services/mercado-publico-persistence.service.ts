@@ -51,9 +51,9 @@ type CreateMercadoPublicoJobRunInput = {
 type PersistMercadoPublicoApiFailureInput = {
   jobRunRecordId: string;
 } & MercadoPublicoApiSnapshotEnvelope & {
-  recordsFetched: number;
-  errorSummaryText: string;
-};
+    recordsFetched: number;
+    errorSummaryText: string;
+  };
 
 type SnapshotKind = 'list' | 'detail';
 
@@ -428,7 +428,10 @@ export class MercadoPublicoPersistenceService {
     jobRunRecordId: string,
     apiResponse: MercadoPublicoApiSnapshotEnvelope,
     recordCount: number,
-    stageRows: (entityManager: EntityManager, rawApiPayloadId: string) => Promise<void>,
+    stageRows: (
+      entityManager: EntityManager,
+      rawApiPayloadId: string,
+    ) => Promise<void>,
   ): Promise<{
     rawApiPayloadId: string;
     recordsFetched: number;
@@ -485,7 +488,10 @@ export class MercadoPublicoPersistenceService {
     const push = async (row: unknown[]): Promise<void> => {
       placeholders.push(
         `($${paramIndex}` +
-          Array.from({ length: columnCount - 1 }, (_, i) => `, $${paramIndex + i + 1}`).join('') +
+          Array.from(
+            { length: columnCount - 1 },
+            (_, i) => `, $${paramIndex + i + 1}`,
+          ).join('') +
           ')',
       );
       params.push(...row);

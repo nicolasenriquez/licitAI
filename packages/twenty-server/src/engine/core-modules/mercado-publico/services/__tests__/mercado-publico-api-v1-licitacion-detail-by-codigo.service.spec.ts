@@ -143,9 +143,7 @@ describe('MercadoPublicoApiV1LicitacionDetailByCodigoService', () => {
         licitaciones: [],
       } as any;
 
-      clientService.getByCodigoExterno.mockResolvedValue(
-        emptyDetailResponse,
-      );
+      clientService.getByCodigoExterno.mockResolvedValue(emptyDetailResponse);
 
       persistenceService.persistV1LicitacionesSnapshot.mockResolvedValue({
         rawApiPayloadId: 'raw-payload-id',
@@ -166,7 +164,8 @@ describe('MercadoPublicoApiV1LicitacionDetailByCodigoService', () => {
           recordsStaged: 0,
           recordsCanonicalized: 0,
           recordsFailed: 1,
-          errorSummary: 'No usable V1 licitacion detail record found for codigo externo LIC-MISSING',
+          errorSummary:
+            'No usable V1 licitacion detail record found for codigo externo LIC-MISSING',
         }),
       );
     });

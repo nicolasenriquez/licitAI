@@ -29,22 +29,22 @@ okf_version: "0.1"
 
 ## 1. Contract Coverage (Failing First)
 
-- [ ] 1.1 Add fail-first resolver integration coverage at the `/graphql` seam
+- [x] 1.1 Add fail-first resolver integration coverage at the `/graphql` seam
   for detected-process list (filters: processTypes, states, buyerCode,
   publishedFrom/To, changedSince, sort; pagination) and process detail.
   Traceability: proves the browse contract before the resolver ships.
 
-- [ ] 1.2 Add fail-first resolver integration coverage for job-run list
+- [x] 1.2 Add fail-first resolver integration coverage for job-run list
   (`stg_job_run` filters, status union incl. `skipped`, pagination,
   expandable error_summary) and API call log (`raw_api_payload` filters by
   source/endpoint/http_status, pagination).
   Traceability: proves the monitoring contract at the new read services.
 
-- [ ] 1.3 Add fail-first resolver integration coverage for pipeline health,
+- [x] 1.3 Add fail-first resolver integration coverage for pipeline health,
   API quota usage, and CSV file health wrapper outputs.
   Traceability: proves the wrapper shapes over the existing read services.
 
-- [ ] 1.4 Add fail-first frontend behavior coverage for the canonical
+- [x] 1.4 Add fail-first frontend behavior coverage for the canonical
   `#compra-agil` fallback, exact filter mapping, `page`/`limit`/`total`
   browse pagination, per-tab context preservation, bounded monitoring
   previous/next pagination, keyboard detail focus, request-parameter
@@ -55,32 +55,32 @@ okf_version: "0.1"
 
 ### Backend read services and resolver
 
-- [ ] 2.1 Add `MercadoPublicoJobRunReadService` (raw SQL over
+- [x] 2.1 Add `MercadoPublicoJobRunReadService` (raw SQL over
   `mp.stg_job_run`: list with status/job/started filters, pagination,
   error_summary) and `MercadoPublicoApiCallLogReadService` (raw SQL over
   `mp.raw_api_payload`: list with source/endpoint/http_status filters,
   pagination), each with focused unit tests.
   Traceability: isolates the only new data access before transport mapping.
 
-- [ ] 2.2 Add GraphQL ObjectTypes/Args + a `MercadoPublicoQueryResolver`
+- [x] 2.2 Add GraphQL ObjectTypes/Args + a `MercadoPublicoQueryResolver`
   on core `/graphql` delegating to the five existing read services plus the
   two new read services; wire auth the same as other core resolvers.
   Traceability: keeps transport adaptation separate from read logic.
 
-- [ ] 2.3 Export the resolver from the module and ensure it is picked up by
+- [x] 2.3 Export the resolver from the module and ensure it is picked up by
   the core schema without registering `mp.*` as workspace standard objects.
   Traceability: preserves the instance-level schema boundary.
 
 ### Front-end data layer
 
-- [ ] 2.4 Add `src/modules/mercado-publico/graphql/{queries,fragments}/`
+- [x] 2.4 Add `src/modules/mercado-publico/graphql/{queries,fragments}/`
   documents (gql tags) for every resolver query; register the module glob in
   `codegen.cjs`; run
   `npx nx run twenty-front:graphql:generate` and commit the generated
   DocumentNodes.
   Traceability: isolates client transport adaptation before UI rendering.
 
-- [ ] 2.5 Add hook wrappers under `src/modules/mercado-publico/hooks/`
+- [x] 2.5 Add hook wrappers under `src/modules/mercado-publico/hooks/`
   (list-with-filters, detail, job-run list, call-log, health/quota)
   using `useQuery` + `previousData` for smooth reloads, mirroring
   `useUsageAnalyticsData`; keep browse filters, pagination, selection, and
