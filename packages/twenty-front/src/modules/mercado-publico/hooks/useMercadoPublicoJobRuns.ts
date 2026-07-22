@@ -20,8 +20,13 @@ export type UseMercadoPublicoJobRunsVariables = Omit<
   startedTo?: MercadoPublicoDateInput;
 };
 
+type UseMercadoPublicoJobRunsOptions = {
+  skip?: boolean;
+};
+
 export const useMercadoPublicoJobRuns = (
   variables: UseMercadoPublicoJobRunsVariables = {},
+  options: UseMercadoPublicoJobRunsOptions = {},
 ) => {
   const serializedVariables =
     omitUndefinedMercadoPublicoVariables<GetMercadoPublicoJobRunsQueryVariables>(
@@ -39,6 +44,7 @@ export const useMercadoPublicoJobRuns = (
     variables: serializedVariables,
     fetchPolicy: 'network-only',
     notifyOnNetworkStatusChange: true,
+    skip: options.skip,
   });
 
   const effectiveData = data ?? previousData;

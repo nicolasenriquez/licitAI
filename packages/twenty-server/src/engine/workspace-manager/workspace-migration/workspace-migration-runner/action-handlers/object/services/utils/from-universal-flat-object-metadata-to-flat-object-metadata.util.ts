@@ -2,12 +2,17 @@ import { isDefined } from 'twenty-shared/utils';
 
 import { type AllFlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/types/all-flat-entity-maps.type';
 import { type FlatObjectMetadata } from 'src/engine/metadata-modules/flat-object-metadata/types/flat-object-metadata.type';
+import { type ExtractUniversalForeignKeyAggregatorForMetadataName } from 'src/engine/workspace-manager/workspace-migration/universal-flat-entity/constants/all-universal-flat-entity-foreign-key-aggregator-properties.constant';
 import { type UniversalFlatObjectMetadata } from 'src/engine/workspace-manager/workspace-migration/universal-flat-entity/types/universal-flat-object-metadata.type';
+import { getUniversalFlatEntityEmptyForeignKeyAggregators } from 'src/engine/workspace-manager/workspace-migration/universal-flat-entity/utils/reset-universal-flat-entity-foreign-key-aggregators.util';
 import { type AllUniversalWorkspaceMigrationAction } from 'src/engine/workspace-manager/workspace-migration/workspace-migration-builder/types/workspace-migration-action-common';
 import { type WorkspaceMigrationActionRunnerArgs } from 'src/engine/workspace-manager/workspace-migration/workspace-migration-runner/types/workspace-migration-action-runner-args.type';
 
 export type FromUniversalFlatObjectMetadataToFlatObjectMetadataArgs = {
-  universalFlatObjectMetadata: UniversalFlatObjectMetadata;
+  universalFlatObjectMetadata: Omit<
+    UniversalFlatObjectMetadata,
+    ExtractUniversalForeignKeyAggregatorForMetadataName<'objectMetadata'>
+  >;
   generatedId: string;
   allFlatEntityMaps: AllFlatEntityMaps;
   allFieldIdToBeCreatedInActionByUniversalIdentifierMap: Map<string, string>;
@@ -15,7 +20,6 @@ export type FromUniversalFlatObjectMetadataToFlatObjectMetadataArgs = {
     WorkspaceMigrationActionRunnerArgs<AllUniversalWorkspaceMigrationAction>,
     'workspaceId' | 'flatApplication'
   >;
-  dataSourceId: string;
 };
 
 const findFieldMetadataIdInCreateObjectContext = ({
@@ -37,14 +41,13 @@ const findFieldMetadataIdInCreateObjectContext = ({
   }
 
   const existingFieldId =
-    flatFieldMetadataMaps.idByUniversalIdentifier[universalIdentifier];
+    flatFieldMetadataMaps.byUniversalIdentifier[universalIdentifier]?.id;
 
   return existingFieldId ?? null;
 };
 
 export const fromUniversalFlatObjectMetadataToFlatObjectMetadata = ({
   universalFlatObjectMetadata,
-  dataSourceId,
   generatedId,
   allFlatEntityMaps,
   allFieldIdToBeCreatedInActionByUniversalIdentifierMap,
@@ -52,17 +55,12 @@ export const fromUniversalFlatObjectMetadataToFlatObjectMetadata = ({
     flatApplication: { id: applicationId },
     workspaceId,
   },
-}: FromUniversalFlatObjectMetadataToFlatObjectMetadataArgs): FlatObjectMetadata & {
-  dataSourceId: string;
-} => {
+}: FromUniversalFlatObjectMetadataToFlatObjectMetadataArgs): FlatObjectMetadata => {
   const {
     universalIdentifier,
     applicationUniversalIdentifier,
     labelIdentifierFieldMetadataUniversalIdentifier,
     imageIdentifierFieldMetadataUniversalIdentifier,
-    viewUniversalIdentifiers: _viewUniversalIdentifiers,
-    indexMetadataUniversalIdentifiers: _indexMetadataUniversalIdentifiers,
-    fieldUniversalIdentifiers: _fieldUniversalIdentifiers,
     ...restProperties
   } = universalFlatObjectMetadata;
 
@@ -100,11 +98,9 @@ export const fromUniversalFlatObjectMetadataToFlatObjectMetadata = ({
 
   return {
     ...restProperties,
-    dataSourceId,
     id: generatedId,
     workspaceId,
     applicationId,
-    standardId: null,
     universalIdentifier,
     applicationUniversalIdentifier,
     labelIdentifierFieldMetadataId,
@@ -112,12 +108,13 @@ export const fromUniversalFlatObjectMetadataToFlatObjectMetadata = ({
     targetTableName: 'DEPRECATED',
     imageIdentifierFieldMetadataId,
     imageIdentifierFieldMetadataUniversalIdentifier,
-    // Empty aggregator arrays for newly created entities
+    ...getUniversalFlatEntityEmptyForeignKeyAggregators({
+      metadataName: 'objectMetadata',
+    }),
     fieldIds: [],
     viewIds: [],
     indexMetadataIds: [],
-    fieldUniversalIdentifiers: [],
-    viewUniversalIdentifiers: [],
-    indexMetadataUniversalIdentifiers: [],
+    objectPermissionIds: [],
+    fieldPermissionIds: [],
   };
 };

@@ -1,4 +1,4 @@
-import { parseMercadoPublicoTabHash } from '@/modules/mercado-publico/utils/parseMercadoPublicoTabHash';
+import { parseMercadoPublicoTabHash } from '@/mercado-publico/utils/parseMercadoPublicoTabHash';
 
 describe('parseMercadoPublicoTabHash', () => {
   it('should return compra-agil for undefined hash', () => {

@@ -90,16 +90,16 @@ okf_version: "0.1"
 
 ### Front-end route and nav
 
-- [ ] 2.6 Add the `AppPath` member for `/mercado-publico` (twenty-shared)
+- [x] 2.6 Add the `AppPath` member for `/mercado-publico` (twenty-shared)
   and the lazy route block in `useCreateAppRouter.tsx` inside
   `MainAppLayoutWithSidePanel` (with `LazyRoute` + skeleton fallback).
   Traceability: mounts the view without touching other routes.
 
-- [ ] 2.7 Add the LINK `NavigationMenuItem` seed (and optional feature flag
+- [x] 2.7 Add the LINK `NavigationMenuItem` seed (and optional feature flag
   wiring via `useIsFeatureEnabled`) so the view appears in the main drawer.
   Traceability: keeps nav data-driven and merge-stable.
 
-- [ ] 2.8 Create `pages/mercado-publico/MercadoPublicoCommandCenterPage.tsx`
+- [x] 2.8 Create `pages/mercado-publico/MercadoPublicoCommandCenterPage.tsx`
   on `PageCardLayout` with `PageHeader` + `SettingsTabBar`: Compra Ágil,
   Licitaciones, Centro de Control. Canonical entry and drawer destination are
   `/mercado-publico#compra-agil`; missing or invalid hashes are replaced with
@@ -109,7 +109,7 @@ okf_version: "0.1"
 
 ### Front-end tabs and detail panel
 
-- [ ] 2.9 Implement **Compra Ágil** as the primary browse composition with
+- [x] 2.9 Implement **Compra Ágil** as the primary browse composition with
   contract-backed state, publication-range and sort controls visible, exact
   buyer code and changed-since under `Más filtros`, applied-filter chips,
   `page`/`limit`/`total` pagination, and the DTO-backed estado mapping.
@@ -118,7 +118,7 @@ okf_version: "0.1"
   Traceability: delivers the provider-first browse surface without widening
   the read contract.
 
-- [ ] 2.10 Implement the process **detail side panel** using only DTO-backed
+- [x] 2.10 Implement the process **detail side panel** using only DTO-backed
   identity/state, buyer, dates, items, adjudications, related OC evidence,
   lineage, reconciliation counts, source priority, and last-seen fields;
   include null-section copy, sticky accessible header, keyboard open/close,
@@ -127,14 +127,14 @@ okf_version: "0.1"
   Traceability: delivers detail inspection without invented business evidence
   or loss of browse context.
 
-- [ ] 2.11 Implement **Licitaciones** by reusing the Compra Ágil browse/detail
+- [x] 2.11 Implement **Licitaciones** by reusing the Compra Ágil browse/detail
   composition with an independent local state instance and its contract-backed
   estado mapping. Do not add unsupported region, free-text, or related-OC
   list columns.
   Traceability: delivers the secondary browse view without duplicating filters
   or coupling its context to Compra Ágil.
 
-- [ ] 2.12 Implement **Centro de Control** as a continuous surface:
+- [x] 2.12 Implement **Centro de Control** as a continuous surface:
   Diagnóstico with compact health matrix and real quota rows, Investigación
   with a selector that mounts one bounded job/API log table at a time and
   preserves its own state, and Integridad de fuentes with CSV health. Redact
@@ -145,12 +145,12 @@ okf_version: "0.1"
 
 ### i18n and quality
 
-- [ ] 2.13 Localize all visible strings with Lingui macros and format dates,
+- [x] 2.13 Localize all visible strings with Lingui macros and format dates,
   times, counts, percentages, and CLP through workspace locale/timezone; run
   Lingui extract/compile.
   Traceability: satisfies localization and truthful-formatting contracts.
 
-- [ ] 2.14 Harden the documented desktop/tablet/mobile states for 200% zoom,
+- [x] 2.14 Harden the documented desktop/tablet/mobile states for 200% zoom,
   keyboard-only use, one `h1`, visible focus, modal side-panel focus handling,
   moderate live-region behavior, reduced motion, contained table overflow,
   long text, null/unknown values, stale data, unavailable configuration, and
@@ -164,7 +164,7 @@ okf_version: "0.1"
   against seeded `mp.*` fixtures for every query.
   Traceability: proves the transport contract directly.
 
-- [ ] 3.2 Run frontend jest for canonical routing, exact filter mapping,
+- [x] 3.2 Run frontend jest for canonical routing, exact filter mapping,
   per-tab preserved context, both pagination models, expandable rows, status
   maps, redaction, focus restoration, long/null data, and independent
   loading/refetch/empty/no-results/stale/error states.
@@ -176,7 +176,7 @@ okf_version: "0.1"
   context/focus return.
   Traceability: closes wireframe, responsive, and accessibility drift.
 
-- [ ] 3.4 Run `npx nx lint:diff-with-main twenty-server --configuration=fix`,
+- [x] 3.4 Run `npx nx lint:diff-with-main twenty-server --configuration=fix`,
   `npx nx lint:diff-with-main twenty-front --configuration=fix`,
   `npx nx typecheck twenty-server`, `npx nx typecheck twenty-front`.
   Traceability: closes the package quality gates for both surfaces.

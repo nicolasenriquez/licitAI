@@ -1,5 +1,6 @@
 import { type QueryRunner } from 'typeorm';
 
+import { INSTANCE_COMMANDS } from '../instance-commands.constant';
 import { MpMonitoringReadIndexesFastInstanceCommand } from './2-16-instance-command-fast-1784200000000-mp-monitoring-read-indexes';
 
 describe('MpMonitoringReadIndexesFastInstanceCommand', () => {
@@ -19,5 +20,9 @@ describe('MpMonitoringReadIndexesFastInstanceCommand', () => {
     expect(executedSql).toContain(
       'idx_mp_raw_api_payload_ingestion_job_id_fetched_at',
     );
+  });
+
+  it('registers the command for instance upgrades', () => {
+    expect(INSTANCE_COMMANDS).toContain(MpMonitoringReadIndexesFastInstanceCommand);
   });
 });

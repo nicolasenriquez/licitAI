@@ -11,7 +11,7 @@ export type MercadoPublicoJobData = {
   jobName: MercadoPublicoJobName;
   payload: Record<string, unknown>;
   requestedAt: string;
-  requestedBy: 'command';
+  requestedBy: 'command' | 'schedule';
 };
 
 @Processor(MessageQueue.mercadoPublicoQueue)

@@ -7,6 +7,10 @@ import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { MercadoPublicoCommandCenterPage } from '~/pages/mercado-publico/MercadoPublicoCommandCenterPage';
+import {
+  GetMercadoPublicoDetectedProcessesDocument,
+  GetMercadoPublicoProcessDetailDocument,
+} from '~/generated/graphql';
 
 const createWrapper = (
   mocks: MockedResponse[],
@@ -24,7 +28,7 @@ const createWrapper = (
   };
 
 const processItem = (code: string, state: string) => ({
-  __typename: 'MercadoPublicoDetectedProcessItem',
+  __typename: 'MercadoPublicoDetectedProcess',
   processType: 'compra_agil',
   processCode: code,
   title: `Proceso ${code}`,
@@ -56,15 +60,36 @@ const processesMock = (
   },
 });
 
+const initialProcessVariables = {
+  limit: 25,
+  page: 1,
+  processTypes: ['compra_agil'],
+  sort: { direction: 'asc', key: 'closingAt' },
+  states: [],
+};
+
+const licitacionesVariables = {
+  ...initialProcessVariables,
+  processTypes: ['licitacion'],
+};
+
+const closedCompraAgilVariables = {
+  ...initialProcessVariables,
+  states: ['cerrada'],
+};
+
+const clearedCompraAgilVariables = {
+  ...initialProcessVariables,
+  sort: { direction: 'desc', key: 'lastSeenAt' },
+};
+
 describe('MercadoPublicoCommandCenterPage', () => {
   it('should redirect unknown hash to compra-agil', async () => {
     const mocks: MockedResponse[] = [
       {
         request: {
-          query: expect.any(Object),
-          variables: expect.objectContaining({
-            processTypes: ['compra_agil'],
-          }),
+          query: GetMercadoPublicoDetectedProcessesDocument,
+          variables: initialProcessVariables,
         },
         result: processesMock([processItem('CA-001', 'publicada')]),
       },
@@ -80,7 +105,7 @@ describe('MercadoPublicoCommandCenterPage', () => {
       );
 
       expect(tab?.textContent?.toLowerCase() ?? window.location.hash).toMatch(
-        /compra.?agil/i,
+        /compra ágil/i,
       );
     });
   });
@@ -89,35 +114,60 @@ describe('MercadoPublicoCommandCenterPage', () => {
     const mocks: MockedResponse[] = [
       {
         request: {
-          query: expect.any(Object),
-          variables: expect.objectContaining({
-            processTypes: ['compra_agil'],
-            states: ['publicada'],
-          }),
+          query: GetMercadoPublicoDetectedProcessesDocument,
+          variables: initialProcessVariables,
         },
         result: processesMock([processItem('CA-001', 'publicada')]),
       },
       {
         request: {
-          query: expect.any(Object),
-          variables: expect.objectContaining({
-            processTypes: ['compra_agil'],
-            states: [],
-          }),
+          query: GetMercadoPublicoDetectedProcessesDocument,
+          variables: licitacionesVariables,
         },
         result: processesMock([
           processItem('CA-001', 'publicada'),
           processItem('CA-002', 'cerrada'),
         ]),
       },
+      {
+        request: {
+          query: GetMercadoPublicoDetectedProcessesDocument,
+          variables: closedCompraAgilVariables,
+        },
+        result: processesMock([processItem('CA-002', 'cerrada')]),
+      },
+      {
+        request: {
+          query: GetMercadoPublicoDetectedProcessesDocument,
+          variables: clearedCompraAgilVariables,
+        },
+        result: processesMock([processItem('CA-003', 'publicada')]),
+      },
     ];
 
-    const { getByText } = render(<MercadoPublicoCommandCenterPage />, {
-      wrapper: createWrapper(mocks, ['/mercado-publico#compra-agil']),
-    });
+    const { container, getByRole, getByText } = render(
+      <MercadoPublicoCommandCenterPage />,
+      {
+        wrapper: createWrapper(mocks, ['/mercado-publico#compra-agil']),
+      },
+    );
 
     await waitFor(() => {
       expect(getByText(/Proceso CA-001/i)).toBeInTheDocument();
+    });
+
+    const compraAgilStateSelect = container.querySelector<HTMLSelectElement>(
+      '#mercado-publico-compra_agil-state',
+    );
+
+    expect(compraAgilStateSelect).not.toBeNull();
+
+    fireEvent.change(compraAgilStateSelect!, {
+      target: { value: 'cerrada' },
+    });
+
+    await waitFor(() => {
+      expect(getByText(/Proceso CA-002/i)).toBeInTheDocument();
     });
 
     const licitacionesTab = getByText(/licitaciones/i);
@@ -127,7 +177,26 @@ describe('MercadoPublicoCommandCenterPage', () => {
     });
 
     await waitFor(() => {
-      expect(window.location.hash).toContain('licitaciones');
+      expect(licitacionesTab.closest('[data-active="true"]')).not.toBeNull();
+    });
+
+    fireEvent.click(getByText(/compra ágil/i));
+
+    await waitFor(() => {
+      expect(
+        getByText(/compra ágil/i).closest('[data-active="true"]'),
+      ).not.toBeNull();
+    });
+
+    expect(container.querySelector('#mercado-publico-compra_agil-state')).toBe(
+      compraAgilStateSelect,
+    );
+    expect(compraAgilStateSelect).toHaveValue('cerrada');
+
+    fireEvent.click(getByRole('button', { name: /limpiar filtros/i }));
+
+    await waitFor(() => {
+      expect(getByText(/Proceso CA-003/i)).toBeInTheDocument();
     });
   });
 
@@ -135,10 +204,8 @@ describe('MercadoPublicoCommandCenterPage', () => {
     const mocks: MockedResponse[] = [
       {
         request: {
-          query: expect.any(Object),
-          variables: expect.objectContaining({
-            processTypes: ['compra_agil'],
-          }),
+          query: GetMercadoPublicoDetectedProcessesDocument,
+          variables: initialProcessVariables,
         },
         result: processesMock([
           processItem('CA-001', 'publicada'),
@@ -147,7 +214,7 @@ describe('MercadoPublicoCommandCenterPage', () => {
       },
       {
         request: {
-          query: expect.any(Object),
+          query: GetMercadoPublicoProcessDetailDocument,
           variables: {
             processType: 'compra_agil',
             processCode: 'CA-001',
@@ -156,7 +223,7 @@ describe('MercadoPublicoCommandCenterPage', () => {
         result: {
           data: {
             mercadoPublicoProcessDetail: {
-              __typename: 'MercadoPublicoDetectedProcessDetail',
+              __typename: 'MercadoPublicoProcessDetail',
               processType: 'compra_agil',
               processCode: 'CA-001',
               title: 'Proceso CA-001',
@@ -194,13 +261,13 @@ describe('MercadoPublicoCommandCenterPage', () => {
       expect(queryByText(/Proceso CA-001/i)).toBeInTheDocument();
     });
 
-    const row = container.querySelector(
-      '[role="row"], [data-testid="process-row-CA-001"], tr[data-process-code="CA-001"]',
-    );
+    const row = container.querySelector('[data-testid="process-row-CA-001"]');
 
     if (row) {
-      row.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      fireEvent.keyDown(row, { key: 'Enter', code: 'Enter' });
+      act(() => {
+        row.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        fireEvent.keyDown(row, { key: 'Enter', code: 'Enter' });
+      });
 
       await waitFor(() => {
         const closeButton = container.querySelector(
@@ -231,10 +298,8 @@ describe('MercadoPublicoCommandCenterPage', () => {
     const mocks: MockedResponse[] = [
       {
         request: {
-          query: expect.any(Object),
-          variables: expect.objectContaining({
-            processTypes: ['compra_agil'],
-          }),
+          query: GetMercadoPublicoDetectedProcessesDocument,
+          variables: initialProcessVariables,
         },
         result: processesMock([
           processItem('CA-001', 'publicada'),

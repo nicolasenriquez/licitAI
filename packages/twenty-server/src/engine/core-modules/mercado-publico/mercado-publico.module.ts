@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 
 import { MercadoPublicoRunCommand } from 'src/engine/core-modules/mercado-publico/commands/mercado-publico-run.command';
+import { MercadoPublicoReconciliationCronCommand } from 'src/engine/core-modules/mercado-publico/crons/commands/mercado-publico-reconciliation.cron.command';
 import { MercadoPublicoApiV1LicitacionesClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-licitaciones-client.service';
 import { MercadoPublicoApiV1OrdenesDeCompraClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-ordenes-de-compra-client.service';
 import { MercadoPublicoApiV2CompraAgilClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { MercadoPublicoJob } from 'src/engine/core-modules/mercado-publico/jobs/mercado-publico.job';
+import { MercadoPublicoReconciliationCronJob } from 'src/engine/core-modules/mercado-publico/crons/mercado-publico-reconciliation.cron.job';
 import { MercadoPublicoQueryResolver } from 'src/engine/core-modules/mercado-publico/mercado-publico-query.resolver';
 import { SecureHttpClientModule } from 'src/engine/core-modules/secure-http-client/secure-http-client.module';
 import { MercadoPublicoApiCallLogReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-call-log-read.service';
@@ -74,6 +76,8 @@ import { MercadoPublicoQuotaTrackerService } from 'src/engine/core-modules/merca
     MercadoPublicoApiV2CompraAgilPublicationWindowService,
     MercadoPublicoApiV2CompraAgilDetailByCodigoService,
     MercadoPublicoRunCommand,
+    MercadoPublicoReconciliationCronCommand,
+    MercadoPublicoReconciliationCronJob,
     MercadoPublicoJob,
   ],
   exports: [
@@ -84,6 +88,7 @@ import { MercadoPublicoQuotaTrackerService } from 'src/engine/core-modules/merca
     MercadoPublicoDetectedProcessReadService,
     MercadoPublicoPipelineHealthReadService,
     MercadoPublicoProcessDetailReadService,
+    MercadoPublicoReconciliationCronCommand,
   ],
 })
 export class MercadoPublicoModule {}

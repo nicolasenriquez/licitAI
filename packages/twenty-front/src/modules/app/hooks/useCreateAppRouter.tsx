@@ -102,6 +102,12 @@ const StandalonePageLayoutPage = lazy(() =>
   })),
 );
 
+const MercadoPublicoCommandCenterPage = lazy(() =>
+  import('~/pages/mercado-publico/MercadoPublicoCommandCenterPage').then(
+    (module) => ({ default: module.MercadoPublicoCommandCenterPage }),
+  ),
+);
+
 const NotFound = lazy(() =>
   import('~/pages/not-found/NotFound').then((module) => ({
     default: module.NotFound,
@@ -234,6 +240,14 @@ export const useCreateAppRouter = (
               element={
                 <LazyRoute>
                   <StandalonePageLayoutPage />
+                </LazyRoute>
+              }
+            />
+            <Route
+              path={AppPath.MercadoPublicoPage}
+              element={
+                <LazyRoute>
+                  <MercadoPublicoCommandCenterPage />
                 </LazyRoute>
               }
             />

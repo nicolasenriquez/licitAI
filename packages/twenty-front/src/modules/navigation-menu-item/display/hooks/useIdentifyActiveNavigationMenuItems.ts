@@ -34,6 +34,7 @@ export const useIdentifyActiveNavigationMenuItems = (): {
 
   const currentPath = location.pathname;
   const currentPathWithSearch = location.pathname + location.search;
+  const currentPathWithSearchAndHash = currentPathWithSearch + location.hash;
 
   const currentObjectMetadataItem = activeObjectMetadataItems.find(
     (item) =>
@@ -77,7 +78,7 @@ export const useIdentifyActiveNavigationMenuItems = (): {
             )?.id;
 
           const pathMatches =
-            currentPathWithSearch === lastClickedNavigationMenuItemLink;
+            currentPathWithSearchAndHash === lastClickedNavigationMenuItemLink;
           const objectMatchesOnShowPage =
             isOnRecordShowPage &&
             isDefined(lastClickedObjectMetadataId) &&
@@ -161,8 +162,23 @@ export const useIdentifyActiveNavigationMenuItems = (): {
         )
         .map((item) => item.id);
 
+      const matchingLinkNavigationMenuItemIds = navigationMenuItems
+        .filter((item) => item.type === NavigationMenuItemType.LINK)
+        .filter(
+          (item) =>
+            getNavigationMenuItemComputedLink(
+              item,
+              objectMetadataItems,
+              views,
+            ) === currentPathWithSearchAndHash,
+        )
+        .map((item) => item.id);
+
       return {
-        activeNavigationMenuItemIds: matchingObjectNavigationMenuItemIds,
+        activeNavigationMenuItemIds: [
+          ...matchingObjectNavigationMenuItemIds,
+          ...matchingLinkNavigationMenuItemIds,
+        ],
         objectMetadataIdForOpenedSection:
           matchingObjectNavigationMenuItemIds.length === 0 &&
           isDefined(currentObjectMetadataItem)
@@ -174,7 +190,7 @@ export const useIdentifyActiveNavigationMenuItems = (): {
       lastClickedNavigationMenuItemId,
       objectMetadataItems,
       views,
-      currentPathWithSearch,
+      currentPathWithSearchAndHash,
       currentPath,
       currentObjectMetadataItem,
       isOnRecordShowPage,

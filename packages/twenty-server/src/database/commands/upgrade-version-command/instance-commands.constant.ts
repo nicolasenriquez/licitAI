@@ -99,6 +99,7 @@ import { DropRawCsvFileIngestionJobIdSlowInstanceCommand } from 'src/database/co
 import { MpStgJobRunAddSkippedStatusFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1784000000000-mp-stg-job-run-add-skipped-status';
 import { MpCompraAgilV2DatesFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1784100000000-mp-compra-agil-v2-dates';
 import { MpCompraAgilV2DatesBackfillSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1784100000010-mp-compra-agil-v2-dates-backfill';
+import { MpMonitoringReadIndexesFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1784200000000-mp-monitoring-read-indexes';
 
 export const INSTANCE_COMMANDS = [
   AddViewFieldGroupIdIndexOnViewFieldFastInstanceCommand,
@@ -199,4 +200,5 @@ export const INSTANCE_COMMANDS = [
   MpStgJobRunAddSkippedStatusFastInstanceCommand,
   MpCompraAgilV2DatesFastInstanceCommand,
   MpCompraAgilV2DatesBackfillSlowInstanceCommand,
+  MpMonitoringReadIndexesFastInstanceCommand,
 ];

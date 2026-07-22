@@ -26,7 +26,10 @@ import { MercadoPublicoCsvProfileService } from 'src/engine/core-modules/mercado
 import { MercadoPublicoCsvRawLoadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-raw-load.service';
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoCsvStagingProjectionService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-staging-projection.service';
+import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoReconciliationService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-reconciliation.service';
+import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
+import { buildMercadoPublicoUnexpectedErrorSummaryText } from 'src/engine/core-modules/mercado-publico/services/utils/build-mercado-publico-error-summary-text.util';
 
 @Injectable()
 export class MercadoPublicoJobOrchestratorService {
@@ -52,6 +55,7 @@ export class MercadoPublicoJobOrchestratorService {
     private readonly mercadoPublicoCsvStagingProjectionService: MercadoPublicoCsvStagingProjectionService,
     private readonly mercadoPublicoCanonicalRefreshService: MercadoPublicoCanonicalRefreshService,
     private readonly mercadoPublicoReconciliationService: MercadoPublicoReconciliationService,
+    private readonly mercadoPublicoPersistenceService: MercadoPublicoPersistenceService,
   ) {}
 
   async run(
@@ -175,19 +179,53 @@ export class MercadoPublicoJobOrchestratorService {
     }
 
     if (jobName === 'reconciliation-refresh') {
-      const exactResult =
-        await this.mercadoPublicoReconciliationService.refreshAllExactReconciliation();
+      const jobRunRecord =
+        await this.mercadoPublicoPersistenceService.createJobRun(
+          'reconciliation-refresh',
+        );
 
-      this.logger.log(
-        `Exact reconciliation complete: codigo_externo=${exactResult.exactCodigoExterno}, csv_api_same_business_key=${exactResult.csvApiSameBusinessKey}, codigo_licitacion=${exactResult.exactCodigoLicitacion}, compra_agil_id_orden_compra=${exactResult.exactCompraAgilIdOrdenCompra}, total=${exactResult.total}`,
-      );
+      try {
+        const exactResult =
+          await this.mercadoPublicoReconciliationService.refreshAllExactReconciliation();
 
-      const heuristicResult =
-        await this.mercadoPublicoReconciliationService.refreshAllHeuristicReconciliation();
+        this.logger.log(
+          `Exact reconciliation complete: codigo_externo=${exactResult.exactCodigoExterno}, csv_api_same_business_key=${exactResult.csvApiSameBusinessKey}, codigo_licitacion=${exactResult.exactCodigoLicitacion}, compra_agil_id_orden_compra=${exactResult.exactCompraAgilIdOrdenCompra}, total=${exactResult.total}`,
+        );
 
-      this.logger.log(
-        `Heuristic reconciliation complete: candidates=${heuristicResult.candidates}, unmatched=${heuristicResult.unmatched}, events=${heuristicResult.events}, goldStatusesUpdated=${heuristicResult.goldStatusesUpdated}, total=${heuristicResult.total}`,
-      );
+        const heuristicResult =
+          await this.mercadoPublicoReconciliationService.refreshAllHeuristicReconciliation();
+
+        this.logger.log(
+          `Heuristic reconciliation complete: candidates=${heuristicResult.candidates}, unmatched=${heuristicResult.unmatched}, events=${heuristicResult.events}, goldProcessesMaterialized=${heuristicResult.goldProcessesMaterialized}, total=${heuristicResult.total}`,
+        );
+
+        await this.mercadoPublicoPersistenceService.finalizeJobRun({
+          jobRunRecordId: jobRunRecord.id,
+          status: 'success',
+          finishedAt: new Date(),
+        });
+      } catch (error) {
+        const errorSummary = classifyFailure(error);
+        const errorSummaryText = buildMercadoPublicoUnexpectedErrorSummaryText(
+          errorSummary,
+          error,
+        );
+
+        try {
+          await this.mercadoPublicoPersistenceService.finalizeJobRun({
+            jobRunRecordId: jobRunRecord.id,
+            status: 'failed',
+            finishedAt: new Date(),
+            errorSummary: errorSummaryText,
+          });
+        } catch (finalizationError) {
+          this.logger.error(
+            `Could not finalize Mercado Publico reconciliation job run: ${finalizationError instanceof Error ? finalizationError.message : String(finalizationError)}`,
+          );
+        }
+
+        throw error;
+      }
 
       return;
     }

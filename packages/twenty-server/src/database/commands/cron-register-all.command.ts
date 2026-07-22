@@ -4,6 +4,7 @@ import { Command, CommandRunner } from 'nest-commander';
 import { isDefined } from 'twenty-shared/utils';
 
 import { MarketplaceCatalogSyncCronCommand } from 'src/engine/core-modules/application/application-marketplace/crons/commands/marketplace-catalog-sync.cron.command';
+import { MercadoPublicoReconciliationCronCommand } from 'src/engine/core-modules/mercado-publico/crons/commands/mercado-publico-reconciliation.cron.command';
 import { StaleRegistrationCleanupCronCommand } from 'src/engine/core-modules/application/application-oauth/stale-registration-cleanup/commands/stale-registration-cleanup.cron.command';
 import { ApplicationVersionCheckCronCommand } from 'src/engine/core-modules/application/application-upgrade/crons/commands/application-version-check.cron.command';
 import { EnterpriseKeyValidationCronCommand } from 'src/engine/core-modules/enterprise/cron/command/enterprise-key-validation.cron.command';
@@ -64,6 +65,7 @@ export class CronRegisterAllCommand extends CommandRunner {
     private readonly marketplaceCatalogSyncCronCommand: MarketplaceCatalogSyncCronCommand,
     private readonly applicationVersionCheckCronCommand: ApplicationVersionCheckCronCommand,
     private readonly staleRegistrationCleanupCronCommand: StaleRegistrationCleanupCronCommand,
+    private readonly mercadoPublicoReconciliationCronCommand: MercadoPublicoReconciliationCronCommand,
     private readonly twentyConfigService: TwentyConfigService,
   ) {
     super();
@@ -173,6 +175,10 @@ export class CronRegisterAllCommand extends CommandRunner {
       {
         name: 'StaleRegistrationCleanup',
         command: this.staleRegistrationCleanupCronCommand,
+      },
+      {
+        name: 'MercadoPublicoReconciliation',
+        command: this.mercadoPublicoReconciliationCronCommand,
       },
     ];
 

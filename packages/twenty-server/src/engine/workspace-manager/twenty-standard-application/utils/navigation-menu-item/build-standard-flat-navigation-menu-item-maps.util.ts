@@ -19,6 +19,7 @@ const FLAT_NAVIGATION_MENU_ITEM_NAMES = [
   'allOpportunities',
   'allPeople',
   'allTasks',
+  'mercadoPublico',
 ] as const;
 
 const WORKFLOWS_FOLDER_ITEM_NAMES = [
@@ -54,7 +55,9 @@ export const buildStandardFlatNavigationMenuItemMaps = ({
         workspaceId,
         navigationMenuItemName,
         viewUniversalIdentifier:
-          navigationMenuItemDefinition.viewUniversalIdentifier,
+          'viewUniversalIdentifier' in navigationMenuItemDefinition
+            ? navigationMenuItemDefinition.viewUniversalIdentifier
+            : undefined,
         position: navigationMenuItemDefinition.position,
         navigationMenuItemId: v4(),
         dependencyFlatEntityMaps: {

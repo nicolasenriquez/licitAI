@@ -174,6 +174,16 @@ describe('useMercadoPublicoJobRuns', () => {
 
     expect(result.current.jobRuns!.items[0].id).toBe(firstId);
   });
+
+  it('should skip the request when its investigation view is inactive', () => {
+    const { result } = renderHook(
+      () => useMercadoPublicoJobRuns({ limit: 1, offset: 0 }, { skip: true }),
+      { wrapper: createWrapper([]) },
+    );
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.jobRuns).toBeUndefined();
+  });
 });
 
 describe('useMercadoPublicoApiCallLog', () => {
@@ -277,5 +287,16 @@ describe('useMercadoPublicoApiCallLog', () => {
 
     expect(result.current.callLog!.items).toHaveLength(1);
     expect(result.current.callLog!.hasMore).toBe(true);
+  });
+
+  it('should skip the request when its investigation view is inactive', () => {
+    const { result } = renderHook(
+      () =>
+        useMercadoPublicoApiCallLog({ limit: 1, offset: 0 }, { skip: true }),
+      { wrapper: createWrapper([]) },
+    );
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.callLog).toBeUndefined();
   });
 });

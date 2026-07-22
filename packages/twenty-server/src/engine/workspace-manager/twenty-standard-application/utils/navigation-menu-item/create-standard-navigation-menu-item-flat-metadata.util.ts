@@ -23,7 +23,7 @@ export const createStandardNavigationMenuItemFlatMetadata = ({
 }: {
   workspaceId: string;
   navigationMenuItemName: keyof typeof STANDARD_NAVIGATION_MENU_ITEMS;
-  viewUniversalIdentifier: string;
+  viewUniversalIdentifier?: string;
   position: number;
   navigationMenuItemId: string;
   dependencyFlatEntityMaps: {
@@ -41,19 +41,25 @@ export const createStandardNavigationMenuItemFlatMetadata = ({
     );
   }
 
-  const flatView = findFlatEntityByUniversalIdentifier({
-    flatEntityMaps: flatViewMaps,
-    universalIdentifier: viewUniversalIdentifier,
-  });
+  const isObjectType =
+    navigationMenuItemDefinition.type === NavigationMenuItemType.OBJECT;
+  const isLinkType =
+    navigationMenuItemDefinition.type === NavigationMenuItemType.LINK;
 
-  if (!isDefined(flatView)) {
+  const flatView = isLinkType
+    ? undefined
+    : isDefined(viewUniversalIdentifier)
+      ? findFlatEntityByUniversalIdentifier({
+          flatEntityMaps: flatViewMaps,
+          universalIdentifier: viewUniversalIdentifier,
+        })
+      : undefined;
+
+  if (!isLinkType && !isDefined(flatView)) {
     throw new Error(
       `View not found for universal identifier ${viewUniversalIdentifier}`,
     );
   }
-
-  const isObjectType =
-    navigationMenuItemDefinition.type === NavigationMenuItemType.OBJECT;
 
   return {
     id: navigationMenuItemId,
@@ -65,19 +71,32 @@ export const createStandardNavigationMenuItemFlatMetadata = ({
     workspaceId,
     userWorkspaceId: null,
     targetRecordId: null,
-    targetObjectMetadataId: isObjectType ? flatView.objectMetadataId : null,
+    targetObjectMetadataId:
+      isObjectType && isDefined(flatView) ? flatView.objectMetadataId : null,
     targetObjectMetadataUniversalIdentifier: isObjectType
-      ? flatView.objectMetadataUniversalIdentifier
+      ? (flatView?.objectMetadataUniversalIdentifier ?? null)
       : null,
-    viewId: isObjectType ? null : flatView.id,
-    viewUniversalIdentifier: isObjectType ? null : flatView.universalIdentifier,
+    viewId: isObjectType || isLinkType ? null : (flatView?.id ?? null),
+    viewUniversalIdentifier:
+      isObjectType || isLinkType
+        ? null
+        : (flatView?.universalIdentifier ?? null),
     folderId: null,
     folderUniversalIdentifier: null,
     pageLayoutId: null,
     pageLayoutUniversalIdentifier: null,
-    name: null,
-    link: null,
-    icon: null,
+    name:
+      isLinkType && 'name' in navigationMenuItemDefinition
+        ? navigationMenuItemDefinition.name
+        : null,
+    link:
+      isLinkType && 'link' in navigationMenuItemDefinition
+        ? navigationMenuItemDefinition.link
+        : null,
+    icon:
+      isLinkType && 'icon' in navigationMenuItemDefinition
+        ? navigationMenuItemDefinition.icon
+        : null,
     color:
       STANDARD_NAVIGATION_MENU_ITEM_DEFAULT_COLORS[navigationMenuItemName] ??
       null,

@@ -13,15 +13,13 @@ describe('MercadoPublicoJobOrchestratorService', () => {
     const noopService = { run: jest.fn() };
     const stagingProjectionService = { run: jest.fn() };
     const canonicalRefreshService = {
-      refreshCanonicalFromCsvSnapshot: jest
-        .fn()
-        .mockResolvedValue({
-          licitacionItems: 1,
-          licitacionOfertas: 1,
-          licitacionAdjudicaciones: 1,
-          ordenCompraItems: 1,
-          total: 4,
-        }),
+      refreshCanonicalFromCsvSnapshot: jest.fn().mockResolvedValue({
+        licitacionItems: 1,
+        licitacionOfertas: 1,
+        licitacionAdjudicaciones: 1,
+        ordenCompraItems: 1,
+        total: 4,
+      }),
     };
     const reconciliationService = {
       refreshAllExactReconciliation: jest.fn().mockResolvedValue({
@@ -35,15 +33,22 @@ describe('MercadoPublicoJobOrchestratorService', () => {
         candidates: 1,
         unmatched: 1,
         events: 2,
-        goldStatusesUpdated: 1,
+        goldProcessesMaterialized: 2,
         total: 4,
       }),
+    };
+    const persistenceService = {
+      createJobRun: jest.fn().mockResolvedValue({
+        id: 'job-run-record-id',
+      }),
+      finalizeJobRun: jest.fn().mockResolvedValue(undefined),
     };
 
     return {
       stagingProjectionService,
       canonicalRefreshService,
       reconciliationService,
+      persistenceService,
       service: new MercadoPublicoJobOrchestratorService(
         configService as never,
         noopService as never,
@@ -62,6 +67,7 @@ describe('MercadoPublicoJobOrchestratorService', () => {
         stagingProjectionService as never,
         canonicalRefreshService as never,
         reconciliationService as never,
+        persistenceService as never,
       ),
     };
   };
@@ -87,9 +93,7 @@ describe('MercadoPublicoJobOrchestratorService', () => {
   it('rejects csv-canonical-refresh without raw_csv_file_id', async () => {
     const { service, canonicalRefreshService } = createService();
 
-    await expect(
-      service.run('csv-canonical-refresh', {}),
-    ).rejects.toThrow(
+    await expect(service.run('csv-canonical-refresh', {})).rejects.toThrow(
       'Mercado Publico csv-canonical-refresh payload requires a non-empty "raw_csv_file_id" string',
     );
 
@@ -99,7 +103,8 @@ describe('MercadoPublicoJobOrchestratorService', () => {
   });
 
   it('routes reconciliation-refresh to exact reconciliation and logs counts', async () => {
-    const { service, reconciliationService } = createService();
+    const { service, reconciliationService, persistenceService } =
+      createService();
 
     await service.run('reconciliation-refresh', payload);
 
@@ -109,5 +114,33 @@ describe('MercadoPublicoJobOrchestratorService', () => {
     expect(
       reconciliationService.refreshAllHeuristicReconciliation,
     ).toHaveBeenCalled();
+    expect(persistenceService.createJobRun).toHaveBeenCalledWith(
+      'reconciliation-refresh',
+    );
+    expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith({
+      jobRunRecordId: 'job-run-record-id',
+      status: 'success',
+      finishedAt: expect.any(Date),
+    });
+  });
+
+  it('finalizes a failed reconciliation refresh and rethrows the error', async () => {
+    const { service, reconciliationService, persistenceService } =
+      createService();
+    const error = new Error('reconciliation failed');
+    reconciliationService.refreshAllExactReconciliation.mockRejectedValueOnce(
+      error,
+    );
+
+    await expect(service.run('reconciliation-refresh', payload)).rejects.toBe(
+      error,
+    );
+
+    expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith({
+      jobRunRecordId: 'job-run-record-id',
+      status: 'failed',
+      finishedAt: expect.any(Date),
+      errorSummary: 'hard_fail: reconciliation failed',
+    });
   });
 });

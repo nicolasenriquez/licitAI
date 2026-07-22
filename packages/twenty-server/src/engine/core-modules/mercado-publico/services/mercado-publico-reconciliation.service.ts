@@ -8,6 +8,8 @@ import { DataSource, type EntityManager } from 'typeorm';
 // which overrides AGENTS.md "no comments" for deferral documentation only.
 import {
   MERCADO_PUBLICO_RECONCILIATION_HEURISTIC_ITEM_AMOUNT_TOLERANCE_RATIO,
+  MERCADO_PUBLICO_RECONCILIATION_HEURISTIC_MATCH_TYPES,
+  MERCADO_PUBLICO_RECONCILIATION_EXACT_MATCH_TYPES,
   MERCADO_PUBLICO_RECONCILIATION_MATCH_CONFIDENCE,
   MERCADO_PUBLICO_RECONCILIATION_MATCH_CONFIDENCE_LOW,
   MERCADO_PUBLICO_RECONCILIATION_MATCH_CONFIDENCE_MEDIUM,
@@ -39,11 +41,7 @@ type ReconciliationEventRow = {
   details: Record<string, unknown> | null;
 };
 
-type GoldStatusUpdate = {
-  processType: string;
-  processCode: string;
-  status: string;
-};
+type MercadoPublicoProcessType = 'licitacion' | 'orden_compra' | 'compra_agil';
 
 @Injectable()
 export class MercadoPublicoReconciliationService {
@@ -101,7 +99,7 @@ export class MercadoPublicoReconciliationService {
     candidates: number;
     unmatched: number;
     events: number;
-    goldStatusesUpdated: number;
+    goldProcessesMaterialized: number;
     total: number;
   }> {
     const candidateSupplier = await this.coreDataSource.transaction(
@@ -120,6 +118,9 @@ export class MercadoPublicoReconciliationService {
       async (entityManager) =>
         this.reconcileSourcePeriodRerunEvents(entityManager),
     );
+    const goldProcessesMaterialized = await this.coreDataSource.transaction(
+      async (entityManager) => this.materializeGoldProcesses(entityManager),
+    );
 
     const candidates = candidateSupplier + candidateItem;
     const events = stateMismatchEvents + sourcePeriodEvents;
@@ -129,7 +130,7 @@ export class MercadoPublicoReconciliationService {
       `Heuristic reconciliation complete: candidates=${candidates}, ` +
         `unmatched=${unmatched}, ` +
         `events=${events}, ` +
-        `goldStatusesUpdated=${unmatched}, ` +
+        `goldProcessesMaterialized=${goldProcessesMaterialized}, ` +
         `total=${total}`,
     );
 
@@ -137,7 +138,7 @@ export class MercadoPublicoReconciliationService {
       candidates,
       unmatched,
       events,
-      goldStatusesUpdated: unmatched,
+      goldProcessesMaterialized,
       total,
     };
   }
@@ -264,7 +265,7 @@ export class MercadoPublicoReconciliationService {
     entityManager: EntityManager,
   ): Promise<number> {
     const rows = await entityManager.query<
-      { entity_key: string; entity_type: string }[]
+      { entity_key: string; entity_type: MercadoPublicoProcessType }[]
     >(
       `
         SELECT codigo_externo AS entity_key, 'licitacion' AS entity_type
@@ -292,6 +293,17 @@ export class MercadoPublicoReconciliationService {
           )
           AND r.match_type = ANY($1::text[])
         )
+        UNION ALL
+        SELECT codigo AS entity_key, 'compra_agil' AS entity_type
+        FROM mp.compra_agil
+        WHERE NOT EXISTS (
+          SELECT 1 FROM mp.reconciliation_public_market_entities r
+          WHERE (
+            (r.entity_a_type = 'compra_agil' AND r.entity_a_key = mp.compra_agil.codigo)
+            OR (r.entity_b_type = 'compra_agil' AND r.entity_b_key = mp.compra_agil.codigo)
+          )
+          AND r.match_type = ANY($1::text[])
+        )
       `,
       [MERCADO_PUBLICO_RECONCILIATION_MATCH_TYPES_THAT_SUPPRESS_UNMATCHED],
     );
@@ -311,15 +323,13 @@ export class MercadoPublicoReconciliationService {
 
     await this.bulkInsertEvents(entityManager, events);
 
-    const insertedUnmatchedRows: {
-      entity_a_key: string;
-      entity_a_type: string;
-    }[] = [];
+    const sourceByProcessType: Record<string, string> = {
+      licitacion: MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_LICITACIONES,
+      orden_compra: MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_OC,
+      compra_agil: MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V2_COMPRA_AGIL,
+    };
     const unmatchedPairs = events.map((event) => ({
-      entityASource:
-        event.entityType === 'licitacion'
-          ? MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_LICITACIONES
-          : MERCADO_PUBLICO_RECONCILIATION_SOURCE_API_V1_OC,
+      entityASource: sourceByProcessType[event.entityType],
       entityAType: event.entityType,
       entityAKey: event.entityKey,
       entityBSource: MERCADO_PUBLICO_RECONCILIATION_SOURCE_CSV,
@@ -327,6 +337,7 @@ export class MercadoPublicoReconciliationService {
       entityBKey: event.entityKey,
       matchType: 'unmatched',
     }));
+    let insertedUnmatchedCount = 0;
     const maxRowsPerInsert = 5000;
 
     for (
@@ -379,28 +390,10 @@ export class MercadoPublicoReconciliationService {
         params,
       );
 
-      insertedUnmatchedRows.push(...chunkInsertedRows);
+      insertedUnmatchedCount += chunkInsertedRows.length;
     }
 
-    const goldUpdates: GoldStatusUpdate[] = insertedUnmatchedRows.map(
-      (row) => ({
-        processType: row.entity_a_type,
-        processCode: row.entity_a_key,
-        status: 'unmatched',
-      }),
-    );
-
-    // ponytail: per-row gold UPSERT, set-based when reconciliation volume proves it
-    for (const goldUpdate of goldUpdates) {
-      await this.updateGoldReconciliationStatus(
-        entityManager,
-        goldUpdate.processType,
-        goldUpdate.processCode,
-        goldUpdate.status,
-      );
-    }
-
-    return insertedUnmatchedRows.length;
+    return insertedUnmatchedCount;
   }
 
   private async reconcileStateMismatchEvents(
@@ -595,30 +588,158 @@ export class MercadoPublicoReconciliationService {
     return crypto.createHash('sha256').update(payload, 'utf-8').digest('hex');
   }
 
-  private async updateGoldReconciliationStatus(
+  private async materializeGoldProcesses(
     entityManager: EntityManager,
-    processType: string,
-    processCode: string,
-    status: string,
-  ): Promise<void> {
-    await entityManager.query(
+  ): Promise<number> {
+    const rows = await entityManager.query<{ process_type: string }[]>(
       `
+        WITH canonical AS (
+          SELECT
+            'licitacion' AS process_type,
+            codigo_externo AS process_code,
+            title,
+            canonical_state,
+            raw_state_code,
+            raw_state_label,
+            buyer_code,
+            buyer_name,
+            fecha_publicacion::timestamptz AS published_at,
+            fecha_cierre::timestamptz AS closing_at,
+            source_priority,
+            last_seen_at
+          FROM mp.licitacion
+
+          UNION ALL
+
+          SELECT
+            'orden_compra' AS process_type,
+            codigo AS process_code,
+            NULL AS title,
+            canonical_state,
+            raw_state_code,
+            raw_state_label,
+            NULL AS buyer_code,
+            NULL AS buyer_name,
+            NULL::timestamptz AS published_at,
+            NULL::timestamptz AS closing_at,
+            source_priority,
+            last_seen_at
+          FROM mp.orden_compra
+
+          UNION ALL
+
+          SELECT
+            'compra_agil' AS process_type,
+            codigo AS process_code,
+            NULL AS title,
+            estado AS canonical_state,
+            NULL AS raw_state_code,
+            NULL AS raw_state_label,
+            NULL AS buyer_code,
+            NULL AS buyer_name,
+            fecha_publicacion AS published_at,
+            fecha_cierre AS closing_at,
+            NULL AS source_priority,
+            last_seen_at
+          FROM mp.compra_agil
+        ),
+        status_by_entity AS (
+          SELECT
+            canonical.process_type,
+            canonical.process_code,
+            CASE
+              WHEN EXISTS (
+                SELECT 1
+                FROM mp.reconciliation_public_market_entities r
+                WHERE (
+                  (r.entity_a_type = canonical.process_type AND r.entity_a_key = canonical.process_code)
+                  OR (r.entity_b_type = canonical.process_type AND r.entity_b_key = canonical.process_code)
+                )
+                AND r.match_type = ANY($1::text[])
+              ) THEN 'exact'
+              WHEN EXISTS (
+                SELECT 1
+                FROM mp.reconciliation_public_market_entities r
+                WHERE (
+                  (r.entity_a_type = canonical.process_type AND r.entity_a_key = canonical.process_code)
+                  OR (r.entity_b_type = canonical.process_type AND r.entity_b_key = canonical.process_code)
+                )
+                AND r.match_type = ANY($2::text[])
+              ) THEN 'candidate'
+              WHEN EXISTS (
+                SELECT 1
+                FROM mp.reconciliation_public_market_entities r
+                WHERE (
+                  (r.entity_a_type = canonical.process_type AND r.entity_a_key = canonical.process_code)
+                  OR (r.entity_b_type = canonical.process_type AND r.entity_b_key = canonical.process_code)
+                )
+                AND r.match_type = 'unmatched'
+              ) THEN 'unmatched'
+              ELSE NULL
+            END AS reconciliation_status
+          FROM canonical
+        )
         INSERT INTO mp.gold_detected_process (
           process_type,
           process_code,
+          title,
+          canonical_state,
+          raw_state_code,
+          raw_state_label,
+          buyer_code,
+          buyer_name,
+          published_at,
+          closing_at,
+          source_priority,
           reconciliation_status,
           last_seen_at,
           created_at,
           updated_at
         )
-        VALUES ($1, $2, $3, now(), now(), now())
+        SELECT
+          canonical.process_type,
+          canonical.process_code,
+          canonical.title,
+          canonical.canonical_state,
+          canonical.raw_state_code,
+          canonical.raw_state_label,
+          canonical.buyer_code,
+          canonical.buyer_name,
+          canonical.published_at,
+          canonical.closing_at,
+          canonical.source_priority,
+          status_by_entity.reconciliation_status,
+          canonical.last_seen_at,
+          now(),
+          now()
+        FROM canonical
+        INNER JOIN status_by_entity
+          ON status_by_entity.process_type = canonical.process_type
+          AND status_by_entity.process_code = canonical.process_code
         ON CONFLICT (process_type, process_code) DO UPDATE
-        SET reconciliation_status = EXCLUDED.reconciliation_status,
+        SET title = EXCLUDED.title,
+            canonical_state = EXCLUDED.canonical_state,
+            raw_state_code = EXCLUDED.raw_state_code,
+            raw_state_label = EXCLUDED.raw_state_label,
+            buyer_code = EXCLUDED.buyer_code,
+            buyer_name = EXCLUDED.buyer_name,
+            published_at = EXCLUDED.published_at,
+            closing_at = EXCLUDED.closing_at,
+            source_priority = EXCLUDED.source_priority,
+            reconciliation_status = EXCLUDED.reconciliation_status,
             last_seen_at = GREATEST(mp.gold_detected_process.last_seen_at, EXCLUDED.last_seen_at),
             updated_at = now()
+        RETURNING process_type
       `,
-      [processType, processCode, status],
+      [
+        MERCADO_PUBLICO_RECONCILIATION_EXACT_MATCH_TYPES,
+        MERCADO_PUBLICO_RECONCILIATION_HEURISTIC_MATCH_TYPES.filter(
+          (matchType) => matchType !== 'unmatched',
+        ),
+      ],
     );
+
+    return rows.length;
   }
 
   private async reconcileExactCodigoExterno(

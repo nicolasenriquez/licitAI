@@ -19,6 +19,7 @@ describe('MercadoPublicoReconciliationService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (mockEntityManager.query as jest.Mock).mockReset();
+    (mockEntityManager.query as jest.Mock).mockResolvedValue([]);
   });
 
   function mockSelectExactCodigoExterno(keys: string[]) {
@@ -113,6 +114,12 @@ describe('MercadoPublicoReconciliationService', () => {
     }[],
   ) {
     mockEntityManager.query.mockResolvedValueOnce(rows);
+  }
+
+  function mockMaterializeGoldRows(processTypes: string[]) {
+    mockEntityManager.query.mockResolvedValueOnce(
+      processTypes.map((process_type) => ({ process_type })),
+    );
   }
 
   it('writes exact_codigo_externo matches on intersecting keys', async () => {
@@ -249,11 +256,11 @@ describe('MercadoPublicoReconciliationService', () => {
         candidates: 0,
         unmatched: 0,
         events: 0,
-        goldStatusesUpdated: 0,
+        goldProcessesMaterialized: 0,
         total: 0,
       });
-      expect(mockEntityManager.query).toHaveBeenCalledTimes(5);
-      expect(mockCoreDataSource.transaction).toHaveBeenCalledTimes(5);
+      expect(mockEntityManager.query).toHaveBeenCalledTimes(6);
+      expect(mockCoreDataSource.transaction).toHaveBeenCalledTimes(6);
     });
 
     it('records candidate_supplier_amount when same provider, no exact key', async () => {
@@ -341,7 +348,7 @@ describe('MercadoPublicoReconciliationService', () => {
       const result = await service.refreshAllHeuristicReconciliation();
 
       expect(result.unmatched).toBe(1);
-      expect(result.goldStatusesUpdated).toBe(1);
+      expect(result.goldProcessesMaterialized).toBe(0);
       expect(result.candidates).toBe(0);
       expect(result.events).toBe(0);
       expect(result.total).toBe(1);
@@ -378,6 +385,30 @@ describe('MercadoPublicoReconciliationService', () => {
       const unmatchedSql = unmatchedCall?.[0] as string;
 
       expect(unmatchedSql).toContain('AND r.match_type = ANY($1::text[])');
+    });
+
+    it('includes Compra Agil in unmatched reconciliation with its API V2 source', async () => {
+      mockSelectCandidateSupplier([]);
+      mockSelectCandidateItem([]);
+      mockSelectUnmatched([{ entity_key: 'CA1', entity_type: 'compra_agil' }]);
+      mockSelectEmpty();
+      mockInsertUnmatchedRows([
+        { entity_a_key: 'CA1', entity_a_type: 'compra_agil' },
+      ]);
+      mockSelectStateMismatch([]);
+      mockSelectSourcePeriodRerun([]);
+
+      await service.refreshAllHeuristicReconciliation();
+
+      const unmatchedInsertCall = (mockEntityManager.query as jest.Mock).mock
+        .calls[4];
+      const unmatchedInsertParams = unmatchedInsertCall?.[1] as unknown[];
+
+      expect(unmatchedInsertParams[0]).toBe('api-v2-compra-agil');
+      const unmatchedSelectSql = (mockEntityManager.query as jest.Mock).mock
+        .calls[2]?.[0] as string;
+      expect(unmatchedSelectSql).toContain("'compra_agil' AS entity_type");
+      expect(unmatchedSelectSql).toContain('FROM mp.compra_agil');
     });
 
     it('records state_mismatch event when canonical state differs from latest staging', async () => {
@@ -522,7 +553,7 @@ describe('MercadoPublicoReconciliationService', () => {
       expect(result.candidates).toBe(0);
     });
 
-    it('returns zero unmatched and gold status updates when unmatched upsert conflicts on rerun', async () => {
+    it('returns zero unmatched and gold materializations when unmatched upsert conflicts on rerun', async () => {
       mockSelectCandidateSupplier([]);
       mockSelectCandidateItem([]);
       mockSelectUnmatched([{ entity_key: 'L1', entity_type: 'licitacion' }]);
@@ -530,11 +561,12 @@ describe('MercadoPublicoReconciliationService', () => {
       mockInsertUnmatchedRows([]);
       mockSelectStateMismatch([]);
       mockSelectSourcePeriodRerun([]);
+      mockMaterializeGoldRows([]);
 
       const result = await service.refreshAllHeuristicReconciliation();
 
       expect(result.unmatched).toBe(0);
-      expect(result.goldStatusesUpdated).toBe(0);
+      expect(result.goldProcessesMaterialized).toBe(0);
     });
 
     it('suppresses manual-review rerun noise when unmatched already exists', async () => {
@@ -566,7 +598,7 @@ describe('MercadoPublicoReconciliationService', () => {
 
       await service.refreshAllHeuristicReconciliation();
 
-      expect(mockCoreDataSource.transaction).toHaveBeenCalledTimes(5);
+      expect(mockCoreDataSource.transaction).toHaveBeenCalledTimes(6);
     });
 
     it('keeps earlier heuristic phases committed when a later phase fails', async () => {
@@ -628,6 +660,33 @@ describe('MercadoPublicoReconciliationService', () => {
       );
 
       expect(caBulkLookups.length).toBeLessThanOrEqual(1);
+    });
+
+    it('materializes all canonical process types with status precedence', async () => {
+      mockSelectCandidateSupplier([]);
+      mockSelectCandidateItem([]);
+      mockSelectUnmatched([]);
+      mockSelectStateMismatch([]);
+      mockSelectSourcePeriodRerun([]);
+      mockMaterializeGoldRows(['licitacion', 'orden_compra', 'compra_agil']);
+
+      const result = await service.refreshAllHeuristicReconciliation();
+      const calls = (mockEntityManager.query as jest.Mock).mock.calls;
+      const materializationCall = calls[calls.length - 1];
+      const materializationSql = materializationCall?.[0] as string;
+
+      expect(result.goldProcessesMaterialized).toBe(3);
+      expect(materializationSql).toContain("'compra_agil' AS process_type");
+      expect(materializationSql).toContain('WHEN EXISTS');
+      expect(materializationSql).toContain("THEN 'exact'");
+      expect(materializationSql).toContain("THEN 'candidate'");
+      expect(materializationSql).toContain("THEN 'unmatched'");
+      expect(materializationSql).toContain(
+        'ON CONFLICT (process_type, process_code) DO UPDATE',
+      );
+      expect(materializationSql).not.toContain(
+        'DELETE FROM mp.gold_detected_process',
+      );
     });
   });
 

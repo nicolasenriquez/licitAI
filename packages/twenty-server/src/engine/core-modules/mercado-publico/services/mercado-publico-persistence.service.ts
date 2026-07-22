@@ -359,7 +359,6 @@ export class MercadoPublicoPersistenceService {
   ): Promise<void> {
     await this.coreDataSource.transaction(async (entityManager) => {
       await this.insertRawApiPayload(entityManager, {
-        jobRunRecordId: input.jobRunRecordId,
         ...input,
         errorSummary: input.errorSummaryText,
         recordsFetched: input.recordsFetched,

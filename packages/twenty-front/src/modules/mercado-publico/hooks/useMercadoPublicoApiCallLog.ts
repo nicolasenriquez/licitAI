@@ -6,8 +6,13 @@ import {
   type GetMercadoPublicoApiCallLogQueryVariables,
 } from '~/generated/graphql';
 
+type UseMercadoPublicoApiCallLogOptions = {
+  skip?: boolean;
+};
+
 export const useMercadoPublicoApiCallLog = (
   variables: GetMercadoPublicoApiCallLogQueryVariables = {},
+  options: UseMercadoPublicoApiCallLogOptions = {},
 ) => {
   const { data, previousData, loading, error, refetch } = useQuery<
     GetMercadoPublicoApiCallLogQuery,
@@ -16,6 +21,7 @@ export const useMercadoPublicoApiCallLog = (
     variables,
     fetchPolicy: 'network-only',
     notifyOnNetworkStatusChange: true,
+    skip: options.skip,
   });
 
   const effectiveData = data ?? previousData;
