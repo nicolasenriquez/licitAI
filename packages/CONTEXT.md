@@ -26,6 +26,7 @@ Describe the role of `packages/` as the package-index routing surface during the
   - `packages/twenty-front`
   - `packages/twenty-shared`
   - `packages/twenty-ui`
+  - `packages/twenty-design-tokens`
   - `packages/twenty-sdk`
   - `packages/twenty-cli`
   - `packages/twenty-client-sdk`

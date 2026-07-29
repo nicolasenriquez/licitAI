@@ -637,47 +637,39 @@ export class MercadoPublicoReconciliationService {
             NULL AS raw_state_label,
             NULL AS buyer_code,
             NULL AS buyer_name,
-            fecha_publicacion AS published_at,
-            fecha_cierre AS closing_at,
+            NULL::timestamptz AS published_at,
+            NULL::timestamptz AS closing_at,
             NULL AS source_priority,
             last_seen_at
           FROM mp.compra_agil
         ),
+        reconciliation_evidence AS (
+          SELECT
+            entity_a_type AS entity_type,
+            entity_a_key AS entity_key,
+            match_type
+          FROM mp.reconciliation_public_market_entities
+
+          UNION ALL
+
+          SELECT
+            entity_b_type AS entity_type,
+            entity_b_key AS entity_key,
+            match_type
+          FROM mp.reconciliation_public_market_entities
+        ),
         status_by_entity AS (
           SELECT
-            canonical.process_type,
-            canonical.process_code,
+            entity_type,
+            entity_key,
             CASE
-              WHEN EXISTS (
-                SELECT 1
-                FROM mp.reconciliation_public_market_entities r
-                WHERE (
-                  (r.entity_a_type = canonical.process_type AND r.entity_a_key = canonical.process_code)
-                  OR (r.entity_b_type = canonical.process_type AND r.entity_b_key = canonical.process_code)
-                )
-                AND r.match_type = ANY($1::text[])
-              ) THEN 'exact'
-              WHEN EXISTS (
-                SELECT 1
-                FROM mp.reconciliation_public_market_entities r
-                WHERE (
-                  (r.entity_a_type = canonical.process_type AND r.entity_a_key = canonical.process_code)
-                  OR (r.entity_b_type = canonical.process_type AND r.entity_b_key = canonical.process_code)
-                )
-                AND r.match_type = ANY($2::text[])
-              ) THEN 'candidate'
-              WHEN EXISTS (
-                SELECT 1
-                FROM mp.reconciliation_public_market_entities r
-                WHERE (
-                  (r.entity_a_type = canonical.process_type AND r.entity_a_key = canonical.process_code)
-                  OR (r.entity_b_type = canonical.process_type AND r.entity_b_key = canonical.process_code)
-                )
-                AND r.match_type = 'unmatched'
-              ) THEN 'unmatched'
+              WHEN BOOL_OR(match_type = ANY($1::text[])) THEN 'exact'
+              WHEN BOOL_OR(match_type = ANY($2::text[])) THEN 'candidate'
+              WHEN BOOL_OR(match_type = 'unmatched') THEN 'unmatched'
               ELSE NULL
             END AS reconciliation_status
-          FROM canonical
+          FROM reconciliation_evidence
+          GROUP BY entity_type, entity_key
         )
         INSERT INTO mp.gold_detected_process (
           process_type,
@@ -713,9 +705,9 @@ export class MercadoPublicoReconciliationService {
           now(),
           now()
         FROM canonical
-        INNER JOIN status_by_entity
-          ON status_by_entity.process_type = canonical.process_type
-          AND status_by_entity.process_code = canonical.process_code
+        LEFT JOIN status_by_entity
+          ON status_by_entity.entity_type = canonical.process_type
+          AND status_by_entity.entity_key = canonical.process_code
         ON CONFLICT (process_type, process_code) DO UPDATE
         SET title = EXCLUDED.title,
             canonical_state = EXCLUDED.canonical_state,

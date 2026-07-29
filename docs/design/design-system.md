@@ -24,7 +24,7 @@ Twenty has two design registers: the **product UI** (`twenty-front`, served by `
 | Default scene | User reviewing contacts, deals, tasks during work hours | Founder browsing partner profiles on a monitor |
 | Default theme | System-aware (light/dark via CSS variables) | Light-first (dark available but deferred) |
 | Interaction posture | Read-explore-edit. Dense tables, forms, record panels. | Read-evaluate. Browsing partner profiles. |
-| Design system package | `twenty-ui` (20 component modules) | `twenty-website` (standalone, NOT using `twenty-ui`) |
+| Design system package | `twenty-ui` (20 component modules) | `twenty-website-redone` (standalone, NOT using `twenty-ui`) |
 | Styling engine | Linaria (zero-runtime CSS-in-JS) | Linaria (zero-runtime CSS-in-JS) |
 | Icon library | `@tabler/icons-react` | `@tabler/icons-react` |
 
@@ -69,7 +69,7 @@ The product UI uses a **restrained neutral palette** with semantic accent colors
 | `colors.accent.yellow` | `#feffb7` / `#feffd9` |
 | `colors.accent.green` | `#89fc9a` / `#b0fdbe` |
 
-**Theme switching**: Light and dark themes are implemented as CSS variable overrides via `data-scheme="dark"` attribute. `twenty-ui` exports `theme-light.css` and `theme-dark.css` for each theme. A `ThemeProvider` component manages the current scheme.
+**Theme switching**: Light and dark themes are implemented as CSS variable overrides via the `.light` and `.dark` classes. `twenty-ui` exports `theme-light.css` and `theme-dark.css` for each theme. A `ThemeProvider` component manages the current scheme and preserves those class names.
 
 ### Typography
 
@@ -313,12 +313,15 @@ Shared utility functions for color computation, responsive behavior, device dete
 - `twenty-front` consumes `twenty-ui` components and extends with feature-specific modules.
 - Apps built with `twenty-sdk` use `twenty-ui` for base components and `defineFrontComponent()` for custom widgets.
 - The marketing site (`twenty-website`) uses its own component set, not `twenty-ui`.
+- `twenty-website-redone` is the active marketing register owner; the legacy
+  `twenty-website` surface is frozen except for a compatibility adapter when a
+  global decision is required.
 - Design tokens (colors, spacing, typography) are defined via CSS variables in `twenty-ui` and consumed everywhere.
 - The Twenty Figma library is available at [figma.com/file/xt8O9mFeLl46C5InWwoMrN/Twenty](https://www.figma.com/file/xt8O9mFeLl46C5InWwoMrN/Twenty) for visual reference.
 
 ## Current Assumptions
 
-- Linaria remains the styling engine for all React components in the monorepo.
+- Linaria remains the styling engine for React components; SCSS is limited to the existing reset and style abstractions.
 - `twenty-ui` continues to be the single component library for the product UI.
 - The marketing site and product UI remain separate design registers with shared token philosophy.
 - `@tabler/icons-react` remains the icon library for both product and marketing.

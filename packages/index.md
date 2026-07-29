@@ -28,6 +28,7 @@ mapped leaf package surface.
 - `packages/twenty-front`
 - `packages/twenty-shared`
 - `packages/twenty-ui`
+- `packages/twenty-design-tokens`
 
 ### Remaining mapped package groups
 

@@ -35,7 +35,7 @@ Before substantive work in this surface, read:
 - Use `packages/` as the package-index layer between the root map and future leaf-package surfaces.
 - The currently mapped docs-heavy leaf surfaces are `packages/twenty-docs` and `packages/twenty-claude-skills`.
 - The currently mapped AI-tooling leaf surface is `packages/twenty-codex-plugin`.
-- The currently mapped core monorepo leaf surfaces are `packages/twenty-server`, `packages/twenty-front`, `packages/twenty-shared`, and `packages/twenty-ui`.
+- The currently mapped core monorepo leaf surfaces are `packages/twenty-server`, `packages/twenty-front`, `packages/twenty-shared`, `packages/twenty-ui`, and `packages/twenty-design-tokens`.
 - The currently mapped remaining leaf surfaces include `packages/twenty-sdk`, `packages/twenty-cli`, `packages/twenty-client-sdk`, `packages/create-twenty-app`, `packages/twenty-front-component-renderer`, `packages/twenty-emails`, `packages/twenty-companion`, `packages/twenty-zapier`, `packages/twenty-docker`, `packages/twenty-e2e-testing`, `packages/twenty-utils`, `packages/twenty-oxlint-rules`, `packages/twenty-website`, `packages/twenty-website-redone`, and `packages/twenty-apps`.
 - Unmapped leaf package folders must not get improvised routing contracts.
 - The package-index surface is now the authoritative routing entrypoint for all mapped leaf packages.

@@ -173,6 +173,7 @@ packages/
 ├── twenty-server/                 # NestJS API
 ├── twenty-shared/                 # Shared types & helpers
 ├── twenty-ui/                     # Shared UI primitives
+├── twenty-design-tokens/          # Canonical DTCG design token source/compiler
 ├── twenty-emails/                 # React Email templates
 ├── twenty-sdk/                    # App SDK (defineObject, etc.)
 ├── twenty-cli/                    # `twenty` CLI (`app:publish`, `workspace:*`)

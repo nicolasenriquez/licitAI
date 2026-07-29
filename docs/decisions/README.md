@@ -43,3 +43,4 @@ Zero-padded numeric prefix: `0001-<kebab-case-title>.md`. Numbers are sequential
 | 0003 | Metadata-Driven UI with Runtime GraphQL Schema Generation | Accepted (2026-06-20) |
 | 0004 | Per-Workspace PostgreSQL Schema Isolation | Accepted (2026-06-20) |
 | 0005 | Deployment-Local Mercado Publico Schema | Accepted (2026-06-20) |
+| 0006 | Canonical Design Tokens and Generated Adapters | Accepted (2026-07-27) |

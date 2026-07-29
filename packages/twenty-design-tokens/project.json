@@ -1,0 +1,73 @@
+{
+  "name": "twenty-design-tokens",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/twenty-design-tokens/src",
+  "projectType": "library",
+  "tags": ["scope:shared", "type:design-tokens"],
+  "targets": {
+    "generate": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["{projectRoot}/src"],
+      "outputs": ["{projectRoot}/generated"],
+      "options": {
+        "cwd": "{projectRoot}",
+        "command": "npx tsx src/compiler/cli.ts generate"
+      }
+    },
+    "check-generated": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["generate"],
+      "options": {
+        "cwd": "{projectRoot}",
+        "command": "git diff --exit-code -- generated"
+      }
+    },
+    "validate": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["{projectRoot}/src"],
+      "options": {
+        "cwd": "{projectRoot}",
+        "command": "npx tsx src/compiler/cli.ts validate"
+      }
+    },
+    "hardcode-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{projectRoot}",
+        "command": "node scripts/check-hardcoded-visuals.mjs src"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["generate"],
+      "outputs": ["{projectRoot}/generated"],
+      "options": {
+        "cwd": "{projectRoot}",
+        "command": "npx tsx src/compiler/cli.ts build"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{projectRoot}",
+        "command": "npx jest --config=jest.config.mjs"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{projectRoot}",
+        "command": "npx oxlint src"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{projectRoot}",
+        "command": "npx tsgo --noEmit -p tsconfig.json"
+      }
+    }
+  }
+}

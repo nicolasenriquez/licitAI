@@ -1,0 +1,53 @@
+{
+  "icon": {
+    "size": {
+      "md": {
+        "$type": "number",
+        "$value": 16,
+        "$description": "Existing product medium icon size."
+      }
+    }
+  },
+  "spacingMultiplicator": {
+    "$type": "number",
+    "$value": 4,
+    "$description": "Existing product spacing multiplier."
+  },
+  "border": {
+    "radius": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{primitives.radius.sm}",
+        "$description": "Existing product small border radius."
+      }
+    }
+  },
+  "font": {
+    "family": {
+      "$type": "fontFamily",
+      "$value": "{primitives.typography.fontFamily.productSans}",
+      "$description": "Existing product font family."
+    },
+    "size": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{primitives.typography.fontSize.sm}",
+        "$description": "Existing product small text size."
+      }
+    }
+  },
+  "animation": {
+    "duration": {
+      "fast": {
+        "$type": "duration",
+        "$value": "{primitives.motion.duration.fast}",
+        "$description": "Existing product fast animation duration."
+      }
+    }
+  },
+  "lastLayerZIndex": {
+    "$type": "number",
+    "$value": "{primitives.zIndex.lastLayer}",
+    "$description": "Existing product last-layer z-index."
+  }
+}

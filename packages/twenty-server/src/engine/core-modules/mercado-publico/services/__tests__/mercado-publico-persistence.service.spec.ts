@@ -25,6 +25,7 @@ describe('MercadoPublicoPersistenceService', () => {
     });
     expect(executedQueries).toHaveLength(1);
     expect(executedQueries[0]?.sql).not.toContain('raw_csv_file_id');
+    expect(executedQueries[0]?.sql).toContain("VALUES ($1, $2, 'failed', $3)");
     expect(executedQueries[0]?.params).toHaveLength(3);
   });
 

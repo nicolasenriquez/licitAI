@@ -3,6 +3,7 @@
 **/.env
 **/node_modules
 .nx/cache
+packages/twenty-front/build
 packages/twenty-server/.env
 graphify-out/
 .graphify-src/

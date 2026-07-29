@@ -1,0 +1,117 @@
+{
+  "color": {
+    "white": {
+      "$type": "color",
+      "$value": "color(display-p3 1 1 1)",
+      "$description": "Product and marketing white primitive."
+    },
+    "black": {
+      "$type": "color",
+      "$value": "color(display-p3 0.09 0.09 0.09)",
+      "$description": "Existing product dark surface primitive."
+    },
+    "marketingBlack": {
+      "$type": "color",
+      "$value": "#1c1c1c",
+      "$description": "Existing marketing dark surface primitive."
+    },
+    "blue": {
+      "9": {
+        "$type": "color",
+        "$value": "color(display-p3 0.276 0.384 0.837)",
+        "$description": "Existing product accent blue primitive."
+      }
+    }
+  },
+  "spacing": {
+    "0": {
+      "$type": "dimension",
+      "$value": { "value": 0, "unit": "px" },
+      "$description": "Zero spacing primitive."
+    },
+    "1": {
+      "$type": "dimension",
+      "$value": { "value": 4, "unit": "px" },
+      "$description": "Existing product spacing base unit."
+    },
+    "2": {
+      "$type": "dimension",
+      "$value": { "value": 8, "unit": "px" },
+      "$description": "Existing product spacing step."
+    },
+    "4": {
+      "$type": "dimension",
+      "$value": { "value": 16, "unit": "px" },
+      "$description": "Existing product spacing step."
+    },
+    "6": {
+      "$type": "dimension",
+      "$value": { "value": 24, "unit": "px" },
+      "$description": "Existing product spacing step."
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "productSans": {
+        "$type": "fontFamily",
+        "$value": "Inter, sans-serif",
+        "$description": "Existing product UI font family."
+      },
+      "sans": {
+        "$type": "fontFamily",
+        "$value": "var(--font-sans), sans-serif",
+        "$description": "Existing marketing sans family hook."
+      },
+      "serif": {
+        "$type": "fontFamily",
+        "$value": "var(--font-serif), serif",
+        "$description": "Existing marketing serif family hook."
+      }
+    },
+    "fontSize": {
+      "sm": {
+        "$type": "dimension",
+        "$value": { "value": 0.92, "unit": "rem" },
+        "$description": "Existing product small text size."
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": { "value": 1, "unit": "rem" },
+        "$description": "Existing product medium text size."
+      }
+    }
+  },
+  "radius": {
+    "sm": {
+      "$type": "dimension",
+      "$value": { "value": 4, "unit": "px" },
+      "$description": "Existing product small radius."
+    },
+    "pill": {
+      "$type": "dimension",
+      "$value": { "value": 999, "unit": "px" },
+      "$description": "Pill radius primitive."
+    }
+  },
+  "motion": {
+    "duration": {
+      "fast": {
+        "$type": "number",
+        "$value": 0.15,
+        "$description": "Existing product fast transition multiplier in seconds."
+      },
+      "normal": {
+        "$type": "number",
+        "$value": 0.3,
+        "$description": "Existing product normal transition duration."
+      }
+    }
+  },
+  "zIndex": {
+    "lastLayer": {
+      "$type": "number",
+      "$value": 2147483647,
+      "$description": "Existing product last-layer z-index."
+    }
+  }
+}

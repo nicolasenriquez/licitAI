@@ -1,0 +1,16 @@
+{
+  "surface": {
+    "primary": {
+      "$type": "color",
+      "$value": "#f4f4f4",
+      "$description": "Primary marketing surface in muted mode."
+    }
+  },
+  "text": {
+    "primary": {
+      "$type": "color",
+      "$value": "{primitives.color.marketingBlack}",
+      "$description": "Primary marketing text in muted mode."
+    }
+  }
+}

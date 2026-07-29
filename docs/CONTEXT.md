@@ -48,3 +48,13 @@ It is not the working surface for:
 - package-scoped code work under `packages/`
 
 If the prompt is about those topics, go back to `../index.md` and reroute.
+
+## Design Token Vocabulary
+
+- A **primitive token** is a value without a visual role.
+- A **semantic token** names visual intent inside one visual register.
+- A **visual register** is the governed product or marketing token namespace.
+- A **mode** is a complete state of a register.
+- A **generated adapter** is a CSS, TypeScript, Figma, or compatibility output
+  produced from the canonical token source.
+- A **deprecation alias** preserves a renamed token during migration.

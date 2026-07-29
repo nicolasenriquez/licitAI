@@ -1,0 +1,35 @@
+{
+  "spacing": {
+    "1": {
+      "$type": "dimension",
+      "$value": "{primitives.spacing.1}",
+      "$description": "Shared marketing spacing base unit."
+    },
+    "4": {
+      "$type": "dimension",
+      "$value": "{primitives.spacing.4}",
+      "$description": "Shared marketing page gutter."
+    }
+  },
+  "font": {
+    "family": {
+      "sans": {
+        "$type": "fontFamily",
+        "$value": "{primitives.typography.fontFamily.sans}",
+        "$description": "Shared marketing sans family."
+      },
+      "serif": {
+        "$type": "fontFamily",
+        "$value": "{primitives.typography.fontFamily.serif}",
+        "$description": "Shared marketing editorial family."
+      }
+    }
+  },
+  "radius": {
+    "pill": {
+      "$type": "dimension",
+      "$value": "{primitives.radius.pill}",
+      "$description": "Shared marketing pill radius."
+    }
+  }
+}

@@ -1,0 +1,299 @@
+{
+  "$description": "product visual register generated from the canonical DTCG source.",
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "common": {
+    "animation": {
+      "duration": {
+        "fast": {
+          "$type": "duration",
+          "$value": "{primitives.motion.duration.fast}",
+          "$description": "Existing product fast animation duration."
+        }
+      }
+    },
+    "border": {
+      "radius": {
+        "sm": {
+          "$type": "dimension",
+          "$value": "{primitives.radius.sm}",
+          "$description": "Existing product small border radius."
+        }
+      }
+    },
+    "font": {
+      "family": {
+        "$type": "fontFamily",
+        "$value": "{primitives.typography.fontFamily.productSans}",
+        "$description": "Existing product font family."
+      },
+      "size": {
+        "sm": {
+          "$type": "dimension",
+          "$value": "{primitives.typography.fontSize.sm}",
+          "$description": "Existing product small text size."
+        }
+      }
+    },
+    "icon": {
+      "size": {
+        "md": {
+          "$type": "number",
+          "$value": 16,
+          "$description": "Existing product medium icon size."
+        }
+      }
+    },
+    "lastLayerZIndex": {
+      "$type": "number",
+      "$value": "{primitives.zIndex.lastLayer}",
+      "$description": "Existing product last-layer z-index."
+    },
+    "spacingMultiplicator": {
+      "$type": "number",
+      "$value": 4,
+      "$description": "Existing product spacing multiplier."
+    }
+  },
+  "dark": {
+    "accent": {
+      "primary": {
+        "$type": "color",
+        "$value": "{primitives.color.blue.9}",
+        "$description": "Primary product accent in dark mode."
+      }
+    },
+    "background": {
+      "primary": {
+        "$type": "color",
+        "$value": "{primitives.color.black}",
+        "$description": "Primary product surface in dark mode."
+      },
+      "secondary": {
+        "$type": "color",
+        "$value": "color(display-p3 0.106 0.106 0.106)",
+        "$description": "Secondary product surface in dark mode."
+      }
+    },
+    "border": {
+      "color": {
+        "light": {
+          "$type": "color",
+          "$value": "color(display-p3 0.114 0.114 0.114)",
+          "$description": "Light product border in dark mode."
+        },
+        "medium": {
+          "$type": "color",
+          "$value": "color(display-p3 0.133 0.133 0.133)",
+          "$description": "Medium product border in dark mode."
+        }
+      }
+    },
+    "font": {
+      "color": {
+        "primary": {
+          "$type": "color",
+          "$value": "color(display-p3 0.922 0.922 0.922)",
+          "$description": "Primary product text in dark mode."
+        },
+        "secondary": {
+          "$type": "color",
+          "$value": "color(display-p3 0.702 0.702 0.702)",
+          "$description": "Secondary product text in dark mode."
+        }
+      }
+    }
+  },
+  "light": {
+    "accent": {
+      "primary": {
+        "$type": "color",
+        "$value": "{primitives.color.blue.9}",
+        "$description": "Primary product accent in light mode."
+      }
+    },
+    "background": {
+      "primary": {
+        "$type": "color",
+        "$value": "{primitives.color.white}",
+        "$description": "Primary product surface in light mode."
+      },
+      "secondary": {
+        "$type": "color",
+        "$value": "color(display-p3 0.988 0.988 0.988)",
+        "$description": "Secondary product surface in light mode."
+      }
+    },
+    "border": {
+      "color": {
+        "light": {
+          "$type": "color",
+          "$value": "color(display-p3 0.945 0.945 0.945)",
+          "$description": "Light product border in light mode."
+        },
+        "medium": {
+          "$type": "color",
+          "$value": "color(display-p3 0.922 0.922 0.922)",
+          "$description": "Medium product border in light mode."
+        }
+      }
+    },
+    "font": {
+      "color": {
+        "primary": {
+          "$type": "color",
+          "$value": "color(display-p3 0.2 0.2 0.2)",
+          "$description": "Primary product text in light mode."
+        },
+        "secondary": {
+          "$type": "color",
+          "$value": "color(display-p3 0.4 0.4 0.4)",
+          "$description": "Secondary product text in light mode."
+        }
+      }
+    }
+  },
+  "primitives": {
+    "color": {
+      "black": {
+        "$type": "color",
+        "$value": "color(display-p3 0.09 0.09 0.09)",
+        "$description": "Existing product dark surface primitive."
+      },
+      "blue": {
+        "9": {
+          "$type": "color",
+          "$value": "color(display-p3 0.276 0.384 0.837)",
+          "$description": "Existing product accent blue primitive."
+        }
+      },
+      "marketingBlack": {
+        "$type": "color",
+        "$value": "#1c1c1c",
+        "$description": "Existing marketing dark surface primitive."
+      },
+      "white": {
+        "$type": "color",
+        "$value": "color(display-p3 1 1 1)",
+        "$description": "Product and marketing white primitive."
+      }
+    },
+    "motion": {
+      "duration": {
+        "fast": {
+          "$type": "number",
+          "$value": 0.15,
+          "$description": "Existing product fast transition multiplier in seconds."
+        },
+        "normal": {
+          "$type": "number",
+          "$value": 0.3,
+          "$description": "Existing product normal transition duration."
+        }
+      }
+    },
+    "radius": {
+      "pill": {
+        "$type": "dimension",
+        "$value": {
+          "value": 999,
+          "unit": "px"
+        },
+        "$description": "Pill radius primitive."
+      },
+      "sm": {
+        "$type": "dimension",
+        "$value": {
+          "value": 4,
+          "unit": "px"
+        },
+        "$description": "Existing product small radius."
+      }
+    },
+    "spacing": {
+      "0": {
+        "$type": "dimension",
+        "$value": {
+          "value": 0,
+          "unit": "px"
+        },
+        "$description": "Zero spacing primitive."
+      },
+      "1": {
+        "$type": "dimension",
+        "$value": {
+          "value": 4,
+          "unit": "px"
+        },
+        "$description": "Existing product spacing base unit."
+      },
+      "2": {
+        "$type": "dimension",
+        "$value": {
+          "value": 8,
+          "unit": "px"
+        },
+        "$description": "Existing product spacing step."
+      },
+      "4": {
+        "$type": "dimension",
+        "$value": {
+          "value": 16,
+          "unit": "px"
+        },
+        "$description": "Existing product spacing step."
+      },
+      "6": {
+        "$type": "dimension",
+        "$value": {
+          "value": 24,
+          "unit": "px"
+        },
+        "$description": "Existing product spacing step."
+      }
+    },
+    "typography": {
+      "fontFamily": {
+        "productSans": {
+          "$type": "fontFamily",
+          "$value": "Inter, sans-serif",
+          "$description": "Existing product UI font family."
+        },
+        "sans": {
+          "$type": "fontFamily",
+          "$value": "var(--font-sans), sans-serif",
+          "$description": "Existing marketing sans family hook."
+        },
+        "serif": {
+          "$type": "fontFamily",
+          "$value": "var(--font-serif), serif",
+          "$description": "Existing marketing serif family hook."
+        }
+      },
+      "fontSize": {
+        "md": {
+          "$type": "dimension",
+          "$value": {
+            "value": 1,
+            "unit": "rem"
+          },
+          "$description": "Existing product medium text size."
+        },
+        "sm": {
+          "$type": "dimension",
+          "$value": {
+            "value": 0.92,
+            "unit": "rem"
+          },
+          "$description": "Existing product small text size."
+        }
+      }
+    },
+    "zIndex": {
+      "lastLayer": {
+        "$type": "number",
+        "$value": 2147483647,
+        "$description": "Existing product last-layer z-index."
+      }
+    }
+  }
+}

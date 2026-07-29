@@ -1,0 +1,16 @@
+{
+  "surface": {
+    "primary": {
+      "$type": "color",
+      "$value": "{primitives.color.white}",
+      "$description": "Primary marketing surface in light mode."
+    }
+  },
+  "text": {
+    "primary": {
+      "$type": "color",
+      "$value": "{primitives.color.marketingBlack}",
+      "$description": "Primary marketing text in light mode."
+    }
+  }
+}

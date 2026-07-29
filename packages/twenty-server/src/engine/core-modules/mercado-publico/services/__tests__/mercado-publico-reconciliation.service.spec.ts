@@ -677,7 +677,20 @@ describe('MercadoPublicoReconciliationService', () => {
 
       expect(result.goldProcessesMaterialized).toBe(3);
       expect(materializationSql).toContain("'compra_agil' AS process_type");
-      expect(materializationSql).toContain('WHEN EXISTS');
+      const compraAgilSql = materializationSql.slice(
+        materializationSql.indexOf("'compra_agil' AS process_type"),
+      );
+      expect(compraAgilSql).toContain('NULL::timestamptz AS published_at');
+      expect(compraAgilSql).toContain('NULL::timestamptz AS closing_at');
+      expect(materializationSql).toContain('BOOL_OR');
+      expect(materializationSql).toContain('GROUP BY entity_type, entity_key');
+      expect(materializationSql).toContain('LEFT JOIN status_by_entity');
+      expect(materializationSql).toContain(
+        'status_by_entity.entity_type = canonical.process_type',
+      );
+      expect(materializationSql).toContain(
+        'status_by_entity.entity_key = canonical.process_code',
+      );
       expect(materializationSql).toContain("THEN 'exact'");
       expect(materializationSql).toContain("THEN 'candidate'");
       expect(materializationSql).toContain("THEN 'unmatched'");

@@ -1,6 +1,8 @@
+import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
 import { SettingsTabBar } from '@/settings/components/layout/SettingsTabBar';
 import { PageCardHeader } from '@/ui/layout/page/components/PageCardHeader';
 import { PageCardLayout } from '@/ui/layout/page/components/PageCardLayout';
+import { ApolloProvider } from '@apollo/client/react';
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
 import { useEffect, useState } from 'react';
@@ -34,7 +36,7 @@ const StyledTabBarContainer = styled.div`
   overflow-x: auto;
 `;
 
-export const MercadoPublicoCommandCenterPage = () => {
+const MercadoPublicoCommandCenterPageContent = () => {
   const { t } = useLingui();
   const location = useLocation();
   const navigate = useNavigate();
@@ -104,5 +106,15 @@ export const MercadoPublicoCommandCenterPage = () => {
         </div>
       ) : null}
     </PageCardLayout>
+  );
+};
+
+export const MercadoPublicoCommandCenterPage = () => {
+  const apolloCoreClient = useApolloCoreClient();
+
+  return (
+    <ApolloProvider client={apolloCoreClient}>
+      <MercadoPublicoCommandCenterPageContent />
+    </ApolloProvider>
   );
 };

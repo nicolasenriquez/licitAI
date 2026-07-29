@@ -1,0 +1,49 @@
+{
+  "background": {
+    "primary": {
+      "$type": "color",
+      "$value": "{primitives.color.white}",
+      "$description": "Primary product surface in light mode."
+    },
+    "secondary": {
+      "$type": "color",
+      "$value": "color(display-p3 0.988 0.988 0.988)",
+      "$description": "Secondary product surface in light mode."
+    }
+  },
+  "border": {
+    "color": {
+      "light": {
+        "$type": "color",
+        "$value": "color(display-p3 0.945 0.945 0.945)",
+        "$description": "Light product border in light mode."
+      },
+      "medium": {
+        "$type": "color",
+        "$value": "color(display-p3 0.922 0.922 0.922)",
+        "$description": "Medium product border in light mode."
+      }
+    }
+  },
+  "font": {
+    "color": {
+      "primary": {
+        "$type": "color",
+        "$value": "color(display-p3 0.2 0.2 0.2)",
+        "$description": "Primary product text in light mode."
+      },
+      "secondary": {
+        "$type": "color",
+        "$value": "color(display-p3 0.4 0.4 0.4)",
+        "$description": "Secondary product text in light mode."
+      }
+    }
+  },
+  "accent": {
+    "primary": {
+      "$type": "color",
+      "$value": "{primitives.color.blue.9}",
+      "$description": "Primary product accent in light mode."
+    }
+  }
+}
