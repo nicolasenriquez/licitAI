@@ -22,9 +22,15 @@ reconciliation evidence in the instance-level `mp` schema, with five read
 services already exported. None of it is visible from the application; operators
 fall back to raw SQL. This change adds a read-only command center: browse
 licitaciones and compra ágil processes, and monitor ingestion job runs and
-upstream API calls. The design preserves the existing backend untouched and
-mirrors established front-end patterns (tabbed page, data-driven nav, BullMQ
-queue-jobs monitoring table).
+upstream API calls. The design uses established front-end patterns (tabbed
+page, data-driven nav, BullMQ queue-jobs monitoring table).
+
+The retained provider evidence now establishes that Compra Ágil is not a
+source-availability or presentation-only problem: V2 list records contain the
+values needed by the browse view, but the current persistence and gold
+materialization paths discard them. This change therefore also owns the
+smallest source-to-read repair needed for truthful browse results, while
+preserving the command center as a read-only UI.
 
 ## Goals / Non-Goals
 
@@ -37,12 +43,24 @@ queue-jobs monitoring table).
 - Show process list with filters, process detail side panel, ingestion job-run
   log, upstream API call log, pipeline health, API quota usage, and CSV file
   health.
+- Preserve only the V2 Compra Ágil fields needed by the compact browse table
+  (title, buyer name, state, publication, and closing) through staging,
+  canonical, gold, and the typed read contract; repair retained raw evidence
+  idempotently.
+- Render all other currently observed V2 list fields in the existing detail
+  panel through a server-side typed projection of the latest retained raw
+  record, not a browser raw-JSON viewer or a provider call.
+- Discover every provider-declared V2 list page up to
+  `MP_COMPRA_AGIL_MAX_PAGES=250`, retaining page-level evidence and reporting
+  partial completion if the cap is reached.
 
 **Non-Goals**
 
-- Ingestion triggers, scheduling, retry/delete mutations, gold-table writers,
-  per-workspace projection of `mp.*`, and any backend adapter/persistence
-  change.
+- Ingestion triggers, scheduling, retry/delete mutations, public controls for
+  paging/backfill/migration, per-workspace projection of `mp.*`, and a change
+  to the command center's read-only interaction boundary.
+- An authoritative buyer-reference join, V1 Licitaciones normalization, or a
+  bulk detail-hydration policy.
 
 ## Boundary and Ownership
 
@@ -162,6 +180,60 @@ All user-visible strings use Lingui macros; the oxlint
 
 Rationale: repo standard; avoids retrofit cost.
 
+### Provider-to-read remediation is explicit and provenance-preserving
+
+The V2 Compra Ágil provider is the authority for the fields observed in its
+list record. The browse model persists only the values needed by the existing
+six-column composition. The remaining observed fields stay in retained raw
+evidence and are mapped server-side into a typed detail object when a user
+opens the existing panel. The browser MUST NOT receive `raw_api_payload`, and
+opening detail MUST NOT issue a provider request.
+
+| Provider field | Browse persistence | Read meaning |
+| --- | --- | --- |
+| `nombre` | `title` | Process object/title |
+| `institucion.organismo_comprador` | `buyer_name` | Buyer/organism display name |
+| `estado.codigo`, `estado.glosa` | normalized state | Textual state in browse; source values in detail |
+| `fechas.fecha_publicacion`, `fecha_cierre` | normalized timestamp fields | Browse/detail dates |
+| all other observed V2 fields | retained raw evidence only | Typed detail-panel projection |
+
+`institucion.rut` remains a technical buyer RUT in detail and MUST NOT be
+treated as a V1-style `buyer_code`. `links.detalle` remains a non-clickable
+technical reference; documents expose their observed ID and name only. Future
+provider fields remain raw evidence until an explicit contract change adds
+them.
+
+The registered V2 date command is a deployment precondition and MUST be run
+through the supported instance-command upgrade workflow before a new V2
+ingestion run. New browse fields require a separate immutable instance command
+with both `up` and `down`. Retained raw payloads are then reprocessed
+idempotently: a backfill may fill missing normalized values but MUST NOT
+replace a non-null canonical value with null.
+
+Gold materialization reads explicit canonical fields; it MUST NOT hard-code
+`NULL` for values now represented in the Compra Ágil canonical row. The
+resolver maps the latest retained raw record for the code into the typed detail
+object, choosing the greatest `fecha_ultimo_cambio` and falling back to the
+greatest `fetched_at`. The UI continues to render only typed read data.
+
+Alternatives considered:
+- A buyer-reference join for V2 institutions — rejected: the provider already
+  sends the display name; an extra local reference table is not needed to
+  render it and would create an unproven authority dependency.
+- A UI-side raw-JSON viewer — rejected: it leaks storage shape and would make
+  every provider change a presentation change.
+- Persisting every detail-only field in canonical tables — rejected: the raw
+  evidence already exists, and the existing panel is the only consumer.
+
+### Bounded V2 pagination is an ingestion concern, not a UI control
+
+The V2 list runner MUST request pages sequentially from page one through the
+provider-declared end, subject to `MP_COMPRA_AGIL_MAX_PAGES=250`, retain one
+raw request/response evidence record per page, and record whether it reached
+the provider end or stopped at the cap. The CLI remains the only ingestion
+entry point. Deployment documentation defines a daily operator run; it does
+not add a scheduler.
+
 ## Risks / Trade-offs
 
 - **[Instance data, no workspace isolation]** → The view surfaces instance-
@@ -170,21 +242,29 @@ Rationale: repo standard; avoids retrofit cost.
 - **[Large `raw_api_payload` reads]** → Job-run and call-log queries use
   `limit/offset` with indexed `ingestion_job_id`/`started_at`/`fetched_at`
   ordering; no unbounded scans. Indexes are created by the fast instance
-  migration; gold materialization remains out of scope.
+  migration; Compra Ágil gold changes remain limited to the explicit provider
+  fields mapped above.
+- **[Provider page count exceeds 250]** → The ingestion job records partial
+  completion separately from reaching the provider-declared end; the UI must
+  not translate a capped run into a completeness claim.
+- **[Schema deployment drift]** → The existing date command is an operational
+  prerequisite and new fields require a new immutable command. Ingestion and
+  backfill do not run until the intended environment satisfies that precondition.
 - **[Wireframe-vs-build drift]** → ASCII wireframes in this file are the
   contract; implementation review compares rendered UI against them.
 
 ## Existing Data Contract
 
-The view MUST render only fields supplied by the existing read DTOs or by the
-two explicitly planned monitoring list queries. It MUST NOT imply unavailable
-search, region, monetary, adjudication-date, percentage-confidence, or manual
-approval data.
+The view MUST render only fields supplied by the read DTOs, the explicit V2
+provider-to-read extension above, or the two planned monitoring list queries.
+It MUST NOT imply unavailable search, region filtering, adjudication-date,
+percentage-confidence, or manual approval data. Observed provider monetary
+fields are detail-only values, not derived totals or purchase-order amounts.
 
 | Surface | Existing source | Binding fields and paging |
 | --- | --- | --- |
 | Process list | `MercadoPublicoDetectedProcessReadService` | Process identity/title/state, buyer code/name, published/closing dates, source priority, reconciliation status, `lastSeenAt`; filters `processTypes`, `states`, exact `buyerCode`, publication range, `changedSince`, sort; `page`, `limit`, `total` |
-| Process detail | `MercadoPublicoProcessDetailReadService` | Process identity/title/state, buyer, published/closing dates, items, adjudications, related OC code/state/match type/confidence category, source lineage, reconciliation counts, source priority, `lastSeenAt` |
+| Process detail | `MercadoPublicoProcessDetailReadService` plus typed retained-raw adapter | Existing process detail plus current V2 source details (additional dates, amounts, reasons, offers, document ID/name pairs, institution, convocatoria, non-clickable source path); no provider call |
 | Pipeline health | `MercadoPublicoPipelineHealthReadService` | Per-job latest status, last success/failure, lag, failure count, freshness, expected cadence |
 | API quota | `MercadoPublicoApiQuotaUsageReadService` | Per-source daily limit, used, remaining, reset, last 429 |
 | CSV health | `MercadoPublicoCsvFileHealthReadService` | Dataset/modality/period/file, encoding/delimiter/fingerprint, row and parse counts/status, last load, optional freshness |
@@ -237,9 +317,12 @@ Consequences:
   restores focus to the originating row. `Escape` closes the modal panel; the
   panel owns internal scroll and background content is not keyboard reachable.
 - The sticky detail header contains title, code, textual status, and an
-  accessible close control. Detail order is identity, buyer, dates, items,
-  adjudications, related OCs, reconciliation, sources, and a collapsed
-  technical-information disclosure.
+  accessible close control. Detail order is identity, buyer, browse dates,
+  typed **Datos de Compra Ágil** from retained evidence (additional dates,
+  amounts, offers, reasons, documents, institution, convocatoria, and source
+  path), items, adjudications, related OCs, reconciliation, sources, and a
+  collapsed technical-information disclosure. The source path is text, not an
+  external link; documents show ID and name only.
 - Color never carries status alone: every status uses localized text plus a
   `Tag`. Unknown or null status renders `No informado` with neutral styling.
 - Dates, times, counts, and CLP amounts use workspace locale/timezone. Raw API
@@ -548,3 +631,14 @@ real verification. These wireframes do not claim WCAG conformance.
 - Lint/typecheck: `npx nx lint:diff-with-main twenty-server`,
   `npx nx lint:diff-with-main twenty-front`, `npx nx typecheck twenty-server`,
   `npx nx typecheck twenty-front`.
+- Source-to-read: a real-shaped V2 fixture proves title, buyer name, state,
+  publication, and closing from raw evidence through canonical/gold to browse
+  GraphQL; another proves the latest retained raw record maps to typed detail
+  fields without a browser raw payload or provider call. A pagination fixture
+  proves every declared page up to 250 is retained and a capped run is marked
+  partial; retained-payload backfill never replaces a non-null canonical field
+  with null.
+- Operational: verify the registered date command is applied via the supported
+  upgrade workflow before V2 ingestion/backfill, then record the applied
+  version and job evidence. Do not exercise that write path as part of this
+  documentation-only alignment.

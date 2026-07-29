@@ -1,7 +1,7 @@
 ---
 type: change-spec
 title: "Spec: mercado-publico-command-center"
-description: "Specification for the Mercado Publico command center read view."
+description: "Specification for the Mercado Publico command center and complete Compra Agil V2 read view."
 okf_version: "0.1"
 ---
 # Spec: mercado-publico-command-center
@@ -13,13 +13,88 @@ wireframes in `../../design.md` illustrate this contract but MUST NOT widen the
 DTO, GraphQL, navigation, or write boundaries defined here. When fixture text
 or a wireframe conflicts with a requirement or scenario, this file wins.
 
-The first release is an additive, read-only product surface. It MUST reuse
-Twenty navigation, page, tab, table, tag, banner, skeleton, empty-state, and
-side-panel patterns before introducing local UI. It MUST NOT add a dependency,
-parallel design system, nested card dashboard, global state for page-local
-behavior, or a mutation path.
+The first release is an additive, read-only product surface plus the minimal
+backend source-to-read remediation required to make its browse values truthful.
+It MUST reuse Twenty navigation, page, tab, table, tag, banner, skeleton,
+empty-state, and side-panel patterns before introducing local UI. It MUST NOT
+add a dependency, parallel design system, nested card dashboard, global state
+for page-local behavior, a mutation path, or an in-product control for
+ingestion, migration, backfill, paging, or scheduling.
 
 ## ADDED Requirements
+
+### Requirement: Preserve the minimal V2 Compra Ágil browse contract
+
+The system MUST preserve `nombre`, `institucion.organismo_comprador`, nested
+state, `fechas.fecha_publicacion`, and `fechas.fecha_cierre` from V2 provider
+evidence through staging, canonical, Compra Ágil gold materialization, and the
+typed browse GraphQL contract. Compra Ágil gold materialization MUST NOT
+hard-code `NULL` for one of those represented values.
+
+#### Scenario: Browse fields reach GraphQL
+- **WHEN** a retained or newly fetched V2 list record contains title, buyer
+  name, nested state, publication, and closing values
+- **THEN** the corresponding non-null normalized values survive raw evidence,
+  staging, canonical, and gold materialization into the detected-process list
+- **AND** a backfill never replaces a non-null canonical value with null
+
+#### Scenario: Schema recovery is safe
+- **WHEN** the V2 browse persistence schema is extended
+- **THEN** the existing registered date command is applied through the
+  supported instance-command workflow before a new V2 ingestion run
+- **AND** new browse fields are added through a separate immutable instance
+  command with both `up` and `down`
+
+### Requirement: Expose typed current V2 fields through process detail
+
+The Compra Ágil process-detail query MUST map the latest retained raw list
+record for the requested code into a typed detail object. It MUST expose the
+currently observed V2 fields not needed by browse: source state code/label/ID,
+additional dates, source monetary values, reasons, offer count, document ID/
+name pairs, institution fields, convocatoria, and the relative source-detail
+path. The browser MUST NOT receive `raw_api_payload`, and opening detail MUST
+NOT call the provider.
+
+The latest retained record is the one with greatest `fecha_ultimo_cambio`; if
+that value is absent or tied, the system MUST use greatest `fetched_at`.
+`institucion.rut` remains a detail-only buyer RUT and MUST NOT be stored or
+exposed as a V1-style `buyer_code`. `links.detalle` is a non-clickable text
+reference, and documents expose only their observed ID and name. Provider
+fields introduced after this contract remain raw evidence until a later change
+explicitly types them.
+
+#### Scenario: Detail uses retained evidence
+- **WHEN** a user opens a Compra Ágil process detail and a retained list record
+  exists for that code
+- **THEN** GraphQL returns the typed current V2 detail object selected by the
+  documented recency rule
+- **AND** the provider is not called and raw JSON is not returned to the
+  browser
+
+#### Scenario: Detail-only null values
+- **WHEN** an observed detail-only provider field is null or absent
+- **THEN** the typed field is null and the UI renders `No informado`
+- **AND** the system does not synthesize a replacement value
+
+### Requirement: Discover all declared V2 Compra Ágil pages within the cap
+
+The V2 Compra Ágil list runner MUST request pages sequentially through the
+provider-declared final page, subject to
+`MP_COMPRA_AGIL_MAX_PAGES=250`. It MUST retain one raw request/response
+evidence record per requested page. Ingestion remains CLI-only and deployment
+documentation defines a daily operator run; no scheduler, GraphQL operation,
+or UI control is added.
+
+#### Scenario: Declared pages are retained
+- **WHEN** the provider declares and serves no more than 250 pages
+- **THEN** the runner requests every declared page sequentially and retains
+  each page's raw evidence and normalized browse records
+
+#### Scenario: Cap-reached run is partial
+- **WHEN** the provider declares more than 250 pages
+- **THEN** the runner stops after page 250 and job evidence marks the run
+  partial rather than provider-complete
+- **AND** no health, browse, or job result claims provider-total completeness
 
 ### Requirement: Expose Mercado Público reads through core GraphQL
 
@@ -34,13 +109,17 @@ write, trigger, scheduler, or retry path.
   (`processTypes`, `states`, exact `buyerCode`, `publishedFrom`/`To`,
   `changedSince`, `sort`) and `page`/`limit`
 - **THEN** the resolver returns `items`, `page`, `limit`, and `total`
-  from the existing `MercadoPublicoDetectedProcessReadService`
+  from the `MercadoPublicoDetectedProcessReadService`
+- **AND** each Compra Ágil item exposes only the compact browse fields defined
+  by this specification
 
 #### Scenario: Process detail
 - **WHEN** a client queries a process detail by type and code
 - **THEN** the resolver returns items, adjudications, related OCs, source
   lineage, and reconciliation summary from the existing
   `MercadoPublicoProcessDetailReadService`
+- **AND** a Compra Ágil detail also includes the typed retained-raw detail
+  object when evidence exists
 
 #### Scenario: No write surface
 - **WHEN** a client attempts any mutation on Mercado Público
@@ -115,15 +194,22 @@ fixed to licitaciones. Both lists are filtered only by contract-backed fields:
 state, exact buyer code, publication range, changed-since, and sort. Browse
 pagination MUST use `page`/`limit`/`total`. Compra Ágil supports its estado enum
 (`publicada|cerrada|desierta|cancelada|proveedor_seleccionado|oc_emitida`).
-This change MUST NOT add partial client-side search, a region filter, or fields
-absent from the DTO. Selecting a row MUST open the detail side panel without
-unmounting or resetting the list.
+This change MUST NOT add partial client-side search or a region filter.
+Compra Ágil detail-only V2 fields remain in the existing detail panel, not the
+list. Selecting a row MUST open that panel without unmounting or resetting the
+list.
 
 Visible controls MUST be **Estado**, **Publicada desde**, **Publicada hasta**,
 and **Orden**. **Más filtros** MUST contain **Código exacto de organismo** and
 **Último cambio desde**. The sort control MUST map only to the existing
 `lastSeenAt`, `publishedAt`, `closingAt`, `processCode`, and `canonicalState`
 keys and `asc|desc` directions. It MUST NOT imply relevance sorting.
+
+For Compra Ágil, the desktop table MUST render **Objeto**, **Organismo**,
+**Estado**, **Cierre**, **Publicada**, and **Código**, in that order. All other
+currently observed V2 fields are visible only after the user opens the
+existing detail side panel; no dense table, row-expansion component, or
+raw-JSON viewer is added.
 
 #### Scenario: Compra Ágil filters and pagination
 - **WHEN** the user applies state, publication range, or sort from the visible
@@ -163,7 +249,8 @@ keys and `asc|desc` directions. It MUST NOT imply relevance sorting.
 - **AND** an absent closing date renders `Cierre no informado`, not an empty
   or ambiguous cell
 - **AND** compact tablet/mobile presentation never hides object, state, and
-  closing date at the same time
+  closing date at the same time and retains access to all other observed V2
+  fields through the detail panel
 - **AND** `sourcePriority`, reconciliation state, and `lastSeenAt` remain
   secondary technical information rather than competing primary columns
 
@@ -173,7 +260,7 @@ keys and `asc|desc` directions. It MUST NOT imply relevance sorting.
   exposes the full value through the existing accessible overflow pattern
 - **WHEN** title is absent
 - **THEN** process code becomes the row's primary identity
-- **WHEN** buyer, publication date, or state is absent or unknown
+- **WHEN** any provider-backed Compra Ágil field is absent or unknown
 - **THEN** the corresponding value renders `No informado`
 
 #### Scenario: Row affordance and selection
@@ -195,9 +282,14 @@ keys and `asc|desc` directions. It MUST NOT imply relevance sorting.
 - **THEN** the side panel renders supplied content in this order: identity and
   textual state; buyer; publication and closing dates; items; adjudications;
   related OC code/state/match evidence; reconciliation counts; source lineage;
+  for Compra Ágil, typed **Datos de Compra Ágil** from retained evidence;
   technical source priority and last-seen data
 - **AND** null or empty sections say `Sin información` without inventing OC
   amount, award date, percentage confidence, or approval state
+- **AND** **Datos de Compra Ágil** renders the observed additional dates,
+  source monetary values, reasons, offer count, document ID/name pairs,
+  institution values, convocatoria, and non-clickable source-detail path when
+  the typed detail object exists
 - **AND** the sticky panel header exposes the title, code, textual state, and
   an accessible close control; Escape closes the panel, focus returns to
   the activating row, and the list's filters, page, selection, and scroll
@@ -211,6 +303,11 @@ keys and `asc|desc` directions. It MUST NOT imply relevance sorting.
 - **THEN** the field renders `Sin información`
 - **AND** related purchase orders never show an amount because the current DTO
   does not supply one
+- **WHEN** Compra Ágil retained evidence supplies `montos`
+- **THEN** its source currency and values are formatted as source values in
+  **Datos de Compra Ágil** without deriving a process total
+- **AND** the panel does not provide a document download or clickable external
+  source-detail link when the provider did not supply one
 - **AND** reconciliation, lineage, source priority, raw source state, and
   last-seen values are grouped under a collapsed `Información técnica`
   disclosure after operational sections

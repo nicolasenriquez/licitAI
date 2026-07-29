@@ -1,7 +1,7 @@
 ---
 type: change-tasks
 title: "Tasks: mercado-publico-command-center"
-description: "Tasks for the Mercado Publico command center read view."
+description: "Tasks for the Mercado Publico command center and source-to-read remediation."
 okf_version: "0.1"
 ---
 # Tasks: mercado-publico-command-center
@@ -27,6 +27,14 @@ okf_version: "0.1"
   use `limit/offset`; no unbounded scans, no gold writes.
   Traceability: locks the only new backend data access at the read-only seam.
 
+- [x] 0.4 Capture the V2 Compra Ágil provider-to-read diagnosis in
+  `runtime-diagnosis-2026-07-29.md`: retained V2 records contain title,
+  institution, nested state, dates, and region; staging/canonical/gold drop
+  those values; all successful list calls requested page 1; and the registered
+  date command remains unapplied locally.
+  Traceability: establishes the source-of-truth evidence and separates a
+  persistence defect from UI rendering or a missing buyer-reference join.
+
 ## 1. Contract Coverage (Failing First)
 
 - [x] 1.1 Add fail-first resolver integration coverage at the `/graphql` seam
@@ -50,6 +58,25 @@ okf_version: "0.1"
   previous/next pagination, keyboard detail focus, request-parameter
   redaction, and independent state handling.
   Traceability: proves reviewer-visible contracts before page components ship.
+
+- [ ] 1.5 Add a fail-first end-to-end V2 data-contract fixture that carries
+  `nombre`, institution buyer name, nested state, publication, and closing
+  through raw evidence, staging, canonical, gold, and the browse GraphQL
+  contract. Assert that a known value is never replaced with null.
+  Traceability: proves the smallest normalized repair rather than a UI-only
+  fallback.
+
+- [ ] 1.6 Add a fail-first detail fixture that selects the latest retained V2
+  raw record for a code (`fecha_ultimo_cambio`, then `fetched_at`) and maps its
+  observed fields into a typed GraphQL object. Assert no provider call, no
+  browser raw JSON, non-clickable source path, and document ID/name only.
+  Traceability: proves complete detail without persisting every field.
+
+- [ ] 1.7 Add a fail-first pagination fixture with at least two V2 provider
+  pages and a provider-declared page count over 250. Assert every declared page
+  through `MP_COMPRA_AGIL_MAX_PAGES=250` is requested and retained, and the
+  job marks the capped run partial rather than complete.
+  Traceability: proves complete daily discovery within the operational guard.
 
 ## 2. Implementation
 
@@ -158,6 +185,54 @@ okf_version: "0.1"
   Traceability: makes the specified product surface production-ready without
   asserting wireframe-only WCAG conformance.
 
+### Source-to-read remediation
+
+- [ ] 2.15 Verify and apply the already-registered V2 date instance command
+  through the supported upgrade workflow in the intended environment before a
+  new V2 ingestion run; record the applied version and do not run it from the
+  UI.
+  Traceability: satisfies the live schema precondition without adding a public
+  migration surface.
+
+- [ ] 2.16 Add an immutable instance command with `up` and `down` for the V2
+  browse fields missing from staging/canonical: title and buyer name, plus any
+  necessary canonical support for normalized state and browse dates. Preserve
+  the existing date command rather than editing it.
+  Traceability: creates an auditable, reversible schema path for the provider
+  contract.
+
+- [ ] 2.17 Extend V2 extraction and persistence only for browse title, buyer
+  name, normalized state, publication, and closing; extend Compra Ágil gold
+  materialization and typed browse reads so represented values are no longer
+  hard-coded to `NULL`.
+  Traceability: repairs the exact loss point for browse data.
+
+- [ ] 2.18 Add a typed server-side Compra Ágil detail adapter over the latest
+  retained raw list record for the selected code. Return the observed current
+  V2 fields, with source path as text and documents as ID/name pairs only; do
+  not add a generic JSON response or a provider call on panel open.
+  Traceability: reuses retained evidence and the existing side-panel seam.
+
+- [ ] 2.19 Reprocess retained V2 raw payloads through an idempotent backfill.
+  Fill missing normalized values, including the known historical nested-state
+  rows, without overwriting a non-null canonical value with null; retain raw
+  provenance and job evidence.
+  Traceability: repairs existing rows safely rather than only future ingests.
+
+- [ ] 2.20 Extend V2 list orchestration to fetch every provider-declared page
+  sequentially through `MP_COMPRA_AGIL_MAX_PAGES=250`, retain one raw evidence
+  record per page, and mark a cap-reached run partial. Document the daily
+  deployment-operated CLI run; add no scheduler or UI control.
+  Traceability: makes the observed page-one-only snapshot recoverable while
+  preserving the CLI-only boundary.
+
+- [ ] 2.21 Extend the existing Compra Ágil detail side panel and GraphQL
+  documents/codegen to render the typed raw-detail object: additional dates,
+  amounts, offers, reasons, documents, institution, convocatoria, and source
+  reference. Keep the compact browse table unchanged.
+  Traceability: makes all observed current V2 fields visible without a dense
+  grid or a new component family.
+
 ## 3. Verification
 
 - [ ] 3.1 Run focused resolver integration tests at the `/graphql` seam
@@ -181,15 +256,26 @@ okf_version: "0.1"
   `npx nx typecheck twenty-server`, `npx nx typecheck twenty-front`.
   Traceability: closes the package quality gates for both surfaces.
 
+- [ ] 3.5 Run the V2 browse, typed-detail, and pagination fixtures against the
+  migration-ready schema. Verify normalized browse values, latest-raw detail
+  precedence, no provider call on panel open, document/source-reference
+  boundaries, retention through page 250, cap-partial status, and idempotent
+  historical-state repair.
+  Traceability: proves the diagnosed runtime defect is closed end-to-end.
+
 ## 4. Release Hygiene and Closeout
 
 - [ ] 4.1 Update `CHANGELOG.md` only when the slice is ready to ship.
   Traceability: release traceability belongs after implementation and
   verification.
 
-- [ ] 4.2 Update user/operational docs only where shipped behavior changed
-  (new view + nav item); do not document ingestion internals out of scope.
-  Traceability: keeps docs aligned with the read-only shipped surface.
+- [ ] 4.2 Update user/operational docs where shipped behavior changed (new
+  view + nav item) and preserve the compact-table/detail mapping,
+  `MP_COMPRA_AGIL_MAX_PAGES=250` partial-run semantics, daily CLI cadence,
+  backfill procedure, and schema-precondition evidence for operators. Do not
+  expose those operations as product UI controls.
+  Traceability: keeps the read-only surface and CLI-only recovery path
+  discoverable without broadening authority.
 
 - [ ] 4.3 Run `openspec validate mercado-publico-command-center` and confirm
   proposal, design, spec, and tasks remain aligned before any later
@@ -199,31 +285,36 @@ okf_version: "0.1"
 ## Execution Order
 
 ### Slice 0 — Scope lock
-- Tasks: `0.1 -> 0.2 -> 0.3`
+- Tasks: `0.1 -> 0.2 -> 0.3 -> 0.4`
 - Checkpoint: read service DTOs verified, route/redirect seam verified,
-  read-query bounds verified.
+  read-query bounds and source-to-read evidence verified.
 - Blocks: Slices 1, 2.
 
 ### Slice 1 — Resolver contract (failing first)
-- Tasks: `1.1 -> 1.2 -> 1.3 -> 1.4`
-- Checkpoint: every query has a failing proof at the `/graphql` seam.
+- Tasks: `1.1 -> 1.2 -> 1.3 -> 1.4 -> 1.5 -> 1.6 -> 1.7`
+- Checkpoint: every query plus the V2 browse, typed-detail, and full-page
+  contracts have a failing proof at the appropriate seam.
 - Blocked by: Slice 0.
 - Blocks: Slice 2-backend.
 
 ### Slice 2 — Implementation
+- Schema/source: `2.15 -> 2.16 -> 2.17 -> 2.18 -> 2.19 -> 2.20`
 - Backend: `2.1 -> 2.2 -> 2.3`
 - Front data: `2.4 -> 2.5`
 - Front route/nav: `2.6 -> 2.7 -> 2.8`
-- Front views: `2.9 -> 2.10 -> 2.11 -> 2.12`
+- Front views: `2.9 -> 2.10 -> 2.11 -> 2.12 -> 2.21`
 - Quality: `2.13 -> 2.14`
-- Checkpoint: resolver ships; front module wires data, route, views; i18n
-  passes.
-- Blocked by: Slice 1 (backend), Slice 0 (frontend registration).
+- Checkpoint: migration-ready schema, compact normalized browse, typed raw
+  detail, full bounded discovery, resolver, and front module agree on one read
+  contract.
+- Blocked by: Slice 1; existing date command is a precondition for V2
+  ingestion/backfill work.
 - Blocks: Slice 3.
 
 ### Slice 3 — Verification
-- Tasks: `3.1 -> 3.2 -> 3.3 -> 3.4`
-- Checkpoint: contract proof + UI proof + quality gates green.
+- Tasks: `3.1 -> 3.2 -> 3.3 -> 3.4 -> 3.5`
+- Checkpoint: browse/detail/page-completeness proof, UI proof, and quality
+  gates green.
 - Blocked by: Slice 2.
 - Blocks: Slice 4.
 
