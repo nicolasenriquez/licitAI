@@ -280,6 +280,13 @@ The system SHALL record every ingestion job with traceability fields required fo
 - **WHEN** a CSV ingestion job runs
 - **THEN** the system stores source file metadata, profiling outcomes, quotechar, column count, row counters, parse counters, checksum, schema fingerprint, and error summary
 
+#### Scenario: Reconciliation job metadata is persisted
+
+- **WHEN** `reconciliation-refresh` runs from a command or schedule
+- **THEN** the system creates and finalizes an `mp.stg_job_run` record
+- **AND** the record stores success or failed status, timestamps, and a classified error summary when failed
+- **AND** counters remain null unless real reconciliation metrics exist
+
 ### Requirement: Idempotent Reruns
 
 The system SHALL support safe reruns without duplicating raw, canonical, or reconciliation data.
@@ -364,7 +371,7 @@ The system SHALL use typed Twenty config variables for Mercado Publico runtime c
 
 ### Requirement: Manual Execution And Run Observability
 
-The system SHALL support manual phase-1 execution and expose run observability without requiring scheduled automation.
+The system SHALL support manual phase-1 execution and scheduled reconciliation while exposing run observability without requiring scheduled ingestion.
 
 #### Scenario: Supported processes are manually triggerable in phase 1
 
@@ -372,21 +379,27 @@ The system SHALL support manual phase-1 execution and expose run observability w
 - **THEN** the system executes it through the existing backend job infrastructure
 - **AND** it records a traceable job run outcome
 
+#### Scenario: Reconciliation is scheduled internally
+
+- **WHEN** the daily Mercado Público scheduler fires
+- **THEN** it enqueues `reconciliation-refresh` through the existing domain queue
+- **AND** API, CSV, and ingestion jobs remain manually triggerable only
+
 #### Scenario: Phase-1 execution surface remains internal
 
-- **WHEN** manual phase-1 execution is implemented
+- **WHEN** manual or scheduled phase-1 execution is implemented
 - **THEN** the change does not add a new public GraphQL, REST, or MCP execution surface
 - **AND** the execution model remains internal to `twenty-server`
 
-#### Scenario: Pipeline health reflects real run history without fixed scheduler cadence
+#### Scenario: Pipeline health reflects real run history
 
 - **WHEN** the system reports pipeline health
 - **THEN** it reports latest run status, last success timestamp, last failure timestamp, and lag since last success
-- **AND** it does not require fixed scheduled cadence in phase 1
+- **AND** reconciliation run history is available without fabricated counters
 
 ### Requirement: Minimum Job Surface
 
-The system SHALL include API V1 date/state/detail jobs, API V2 Compra Agil jobs, CSV jobs, and reconciliation refresh in this phase as manually invocable processes.
+The system SHALL include API V1 date/state/detail jobs, API V2 Compra Agil jobs, CSV jobs, and reconciliation refresh in this phase as manually invocable processes, with reconciliation refresh also available through the internal daily scheduler.
 
 #### Scenario: Minimum operational job surface is present
 
@@ -407,6 +420,7 @@ The system SHALL include API V1 date/state/detail jobs, API V2 Compra Agil jobs,
   - `csv-raw-load`
   - `csv-canonical-refresh`
   - `reconciliation-refresh`
+- **AND** `reconciliation-refresh` is registered as a daily internal cron
 
 ### Requirement: Fixtures For Safe Implementation
 
