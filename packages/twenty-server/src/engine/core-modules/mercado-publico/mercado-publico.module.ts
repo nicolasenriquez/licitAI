@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { TokenModule } from 'src/engine/core-modules/auth/token/token.module';
 import { MercadoPublicoRunCommand } from 'src/engine/core-modules/mercado-publico/commands/mercado-publico-run.command';
 import { MercadoPublicoReconciliationCronCommand } from 'src/engine/core-modules/mercado-publico/crons/commands/mercado-publico-reconciliation.cron.command';
 import { MercadoPublicoApiV1LicitacionesClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-licitaciones-client.service';
@@ -40,9 +41,10 @@ import { MercadoPublicoJobRunReadService } from 'src/engine/core-modules/mercado
 import { MercadoPublicoReconciliationService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-reconciliation.service';
 import { MercadoPublicoRawCsvFileReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-raw-csv-file-read.service';
 import { MercadoPublicoQuotaTrackerService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-quota-tracker.service';
+import { WorkspaceCacheStorageModule } from 'src/engine/workspace-cache-storage/workspace-cache-storage.module';
 
 @Module({
-  imports: [SecureHttpClientModule],
+  imports: [SecureHttpClientModule, TokenModule, WorkspaceCacheStorageModule],
   controllers: [MercadoPublicoRawCsvFileController],
   providers: [
     MercadoPublicoConfigService,

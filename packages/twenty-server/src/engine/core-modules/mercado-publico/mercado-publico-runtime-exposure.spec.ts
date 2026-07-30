@@ -21,5 +21,14 @@ describe('MercadoPublico runtime exposure', () => {
     );
     expect(jobsModuleSource).not.toContain('MercadoPublicoModule');
     expect(mercadoPublicoModuleSource).toContain('MercadoPublicoRunCommand');
+    expect(mercadoPublicoModuleSource).toContain(
+      "import { TokenModule } from 'src/engine/core-modules/auth/token/token.module';",
+    );
+    expect(mercadoPublicoModuleSource).toContain(
+      "import { WorkspaceCacheStorageModule } from 'src/engine/workspace-cache-storage/workspace-cache-storage.module';",
+    );
+    expect(mercadoPublicoModuleSource).toMatch(
+      /imports:\s*\[[\s\S]*SecureHttpClientModule,[\s\S]*TokenModule,[\s\S]*WorkspaceCacheStorageModule/u,
+    );
   });
 });
