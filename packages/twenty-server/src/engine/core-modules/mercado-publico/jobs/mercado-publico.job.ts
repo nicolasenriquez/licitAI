@@ -1,4 +1,5 @@
 import { BadRequestException, Logger } from '@nestjs/common';
+import { UnrecoverableError } from 'bullmq';
 
 import { Process } from 'src/engine/core-modules/message-queue/decorators/process.decorator';
 import { Processor } from 'src/engine/core-modules/message-queue/decorators/processor.decorator';
@@ -34,11 +35,23 @@ export class MercadoPublicoJob {
         data.payload,
       );
     } catch (error) {
-      if (
-        error instanceof BadRequestException ||
-        (error instanceof MercadoPublicoRecordedJobFailureError &&
-          !error.retryable)
-      ) {
+      if (error instanceof MercadoPublicoRecordedJobFailureError) {
+        if (error.disposition === 'fail') {
+          throw new UnrecoverableError(error.message);
+        }
+
+        if (error.disposition === 'retry') {
+          throw error;
+        }
+
+        this.logger.warn(
+          `Mercado Publico job "${data.jobName}" completed without retry: ${error.message}`,
+        );
+
+        return;
+      }
+
+      if (error instanceof BadRequestException) {
         this.logger.warn(
           `Mercado Publico job "${data.jobName}" completed without retry: ${error.message}`,
         );

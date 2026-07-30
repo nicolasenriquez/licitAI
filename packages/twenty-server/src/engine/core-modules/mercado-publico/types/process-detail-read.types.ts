@@ -33,6 +33,35 @@ export type MercadoPublicoProcessDetailReconciliationSummary = {
   manualReviewRequired: number;
 };
 
+export type MercadoPublicoCompraAgilSourceDetail = {
+  sourcePath: string | null;
+  state: { id: string | null; code: string | null; label: string | null };
+  additionalDates: {
+    lastChangedAt: string | null;
+    firstCallClosingAt: string | null;
+    secondCallClosingAt: string | null;
+  };
+  amounts: {
+    currency: string | null;
+    available: number | null;
+    availableClp: number | null;
+  };
+  reasons: {
+    deserted: string | null;
+    selection: string | null;
+    cancellation: string | null;
+  };
+  offersReceived: number | null;
+  documents: { id: string; name: string | null }[];
+  institution: {
+    rut: string | null;
+    regionName: string | null;
+    purchaseUnit: string | null;
+    buyerName: string | null;
+  };
+  call: { description: string | null; state: string | null };
+};
+
 export type MercadoPublicoDetectedProcessDetail = {
   processType: MercadoPublicoDetectedProcessType;
   processCode: string;
@@ -55,6 +84,7 @@ export type MercadoPublicoDetectedProcessDetail = {
   relatedOcs: MercadoPublicoProcessDetailRelatedOc[];
   sourceLineage: MercadoPublicoProcessDetailSourceLineageEntry[];
   reconciliationSummary: MercadoPublicoProcessDetailReconciliationSummary;
+  compraAgilSource: MercadoPublicoCompraAgilSourceDetail | null;
   sourcePriority: string | null;
   lastSeenAt: Date;
 };

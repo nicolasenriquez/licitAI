@@ -16,6 +16,7 @@ export type MercadoPublicoRuntimeConfig = {
   csvOrdenesDeCompraSourceUrl?: string;
   csvLicitacionesSourceUrl?: string;
   csvDownloadEnabled: boolean;
+  compraAgilMaxPages?: number;
 };
 
 @Injectable()
@@ -60,6 +61,9 @@ export class MercadoPublicoConfigService {
       ),
       csvDownloadEnabled: this.twentyConfigService.get(
         'MERCADO_PUBLICO_CSV_DOWNLOAD_ENABLED',
+      ),
+      compraAgilMaxPages: this.twentyConfigService.get(
+        'MP_COMPRA_AGIL_MAX_PAGES',
       ),
     };
   }

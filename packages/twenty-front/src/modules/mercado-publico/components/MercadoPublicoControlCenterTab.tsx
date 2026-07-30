@@ -3,6 +3,8 @@ import { useMercadoPublicoApiQuotaUsage } from '@/mercado-publico/hooks/useMerca
 import { useMercadoPublicoCsvFileHealth } from '@/mercado-publico/hooks/useMercadoPublicoCsvFileHealth';
 import { useMercadoPublicoJobRuns } from '@/mercado-publico/hooks/useMercadoPublicoJobRuns';
 import { useMercadoPublicoPipelineHealth } from '@/mercado-publico/hooks/useMercadoPublicoPipelineHealth';
+import { REACT_APP_SERVER_BASE_URL } from '~/config';
+import { type MercadoPublicoJobRunStatus } from '~/generated/graphql';
 import {
   getMercadoPublicoFreshnessLabel,
   getMercadoPublicoStatusColor,
@@ -150,7 +152,10 @@ export const MercadoPublicoControlCenterTab = () => {
   const [jobRunsOffset, setJobRunsOffset] = useState(0);
   const [apiCallLogOffset, setApiCallLogOffset] = useState(0);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  const [jobStatus, setJobStatus] = useState('');
+  const [jobName, setJobName] = useState('');
+  const [jobStatus, setJobStatus] = useState<MercadoPublicoJobRunStatus | ''>(
+    '',
+  );
   const [apiSource, setApiSource] = useState('');
   const [apiEndpoint, setApiEndpoint] = useState('');
   const [apiHttpStatus, setApiHttpStatus] = useState('');
@@ -162,7 +167,8 @@ export const MercadoPublicoControlCenterTab = () => {
     {
       limit: INVESTIGATION_LIMIT,
       offset: jobRunsOffset,
-      statuses: jobStatus ? [jobStatus as never] : undefined,
+      jobName: jobName.trim() || undefined,
+      statuses: jobStatus === '' ? undefined : [jobStatus],
     },
     { skip: !isJobRuns },
   );
@@ -188,7 +194,7 @@ export const MercadoPublicoControlCenterTab = () => {
           const freshness = job.freshness?.toLowerCase();
 
           if (
-            ['failed', 'param_error', 'retryable_failed'].includes(
+            ['partial', 'failed', 'param_error', 'retryable_failed'].includes(
               status ?? '',
             ) ||
             ['degraded', 'stale'].includes(freshness ?? '')
@@ -377,22 +383,41 @@ export const MercadoPublicoControlCenterTab = () => {
           />
         </div>
         {isJobRuns ? (
-          <label htmlFor="mercado-publico-job-status">
-            {t`Estado`}
-            <select
-              id="mercado-publico-job-status"
-              onChange={(event) => {
-                setJobStatus(event.target.value);
-                setJobRunsOffset(0);
-              }}
-              value={jobStatus}
-            >
-              <option value="">{t`Todos`}</option>
-              <option value="success">{t`Correcta`}</option>
-              <option value="failed">{t`Fallida`}</option>
-              <option value="skipped">{t`Omitida`}</option>
-            </select>
-          </label>
+          <div>
+            <label htmlFor="mercado-publico-job-name">
+              {t`Trabajo`}
+              <input
+                id="mercado-publico-job-name"
+                onChange={(event) => {
+                  setJobName(event.target.value);
+                  setJobRunsOffset(0);
+                }}
+                value={jobName}
+              />
+            </label>
+            <label htmlFor="mercado-publico-job-status">
+              {t`Estado`}
+              <select
+                id="mercado-publico-job-status"
+                onChange={(event) => {
+                  setJobStatus(
+                    event.target.value as MercadoPublicoJobRunStatus | '',
+                  );
+                  setJobRunsOffset(0);
+                }}
+                value={jobStatus}
+              >
+                <option value="">{t`Todos`}</option>
+                <option value="success">{t`Correcta`}</option>
+                <option value="partial">{t`Parcial`}</option>
+                <option value="failed">{t`Fallida`}</option>
+                <option value="soft_miss">{t`Sin resultados`}</option>
+                <option value="param_error">{t`Parámetros inválidos`}</option>
+                <option value="retryable_failed">{t`Reintentable`}</option>
+                <option value="skipped">{t`Omitida`}</option>
+              </select>
+            </label>
+          </div>
         ) : (
           <div>
             <label htmlFor="mercado-publico-api-source">
@@ -503,7 +528,15 @@ export const MercadoPublicoControlCenterTab = () => {
                             {t`Ejecución`}: {run.jobRunId} · {t`Canonizados`}:{' '}
                             {formatCount(run.recordsCanonicalized)} ·{' '}
                             {t`Fallidos`}: {formatCount(run.recordsFailed)} ·{' '}
-                            {run.rawCsvFileId ?? t`Sin archivo CSV`}
+                            {run.rawCsvFileId ? (
+                              <a
+                                href={`${REACT_APP_SERVER_BASE_URL}/mercado-publico/raw-csv-files/${encodeURIComponent(run.rawCsvFileId)}`}
+                              >
+                                {t`Descargar CSV`}
+                              </a>
+                            ) : (
+                              t`Sin archivo CSV`
+                            )}
                           </td>
                         </tr>
                       ) : null}

@@ -244,6 +244,34 @@ describe('MercadoPublicoCommandCenterPage', () => {
                 unmatched: 0,
                 manualReviewRequired: 0,
               },
+              compraAgilSource: {
+                sourcePath: '/v2/compra-agil/CA-001',
+                state: { id: '2', code: 'publicada', label: 'Publicada' },
+                additionalDates: {
+                  lastChangedAt: '2025-06-20T00:00:00.000Z',
+                  firstCallClosingAt: null,
+                  secondCallClosingAt: null,
+                },
+                amounts: {
+                  currency: 'CLP',
+                  available: 1000000,
+                  availableClp: 1000000,
+                },
+                reasons: {
+                  deserted: null,
+                  selection: 'Mejor oferta',
+                  cancellation: null,
+                },
+                offersReceived: 3,
+                documents: [{ id: 'DOC-1', name: 'Bases.pdf' }],
+                institution: {
+                  rut: '60.000.000-0',
+                  regionName: 'Metropolitana',
+                  purchaseUnit: 'Abastecimiento',
+                  buyerName: 'Organismo',
+                },
+                call: { description: 'Primer llamado', state: 'abierta' },
+              },
               sourcePriority: 'api-v2-compra-agil',
               lastSeenAt: '2025-06-20T00:00:00.000Z',
             },
@@ -252,7 +280,7 @@ describe('MercadoPublicoCommandCenterPage', () => {
       },
     ];
 
-    const { container, queryByText } = render(
+    const { container, queryAllByText, queryByText } = render(
       <MercadoPublicoCommandCenterPage />,
       { wrapper: createWrapper(mocks, ['/mercado-publico#compra-agil']) },
     );
@@ -275,6 +303,15 @@ describe('MercadoPublicoCommandCenterPage', () => {
         );
 
         expect(closeButton).not.toBeNull();
+        expect(queryByText(/Datos de Compra Ágil/i)).toBeInTheDocument();
+        expect(queryByText(/Metropolitana/i)).toBeInTheDocument();
+        expect(queryAllByText(/Primer llamado/i).length).toBeGreaterThan(0);
+        expect(queryByText(/Mejor oferta/i)).toBeInTheDocument();
+        expect(queryByText(/DOC-1 · Bases\.pdf/i)).toBeInTheDocument();
+        expect(queryByText(/\/v2\/compra-agil\/CA-001/)).toBeInTheDocument();
+        expect(
+          container.querySelector('a[href="/v2/compra-agil/CA-001"]'),
+        ).toBeNull();
       });
 
       const closeButton = container.querySelector(

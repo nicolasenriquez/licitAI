@@ -19,7 +19,7 @@ const readVariable = (
 ): string | undefined => {
   const escapedName = variableName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const match = new RegExp(
-    `${escapedName}:\\s*([\\s\\S]*?);\\s*(?=--t-|\\})`,
+    `${escapedName}:\\s*([\\s\\S]*?);\\s*(?=--t-|\\}|$)`,
   ).exec(css);
   return match?.[1] ? normalize(match[1]) : undefined;
 };
@@ -86,6 +86,27 @@ const legacyVariables = [
   '--t-spacing-multiplicator',
 ];
 
+export const getLegacyParityVariableError = (
+  mode: 'dark' | 'light',
+  variableName: string,
+  legacyValue: string | undefined,
+  generatedValue: string | undefined,
+): string | undefined => {
+  if (legacyValue === undefined) {
+    return `${mode} legacy CSS is missing ${variableName}`;
+  }
+
+  if (generatedValue === undefined) {
+    return `${mode} generated CSS is missing ${variableName}`;
+  }
+
+  if (legacyValue !== generatedValue) {
+    return `${mode} ${variableName} changed from ${legacyValue} to ${generatedValue}`;
+  }
+
+  return undefined;
+};
+
 export const checkLegacyParity = (): readonly string[] => {
   const registry = compileTokenRegistry(tokenRecords);
   const errors: string[] = [];
@@ -101,15 +122,15 @@ export const checkLegacyParity = (): readonly string[] => {
       const legacyValue = readVariable(css, variableName);
       const generatedValue = readVariable(generated, variableName);
 
-      if (legacyValue === undefined) {
-        errors.push(`${mode} legacy CSS is missing ${variableName}`);
-      } else if (
-        generatedValue !== undefined &&
-        legacyValue !== generatedValue
-      ) {
-        errors.push(
-          `${mode} ${variableName} changed from ${legacyValue} to ${generatedValue}`,
-        );
+      const error = getLegacyParityVariableError(
+        mode,
+        variableName,
+        legacyValue,
+        generatedValue,
+      );
+
+      if (error) {
+        errors.push(error);
       }
     }
   }

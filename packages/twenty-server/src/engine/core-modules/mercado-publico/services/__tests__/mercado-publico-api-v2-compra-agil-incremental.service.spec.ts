@@ -1,6 +1,7 @@
 import { MercadoPublicoApiV2CompraAgilIncrementalService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-v2-compra-agil-incremental.service';
 import { MercadoPublicoApiV2CompraAgilClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
+import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 
@@ -130,6 +131,37 @@ describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
         expect.objectContaining({
           cambio_desde: '2026-06-01T00:00:00Z',
           cambio_hasta: '2026-06-30T00:00:00Z',
+        }),
+      );
+    });
+
+    it('should record partial completion when the configured page cap is reached', async () => {
+      const cappedService = new MercadoPublicoApiV2CompraAgilIncrementalService(
+        clientService,
+        {
+          refreshV2CompraAgilFromApiSnapshot: jest.fn().mockResolvedValue(0),
+        } as unknown as MercadoPublicoCanonicalRefreshService,
+        persistenceService,
+        {
+          getSettings: () => ({ compraAgilMaxPages: 1 }),
+        } as unknown as MercadoPublicoConfigService,
+      );
+      clientService.getList.mockResolvedValue({
+        ...mockApiSuccessResponse,
+        pagination: {
+          page: 1,
+          pageSize: 3,
+          totalPages: 2,
+          totalResults: 6,
+        },
+      } as any);
+
+      await cappedService.run({ ttl_cambio_ms: 5000 });
+
+      expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'partial',
+          errorSummary: expect.stringContaining('partial:'),
         }),
       );
     });

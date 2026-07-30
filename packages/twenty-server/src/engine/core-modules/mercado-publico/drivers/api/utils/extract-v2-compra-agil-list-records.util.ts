@@ -1,6 +1,9 @@
 import { isNonEmptyString } from '@sniptt/guards';
 
-import { type MercadoPublicoApiV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/types/mercado-publico-api-v2-compra-agil-record.type';
+import {
+  type MercadoPublicoApiV2CompraAgilPagination,
+  type MercadoPublicoApiV2CompraAgilRecord,
+} from 'src/engine/core-modules/mercado-publico/drivers/api/types/mercado-publico-api-v2-compra-agil-record.type';
 import { coerceToNullableString } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/coerce-to-nullable-string.util';
 
 const PREFERRED_ARRAY_KEYS = [
@@ -125,6 +128,41 @@ const recursivelyExtractRecords = (
   return [];
 };
 
+export const findV2CompraAgilRawRecord = (
+  payload: unknown,
+  codigo: string,
+): MercadoPublicoApiV2CompraAgilRecord | null => {
+  if (isV2CompraAgilRecord(payload) && payload.codigo === codigo) {
+    return payload;
+  }
+
+  if (Array.isArray(payload)) {
+    for (const value of payload) {
+      const record = findV2CompraAgilRawRecord(value, codigo);
+
+      if (record !== null) {
+        return record;
+      }
+    }
+
+    return null;
+  }
+
+  if (!isObjectRecord(payload)) {
+    return null;
+  }
+
+  for (const value of Object.values(payload)) {
+    const record = findV2CompraAgilRawRecord(value, codigo);
+
+    if (record !== null) {
+      return record;
+    }
+  }
+
+  return null;
+};
+
 export const extractV2CompraAgilListRecords = (
   payload: unknown,
 ): MercadoPublicoApiV2CompraAgilRecord[] => {
@@ -139,4 +177,37 @@ export const extractV2CompraAgilListRecords = (
   }
 
   return [];
+};
+
+export const extractV2CompraAgilPagination = (
+  payload: unknown,
+): MercadoPublicoApiV2CompraAgilPagination | null => {
+  if (!isObjectRecord(payload)) {
+    return null;
+  }
+
+  const envelope = isObjectRecord(payload.payload) ? payload.payload : payload;
+  const pagination = isObjectRecord(envelope.paginacion)
+    ? envelope.paginacion
+    : null;
+
+  if (pagination === null) {
+    return null;
+  }
+
+  const page = coerceToNullableInteger(pagination.numero_pagina);
+  const pageSize = coerceToNullableInteger(pagination.tamano_pagina);
+  const totalPages = coerceToNullableInteger(pagination.total_paginas);
+  const totalResults = coerceToNullableInteger(pagination.total_resultados);
+
+  if (
+    page === null ||
+    pageSize === null ||
+    totalPages === null ||
+    totalResults === null
+  ) {
+    return null;
+  }
+
+  return { page, pageSize, totalPages, totalResults };
 };

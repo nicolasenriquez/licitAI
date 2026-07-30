@@ -211,6 +211,7 @@ describe('MercadoPublicoProcessDetailReadService (integration-shaped)', () => {
     store.register('stg_api_v1_orden_compra', []);
     store.register('stg_csv_orden_compra', []);
     store.register('stg_api_v2_compra_agil', []);
+    store.register('raw_api_payload', []);
   });
 
   it('returns null when gold row does not exist', async () => {
@@ -430,6 +431,29 @@ describe('MercadoPublicoProcessDetailReadService (integration-shaped)', () => {
         fetched_at: new Date('2026-06-22T12:00:00.000Z'),
       },
     ]);
+    store.register('raw_api_payload', [
+      {
+        id: 'raw-ca1',
+        source: 'api-v2-compra-agil',
+        codigo: 'CA1',
+        fetched_at: new Date('2026-06-22T12:00:00.000Z'),
+        raw_payload: {
+          payload: {
+            items: [
+              {
+                codigo: 'CA1',
+                estado: { codigo: 'publicada', glosa: 'Publicada' },
+                institucion: {
+                  rut: '60.000.000-0',
+                  organismo_comprador: 'Municipalidad Uno',
+                },
+                documentos: [{ id: 'DOC-1', nombre: 'Bases.pdf' }],
+              },
+            ],
+          },
+        },
+      },
+    ]);
 
     const dataSource = buildDataSource();
     const service = new MercadoPublicoProcessDetailReadService(dataSource);
@@ -444,5 +468,9 @@ describe('MercadoPublicoProcessDetailReadService (integration-shaped)', () => {
     expect(result!.items).toHaveLength(1);
     expect(result!.adjudications).toBeNull();
     expect(result!.sourceLineage.length).toBeGreaterThanOrEqual(0);
+    expect(result!.compraAgilSource).toMatchObject({
+      state: { code: 'publicada', label: 'Publicada' },
+      documents: [{ id: 'DOC-1', name: 'Bases.pdf' }],
+    });
   });
 });

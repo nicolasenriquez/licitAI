@@ -15,6 +15,8 @@ import { MpStgCsvLicitacionFastInstanceCommand } from 'src/database/commands/upg
 import { MpCanonicalLicitacionFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007860-mp-canonical-licitacion';
 import { MpCanonicalOrdenCompraFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007870-mp-canonical-orden-compra';
 import { MpCanonicalCompraAgilFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007880-mp-canonical-compra-agil';
+import { MpCompraAgilV2DatesFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1784100000000-mp-compra-agil-v2-dates';
+import { MpCompraAgilV2BrowseFieldsFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1785354861317-mp-compra-agil-v2-browse-fields';
 import { MpReconciliationPublicMarketEntitiesFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007890-mp-reconciliation-public-market-entities';
 import { MpReconciliationEventFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007900-mp-reconciliation-event';
 import { MpGoldReadObjectsFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007910-mp-gold-read-objects';
@@ -35,6 +37,13 @@ import {
   MERCADO_PUBLICO_RECONCILIATION_MATCH_CONFIDENCE_UNKNOWN,
 } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 import { MercadoPublicoReconciliationService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-reconciliation.service';
+import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
+import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
+import { MercadoPublicoDetectedProcessReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-detected-process-read.service';
+import { MercadoPublicoProcessDetailReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-process-detail-read.service';
+import { MercadoPublicoQueryResolver } from 'src/engine/core-modules/mercado-publico/mercado-publico-query.resolver';
+import { extractV2CompraAgilListRecords } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
+import { type MercadoPublicoApiV2CompraAgilListResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 
 const ALL_RECONCILIATION_TABLES = `
   mp.licitacion_adjudicacion,
@@ -93,6 +102,8 @@ const applyMercadoPublicoReconciliationCommands = async (
     await new MpCanonicalLicitacionFastInstanceCommand().up(queryRunner);
     await new MpCanonicalOrdenCompraFastInstanceCommand().up(queryRunner);
     await new MpCanonicalCompraAgilFastInstanceCommand().up(queryRunner);
+    await new MpCompraAgilV2DatesFastInstanceCommand().up(queryRunner);
+    await new MpCompraAgilV2BrowseFieldsFastInstanceCommand().up(queryRunner);
     await new MpReconciliationPublicMarketEntitiesFastInstanceCommand().up(
       queryRunner,
     );
@@ -1116,5 +1127,126 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
     );
 
     expect(Number(secondCount)).toBe(1);
+  });
+
+  it('carries V2 browse and latest retained detail through the GraphQL resolver contract', async () => {
+    const persistenceService = new MercadoPublicoPersistenceService(dataSource);
+    const canonicalService = new MercadoPublicoCanonicalRefreshService(dataSource);
+    const detectedReadService = new MercadoPublicoDetectedProcessReadService(
+      dataSource,
+    );
+    const detailReadService = new MercadoPublicoProcessDetailReadService(
+      dataSource,
+    );
+    const resolver = new MercadoPublicoQueryResolver(
+      detectedReadService,
+      detailReadService,
+      null as never,
+      null as never,
+      null as never,
+      null as never,
+      null as never,
+    );
+    const jobRun = await persistenceService.createJobRun(
+      'api-v2-compra-agil-by-publication-window',
+    );
+    const buildResponse = (
+      rawPayload: unknown,
+      fetchedAt: Date,
+      fingerprint: string,
+    ): MercadoPublicoApiV2CompraAgilListResponse => ({
+      endpoint: 'list',
+      source: 'api-v2-compra-agil',
+      requestParams: { numero_pagina: 1 },
+      requestFingerprint: fingerprint,
+      payloadChecksum: `checksum-${fingerprint}`,
+      schemaFingerprint: 'schema-v2',
+      httpStatus: 200,
+      fetchedAt,
+      rawPayload,
+      compraAgil: extractV2CompraAgilListRecords(rawPayload),
+      pagination: null,
+    });
+    const firstPayload = {
+      payload: {
+        items: [
+          {
+            codigo: 'CA-E2E-1',
+            nombre: 'Compra de insumos clínicos',
+            estado: { codigo: 'publicada', glosa: 'Publicada' },
+            fechas: {
+              fecha_publicacion: '2026-07-01T10:00:00-04:00',
+              fecha_cierre: '2026-07-31T15:00:00-04:00',
+              fecha_ultimo_cambio: '2026-07-10T12:00:00-04:00',
+            },
+            institucion: {
+              region: 13,
+              rut: '60.000.000-0',
+              organismo_comprador: 'Servicio de Salud Ejemplo',
+            },
+          },
+        ],
+      },
+    };
+    const secondPayload = {
+      payload: {
+        items: [
+          {
+            codigo: 'CA-E2E-1',
+            estado: { codigo: 'cerrada', glosa: 'Cerrada' },
+            fechas: {
+              fecha_ultimo_cambio: '2026-07-20T12:00:00-04:00',
+            },
+            documentos: [{ id: 42, nombre: 'Bases finales.pdf' }],
+            links: { detalle: '/v2/compra-agil/CA-E2E-1' },
+          },
+        ],
+      },
+    };
+
+    for (const [payload, fetchedAt, fingerprint] of [
+      [firstPayload, new Date('2026-07-10T16:00:00Z'), 'first'],
+      [secondPayload, new Date('2026-07-20T16:00:00Z'), 'second'],
+    ] as const) {
+      const persisted = await persistenceService.persistV2CompraAgilSnapshot({
+        jobRunRecordId: jobRun.id,
+        apiResponse: buildResponse(payload, fetchedAt, fingerprint),
+        snapshotKind: 'list',
+      });
+
+      await canonicalService.refreshV2CompraAgilFromApiSnapshot(
+        persisted.rawApiPayloadId,
+      );
+    }
+
+    await reconciliationService.refreshAllHeuristicReconciliation();
+
+    const browse = await resolver.mercadoPublicoDetectedProcesses({
+      processTypes: ['compra_agil'],
+      page: 1,
+      limit: 25,
+      sort: { key: 'closingAt', direction: 'asc' },
+    } as never);
+    const detail = await resolver.mercadoPublicoProcessDetail({
+      processType: 'compra_agil',
+      processCode: 'CA-E2E-1',
+    } as never);
+
+    expect(browse.items).toEqual([
+      expect.objectContaining({
+        processCode: 'CA-E2E-1',
+        title: 'Compra de insumos clínicos',
+        buyerName: 'Servicio de Salud Ejemplo',
+        canonicalState: 'cerrada',
+        publishedAt: new Date('2026-07-01T14:00:00.000Z'),
+        closingAt: new Date('2026-07-31T19:00:00.000Z'),
+      }),
+    ]);
+    expect(detail?.compraAgilSource).toMatchObject({
+      sourcePath: '/v2/compra-agil/CA-E2E-1',
+      state: { code: 'cerrada', label: 'Cerrada' },
+      documents: [{ id: '42', name: 'Bases finales.pdf' }],
+    });
+    expect(detail).not.toHaveProperty('rawPayload');
   });
 });

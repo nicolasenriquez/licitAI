@@ -631,14 +631,14 @@ export class MercadoPublicoReconciliationService {
           SELECT
             'compra_agil' AS process_type,
             codigo AS process_code,
-            NULL AS title,
+            title,
             estado AS canonical_state,
             NULL AS raw_state_code,
             NULL AS raw_state_label,
             NULL AS buyer_code,
-            NULL AS buyer_name,
-            NULL::timestamptz AS published_at,
-            NULL::timestamptz AS closing_at,
+            buyer_name,
+            fecha_publicacion AS published_at,
+            fecha_cierre AS closing_at,
             NULL AS source_priority,
             last_seen_at
           FROM mp.compra_agil

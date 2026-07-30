@@ -74,6 +74,7 @@ export class MercadoPublicoApiV1LicitacionesByStateService {
         throw new MercadoPublicoRecordedJobFailureError(
           errorSummaryText,
           apiResponse.errorSummary === 'retryable_failed',
+          apiResponse.errorSummary,
         );
       }
 

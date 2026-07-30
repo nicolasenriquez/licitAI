@@ -25,13 +25,13 @@ const assertSafeFileName = (value: string): void => {
   }
 };
 
-export const resolveCsvStorageTargetPath = async (
+export const resolveCsvStoragePath = (
   csvStorageRoot: string,
   dataset: string,
   period: string,
   sourceFileName: string,
   sourceModality?: string | null,
-): Promise<string> => {
+): string => {
   assertSafeSegment(dataset, 'source_dataset');
   assertPeriod(period);
   if (sourceModality !== undefined && sourceModality !== null) {
@@ -52,6 +52,24 @@ export const resolveCsvStorageTargetPath = async (
       `Resolved path escapes csvStorageRoot: "${resolved}" (root: "${rootResolved}")`,
     );
   }
+
+  return resolved;
+};
+
+export const resolveCsvStorageTargetPath = async (
+  csvStorageRoot: string,
+  dataset: string,
+  period: string,
+  sourceFileName: string,
+  sourceModality?: string | null,
+): Promise<string> => {
+  const resolved = resolveCsvStoragePath(
+    csvStorageRoot,
+    dataset,
+    period,
+    sourceFileName,
+    sourceModality,
+  );
 
   await fs.mkdir(path.dirname(resolved), { recursive: true });
 

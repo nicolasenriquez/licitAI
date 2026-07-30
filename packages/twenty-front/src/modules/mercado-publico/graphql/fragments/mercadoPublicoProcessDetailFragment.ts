@@ -46,6 +46,44 @@ export const MERCADO_PUBLICO_PROCESS_DETAIL_FRAGMENT = gql`
       unmatched
       manualReviewRequired
     }
+    compraAgilSource {
+      sourcePath
+      state {
+        id
+        code
+        label
+      }
+      additionalDates {
+        lastChangedAt
+        firstCallClosingAt
+        secondCallClosingAt
+      }
+      amounts {
+        currency
+        available
+        availableClp
+      }
+      reasons {
+        deserted
+        selection
+        cancellation
+      }
+      offersReceived
+      documents {
+        id
+        name
+      }
+      institution {
+        rut
+        regionName
+        purchaseUnit
+        buyerName
+      }
+      call {
+        description
+        state
+      }
+    }
     sourcePriority
     lastSeenAt
   }

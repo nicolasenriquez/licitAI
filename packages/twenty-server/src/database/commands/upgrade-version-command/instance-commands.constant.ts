@@ -100,6 +100,10 @@ import { MpStgJobRunAddSkippedStatusFastInstanceCommand } from 'src/database/com
 import { MpCompraAgilV2DatesFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1784100000000-mp-compra-agil-v2-dates';
 import { MpCompraAgilV2DatesBackfillSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1784100000010-mp-compra-agil-v2-dates-backfill';
 import { MpMonitoringReadIndexesFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1784200000000-mp-monitoring-read-indexes';
+import { MpCompraAgilV2BrowseFieldsFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1785354861317-mp-compra-agil-v2-browse-fields';
+import { MpCompraAgilV2BrowseBackfillSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1785354861318-mp-compra-agil-v2-browse-backfill';
+import { MpStgJobRunRawCsvFileLinkColumnFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1785354861319-mp-stg-job-run-raw-csv-file-link-column';
+import { MpStgJobRunAddPartialStatusFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1785354861320-mp-stg-job-run-add-partial-status';
 
 export const INSTANCE_COMMANDS = [
   AddViewFieldGroupIdIndexOnViewFieldFastInstanceCommand,
@@ -201,4 +205,8 @@ export const INSTANCE_COMMANDS = [
   MpCompraAgilV2DatesFastInstanceCommand,
   MpCompraAgilV2DatesBackfillSlowInstanceCommand,
   MpMonitoringReadIndexesFastInstanceCommand,
+  MpCompraAgilV2BrowseFieldsFastInstanceCommand,
+  MpCompraAgilV2BrowseBackfillSlowInstanceCommand,
+  MpStgJobRunRawCsvFileLinkColumnFastInstanceCommand,
+  MpStgJobRunAddPartialStatusFastInstanceCommand,
 ];

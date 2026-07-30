@@ -47,6 +47,8 @@ type MercadoPublicoApiV2CompraAgilStagingRow = {
   source: string;
   snapshot_kind: string;
   codigo: string;
+  title: string | null;
+  buyer_name: string | null;
   estado: string | null;
   id_orden_compra: string | null;
   id_oc: string | null;
@@ -332,6 +334,8 @@ export class MercadoPublicoCanonicalRefreshService {
           source,
           snapshot_kind,
           codigo,
+          title,
+          buyer_name,
           estado,
           id_orden_compra,
           id_oc,
@@ -364,6 +368,8 @@ export class MercadoPublicoCanonicalRefreshService {
       `
         INSERT INTO mp.compra_agil (
           codigo,
+          title,
+          buyer_name,
           estado,
           id_orden_compra,
           id_oc,
@@ -386,23 +392,29 @@ export class MercadoPublicoCanonicalRefreshService {
           $8,
           $9,
           $10,
+          $11,
+          $12,
           now()
         )
         ON CONFLICT (codigo) DO UPDATE
         SET
-          estado = COALESCE($2, mp.compra_agil.estado),
-          id_orden_compra = COALESCE($3, mp.compra_agil.id_orden_compra),
-          id_oc = COALESCE($4, mp.compra_agil.id_oc),
-          codigo_orden_compra = COALESCE($5, mp.compra_agil.codigo_orden_compra),
-          region = COALESCE($6, mp.compra_agil.region),
-          fecha_publicacion = COALESCE($7, mp.compra_agil.fecha_publicacion),
-          fecha_cierre = COALESCE($8, mp.compra_agil.fecha_cierre),
-          fecha_ultimo_cambio = COALESCE($9, mp.compra_agil.fecha_ultimo_cambio),
-          last_seen_at = GREATEST(mp.compra_agil.last_seen_at, $10),
+          title = COALESCE($2, mp.compra_agil.title),
+          buyer_name = COALESCE($3, mp.compra_agil.buyer_name),
+          estado = COALESCE($4, mp.compra_agil.estado),
+          id_orden_compra = COALESCE($5, mp.compra_agil.id_orden_compra),
+          id_oc = COALESCE($6, mp.compra_agil.id_oc),
+          codigo_orden_compra = COALESCE($7, mp.compra_agil.codigo_orden_compra),
+          region = COALESCE($8, mp.compra_agil.region),
+          fecha_publicacion = COALESCE($9, mp.compra_agil.fecha_publicacion),
+          fecha_cierre = COALESCE($10, mp.compra_agil.fecha_cierre),
+          fecha_ultimo_cambio = COALESCE($11, mp.compra_agil.fecha_ultimo_cambio),
+          last_seen_at = GREATEST(mp.compra_agil.last_seen_at, $12),
           updated_at = now()
       `,
       [
         stagingRow.codigo,
+        stagingRow.title,
+        stagingRow.buyer_name,
         stagingRow.estado,
         stagingRow.id_orden_compra,
         stagingRow.id_oc,

@@ -680,8 +680,10 @@ describe('MercadoPublicoReconciliationService', () => {
       const compraAgilSql = materializationSql.slice(
         materializationSql.indexOf("'compra_agil' AS process_type"),
       );
-      expect(compraAgilSql).toContain('NULL::timestamptz AS published_at');
-      expect(compraAgilSql).toContain('NULL::timestamptz AS closing_at');
+      expect(compraAgilSql).toContain('title');
+      expect(compraAgilSql).toContain('buyer_name');
+      expect(compraAgilSql).toContain('fecha_publicacion AS published_at');
+      expect(compraAgilSql).toContain('fecha_cierre AS closing_at');
       expect(materializationSql).toContain('BOOL_OR');
       expect(materializationSql).toContain('GROUP BY entity_type, entity_key');
       expect(materializationSql).toContain('LEFT JOIN status_by_entity');

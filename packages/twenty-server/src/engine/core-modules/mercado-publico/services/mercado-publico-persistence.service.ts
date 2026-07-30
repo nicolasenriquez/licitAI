@@ -665,6 +665,8 @@ export class MercadoPublicoPersistenceService {
               source,
               snapshot_kind,
               codigo,
+              title,
+              buyer_name,
               estado,
               id_orden_compra,
               id_oc,
@@ -683,7 +685,7 @@ export class MercadoPublicoPersistenceService {
               fetched_at
             )
           `,
-          20,
+          22,
         );
 
         for (const compraAgilItem of input.apiResponse.compraAgil) {
@@ -703,6 +705,10 @@ export class MercadoPublicoPersistenceService {
             input.apiResponse.source,
             input.snapshotKind,
             coerceToNullableString(compraAgilItem.codigo),
+            coerceToNullableString(compraAgilItem.nombre),
+            coerceToNullableString(
+              compraAgilItem.institucion?.organismo_comprador,
+            ),
             coerceToNullableString(compraAgilItem.estado),
             coerceToNullableString(ordenCompra?.id_orden_compra),
             coerceToNullableString(ordenCompra?.id_oc),

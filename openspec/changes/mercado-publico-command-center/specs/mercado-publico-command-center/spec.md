@@ -137,8 +137,9 @@ indexes MUST be installed by a fast instance migration.
 - **WHEN** a client queries job runs filtered by status and/or job name with
   pagination
 - **THEN** the resolver returns runs including the statuses
-  `success`, `failed`, `soft_miss`, `param_error`, `retryable_failed`, and
-  `skipped`, with `error_summary` available for expandable row detail
+  `success`, `partial`, `failed`, `soft_miss`, `param_error`,
+  `retryable_failed`, and `skipped`, with `error_summary` available for
+  expandable row detail
 
 #### Scenario: API call log
 - **WHEN** a client queries API calls filtered by `source`, `endpoint`, and/or
@@ -342,8 +343,8 @@ controls.
 - **THEN** compact rows show per `jobName` latest status, last success,
   last failure, failure count, lag, freshness, and expected cadence from
   `PipelineHealthRead`
-- **AND** rows needing attention (`failed`, `retryable_failed`, `param_error`,
-  degraded, stale, or unknown) appear before healthy rows while retaining
+- **AND** rows needing attention (`partial`, `failed`, `retryable_failed`,
+  `param_error`, degraded, stale, or unknown) appear before healthy rows while retaining
   their textual status
 - **AND** the section does not derive a health score or decorative KPI
 

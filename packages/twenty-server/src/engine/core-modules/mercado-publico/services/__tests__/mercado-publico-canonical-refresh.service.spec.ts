@@ -130,6 +130,8 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
             source: 'api-v2-compra-agil',
             snapshot_kind: 'list',
             codigo: 'CA-1',
+            title: 'Compra de insumos',
+            buyer_name: 'Municipalidad Uno',
             estado: 'publicada',
             id_orden_compra: 'OC-123',
             id_oc: null,
@@ -163,6 +165,8 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
       expect(upsertSql).toContain('INSERT INTO mp.compra_agil');
       expect(upsertParams).toEqual([
         'CA-1',
+        'Compra de insumos',
+        'Municipalidad Uno',
         'publicada',
         'OC-123',
         null,
@@ -183,6 +187,8 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
             source: 'api-v2-compra-agil',
             snapshot_kind: 'detail',
             codigo: 'CA-1',
+            title: null,
+            buyer_name: null,
             estado: null,
             id_orden_compra: null,
             id_oc: null,
@@ -209,14 +215,7 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
       const upsertParams = mockEntityManager.query.mock
         .calls[1]![1] as unknown[];
 
-      expect(upsertParams[1]).toBeNull();
-      expect(upsertParams[2]).toBeNull();
-      expect(upsertParams[3]).toBeNull();
-      expect(upsertParams[4]).toBeNull();
-      expect(upsertParams[5]).toBeNull();
-      expect(upsertParams[6]).toBeNull();
-      expect(upsertParams[7]).toBeNull();
-      expect(upsertParams[8]).toBeNull();
+      expect(upsertParams.slice(1, 11)).toEqual(Array(10).fill(null));
     });
   });
 

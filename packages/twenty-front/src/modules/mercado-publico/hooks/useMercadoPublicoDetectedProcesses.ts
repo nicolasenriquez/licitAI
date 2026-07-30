@@ -10,6 +10,7 @@ import {
   type MercadoPublicoDateInput,
   omitUndefinedMercadoPublicoVariables,
   serializeMercadoPublicoDate,
+  serializeMercadoPublicoDateEndOfDay,
 } from './mercadoPublicoQueryHelpers';
 
 export type UseMercadoPublicoDetectedProcessesVariables = Omit<
@@ -29,7 +30,10 @@ export const useMercadoPublicoDetectedProcesses = (
       {
         ...variables,
         publishedFrom: serializeMercadoPublicoDate(variables.publishedFrom),
-        publishedTo: serializeMercadoPublicoDate(variables.publishedTo),
+        publishedTo: serializeMercadoPublicoDateEndOfDay(
+          variables.publishedTo,
+          'America/Santiago',
+        ),
         changedSince: serializeMercadoPublicoDate(variables.changedSince),
       },
     );

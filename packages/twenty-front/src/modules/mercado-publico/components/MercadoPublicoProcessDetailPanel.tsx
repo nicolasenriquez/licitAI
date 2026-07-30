@@ -282,6 +282,120 @@ export const MercadoPublicoProcessDetailPanel = ({
                   {t`Cierre`}: {formatDate(detail.dates.closingAt)}
                 </div>
               </StyledSection>
+              {detail.compraAgilSource ? (
+                <StyledSection>
+                  <h2>{t`Datos de Compra Ágil`}</h2>
+                  <div>
+                    {t`Estado de origen`}:{' '}
+                    {detail.compraAgilSource.state.label ??
+                      detail.compraAgilSource.state.code ??
+                      t`No informado`}
+                  </div>
+                  <div>
+                    {t`Código de estado`}:{' '}
+                    {detail.compraAgilSource.state.code ?? t`No informado`}
+                  </div>
+                  <div>
+                    {t`Identificador de estado`}:{' '}
+                    {detail.compraAgilSource.state.id ?? t`No informado`}
+                  </div>
+                  <div>
+                    {t`Último cambio`}:{' '}
+                    {formatDate(
+                      detail.compraAgilSource.additionalDates.lastChangedAt,
+                    )}
+                  </div>
+                  <div>
+                    {t`Cierre primer llamado`}:{' '}
+                    {formatDate(
+                      detail.compraAgilSource.additionalDates
+                        .firstCallClosingAt,
+                    )}
+                  </div>
+                  <div>
+                    {t`Cierre segundo llamado`}:{' '}
+                    {formatDate(
+                      detail.compraAgilSource.additionalDates
+                        .secondCallClosingAt,
+                    )}
+                  </div>
+                  <div>
+                    {t`Monto disponible`}:{' '}
+                    {detail.compraAgilSource.amounts.available === null
+                      ? t`No informado`
+                      : `${detail.compraAgilSource.amounts.available} ${detail.compraAgilSource.amounts.currency ?? ''}`}
+                  </div>
+                  <div>
+                    {t`Monto disponible en CLP`}:{' '}
+                    {formatAmount(detail.compraAgilSource.amounts.availableClp)}
+                  </div>
+                  <div>
+                    {t`Ofertas recibidas`}:{' '}
+                    {detail.compraAgilSource.offersReceived === null
+                      ? t`No informado`
+                      : formatCount(detail.compraAgilSource.offersReceived)}
+                  </div>
+                  <div>
+                    {t`Institución`}:{' '}
+                    {detail.compraAgilSource.institution.buyerName ??
+                      t`No informado`}
+                  </div>
+                  <div>
+                    {t`RUT técnico`}:{' '}
+                    {detail.compraAgilSource.institution.rut ?? t`No informado`}
+                  </div>
+                  <div>
+                    {t`Unidad de compra`}:{' '}
+                    {detail.compraAgilSource.institution.purchaseUnit ??
+                      t`No informado`}
+                  </div>
+                  <div>
+                    {t`Región`}:{' '}
+                    {detail.compraAgilSource.institution.regionName ??
+                      t`No informado`}
+                  </div>
+                  <div>
+                    {t`Convocatoria`}:{' '}
+                    {detail.compraAgilSource.call.description ??
+                      t`No informado`}
+                  </div>
+                  <div>
+                    {t`Estado de convocatoria`}:{' '}
+                    {detail.compraAgilSource.call.state ?? t`No informado`}
+                  </div>
+                  <div>
+                    {t`Motivo de deserción`}:{' '}
+                    {detail.compraAgilSource.reasons.deserted ??
+                      t`No informado`}
+                  </div>
+                  <div>
+                    {t`Motivo de selección`}:{' '}
+                    {detail.compraAgilSource.reasons.selection ??
+                      t`No informado`}
+                  </div>
+                  <div>
+                    {t`Motivo de cancelación`}:{' '}
+                    {detail.compraAgilSource.reasons.cancellation ??
+                      t`No informado`}
+                  </div>
+                  <div>
+                    {t`Ruta de origen`}:{' '}
+                    {detail.compraAgilSource.sourcePath ?? t`No informado`}
+                  </div>
+                  <div>{t`Documentos`}</div>
+                  {detail.compraAgilSource.documents.length ? (
+                    <StyledList>
+                      {detail.compraAgilSource.documents.map((document) => (
+                        <li key={document.id}>
+                          {document.id} · {document.name ?? t`Sin información`}
+                        </li>
+                      ))}
+                    </StyledList>
+                  ) : (
+                    <p>{t`Sin información`}</p>
+                  )}
+                </StyledSection>
+              ) : null}
               <StyledSection>
                 <h2>{t`Ítems`}</h2>
                 {detail.items.length ? (

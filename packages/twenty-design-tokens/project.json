@@ -8,7 +8,11 @@
     "generate": {
       "executor": "nx:run-commands",
       "cache": true,
-      "inputs": ["{projectRoot}/src"],
+      "inputs": [
+        "{projectRoot}/src",
+        "{workspaceRoot}/packages/twenty-ui/src/theme-constants/theme-light.css",
+        "{workspaceRoot}/packages/twenty-ui/src/theme-constants/theme-dark.css"
+      ],
       "outputs": ["{projectRoot}/generated"],
       "options": {
         "cwd": "{projectRoot}",

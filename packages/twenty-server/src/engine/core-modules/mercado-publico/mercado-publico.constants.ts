@@ -121,6 +121,7 @@ export const MERCADO_PUBLICO_ERROR_SUMMARIES = [
 
 export const MERCADO_PUBLICO_JOB_RUN_STATUSES = [
   'success',
+  'partial',
   'failed',
   'soft_miss',
   'param_error',

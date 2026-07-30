@@ -16,6 +16,7 @@ The format follows [Semantic Versioning](https://semver.org/) and the
 ## Unreleased
 
 ### Added
+- Read-only Mercado Público command center with complete Compra Ágil pagination, normalized browse data, and typed retained-source detail
 - Mercado Publico phase-1 ingestion backbone with auditable API and CSV job runs
 - Email/calendar timelines derived from object relations (#21684)
 - Gmail folder backfill in messaging (#21753)

@@ -73,6 +73,7 @@ export class MercadoPublicoApiV1OcByDateService {
         throw new MercadoPublicoRecordedJobFailureError(
           errorSummaryText,
           apiResponse.errorSummary === 'retryable_failed',
+          apiResponse.errorSummary,
         );
       }
 

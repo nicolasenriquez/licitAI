@@ -51,4 +51,18 @@ describe('MercadoPublicoJob', () => {
 
     await expect(job.handle(jobData)).rejects.toBe(failure);
   });
+
+  it('should fail hard-authentication failures without retrying', async () => {
+    const failure = new MercadoPublicoRecordedJobFailureError(
+      'hard_fail: unauthorized',
+      false,
+      'hard_fail',
+    );
+    const orchestratorService = {
+      run: jest.fn().mockRejectedValue(failure),
+    } as unknown as MercadoPublicoJobOrchestratorService;
+    const job = new MercadoPublicoJob(orchestratorService);
+
+    await expect(job.handle(jobData)).rejects.toThrow('hard_fail: unauthorized');
+  });
 });

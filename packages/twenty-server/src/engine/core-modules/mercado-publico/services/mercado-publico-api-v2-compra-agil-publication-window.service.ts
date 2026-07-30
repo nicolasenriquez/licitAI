@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  Optional,
+} from '@nestjs/common';
 
 import { isNonEmptyString } from '@sniptt/guards';
 
@@ -6,6 +11,7 @@ import { MercadoPublicoApiV2CompraAgilClientService } from 'src/engine/core-modu
 import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
+import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
 import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 import { mapMercadoPublicoErrorSummaryToJobRunStatus } from 'src/engine/core-modules/mercado-publico/services/utils/map-mercado-publico-error-summary-to-job-run-status.util';
 import {
@@ -34,6 +40,8 @@ export class MercadoPublicoApiV2CompraAgilPublicationWindowService {
     private readonly mercadoPublicoApiV2CompraAgilClientService: MercadoPublicoApiV2CompraAgilClientService,
     private readonly mercadoPublicoCanonicalRefreshService: MercadoPublicoCanonicalRefreshService,
     private readonly mercadoPublicoPersistenceService: MercadoPublicoPersistenceService,
+    @Optional()
+    private readonly mercadoPublicoConfigService?: MercadoPublicoConfigService,
   ) {}
 
   async run(payload: Record<string, unknown>): Promise<void> {
@@ -44,73 +52,109 @@ export class MercadoPublicoApiV2CompraAgilPublicationWindowService {
 
     try {
       const parsedPayload = this.parsePayload(payload);
-      const apiResponse =
-        await this.mercadoPublicoApiV2CompraAgilClientService.getList(
-          parsedPayload,
-        );
-
-      if (apiResponse.errorSummary !== undefined) {
-        const errorSummaryText =
-          buildMercadoPublicoErrorSummaryText(apiResponse);
-
-        await this.mercadoPublicoPersistenceService.persistApiFailure({
-          jobRunRecordId: jobRunRecord.id,
-          source: apiResponse.source,
-          endpoint: apiResponse.endpoint,
-          requestFingerprint: apiResponse.requestFingerprint,
-          payloadChecksum: apiResponse.payloadChecksum,
-          requestParams: apiResponse.requestParams,
-          httpStatus: apiResponse.httpStatus,
-          fetchedAt: apiResponse.fetchedAt,
-          rawPayload: apiResponse.rawPayload,
-          schemaFingerprint: apiResponse.schemaFingerprint,
-          recordsFetched: apiResponse.compraAgil.length,
-          errorSummaryText,
+      const firstPage = parsedPayload.numero_pagina ?? 1;
+      const firstApiResponse =
+        await this.mercadoPublicoApiV2CompraAgilClientService.getList({
+          ...parsedPayload,
+          numero_pagina: firstPage,
         });
-        await this.mercadoPublicoPersistenceService.finalizeJobRun({
-          jobRunRecordId: jobRunRecord.id,
-          status: mapMercadoPublicoErrorSummaryToJobRunStatus(
+      const declaredLastPage =
+        firstApiResponse.pagination?.totalPages ?? firstPage;
+      const lastPage = Math.min(
+        declaredLastPage,
+        firstPage +
+          (this.mercadoPublicoConfigService?.getSettings().compraAgilMaxPages ??
+            250) -
+          1,
+      );
+      let recordsFetched = 0;
+      let recordsStaged = 0;
+      let recordsCanonicalized = 0;
+
+      for (let page = firstPage; page <= lastPage; page += 1) {
+        const apiResponse =
+          page === firstPage
+            ? firstApiResponse
+            : await this.mercadoPublicoApiV2CompraAgilClientService.getList({
+                ...parsedPayload,
+                numero_pagina: page,
+              });
+
+        if (apiResponse.errorSummary !== undefined) {
+          const errorSummaryText =
+            buildMercadoPublicoErrorSummaryText(apiResponse);
+
+          await this.mercadoPublicoPersistenceService.persistApiFailure({
+            jobRunRecordId: jobRunRecord.id,
+            source: apiResponse.source,
+            endpoint: apiResponse.endpoint,
+            requestFingerprint: apiResponse.requestFingerprint,
+            payloadChecksum: apiResponse.payloadChecksum,
+            requestParams: apiResponse.requestParams,
+            httpStatus: apiResponse.httpStatus,
+            fetchedAt: apiResponse.fetchedAt,
+            rawPayload: apiResponse.rawPayload,
+            schemaFingerprint: apiResponse.schemaFingerprint,
+            recordsFetched: apiResponse.compraAgil.length,
+            errorSummaryText,
+          });
+          await this.mercadoPublicoPersistenceService.finalizeJobRun({
+            jobRunRecordId: jobRunRecord.id,
+            status: mapMercadoPublicoErrorSummaryToJobRunStatus(
+              apiResponse.errorSummary,
+            ),
+            finishedAt: new Date(),
+            errorSummary: errorSummaryText,
+            recordsFetched: recordsFetched + apiResponse.compraAgil.length,
+            recordsStaged,
+            recordsCanonicalized,
+            recordsFailed: 1,
+          });
+
+          throw new MercadoPublicoRecordedJobFailureError(
+            errorSummaryText,
+            apiResponse.errorSummary === 'retryable_failed',
             apiResponse.errorSummary,
-          ),
-          finishedAt: new Date(),
-          errorSummary: errorSummaryText,
-          recordsFetched: apiResponse.compraAgil.length,
-          recordsFailed: 1,
-        });
+          );
+        }
 
-        throw new MercadoPublicoRecordedJobFailureError(
-          errorSummaryText,
-          apiResponse.errorSummary === 'retryable_failed',
-        );
+        const persistenceResult =
+          await this.mercadoPublicoPersistenceService.persistV2CompraAgilSnapshot(
+            {
+              jobRunRecordId: jobRunRecord.id,
+              apiResponse,
+              snapshotKind: 'list',
+            },
+          );
+
+        recordsFetched += persistenceResult.recordsFetched;
+        recordsStaged += persistenceResult.recordsStaged;
+        recordsCanonicalized +=
+          persistenceResult.recordsStaged === 0
+            ? 0
+            : await this.mercadoPublicoCanonicalRefreshService.refreshV2CompraAgilFromApiSnapshot(
+                persistenceResult.rawApiPayloadId,
+              );
       }
 
-      const persistenceResult =
-        await this.mercadoPublicoPersistenceService.persistV2CompraAgilSnapshot(
-          {
-            jobRunRecordId: jobRunRecord.id,
-            apiResponse,
-            snapshotKind: 'list',
-          },
-        );
-      const recordsCanonicalized =
-        persistenceResult.recordsStaged === 0
-          ? 0
-          : await this.mercadoPublicoCanonicalRefreshService.refreshV2CompraAgilFromApiSnapshot(
-              persistenceResult.rawApiPayloadId,
-            );
+      const partialSummary =
+        lastPage < declaredLastPage
+          ? `partial: provider declared ${declaredLastPage} pages; stopped at configured cap ${lastPage - firstPage + 1}`
+          : undefined;
 
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,
-        status: 'success',
+        status: partialSummary === undefined ? 'success' : 'partial',
         finishedAt: new Date(),
-        recordsFetched: persistenceResult.recordsFetched,
-        recordsStaged: persistenceResult.recordsStaged,
+        errorSummary: partialSummary,
+        recordsFetched,
+        recordsStaged,
         recordsCanonicalized,
         recordsFailed: 0,
       });
 
       this.logger.log(
-        `Ingested ${persistenceResult.recordsFetched} V2 Compra Agil records with publication window ${JSON.stringify(parsedPayload)}`,
+        `Ingested ${recordsFetched} V2 Compra Agil records across ${lastPage - firstPage + 1} page(s) with publication window ${JSON.stringify(parsedPayload)}`,
       );
     } catch (error) {
       if (error instanceof MercadoPublicoRecordedJobFailureError) {

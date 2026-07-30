@@ -3,6 +3,7 @@ import { MercadoPublicoApiV2CompraAgilClientService } from 'src/engine/core-modu
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
+import { type MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
 
 describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
   let service: MercadoPublicoApiV2CompraAgilPublicationWindowService;
@@ -109,6 +110,85 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
           recordsFetched: 2,
           recordsCanonicalized: 0,
           recordsFailed: 0,
+        }),
+      );
+    });
+
+    it('should retain every provider-declared page through the final page', async () => {
+      clientService.getList
+        .mockResolvedValueOnce({
+          ...mockApiSuccessResponse,
+          pagination: {
+            page: 1,
+            pageSize: 2,
+            totalPages: 2,
+            totalResults: 4,
+          },
+        } as any)
+        .mockResolvedValueOnce({
+          ...mockApiSuccessResponse,
+          requestParams: { numero_pagina: 2 },
+          pagination: {
+            page: 2,
+            pageSize: 2,
+            totalPages: 2,
+            totalResults: 4,
+          },
+        } as any);
+
+      await service.run({ publicado_desde: '2026-06-01T00:00:00Z' });
+
+      expect(clientService.getList).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ numero_pagina: 2 }),
+      );
+      expect(
+        persistenceService.persistV2CompraAgilSnapshot,
+      ).toHaveBeenCalledTimes(2);
+      expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'success',
+          recordsFetched: 4,
+          errorSummary: undefined,
+        }),
+      );
+    });
+
+    it('should retain 250 pages and record partial completion when the provider declares more', async () => {
+      const cappedService =
+        new MercadoPublicoApiV2CompraAgilPublicationWindowService(
+          clientService,
+          {
+            refreshV2CompraAgilFromApiSnapshot: jest.fn().mockResolvedValue(0),
+          } as unknown as MercadoPublicoCanonicalRefreshService,
+          persistenceService,
+          {
+            getSettings: () => ({ compraAgilMaxPages: 250 }),
+          } as unknown as MercadoPublicoConfigService,
+        );
+      clientService.getList.mockResolvedValue({
+        ...mockApiSuccessResponse,
+        pagination: {
+          page: 1,
+          pageSize: 2,
+          totalPages: 251,
+          totalResults: 502,
+        },
+      } as any);
+
+      await cappedService.run({ publicado_desde: '2026-06-01T00:00:00Z' });
+
+      expect(clientService.getList).toHaveBeenCalledTimes(250);
+      expect(
+        persistenceService.persistV2CompraAgilSnapshot,
+      ).toHaveBeenCalledTimes(250);
+      expect(clientService.getList).toHaveBeenLastCalledWith(
+        expect.objectContaining({ numero_pagina: 250 }),
+      );
+      expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'partial',
+          errorSummary: expect.stringContaining('partial:'),
         }),
       );
     });

@@ -3,6 +3,8 @@ import { InjectDataSource } from '@nestjs/typeorm';
 
 import { DataSource } from 'typeorm';
 
+import { findV2CompraAgilRawRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
+
 import { MERCADO_PUBLICO_DETECTED_PROCESS_TYPES } from 'src/engine/core-modules/mercado-publico/constants/detected-process-read.constants';
 import {
   type MercadoPublicoDetectedProcessDetail,
@@ -11,6 +13,7 @@ import {
   type MercadoPublicoProcessDetailRelatedOc,
   type MercadoPublicoProcessDetailSourceLineageEntry,
   type MercadoPublicoProcessDetailReconciliationSummary,
+  type MercadoPublicoCompraAgilSourceDetail,
 } from 'src/engine/core-modules/mercado-publico/types/process-detail-read.types';
 
 type GoldRow = {
@@ -70,6 +73,23 @@ type SourceLineageRow = Record<string, unknown> & {
   row_count: string;
   last_seen_at: Date | null;
 };
+
+type CompraAgilRawRow = { raw_payload: unknown };
+
+const nullableString = (value: unknown): string | null => {
+  if (typeof value === 'string' && value.trim() !== '') {
+    return value;
+  }
+
+  if (typeof value === 'number') {
+    return String(value);
+  }
+
+  return null;
+};
+
+const nullableNumber = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null;
 
 const PROCESS_TYPE_SET = new Set<string>(
   MERCADO_PUBLICO_DETECTED_PROCESS_TYPES,
@@ -170,9 +190,14 @@ export class MercadoPublicoProcessDetailReadService {
       processType,
       processCode,
     );
+    const compraAgilSource = await this.resolveCompraAgilSource(
+      processType,
+      processCode,
+    );
 
     return {
-      processType: gold.process_type as MercadoPublicoDetectedProcessDetail['processType'],
+      processType:
+        gold.process_type as MercadoPublicoDetectedProcessDetail['processType'],
       processCode: gold.process_code,
       title: gold.title,
       canonicalState: gold.canonical_state,
@@ -193,8 +218,93 @@ export class MercadoPublicoProcessDetailReadService {
       relatedOcs,
       sourceLineage,
       reconciliationSummary,
+      compraAgilSource,
       sourcePriority: gold.source_priority,
       lastSeenAt: gold.last_seen_at,
+    };
+  }
+
+  private async resolveCompraAgilSource(
+    processType: string,
+    processCode: string,
+  ): Promise<MercadoPublicoCompraAgilSourceDetail | null> {
+    if (processType !== 'compra_agil') {
+      return null;
+    }
+
+    const rows = await this.coreDataSource.query<CompraAgilRawRow[]>(
+      `
+        SELECT raw.raw_payload
+        FROM mp.raw_api_payload raw
+        INNER JOIN mp.stg_api_v2_compra_agil staging
+          ON staging.raw_api_payload_id = raw.id
+        WHERE
+          raw.source = 'api-v2-compra-agil'
+          AND staging.codigo = $1
+        ORDER BY
+          staging.fecha_ultimo_cambio DESC NULLS LAST,
+          raw.fetched_at DESC,
+          raw.id DESC
+        LIMIT 1
+      `,
+      [processCode],
+    );
+    const record = findV2CompraAgilRawRecord(rows[0]?.raw_payload, processCode);
+
+    if (record === null) {
+      return null;
+    }
+
+    const state = typeof record.estado === 'object' ? record.estado : undefined;
+
+    return {
+      sourcePath: nullableString(record.links?.detalle),
+      state: {
+        id: nullableString(state?.id_estado),
+        code:
+          nullableString(state?.codigo) ??
+          (typeof record.estado === 'string' ? record.estado : null),
+        label: nullableString(state?.glosa),
+      },
+      additionalDates: {
+        lastChangedAt: nullableString(record.fechas?.fecha_ultimo_cambio),
+        firstCallClosingAt: nullableString(
+          record.fechas?.fecha_cierre_primer_llamado,
+        ),
+        secondCallClosingAt: nullableString(
+          record.fechas?.fecha_cierre_segundo_llamado,
+        ),
+      },
+      amounts: {
+        currency: nullableString(record.montos?.moneda),
+        available: nullableNumber(record.montos?.monto_disponible),
+        availableClp: nullableNumber(record.montos?.monto_disponible_clp),
+      },
+      reasons: {
+        deserted: nullableString(record.motivos?.motivo_desierta),
+        selection: nullableString(record.motivos?.motivo_seleccion),
+        cancellation: nullableString(record.motivos?.motivo_cancelacion),
+      },
+      offersReceived: nullableNumber(record.resumen?.total_ofertas_recibidas),
+      documents: (record.documentos ?? [])
+        .map((document) => ({
+          id: nullableString(document.id),
+          name: nullableString(document.nombre),
+        }))
+        .filter(
+          (document): document is { id: string; name: string | null } =>
+            document.id !== null,
+        ),
+      institution: {
+        rut: nullableString(record.institucion?.rut),
+        regionName: nullableString(record.institucion?.nombre_region),
+        purchaseUnit: nullableString(record.institucion?.unidad_compra),
+        buyerName: nullableString(record.institucion?.organismo_comprador),
+      },
+      call: {
+        description: nullableString(record.convocatoria?.descripcion),
+        state: nullableString(record.convocatoria?.estado_convocatoria),
+      },
     };
   }
 
@@ -513,11 +623,13 @@ export class MercadoPublicoProcessDetailReadService {
     }
 
     return {
-      exact: (byType.get('exact_codigo_externo') || 0) +
+      exact:
+        (byType.get('exact_codigo_externo') || 0) +
         (byType.get('exact_codigo_licitacion') || 0) +
         (byType.get('exact_compra_agil_id_orden_compra') || 0) +
         (byType.get('csv_api_same_business_key') || 0),
-      candidate: (byType.get('candidate_supplier_amount') || 0) +
+      candidate:
+        (byType.get('candidate_supplier_amount') || 0) +
         (byType.get('candidate_item_amount') || 0),
       unmatched: byType.get('unmatched') || 0,
       manualReviewRequired: byType.get('manual_review_required') || 0,

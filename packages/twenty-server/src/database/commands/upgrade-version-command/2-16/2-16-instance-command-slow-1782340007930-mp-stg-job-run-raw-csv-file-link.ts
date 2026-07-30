@@ -8,7 +8,7 @@ export class MpStgJobRunRawCsvFileLinkSlowInstanceCommand
   implements SlowInstanceCommand
 {
   async runDataMigration(dataSource: DataSource): Promise<void> {
-    // up() has already added mp.stg_job_run.raw_csv_file_id before this phase runs.
+    // The fast prerequisite command added mp.stg_job_run.raw_csv_file_id before this phase runs.
     // Only the two backfills belong in runDataMigration per AGENTS upgrade rules:
     // the file-level link for download jobs, and the row-level link for raw-load jobs.
 

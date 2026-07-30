@@ -7,7 +7,11 @@ import {
   createJsonShapeSha256,
   createJsonSha256,
 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/create-json-sha256.util';
-import { extractV2CompraAgilListRecords } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
+import {
+  extractV2CompraAgilListRecords,
+  extractV2CompraAgilPagination,
+} from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
+import { type MercadoPublicoApiV2CompraAgilPagination } from 'src/engine/core-modules/mercado-publico/drivers/api/types/mercado-publico-api-v2-compra-agil-record.type';
 import {
   CompraAgilListParams,
   validateCompraAgilListParams,
@@ -36,6 +40,7 @@ export type MercadoPublicoApiV2CompraAgilListResponse = {
   fetchedAt: Date;
   rawPayload: unknown;
   compraAgil: MercadoPublicoApiV2CompraAgilRecord[];
+  pagination?: MercadoPublicoApiV2CompraAgilPagination | null;
   errorSummary?: MercadoPublicoErrorSummary;
   errorMessage?: string;
   errorCode?: string;
@@ -169,6 +174,7 @@ export class MercadoPublicoApiV2CompraAgilClientService {
       fetchedAt,
       rawPayload,
       compraAgil,
+      pagination: extractV2CompraAgilPagination(rawPayload),
       errorSummary: bodyError?.errorSummary ?? httpStatusErrorSummary,
       errorMessage: bodyError?.message,
       errorCode: bodyError?.code ?? undefined,
@@ -231,6 +237,7 @@ export class MercadoPublicoApiV2CompraAgilClientService {
       fetchedAt,
       rawPayload,
       compraAgil,
+      pagination: extractV2CompraAgilPagination(rawPayload),
       errorSummary: bodyError?.errorSummary ?? httpStatusErrorSummary,
       errorMessage: bodyError?.message,
       errorCode: bodyError?.code ?? undefined,

@@ -143,6 +143,19 @@ const StyledChips = styled.div`
   gap: ${themeCssVariables.spacing[1]};
 `;
 
+const StyledChipButton = styled.button`
+  appearance: none;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+
+  &:focus-visible {
+    outline: 2px solid ${themeCssVariables.accent.primary};
+    outline-offset: 2px;
+  }
+`;
+
 const StyledTable = styled.div`
   min-width: 0;
   width: 100%;
@@ -394,6 +407,28 @@ export const MercadoPublicoBrowseTab = ({
     setSortKey(MercadoPublicoDetectedProcessSortKey.lastSeenAt);
   };
 
+  const removeFilter = (key: keyof BrowseFilters) => {
+    setFilters((currentFilters) => ({ ...currentFilters, [key]: '' }));
+
+    if (key === 'buyerCode') {
+      setDraftBuyerCode('');
+    }
+    if (key === 'changedSince') {
+      setDraftChangedSince('');
+    }
+    if (key === 'publishedFrom') {
+      setDraftPublishedFrom('');
+    }
+    if (key === 'publishedTo') {
+      setDraftPublishedTo('');
+    }
+    if (key === 'publishedFrom' || key === 'publishedTo') {
+      setDateRangeError(false);
+    }
+
+    setPage(1);
+  };
+
   const closeProcessDetail = () => {
     if (browseContentElement.current) {
       browseContentElement.current.inert = false;
@@ -404,13 +439,33 @@ export const MercadoPublicoBrowseTab = ({
 
   const activeFilters = [
     filters.state
-      ? t`Estado: ${getMercadoPublicoStatusLabel(filters.state)}`
+      ? {
+          key: 'state' as const,
+          label: t`Estado: ${getMercadoPublicoStatusLabel(filters.state)}`,
+        }
       : null,
-    filters.publishedFrom ? t`Desde: ${filters.publishedFrom}` : null,
-    filters.publishedTo ? t`Hasta: ${filters.publishedTo}` : null,
-    filters.buyerCode ? t`Organismo: ${filters.buyerCode}` : null,
-    filters.changedSince ? t`Último cambio: ${filters.changedSince}` : null,
-  ].filter((filter): filter is string => filter !== null);
+    filters.publishedFrom
+      ? {
+          key: 'publishedFrom' as const,
+          label: t`Desde: ${filters.publishedFrom}`,
+        }
+      : null,
+    filters.publishedTo
+      ? { key: 'publishedTo' as const, label: t`Hasta: ${filters.publishedTo}` }
+      : null,
+    filters.buyerCode
+      ? { key: 'buyerCode' as const, label: t`Organismo: ${filters.buyerCode}` }
+      : null,
+    filters.changedSince
+      ? {
+          key: 'changedSince' as const,
+          label: t`Último cambio: ${filters.changedSince}`,
+        }
+      : null,
+  ].filter(
+    (filter): filter is { key: keyof BrowseFilters; label: string } =>
+      filter !== null,
+  );
 
   const total = processes?.total;
   const limit = processes?.limit ?? 25;
@@ -546,7 +601,14 @@ export const MercadoPublicoBrowseTab = ({
         {activeFilters.length ? (
           <StyledChips>
             {activeFilters.map((filter) => (
-              <Tag color="gray" key={filter} text={filter} variant="border" />
+              <StyledChipButton
+                aria-label={t`Quitar filtro ${filter.label}`}
+                key={filter.key}
+                onClick={() => removeFilter(filter.key)}
+                type="button"
+              >
+                <Tag color="gray" text={filter.label} variant="border" />
+              </StyledChipButton>
             ))}
             <Button
               onClick={clearFilters}

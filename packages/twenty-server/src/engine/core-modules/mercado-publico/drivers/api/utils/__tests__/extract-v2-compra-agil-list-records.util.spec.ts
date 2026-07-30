@@ -1,7 +1,11 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-import { extractV2CompraAgilListRecords } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
+import {
+  extractV2CompraAgilListRecords,
+  extractV2CompraAgilPagination,
+  findV2CompraAgilRawRecord,
+} from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
 
 const FIXTURES_DIR = join(__dirname, '..', '..', '__tests__', 'fixtures');
 
@@ -32,9 +36,8 @@ describe('extractV2CompraAgilListRecords', () => {
   });
 
   it('should normalize the production-shaped payload.items envelope', () => {
-    const records = extractV2CompraAgilListRecords(
-      readFixture('v2-compra-agil-list.json'),
-    );
+    const payload = readFixture('v2-compra-agil-list.json');
+    const records = extractV2CompraAgilListRecords(payload);
 
     expect(records).toEqual([
       expect.objectContaining({
@@ -44,8 +47,23 @@ describe('extractV2CompraAgilListRecords', () => {
         fecha_publicacion: '2026-06-01T09:30:00',
         fecha_cierre: '2026-06-30T12:00:00-04:00',
         fecha_ultimo_cambio: 'not-a-date',
+        nombre: 'Servicio de mantención preventiva',
       }),
     ]);
+    expect(extractV2CompraAgilPagination(payload)).toEqual({
+      page: 1,
+      pageSize: 50,
+      totalPages: 2,
+      totalResults: 51,
+    });
+    expect(findV2CompraAgilRawRecord(payload, 'FIXTURE-CA-001')).toMatchObject({
+      estado: { id_estado: 2, codigo: 'publicada', glosa: 'Publicada' },
+      institucion: {
+        rut: '60.000.000-0',
+        organismo_comprador: 'Municipalidad de Ejemplo',
+      },
+      documentos: [{ id: 77, nombre: 'Bases técnicas.pdf' }],
+    });
   });
 
   it('should extract records from Data key', () => {

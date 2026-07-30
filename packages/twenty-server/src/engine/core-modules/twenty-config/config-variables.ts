@@ -1896,6 +1896,15 @@ export class ConfigVariables {
 
   @ConfigVariablesMetadata({
     group: ConfigVariablesGroup.SERVER_CONFIG,
+    description: 'Maximum pages fetched by one Compra Agil list ingestion run',
+    type: ConfigVariableType.NUMBER,
+  })
+  @CastToPositiveNumber()
+  @IsOptional()
+  MP_COMPRA_AGIL_MAX_PAGES: number = 250;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.SERVER_CONFIG,
     description: 'Timeout in milliseconds for Mercado Publico HTTP requests',
     type: ConfigVariableType.NUMBER,
   })

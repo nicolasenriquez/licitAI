@@ -3,14 +3,38 @@
     "items": [
       {
         "codigo": "FIXTURE-CA-001",
-        "estado": { "codigo": "publicada", "glosa": "Publicada" },
+        "nombre": "Servicio de mantención preventiva",
+        "estado": {
+          "id_estado": 2,
+          "codigo": "publicada",
+          "glosa": "Publicada"
+        },
         "fechas": {
           "fecha_publicacion": "2026-06-01T09:30:00",
           "fecha_cierre": "2026-06-30T12:00:00-04:00",
           "fecha_ultimo_cambio": "not-a-date"
         },
-        "institucion": { "region": 13 }
+        "institucion": {
+          "rut": "60.000.000-0",
+          "region": 13,
+          "nombre_region": "Metropolitana",
+          "unidad_compra": "Abastecimiento",
+          "organismo_comprador": "Municipalidad de Ejemplo"
+        },
+        "montos": {
+          "moneda": "CLP",
+          "monto_disponible": 1500000,
+          "monto_disponible_clp": 1500000
+        },
+        "documentos": [{ "id": 77, "nombre": "Bases técnicas.pdf" }],
+        "links": { "detalle": "/v2/compra-agil/FIXTURE-CA-001" }
       }
-    ]
+    ],
+    "paginacion": {
+      "numero_pagina": 1,
+      "tamano_pagina": 50,
+      "total_paginas": 2,
+      "total_resultados": 51
+    }
   }
 }

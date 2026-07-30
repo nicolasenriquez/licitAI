@@ -4,7 +4,7 @@ import { MpStgJobRunRawCsvFileLinkSlowInstanceCommand } from './2-16-instance-co
 
 describe('MpStgJobRunRawCsvFileLinkSlowInstanceCommand', () => {
   describe('runDataMigration', () => {
-    it('adds raw_csv_file_id before backfilling raw-load and download links', async () => {
+    it('backfills raw-load and download links after the fast schema prerequisite', async () => {
       const query = jest.fn().mockResolvedValue(undefined);
       const dataSource = { query } as unknown as DataSource;
 
@@ -12,16 +12,10 @@ describe('MpStgJobRunRawCsvFileLinkSlowInstanceCommand', () => {
 
       await command.runDataMigration(dataSource);
 
-      expect(query).toHaveBeenCalledTimes(3);
+      expect(query).toHaveBeenCalledTimes(2);
 
-      const [addColumnSql, rawCsvFileBackfillSql, rawCsvRowBackfillSql] =
-        query.mock.calls.map(([sql]: [string]) => sql);
-
-      expect(addColumnSql).toContain(
-        'ALTER TABLE mp.stg_job_run',
-      );
-      expect(addColumnSql).toContain(
-        'ADD COLUMN IF NOT EXISTS raw_csv_file_id uuid NULL',
+      const [rawCsvFileBackfillSql, rawCsvRowBackfillSql] = query.mock.calls.map(
+        ([sql]: [string]) => sql,
       );
 
       expect(rawCsvFileBackfillSql).toContain('FROM mp.raw_csv_file');

@@ -31,6 +31,8 @@ Required operator configuration:
 - `MERCADO_PUBLICO_API_TICKET` for API V1.
 - `COMPRA_AGIL_API_TICKET` for API V2 Compra Agil.
 - `MERCADO_PUBLICO_API_V1_BASE_URL` and `COMPRA_AGIL_API_BASE_URL`.
+- `MP_COMPRA_AGIL_MAX_PAGES` (default `250`) as the per-run Compra Agil
+  discovery guard.
 - `MERCADO_PUBLICO_CSV_STORAGE_ROOT` for operator-provided CSV files.
 - `MERCADO_PUBLICO_CSV_DOWNLOAD_ENABLED` and CSV source URLs when download jobs
   are enabled, passed through deployment-specific Compose/environment wiring.
@@ -64,9 +66,59 @@ Supported job families:
 - Reconciliation: `reconciliation-refresh`.
 
 For API V2 list jobs, `tamano_pagina` must be `10..50`, inclusive;
-`numero_pagina` starts at `1`; `id` and `q` cannot be combined. For detail
+the runner starts at page `1`, follows the provider-declared page count
+sequentially, and retains one raw request/response record per page. `id` and
+`q` cannot be combined. For detail
 checks, retain raw response evidence. A missing detail is an auditable failure,
 not a successful empty result.
+
+## Daily Compra Agil discovery
+
+Deployment operators run the publication-window job once per day. Supply the
+intended Chilean day bounds and omit `numero_pagina`; ingestion owns traversal.
+
+```bash
+docker compose --env-file packages/twenty-docker/.env \
+  -f packages/twenty-docker/docker-compose.yml exec server \
+  yarn command:prod mercado-publico:run \
+  --job-name api-v2-compra-agil-by-publication-window \
+  --payload '{"publicado_desde":"<YYYY-MM-DDT00:00:00-04:00>","publicado_hasta":"<YYYY-MM-DDT23:59:59-04:00>","tamano_pagina":50}'
+```
+
+If the provider declares more pages than `MP_COMPRA_AGIL_MAX_PAGES`, the job
+keeps status `success` but writes an `error_summary` beginning with `partial:`
+and the declared/capped page evidence. It must not be reported as complete.
+Increase the guard only through deployment configuration after reviewing API
+quota and runtime impact; there is no scheduler or product UI control.
+
+## Schema precondition and retained-raw backfill
+
+Before the first new V2 ingestion after deployment, run registered instance
+commands through the supported upgrade workflow:
+
+```bash
+docker compose --env-file packages/twenty-docker/.env \
+  -f packages/twenty-docker/docker-compose.yml exec server \
+  yarn database:migrate:prod --force --include-slow
+```
+
+The required `2.16.0` sequence includes
+`MpCompraAgilV2DatesFastInstanceCommand_1784100000000`,
+`MpCompraAgilV2BrowseFieldsFastInstanceCommand_1785354861317`, and the
+idempotent retained-evidence backfill
+`MpCompraAgilV2BrowseBackfillSlowInstanceCommand_1785354861318`. The backfill
+fills missing title, buyer, state/date, canonical, and gold values without
+replacing a known canonical value with null. Never expose this command through
+the product UI.
+
+## Read-only command center
+
+The workspace route `/mercado-publico#compra-agil` provides the compact
+six-column Compra Agil browse view. Opening an existing detail panel reads the
+latest retained raw record by `fecha_ultimo_cambio`, then `fetched_at`, and
+projects typed source fields. The browser never receives stored raw JSON and
+does not call the provider on panel open. Source paths are plain text;
+documents expose only observed ID and name.
 
 ## CSV execution order
 

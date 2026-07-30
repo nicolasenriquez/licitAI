@@ -5,7 +5,11 @@ import {
   renderTypeScript,
 } from './compiler';
 import { validateTokenDocuments } from './validate';
-import { checkLegacyParity, readLegacyThemeManifest } from './legacy-parity';
+import {
+  checkLegacyParity,
+  getLegacyParityVariableError,
+  readLegacyThemeManifest,
+} from './legacy-parity';
 import { renderLegacyCssVariableReferences } from './legacy-parity';
 import { tokenRecords } from './source-records';
 
@@ -182,6 +186,17 @@ describe('design token compiler', () => {
 
   it('keeps the imported legacy product baseline unchanged', () => {
     expect(checkLegacyParity()).toEqual([]);
+  });
+
+  it('rejects a protected variable missing from generated CSS', () => {
+    expect(
+      getLegacyParityVariableError(
+        'light',
+        '--t-background-primary',
+        '#ffffff',
+        undefined,
+      ),
+    ).toBe('light generated CSS is missing --t-background-primary');
   });
 
   it('captures the complete legacy variable name/value baseline', () => {

@@ -1,6 +1,7 @@
 import {
   ArgsType,
   Field,
+  Float,
   GraphQLISODateTime,
   InputType,
   Int,
@@ -38,6 +39,7 @@ export enum MercadoPublicoDetectedProcessSortDirectionGraphQL {
 
 export enum MercadoPublicoJobRunStatusGraphQL {
   success = 'success',
+  partial = 'partial',
   failed = 'failed',
   soft_miss = 'soft_miss',
   param_error = 'param_error',
@@ -300,6 +302,117 @@ export class MercadoPublicoProcessDetailReconciliationSummaryDTO {
   manualReviewRequired: number;
 }
 
+@ObjectType('MercadoPublicoCompraAgilSourceState')
+export class MercadoPublicoCompraAgilSourceStateDTO {
+  @Field(() => String, { nullable: true })
+  id: string | null;
+
+  @Field(() => String, { nullable: true })
+  code: string | null;
+
+  @Field(() => String, { nullable: true })
+  label: string | null;
+}
+
+@ObjectType('MercadoPublicoCompraAgilSourceDates')
+export class MercadoPublicoCompraAgilSourceDatesDTO {
+  @Field(() => String, { nullable: true })
+  lastChangedAt: string | null;
+
+  @Field(() => String, { nullable: true })
+  firstCallClosingAt: string | null;
+
+  @Field(() => String, { nullable: true })
+  secondCallClosingAt: string | null;
+}
+
+@ObjectType('MercadoPublicoCompraAgilSourceAmounts')
+export class MercadoPublicoCompraAgilSourceAmountsDTO {
+  @Field(() => String, { nullable: true })
+  currency: string | null;
+
+  @Field(() => Float, { nullable: true })
+  available: number | null;
+
+  @Field(() => Float, { nullable: true })
+  availableClp: number | null;
+}
+
+@ObjectType('MercadoPublicoCompraAgilSourceReasons')
+export class MercadoPublicoCompraAgilSourceReasonsDTO {
+  @Field(() => String, { nullable: true })
+  deserted: string | null;
+
+  @Field(() => String, { nullable: true })
+  selection: string | null;
+
+  @Field(() => String, { nullable: true })
+  cancellation: string | null;
+}
+
+@ObjectType('MercadoPublicoCompraAgilSourceDocument')
+export class MercadoPublicoCompraAgilSourceDocumentDTO {
+  @Field(() => String)
+  id: string;
+
+  @Field(() => String, { nullable: true })
+  name: string | null;
+}
+
+@ObjectType('MercadoPublicoCompraAgilSourceInstitution')
+export class MercadoPublicoCompraAgilSourceInstitutionDTO {
+  @Field(() => String, { nullable: true })
+  rut: string | null;
+
+  @Field(() => String, { nullable: true })
+  regionName: string | null;
+
+  @Field(() => String, { nullable: true })
+  purchaseUnit: string | null;
+
+  @Field(() => String, { nullable: true })
+  buyerName: string | null;
+}
+
+@ObjectType('MercadoPublicoCompraAgilSourceCall')
+export class MercadoPublicoCompraAgilSourceCallDTO {
+  @Field(() => String, { nullable: true })
+  description: string | null;
+
+  @Field(() => String, { nullable: true })
+  state: string | null;
+}
+
+@ObjectType('MercadoPublicoCompraAgilSourceDetail')
+export class MercadoPublicoCompraAgilSourceDetailDTO {
+  @Field(() => String, { nullable: true })
+  sourcePath: string | null;
+
+  @Field(() => MercadoPublicoCompraAgilSourceStateDTO)
+  state: MercadoPublicoCompraAgilSourceStateDTO;
+
+  @Field(() => MercadoPublicoCompraAgilSourceDatesDTO)
+  additionalDates: MercadoPublicoCompraAgilSourceDatesDTO;
+
+  @Field(() => MercadoPublicoCompraAgilSourceAmountsDTO)
+  amounts: MercadoPublicoCompraAgilSourceAmountsDTO;
+
+  @Field(() => MercadoPublicoCompraAgilSourceReasonsDTO)
+  reasons: MercadoPublicoCompraAgilSourceReasonsDTO;
+
+  @Field(() => Int, { nullable: true })
+  offersReceived: number | null;
+
+  @Field(() => [MercadoPublicoCompraAgilSourceDocumentDTO])
+  documents: MercadoPublicoCompraAgilSourceDocumentDTO[];
+
+  @Field(() => MercadoPublicoCompraAgilSourceInstitutionDTO)
+  institution: MercadoPublicoCompraAgilSourceInstitutionDTO;
+
+  @Field(() => MercadoPublicoCompraAgilSourceCallDTO)
+  call: MercadoPublicoCompraAgilSourceCallDTO;
+}
+
 @ObjectType('MercadoPublicoProcessDetail')
 export class MercadoPublicoProcessDetailDTO {
   @Field(() => MercadoPublicoDetectedProcessTypeGraphQL)
@@ -339,6 +452,9 @@ export class MercadoPublicoProcessDetailDTO {
 
   @Field(() => MercadoPublicoProcessDetailReconciliationSummaryDTO)
   reconciliationSummary: MercadoPublicoProcessDetailReconciliationSummaryDTO;
+
+  @Field(() => MercadoPublicoCompraAgilSourceDetailDTO, { nullable: true })
+  compraAgilSource: MercadoPublicoCompraAgilSourceDetailDTO | null;
 
   @Field(() => String, { nullable: true })
   sourcePriority: string | null;

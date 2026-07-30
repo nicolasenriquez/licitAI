@@ -231,7 +231,35 @@ describe('MercadoPublicoProcessDetailReadService (unit)', () => {
       ])
       .mockResolvedValueOnce([RELATED_OC_ROW])
       .mockResolvedValueOnce([SRC_LINEAGE_API_ROW])
-      .mockResolvedValueOnce([RECON_COUNT_ROW]);
+      .mockResolvedValueOnce([RECON_COUNT_ROW])
+      .mockResolvedValueOnce([
+        {
+          raw_payload: {
+            payload: {
+              items: [
+                {
+                  codigo: 'CA1',
+                  estado: {
+                    id_estado: 2,
+                    codigo: 'publicada',
+                    glosa: 'Publicada',
+                  },
+                  fechas: {
+                    fecha_ultimo_cambio: '2026-06-20T12:00:00Z',
+                    fecha_cierre_primer_llamado: '2026-06-21T12:00:00Z',
+                  },
+                  institucion: {
+                    rut: '60.000.000-0',
+                    organismo_comprador: 'Municipalidad Uno',
+                  },
+                  documentos: [{ id: 9, nombre: 'Bases.pdf' }],
+                  links: { detalle: '/v2/compra-agil/CA1' },
+                },
+              ],
+            },
+          },
+        },
+      ]);
 
     const result = await service.getDetectedProcessDetail(
       'compra_agil',
@@ -244,7 +272,16 @@ describe('MercadoPublicoProcessDetailReadService (unit)', () => {
     expect(result!.adjudications).toBeNull();
     expect(result!.relatedOcs).toHaveLength(1);
     expect(result!.sourceLineage).toHaveLength(1);
-    expect(mockQuery).toHaveBeenCalledTimes(5);
+    expect(result!.compraAgilSource).toMatchObject({
+      sourcePath: '/v2/compra-agil/CA1',
+      state: { id: '2', code: 'publicada', label: 'Publicada' },
+      institution: {
+        rut: '60.000.000-0',
+        buyerName: 'Municipalidad Uno',
+      },
+      documents: [{ id: '9', name: 'Bases.pdf' }],
+    });
+    expect(mockQuery).toHaveBeenCalledTimes(6);
   });
 
   it('returns empty arrays for items, relatedOcs, and sourceLineage when data is missing', async () => {
