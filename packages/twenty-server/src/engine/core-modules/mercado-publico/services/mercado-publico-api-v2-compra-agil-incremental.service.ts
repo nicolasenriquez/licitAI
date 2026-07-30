@@ -9,6 +9,9 @@ import { isNonEmptyString } from '@sniptt/guards';
 
 import { MercadoPublicoApiV2CompraAgilClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
+import { InjectMessageQueue } from 'src/engine/core-modules/message-queue/decorators/message-queue.decorator';
+import { MessageQueue } from 'src/engine/core-modules/message-queue/message-queue.constants';
+import { MessageQueueService } from 'src/engine/core-modules/message-queue/services/message-queue.service';
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
@@ -43,6 +46,8 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
     private readonly mercadoPublicoApiV2CompraAgilClientService: MercadoPublicoApiV2CompraAgilClientService,
     private readonly mercadoPublicoCanonicalRefreshService: MercadoPublicoCanonicalRefreshService,
     private readonly mercadoPublicoPersistenceService: MercadoPublicoPersistenceService,
+    @InjectMessageQueue(MessageQueue.mercadoPublicoQueue)
+    private readonly mercadoPublicoQueue: MessageQueueService,
     @Optional()
     private readonly mercadoPublicoConfigService?: MercadoPublicoConfigService,
   ) {}
@@ -145,6 +150,10 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
           ? `partial: provider declared ${declaredLastPage} pages; stopped at configured cap ${lastPage - firstPage + 1}`
           : undefined;
 
+      if (partialSummary === undefined) {
+        await this.enqueueReconciliationRefresh();
+      }
+
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,
         status: partialSummary === undefined ? 'success' : 'partial',
@@ -191,6 +200,27 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
 
       throw error;
     }
+  }
+
+  private async enqueueReconciliationRefresh(): Promise<void> {
+    const settings = this.mercadoPublicoConfigService?.getSettings();
+
+    await this.mercadoPublicoQueue.add(
+      'MercadoPublicoJob',
+      {
+        jobName: 'reconciliation-refresh',
+        payload: {},
+        requestedAt: new Date().toISOString(),
+        requestedBy: 'schedule',
+      },
+      {
+        retryLimit: settings?.httpMaxRetries ?? 0,
+        backoff: {
+          type: 'fixed',
+          delay: settings?.httpRetryBackoffMs ?? 0,
+        },
+      },
+    );
   }
 
   private parsePayload(

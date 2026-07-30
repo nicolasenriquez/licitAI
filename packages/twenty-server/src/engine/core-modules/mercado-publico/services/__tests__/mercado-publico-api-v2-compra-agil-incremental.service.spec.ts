@@ -4,11 +4,13 @@ import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/m
 import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
+import { MessageQueueService } from 'src/engine/core-modules/message-queue/services/message-queue.service';
 
 describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
   let service: MercadoPublicoApiV2CompraAgilIncrementalService;
   let clientService: jest.Mocked<MercadoPublicoApiV2CompraAgilClientService>;
   let persistenceService: jest.Mocked<MercadoPublicoPersistenceService>;
+  let mercadoPublicoQueue: jest.Mocked<MessageQueueService>;
 
   const mockJobRunRecord = {
     id: 'job-run-id',
@@ -56,6 +58,10 @@ describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
       finalizeJobRun: jest.fn(),
     } as unknown as jest.Mocked<MercadoPublicoPersistenceService>;
 
+    mercadoPublicoQueue = {
+      add: jest.fn(),
+    } as unknown as jest.Mocked<MessageQueueService>;
+
     const canonicalRefreshService = {
       refreshV2CompraAgilFromApiSnapshot: jest.fn().mockResolvedValue(0),
     } as unknown as jest.Mocked<MercadoPublicoCanonicalRefreshService>;
@@ -64,6 +70,7 @@ describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
       clientService,
       canonicalRefreshService,
       persistenceService,
+      mercadoPublicoQueue,
     );
   });
 
@@ -109,6 +116,14 @@ describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
           snapshotKind: 'list',
         }),
       );
+      expect(mercadoPublicoQueue.add).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          jobName: 'reconciliation-refresh',
+          requestedBy: 'schedule',
+        }),
+        expect.any(Object),
+      );
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'success',
@@ -142,6 +157,7 @@ describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
           refreshV2CompraAgilFromApiSnapshot: jest.fn().mockResolvedValue(0),
         } as unknown as MercadoPublicoCanonicalRefreshService,
         persistenceService,
+        mercadoPublicoQueue,
         {
           getSettings: () => ({ compraAgilMaxPages: 1 }),
         } as unknown as MercadoPublicoConfigService,
@@ -164,6 +180,7 @@ describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
           errorSummary: expect.stringContaining('partial:'),
         }),
       );
+      expect(mercadoPublicoQueue.add).not.toHaveBeenCalled();
     });
 
     it('should record failure when api returns errorSummary', async () => {
@@ -183,6 +200,7 @@ describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
           status: 'retryable_failed',
         }),
       );
+      expect(mercadoPublicoQueue.add).not.toHaveBeenCalled();
     });
 
     it('should handle transport failure', async () => {
@@ -197,6 +215,7 @@ describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
           status: 'failed',
         }),
       );
+      expect(mercadoPublicoQueue.add).not.toHaveBeenCalled();
     });
   });
 });

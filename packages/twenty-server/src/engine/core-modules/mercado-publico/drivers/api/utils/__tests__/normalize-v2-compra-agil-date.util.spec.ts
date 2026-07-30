@@ -15,6 +15,13 @@ describe('normalizeV2CompraAgilDate', () => {
     expect(result.value?.toISOString()).toBe('2026-06-01T13:30:00.000Z');
   });
 
+  it('interprets the V2 beta local date-time format in America/Santiago', () => {
+    const result = normalizeV2CompraAgilDate('2026-06-01 09:30');
+
+    expect(result.raw).toBe('2026-06-01 09:30');
+    expect(result.value?.toISOString()).toBe('2026-06-01T13:30:00.000Z');
+  });
+
   it.each([['not-a-date'], [null]])(
     'keeps invalid or null input auditable without a timestamp',
     (input) => {
