@@ -33,7 +33,7 @@ context.
 | Docs topology | `architecture/documentation-topology.md` | OKF bundle shape, index hierarchy, and documentation topology. |
 | Design | `design/` | Design system, visual tokens, interaction patterns, and wireframe grammar. |
 | Governance | `governance/` | Ownership, decision boundaries, AI-assisted delivery rules, and domain operating model. |
-| Operations | `operations/` | Local development, command surface, database operations, CI, release expectations, ingestion operations, and documentation authoring guidance. |
+| Operations | `operations/` | Local development, command surface, database operations, CI (`operations/ci.md`), release expectations, ingestion operations, and documentation authoring guidance. |
 | Decisions | `decisions/` | ADR index and repository-level architectural decisions. |
 | Templates | `templates/` | Standard templates for ADR creation and governance assets. |
 | Standards | `standards/` | Technology-specific standards plus repository documentation standards such as OKF adoption guidance. |

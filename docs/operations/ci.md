@@ -1,0 +1,378 @@
+---
+type: operations-guide
+title: CI Operations Guide
+description: >-
+  Continuous Integration fundamentals, pipeline architecture, and the
+  licitai/Twenty monorepo CI implementation. Pedagogical reference that maps
+  canonical CI theory to concrete GitHub Actions workflows and local justfile
+  commands.
+okf_version: "0.1"
+---
+
+# CI Operations Guide
+
+## Purpose
+
+Explain the Continuous Integration (CI) architecture of the licitai/Twenty
+monorepo. Link canonical CI theory to the repository's 22 GitHub Actions
+workflows and the local justfile command surface. Serve as both an onboarding
+reference and a daily operations guide.
+
+**Audience**: engineers, AI agents, and reviewers working on this codebase.
+
+## 1. CI Fundamentals
+
+Continuous Integration, as defined by Martin Fowler and the DORA research
+program, is the practice of merging all developer work into a shared mainline
+at least daily, with every merge verified by an automated build and test suite.
+
+### The 11 CI Practices
+
+| # | Practice | What It Means |
+|---|----------|---------------|
+| 1 | **Single source repository** | Everything needed to build the product lives in one repo. Mainline (`main`) is the canonical source of truth. |
+| 2 | **Automate the build** | A single command turns source code into a running system. No manual steps. |
+| 3 | **Make the build self-testing** | Automated tests run on every build. A failing test = a failing build. |
+| 4 | **Everyone pushes to mainline daily** | No code sits unintegrated for more than a few hours. Small batches, frequent integration. |
+| 5 | **Every push triggers a build** | A CI Service monitors the mainline and builds every commit in a reference environment. |
+| 6 | **Fix broken builds immediately** | A broken build is the team's highest priority. Revert the offending commit if not fixed in minutes. |
+| 7 | **Keep the build fast (< 10 min)** | Rapid feedback. Split slow tests into a deployment pipeline if needed. |
+| 8 | **Hide work-in-progress** | Use feature flags, keystone interfaces, or branch-by-abstraction to merge incomplete features safely. |
+| 9 | **Test in a clone of production** | The test environment must match production. Infrastructure as code. |
+| 10 | **Everyone can see what is happening** | Full visibility of build status. No hidden failures. |
+| 11 | **Automate deployment** | Deploying to production should be a routine, low-risk operation. |
+
+### Core principle: fail fast, fail cheap
+
+```
+Each stage is a FILTER. If it fails, the pipeline stops immediately.
+Expensive later stages never run for code known to be broken.
+
+STAGE 0: Gate              (10s)  ─┐
+STAGE 1: Static Analysis    (2m)   │  CHEAP — run first,
+STAGE 2: Build              (3m)   │  fail fast
+STAGE 3: Unit Tests         (3m)   │
+                                    │
+STAGE 4: Validation         (2m)   │
+STAGE 5: Security           (2m)   │  MEDIUM
+                                    │
+STAGE 6: Integration Tests  (8m)   │  EXPENSIVE — run only
+STAGE 7: E2E Tests         (15m)  ─┘  if everything above passed
+```
+
+## 2. Canonical Pipeline Order
+
+The stages below represent the industry-standard CI pipeline order, endorsed by
+Fowler (martinfowler.com), DORA (dora.dev), GitLab, and Google Cloud.
+
+```
+                        ┌──────────────────────────┐
+                        │     DEVELOPER PUSH        │
+                        └────────────┬─────────────┘
+                                     │
+     ╔══════════════════════════════ ═╗  ╔════════════════════════════════╗
+     ║ STAGE 0: GATE             10s ║  ║  lockfile integrity check       ║
+     ║                              ║  ║  commit message convention       ║
+     ╚══════════════════════════════ ═╝  ╚════════════════════════════════╝
+                                     │
+     ╔══════════════════════════════ ═╗  ╔════════════════════════════════╗
+     ║ STAGE 1: STATIC ANALYSIS   2m ║  ║  lint (oxlint)                 ║
+     ║   (no build required)         ║  ║  typecheck (tsgo)              ║
+     ║                              ║  ║  format check (oxfmt)           ║
+     ╚══════════════════════════════ ═╝  ╚════════════════════════════════╝
+                                     │
+     ╔══════════════════════════════ ═╗  ╔════════════════════════════════╗
+     ║ STAGE 2: BUILD             3m ║  ║  compile all packages           ║
+     ║   (depends on static passing)  ║  ║  generate artifacts             ║
+     ║                              ║  ║  cache outputs for later stages  ║
+     ╚══════════════════════════════ ═╝  ╚════════════════════════════════╝
+                                     │
+              ┌──────────────────────┼──────────────────────┐
+              │                      │                      │
+     ╔════════╩════════╗  ╔══════════╩══════════╗  ╔════════╩══════════╗
+     ║ STAGE 3:        ║  ║ STAGE 4:           ║  ║ STAGE 5:         ║
+     ║ UNIT TESTS    3m ║  ║ VALIDATION       2m ║  ║ SECURITY       2m ║
+     ║  fast, isolated  ║  ║  migration check    ║  ║  npm audit        ║
+     ║  in-memory DB    ║  ║  GraphQL codegen    ║  ║  secret scan      ║
+     ║  Jest / Vitest   ║  ║  schema contract    ║  ║  SBOM generation  ║
+     ╚══════════╤═══════╝  ╚══════════╤══════════╝  ╚════════╤══════════╝
+              │                      │                      │
+              └──────────────────────┼──────────────────────┘
+                                     │
+     ╔══════════════════════════════ ═╗  ╔════════════════════════════════╗
+     ║ STAGE 6: INTEGRATION TESTS 8m ║  ║  real PostgreSQL + Redis        ║
+     ║   (depends on unit passing)    ║  ║  real ClickHouse                ║
+     ║                              ║  ║  cross-module contracts          ║
+     ╚══════════════════════════════ ═╝  ╚════════════════════════════════╝
+                                     │
+     ╔══════════════════════════════ ═╗  ╔════════════════════════════════╗
+     ║ STAGE 7: E2E TESTS        15m ║  ║  full stack running             ║
+     ║   (full system)               ║  ║  Playwright browser tests       ║
+     ║                              ║  ║  user-flow simulation            ║
+     ╚══════════════════════════════ ═╝  ╚════════════════════════════════╝
+```
+
+### The cost pyramid
+
+```
+         ▲               ┌──────────┐
+         │               │   E2E    │  few, very slow, expensive
+      C  │             ┌─┴──────────┴─┐
+      O  │             │  Integration  │  few, slow, expensive
+      S  │           ┌─┴───────────────┴─┐
+      T  │           │    Unit Tests     │  many, fast, cheap
+         │         ┌─┴───────────────────┴─┐
+         │         │       Build           │  runs once, produces artifacts
+         │       ┌─┴───────────────────────┴─┐
+         │       │    Static Analysis         │  many rules, instant, free
+         ▼       └────────────────────────────┘
+```
+
+**Rule**: run cheap stages first. If they fail, stop. Never pay for expensive
+stages on broken code.
+
+## 3. This Repository's CI Architecture
+
+### Overview
+
+22 GitHub Actions workflows, organized by package scope. Each workflow follows
+the same structural pattern:
+
+```
+                    ┌──────────────────────┐
+                    │  changed-files-check  │  GATE (path-based skip)
+                    └──────────┬───────────┘
+                               │
+         ┌─────────────────────┼─────────────────────┐
+         │                     │                     │
+  ┌──────▼──────┐    ┌────────▼────────┐   ┌────────▼────────┐
+  │ ci-server   │    │    ci-front     │   │   ci-shared     │
+  │   lint      │    │     lint        │   │   lint          │
+  │   build     │    │     typecheck   │   │   typecheck     │
+  │   typecheck │    │     test        │   │   test          │
+  │   test      │    │     build       │   └─────────────────┘
+  │   validate  │    │     storybook   │
+  │   integ     │    └─────────────────┘
+  └─────────────┘
+          │
+  ┌───────▼──────┐    ┌────────────────┐
+  │  ci-e2e-main │    │  ci-new-ui     │
+  │  ci-sdk      │    │  ci-docs       │
+  │  ci-emails   │    │  ci-zapier     │
+  │  ci-docker   │    │  ci-utils      │
+  └──────────────┘    └────────────────┘
+```
+
+### Key patterns
+
+| Pattern | How It Works |
+|---------|-------------|
+| **Path-based gating** | `changed-files.yaml` reusable workflow checks which files changed. Skipping entire workflows when irrelevant. |
+| **nx-affected** | Runs `npx nx affected --exclude="*,!tag:<scope>"` to execute only the tasks relevant to changed packages. |
+| **3-layer caching** | `node_modules` cache (yarn-install), Nx task cache (restore/save-cache), optional build-output cache per workflow. |
+| **Status-check aggregation** | Every workflow ends with a `ci-*-status-check` job that depends on all other jobs. Branch protection uses a single check per workflow. |
+| **Service containers** | PostgreSQL (`postgres:18`), Redis (`redis`), and ClickHouse (`clickhouse/clickhouse-server:25.8.8`) run as GitHub Actions service containers. |
+| **Shard parallelization** | Integration tests sharded into 16 runners. Storybook tests into 4. Fail-fast disabled to collect full results. |
+
+### Workflow inventory
+
+| Workflow | Trigger | What It Validates |
+|----------|---------|-------------------|
+| `ci-server.yaml` | PR | Build, lint, typecheck, unit tests, integration tests (16 shards with DB/Redis/ClickHouse), migration check, GraphQL codegen check |
+| `ci-front.yaml` | PR + push main | Lint, typecheck, unit tests, build, Storybook build & test (4 shards), bundle analysis |
+| `ci-shared.yaml` | PR | Lint, typecheck, unit tests |
+| `ci-new-ui.yaml` | PR + push main | Lint, typecheck, unit tests, Storybook build & test |
+| `ci-sdk.yaml` | PR | Lint, typecheck, unit tests, integration tests, E2E tests against live server |
+| `ci-e2e-main.yaml` | push main + labeled PR | Full Playwright E2E: builds front+server, DB reset, worker, E2E tests |
+| `ci-test-docker-compose.yaml` | PR | docker compose up, docker build of app-dev target, health checks |
+| `ci-breaking-changes.yaml` | PR | GraphQL + REST API schema diff (main vs branch) |
+| `ci-docs.yaml` | PR + push main | Lint |
+| `ci-emails.yaml` | PR + push main | Build, start server, curl health check |
+| `ci-zapier.yaml` | PR | Build, lint, typecheck, tests against live server |
+| `ci-utils.yaml` | `pull_request_target` | Danger.js PR review bot |
+| Additional 10 | Various | Codex plugin, example apps, People Data Labs, meeting bot, website |
+
+All workflows are under `.github/workflows/`. A full inventory with exact
+job graphs and service configurations is maintained in
+`docs/operations/ci-workflows-reference.md`.
+
+## 4. Local CI: Two Mutually Exclusive Modes
+
+The repository uses Docker Compose for two different purposes. Since both attach
+to host port 5432 (PostgreSQL), they cannot run simultaneously.
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                     TWO LOCAL MODES                               │
+│                                                                  │
+│   MODE 1: DEV (use the app)                                      │
+│   ═══════════════════════════                                    │
+│                                                                  │
+│     just dev-up                                                  │
+│       docker compose up        server + worker + db + redis      │
+│                                server on :3000                   │
+│                                db on :5432                       │
+│                                redis INTERNAL (not exposed!)     │
+│                                                                  │
+│     Migrations: AUTO on server boot ✓                            │
+│                                                                  │
+│                                                                  │
+│   MODE 2: CI (run tests locally)                                  │
+│   ═════════════════════════════                                  │
+│                                                                  │
+│     just ci-infra-up                                             │
+│       docker compose -f compose.dev.yml   db on :5432            │
+│                                           redis on :6379         │
+│       + ClickHouse container              clickhouse on :8123    │
+│                                                                  │
+│     Port :3000 FREE — start dev server with Nx if needed         │
+│                                                                  │
+│   ═══════════════════════════════════════════════════════════    │
+│   IMPORTANT: just dev-down   before   just ci-infra-up          │
+│              just ci-infra-down before just dev-up              │
+│   ═══════════════════════════════════════════════════════════    │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**Why two modes?** The full application compose does not expose Redis to the
+host machine. Integration tests need `redis://localhost:6379`. The dev compose
+exposes both PostgreSQL and Redis on host ports.
+
+### Which command should I run?
+
+```
+I changed only frontend code ──────────► just ci-front
+
+I changed only backend code ───────────► just ci-server
+
+I changed both front and backend ──────► just ci
+
+I am about to push ────────────────────► just ci-prepush
+
+I want full pre-PR verification ───────► just ci-full
+  (needs: just ci-infra-up first)
+
+CI failed in GitHub Actions
+and I want to reproduce locally ───────► just ci-infra-up
+                                          then run the failing command
+
+I just cloned the repo and
+want to start the app ─────────────────► just dev-up-build
+
+Application is already built,
+I just want to run it ─────────────────► just dev-up
+```
+
+## 5. justfile Command Surface
+
+Each local command mirrors a specific GitHub Actions job. The mapping is
+documented in `docs/operations/command-surface.md`. Below is the CI pipeline
+command dependency tree:
+
+```
+                            just ci
+                              │
+       ┌──────────────────────┼──────────────────────┐
+       │                      │                      │
+  ci-check               ci-build               ci-test
+       │                      │                      │
+       ├─ ci-server-lint     ├─ ci-server-build     ├─ ci-server-test
+       ├─ ci-front-lint      └─ ci-front-build      └─ ci-front-test
+       ├─ ci-front-typecheck
+       ├─ ci-shared
+       ├─ ci-ui
+       ├─ ci-sdk
+       └─ ci-docs
+
+                            just ci-full
+                              │
+                    ci + ci-validate + ci-security + ci-integration
+                         │             │                  │
+                    (see above)   _ensure-           ci-server-integration
+                                  server-healthy     (needs ci-infra-up)
+                                  codegen only
+                                  (no migration check)
+```
+
+### Daily workflows
+
+| Scenario | Command | Time |
+|----------|---------|------|
+| Pre-commit | `just ci-prepush` | ~8 min |
+| Pre-PR (commit-build) | `just ci` | ~8 min |
+| Pre-PR + validate + integration | `just ci-full` | ~18 min |
+| Start app | `just dev-up` | ~2 min |
+| Rebuild app | `just dev-up-build` | ~15 min |
+| Stop app | `just dev-down` | 5s |
+
+## 6. Migrations and Safety
+
+### Automatic migrations on dev-up
+
+The server container runs instance commands at startup. The application compose
+does not set `DISABLE_DB_MIGRATIONS` on the server service (only on the worker),
+so migrations apply automatically on boot.
+
+`just dev-up` waits for the server health endpoint (`/healthz`) before
+reporting success. Since the server only becomes healthy *after* applying
+pending migrations, this guarantees migrations are complete.
+
+### Instance command guarantees
+
+- Instance commands are **immutable** once committed. CI enforces this via
+  `ci-server.yaml`'s `server-previous-version-upgrade-mutation-guard`.
+- All migrations are **forward-only**. There is no rollback mechanism.
+- New entity changes require a new instance command via
+  `npx nx run twenty-server:database:migrate:generate` before the PR can pass CI.
+
+### Manual migration trigger inside the running container
+
+```bash
+# Run migrations explicitly (rarely needed — auto on boot):
+docker compose exec server yarn database:migrate:prod
+```
+
+## 7. Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `Port 3000 in use` | App compose is up (Mode 1). CI needs port free (Mode 2). | `just dev-down` then `just ci-infra-up` |
+| `Redis not reachable on :6379` | App compose Redis not exposed. Only dev compose exposes it. | `just ci-infra-up` (starts dev compose) |
+| `node_modules not found` | `yarn install` never run or `git clean` was used. | `yarn install` |
+| `lint:diff-with-main` fails with "unknown revision" | Local `main` branch stale. | `git fetch origin main` |
+| `Uncommitted generated changes` | GraphQL schema changed but `graphql:generate` not run. | Run the three generate commands and commit. |
+| `Playwright browsers missing` | `ci-front-sb-test` needs Chromium. | `npx playwright install chromium` (auto-installed by `ci-front-sb-test`) |
+| `commitlint: no config found, skipping` | Expected. The repo does not use commitlint yet. | No action needed. Add `commitlint.config.mjs` if desired. |
+| `PostgreSQL not reachable on :5432` | No PostgreSQL container running. | `just ci-infra-up` |
+| `Server did not become healthy` | Compose failed to start or migrations failed. | `just dev-logs` to inspect. |
+| CI integration tests fail locally but pass in GHA | Environment differences (postgres version, seed data). | Check exact image tags match. `ci-infra-up` uses `postgres:16` (dev compose); GHA uses `postgres:18`. |
+| `graphql:generate` fails with "No schema found" | Codegen introspects the running server. Requires CURRENT SOURCE server, not the `dev-up` Docker image (stale code). | Start source server in a second terminal: `npx nx start:ci twenty-server` |
+| `ci-gate` fails with YN0028 or YN0028 | `yarn.lock` is stale (e.g., after switching branches or rebasing). | Run `yarn install` to regenerate the lockfile. |
+
+## 8. What Is Not Covered Locally
+
+Some GitHub Actions workflows are intentionally not mirrored in local commands.
+Reasons are documented below.
+
+| Workflow | Why Not Local |
+|----------|---------------|
+| `ci-breaking-changes.yaml` | Builds both `main` and current branch servers, diffs GraphQL + OpenAPI schemas. Requires pristine checkout of `origin/main` and full `rm -rf node_modules` reinstall. Too destructive for a developer workspace. |
+| `ci-e2e-main.yaml` | Label-gated (`run-merge-queue`), artifact uploads/downloads, full Playwright setup. The Playwright tests themselves can be run with `npx nx test twenty-e2e-testing`, but the workflow orchestrator is GitHub-specific. |
+| `ci-utils.yaml` | Uses `pull_request_target` with GitHub API tokens. Danger.js is a GitHub-native code review bot. |
+| `ci-codex-plugin.yaml` | Internal tooling package. Not relevant to CI pipeline concerns. |
+
+## 9. CI Governance
+
+- **Ownership**: CI workflow structure is governed by
+  `docs/governance/domain-operating-model.md`. CI pipelines fall under
+  repository infrastructure ownership.
+- **Change gates**: Architecture review is required for CI/CD changes per the
+  domain operating model.
+- **AI agent guardrails**: `docs/governance/ai-assisted-delivery.md` Guardrail 5
+  states: "Do not change nx.json or CI workflows without explicit approval."
+
+Related documents:
+- `docs/operations/command-surface.md` — Developer CLI contract
+- `docs/decisions/0007-local-ci-surface-via-justfile.md` — ADR for this local CI surface decision
+- `docs/governance/domain-operating-model.md` — Ownership and enforcement rules
+- `docs/governance/ai-assisted-delivery.md` — Agent delivery guardrails

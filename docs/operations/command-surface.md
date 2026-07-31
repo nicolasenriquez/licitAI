@@ -121,6 +121,10 @@ Key CI characteristics:
 - Build caching via Nx speeds up repeated runs.
 - Per-package concurrency where dependency graph permits.
 
+For pipeline theory, stage ordering rationale, the justfile CI command
+surface, and local DEV/CI mode guidance, see `docs/operations/ci.md`.
+The local CI decision is recorded in `docs/decisions/0007-local-ci-surface-via-justfile.md`.
+
 ## Database Inspection (Postgres MCP)
 
 A read-only PostgreSQL MCP server is configured in `.mcp.json`. Use it during development to:
@@ -149,10 +153,10 @@ This server is read-only. For write operations (reset, migrations, sync), use th
 
 | Decision | Resolution |
 | --- | --- |
-| `justfile` or `Makefile` wrapper | No wrapper. `npx nx` is the standard command surface. No additional indirection layer. |
+| `justfile` wrapper | The root `justfile` now provides a CI command surface (`just ci`, `just ci-full`, `just ci-prepush`) mirroring GitHub Actions workflows, plus DEV mode helpers (`just dev-up`, `just dev-down`). Docker service helpers preserved. |
 | GraphQL codegen in CI | CI verifies generated types are up to date (fails if not). Codegen remains a manual step executed by the developer after schema changes. |
 | `lint:diff-with-main` as default | No. Both `lint:diff-with-main` (fast, preferred for PRs) and `lint` (full, for thorough checks) remain explicit. |
 
 ## Open Decisions
 
-- Should there be a single `yarn ci` command that runs the full CI pipeline locally?
+- Resolved. `just ci`, `just ci-full`, and `just ci-prepush` provide the unified local CI surface. See `docs/operations/ci.md` and `docs/decisions/0007-local-ci-surface-via-justfile.md`.
