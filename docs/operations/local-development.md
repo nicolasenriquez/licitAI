@@ -57,17 +57,24 @@ Compose file does not pass them or define a CSV bind mount, so CSV operators
 must supply deployment-specific Compose/environment wiring. Do not create or
 rely on host-level `.env` files for the application.
 
-Start the complete stack with the same explicit environment file:
+For the first startup after cloning, or whenever application code changes, build
+the local image and start the complete stack:
 
 ```bash
-docker compose --env-file packages/twenty-docker/.env \
-  -f packages/twenty-docker/docker-compose.yml up -d
+just dev-up-build
 ```
 
-This command automatically builds the final `twenty` target for `server` and
-`worker`. The `server` container serves both the API and compiled frontend at
-`http://localhost:3000`; no separate frontend service or `--build` flag is
-required.
+For a daily stop/resume when no application code changed, reuse that local
+image instead:
+
+```bash
+just dev-up
+```
+
+The default local image tag is `twentycrm/twenty:mp-local`; `server` and
+`worker` share it. Set `TAG` explicitly in `packages/twenty-docker/.env` only
+when intentionally using a published image. The `server` container serves both
+the API and compiled frontend at `http://localhost:3000`.
 
 Useful lifecycle commands:
 
@@ -92,9 +99,11 @@ The complete local runtime is defined in
 `packages/twenty-docker/docker-compose.yml`:
 
 ```bash
-# Start the complete application and infrastructure stack
-docker compose --env-file packages/twenty-docker/.env \
-  -f packages/twenty-docker/docker-compose.yml up -d
+# Reuse the existing local image and start the complete stack
+just dev-up
+
+# Rebuild the local image from the current working tree, then start
+just dev-up-build
 
 # Stop the complete stack
 docker compose --env-file packages/twenty-docker/.env \
@@ -107,10 +116,22 @@ docker compose --env-file packages/twenty-docker/.env \
 
 | Service | Image | Port | Health Check | Notes |
 | --- | --- | --- | --- | --- |
-| `server` | `twentycrm/twenty:${TAG}` (`twenty` build target) | 3000 | `GET /healthz` and `/` | API and compiled frontend; depends on healthy `db` and `redis`. |
-| `worker` | `twentycrm/twenty:${TAG}` | — | Depends on healthy `server` | BullMQ worker; shares server local storage. |
+| `server` | `twentycrm/twenty:mp-local` by default (`twenty` build target) | 3000 | `GET /healthz` and `/` | API and compiled frontend; depends on healthy `db` and `redis`. `TAG` can explicitly select a published image. |
+| `worker` | `twentycrm/twenty:mp-local` by default | — | Depends on healthy `server` | BullMQ worker; shares server local storage. |
 | `db` | `postgres:16` | 5432 | `pg_isready` | Persistent volume: `db-data`. |
 | `redis` | `redis` | — | `redis-cli ping` | Memory policy: `noeviction`. |
+
+### Observed local startup timings
+
+On 2026-07-31, a Windows workstation started an already-built
+`twentycrm/twenty:mp-local` stack in 72.1 s when server and worker were
+recreated, measured until `/healthz` returned successfully. Applying a freshly
+rebuilt local image and starting the stack took 39.1 s. PostgreSQL and Redis
+were already healthy and no migrations were pending in both observations.
+
+These are local observations, not an SLA or a cold-build measurement. A build
+after cloning or changing application code can take several minutes because it
+compiles the backend, frontend, and Lingui catalogs.
 
 ### Optional advanced infrastructure-only mode
 
@@ -135,7 +156,7 @@ never be committed to version control; `.env` is gitignored.
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `TAG` | Yes | Docker image tag (default: `latest`) |
+| `TAG` | Optional | Explicit published image tag. When omitted, Compose uses the reusable local `mp-local` tag. |
 | `SERVER_URL` | Yes | Public server URL (default: `http://localhost:3000`) |
 | `PG_DATABASE_USER` | Optional | PostgreSQL user (default: `postgres`) |
 | `PG_DATABASE_PASSWORD` | Optional | PostgreSQL password |
@@ -160,12 +181,23 @@ never be committed to version control; `.env` is gitignored.
 
 ## Startup Sequence
 
-Start the complete stack through Docker Compose:
+Start the complete stack through the Justfile wrapper. Use the rebuild command
+after cloning or changing application code; use `just dev-up` only when the
+local image already represents the intended working tree:
 
 ```bash
-docker compose --env-file packages/twenty-docker/.env \
-  -f packages/twenty-docker/docker-compose.yml up -d
+# Reuse twentycrm/twenty:mp-local without requesting a build
+just dev-up
+
+# Build from the current working tree, then start the same stack
+just dev-up-build
 ```
+
+The Dockerfile uses BuildKit cache mounts for Yarn's global cache. They reuse
+dependency downloads across builds without adding the cache to the runtime
+image. The build context excludes only local artifacts such as logs, coverage,
+test reports, and `.scratch/`; application source, configuration, and locale
+catalogs remain in scope.
 
 Compose starts PostgreSQL and Redis first, then the server and worker. Inspect
 `docker compose ... ps` and logs when diagnosing startup.
@@ -201,7 +233,7 @@ Before starting development work:
 
 1. Ensure `packages/twenty-docker/.env` exists and contains the local tickets.
 2. Validate Compose: `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml config --quiet`.
-3. Start the stack with `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml up -d`.
+3. Build and start the stack with `just dev-up-build`, or use `just dev-up` when the local image already matches the working tree.
 4. Verify service health: `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml ps` and `curl http://localhost:3000/healthz`.
 
 ## Current Assumptions

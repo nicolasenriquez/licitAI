@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 # ===========================================================================
 # Dependency stages
 # ===========================================================================
@@ -17,7 +19,9 @@ COPY ./packages/twenty-front-component-renderer/package.json /app/packages/twent
 COPY ./packages/twenty-sdk/package.json /app/packages/twenty-sdk/
 COPY ./packages/twenty-client-sdk/package.json /app/packages/twenty-client-sdk/
 
-RUN yarn workspaces focus licitai twenty-front twenty-front-component-renderer twenty-ui twenty-shared twenty-sdk twenty-client-sdk && yarn cache clean && npx nx reset
+RUN --mount=type=cache,id=yarn-berry-cache,target=/root/.yarn/berry/cache,sharing=locked \
+    yarn workspaces focus licitai twenty-front twenty-front-component-renderer twenty-ui twenty-shared twenty-sdk twenty-client-sdk && \
+    npx nx reset
 
 
 FROM node:24.16.0-alpine3.23@sha256:2bdb65ed1dab192432bc31c95f94155ca5ad7fc1392fb7eb7526ab682fa5bf14 AS server-deps
@@ -34,7 +38,9 @@ COPY ./packages/twenty-server/patches /app/packages/twenty-server/patches
 COPY ./packages/twenty-shared/package.json /app/packages/twenty-shared/
 COPY ./packages/twenty-client-sdk/package.json /app/packages/twenty-client-sdk/
 
-RUN yarn workspaces focus licitai twenty-server twenty-emails twenty-shared twenty-client-sdk && yarn cache clean && npx nx reset
+RUN --mount=type=cache,id=yarn-berry-cache,target=/root/.yarn/berry/cache,sharing=locked \
+    yarn workspaces focus licitai twenty-server twenty-emails twenty-shared twenty-client-sdk && \
+    npx nx reset
 
 
 FROM server-deps AS twenty-server-build

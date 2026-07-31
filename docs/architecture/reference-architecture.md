@@ -93,7 +93,7 @@ flowchart TB
     InternalApps -->|"SDK · GraphQL"| GraphQL_Core
     CommunityApps -->|"SDK · GraphQL"| GraphQL_Core
 
-    MCP -->|"read-only queries"| TwentyORM
+    MCP -->|"authenticate · authorize workspace tools"| CoreModules
 ```
 
 ## Component Responsibilities
@@ -122,7 +122,7 @@ flowchart TB
 | `POST /metadata` | Schema management API. CRUD on object definitions, fields, views, roles, permissions. | `MetadataModuleFactory` generates schema from metadata modules. |
 | `POST /admin-panel` | Admin API. Workspace management, feature flags, event logs, billing. | `AdminModuleFactory` generates schema from admin modules. |
 | `REST /rest/*` | REST endpoints for specific operations (file upload, webhooks, OAuth callbacks). | Static route definitions. |
-| `MCP /mcp` | Model Context Protocol server. Read-only PostgreSQL introspection for AI agents. | Configured in `.mcp.json`. |
+| `MCP /mcp` | Authenticated Model Context Protocol endpoint. Resolves workspace-scoped skills and tools after authentication and permission checks. | Static HTTP endpoint; tool availability is resolved at runtime. It is distinct from the developer client configuration in `.mcp.json`. |
 
 ### Engine Layer
 

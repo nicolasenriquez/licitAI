@@ -21,12 +21,19 @@ The repository exposes a structured command surface through Docker Compose, Nx t
 
 | Command | Purpose | Details |
 | --- | --- | --- |
-| `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml up -d` | Start full local runtime | Canonical path. Runs server/API, compiled frontend, worker, PostgreSQL, and Redis in containers. |
+| `just dev-up` | Resume full local runtime | Canonical daily path. Reuses the existing `twentycrm/twenty:mp-local` image and runs server/API, compiled frontend, worker, PostgreSQL, and Redis in containers. |
+| `just dev-up-build` | Rebuild and start full local runtime | Use after cloning or changing application code. Rebuilds the local image once, then starts the same stack. |
+| `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml up -d` | Start full local runtime directly | Starts the stack from its selected existing image; use `just dev-up-build` when a local rebuild is required. |
 | `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml ps` | Inspect local runtime | Shows service state and health. |
 | `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml logs -f server worker` | Follow application logs | Use for startup and ingestion diagnosis. |
 | `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml down` | Stop local runtime | Stops the Compose project without deleting named volumes. |
 | `yarn start` | Advanced host-source runtime | Legacy host-local Nx path; not the default local runtime. Use only when explicitly required. |
 | `docker compose -f packages/twenty-docker/docker-compose.dev.yml up -d` | Advanced infrastructure-only mode | Starts PostgreSQL and Redis only for intentional host-source or infrastructure debugging. |
+
+`just dev-up` does not request a Docker build. If the working tree changed in a
+way that affects the image, use `just dev-up-build` deliberately. `TAG` is an
+optional override for a published image; without it, Compose selects the local
+`mp-local` tag.
 
 ### Testing Commands
 
@@ -125,15 +132,20 @@ For pipeline theory, stage ordering rationale, the justfile CI command
 surface, and local DEV/CI mode guidance, see `docs/operations/ci.md`.
 The local CI decision is recorded in `docs/decisions/0007-local-ci-surface-via-justfile.md`.
 
-## Database Inspection (Postgres MCP)
+## Database Inspection (Developer Postgres MCP)
 
-A read-only PostgreSQL MCP server is configured in `.mcp.json`. Use it during development to:
+`.mcp.json` configures a developer-local PostgreSQL MCP client. It is separate
+from the application's authenticated runtime endpoint at `/mcp`; do not use
+this file to infer the runtime endpoint's authorization or tool capabilities.
+
+Use the developer client for read-only inspection during development to:
 - Inspect workspace data, metadata, and object definitions.
 - Verify migration results (columns, types, constraints).
 - Explore the multi-tenant schema structure (core, metadata, workspace-specific schemas).
 - Debug issues by querying raw data to confirm whether a bug is frontend, backend, or data-level.
 
-This server is read-only. For write operations (reset, migrations, sync), use the CLI database commands above.
+For write operations (reset, migrations, sync), use the CLI database commands
+above. Access policy and credentials remain environment-specific.
 
 ## Current Assumptions
 

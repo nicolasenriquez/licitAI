@@ -30,14 +30,15 @@ Before making any code change, an AI agent must read:
 2. `docs/README.md` — Documentation index and reading paths.
 3. `docs/architecture/current-state.md` — What Twenty is today (packages, stack, architecture).
 4. `docs/architecture/reference-architecture.md` — System diagram and integration rules.
-5. `docs/architecture/repository-strategy.md` — Monorepo layout, build order, package rules.
-6. **Context-specific docs**: read the architecture doc relevant to the change area:
+5. `docs/architecture/ai-and-mcp-layer.md` — Product AI and MCP runtime boundaries when the change touches either surface.
+6. `docs/architecture/repository-strategy.md` — Monorepo layout, build order, package rules.
+7. **Context-specific docs**: read the architecture doc relevant to the change area:
    - Data model changes → `docs/architecture/data-model.md`
    - Auth/security changes → `docs/architecture/security-and-identity.md`
    - Frontend/UI changes → `docs/design/design-system.md`
    - Operations changes → `docs/operations/command-surface.md`, `docs/operations/local-development.md`, `docs/operations/data-operations.md`
-7. **Relevant ADRs**: read any ADR that covers the decision space being modified.
-8. **`.cursor/rules/`**: read the technology-specific rule file for the language/framework being changed.
+8. **Relevant ADRs**: read any ADR that covers the decision space being modified.
+9. **`.cursor/rules/`**: read the technology-specific rule file for the language/framework being changed.
 
 ## Agent Guardrails
 
@@ -113,10 +114,19 @@ AI agents working in this repo have access to:
 | Quality | `npx nx lint:diff-with-main`, `npx nx lint`, `npx nx typecheck`, `npx nx fmt` |
 | Database | `npx nx database:reset`, `npx nx run twenty-server:database:migrate:generate` |
 | GraphQL | `npx nx run twenty-front:graphql:generate` |
-| Docker | `docker compose -f docker-compose.dev.yml up -d`, `docker compose down` |
+| Docker | `just dev-up`, `just dev-up-build`, `just dev-down`; `packages/twenty-docker/docker-compose.dev.yml` is infrastructure-only for intentional host-source workflows. |
 | Git | Full git access. Prefer `lint:diff-with-main` which compares against `main`. |
-| MCP | Read-only PostgreSQL introspection via `.mcp.json`. |
+| MCP | `.mcp.json` configures developer tooling; the product endpoint `/mcp` has its own authentication, workspace authorization, and tool boundaries. |
 | Docs | `yarn docs:generate`, `yarn docs:generate-navigation-template` |
+
+## Development AI Versus Product AI
+
+The AI tools used to develop this repository are not the product's AI runtime.
+Developer tooling is governed by this document and may use local MCP clients.
+Product agents, provider credentials, code interpretation, and the `/mcp`
+endpoint are described in `docs/architecture/ai-and-mcp-layer.md` and
+`docs/operations/ai-runtime-configuration.md`. Changes to either boundary
+require an explicit review of permissions, secrets, and operational impact.
 
 ## Current Assumptions
 

@@ -1,9 +1,12 @@
+import { tokenPairState } from '@/auth/states/tokenPairState';
 import { useMercadoPublicoApiCallLog } from '@/mercado-publico/hooks/useMercadoPublicoApiCallLog';
 import { useMercadoPublicoApiQuotaUsage } from '@/mercado-publico/hooks/useMercadoPublicoApiQuotaUsage';
 import { useMercadoPublicoCsvFileHealth } from '@/mercado-publico/hooks/useMercadoPublicoCsvFileHealth';
 import { useMercadoPublicoJobRuns } from '@/mercado-publico/hooks/useMercadoPublicoJobRuns';
 import { useMercadoPublicoPipelineHealth } from '@/mercado-publico/hooks/useMercadoPublicoPipelineHealth';
-import { REACT_APP_SERVER_BASE_URL } from '~/config';
+import { downloadMercadoPublicoRawCsvFile } from '@/mercado-publico/utils/downloadMercadoPublicoRawCsvFile';
+import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
+import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
 import { type MercadoPublicoJobRunStatus } from '~/generated/graphql';
 import {
   getMercadoPublicoFreshnessLabel,
@@ -145,6 +148,8 @@ const toRedactedRequestParameters = (value: unknown): string => {
 };
 
 export const MercadoPublicoControlCenterTab = () => {
+  const tokenPair = useAtomStateValue(tokenPairState);
+  const { enqueueErrorSnackBar } = useSnackBar();
   const { formatCount, formatDate, formatDuration, formatPercent } =
     useMercadoPublicoDisplay();
   const [investigationView, setInvestigationView] =
@@ -186,6 +191,26 @@ export const MercadoPublicoControlCenterTab = () => {
   const activeLoading = isJobRuns ? jobRuns.loading : apiCallLog.loading;
   const activeError = isJobRuns ? jobRuns.error : apiCallLog.error;
   const refetchActiveLog = isJobRuns ? jobRuns.refetch : apiCallLog.refetch;
+
+  const handleDownloadRawCsvFile = async (rawCsvFileId: string) => {
+    const accessToken = tokenPair?.accessOrWorkspaceAgnosticToken?.token;
+
+    if (!accessToken) {
+      enqueueErrorSnackBar({
+        message: t`No se pudo descargar el archivo CSV`,
+      });
+
+      return;
+    }
+
+    try {
+      await downloadMercadoPublicoRawCsvFile(rawCsvFileId, accessToken);
+    } catch {
+      enqueueErrorSnackBar({
+        message: t`No se pudo descargar el archivo CSV`,
+      });
+    }
+  };
 
   const pipelineJobs = pipelineHealth.pipelineHealth?.jobs
     ? [...pipelineHealth.pipelineHealth.jobs].sort((leftJob, rightJob) => {
@@ -529,11 +554,17 @@ export const MercadoPublicoControlCenterTab = () => {
                             {formatCount(run.recordsCanonicalized)} ·{' '}
                             {t`Fallidos`}: {formatCount(run.recordsFailed)} ·{' '}
                             {run.rawCsvFileId ? (
-                              <a
-                                href={`${REACT_APP_SERVER_BASE_URL}/mercado-publico/raw-csv-files/${encodeURIComponent(run.rawCsvFileId)}`}
-                              >
-                                {t`Descargar CSV`}
-                              </a>
+                              <Button
+                                ariaLabel={t`Descargar CSV`}
+                                onClick={() =>
+                                  void handleDownloadRawCsvFile(
+                                    run.rawCsvFileId!,
+                                  )
+                                }
+                                size="small"
+                                title={t`Descargar CSV`}
+                                variant="secondary"
+                              />
                             ) : (
                               t`Sin archivo CSV`
                             )}

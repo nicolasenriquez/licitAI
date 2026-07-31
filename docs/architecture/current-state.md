@@ -24,7 +24,7 @@ Licitai is a Twenty-derived, production-grade open-source CRM with a 22-package 
 | Product type | Open-source CRM. Cloud-hosted (twenty.com) and self-hosted. |
 | Core primitives | Objects, fields, views, workflows, agents. Metadata-driven, extensible via apps. |
 | App ecosystem | Internal apps (Slack, Linear, Discord, etc.), community apps, example apps. SDK published to npm (`twenty-sdk` v2.15.0). |
-| AI features | AI agents, chat, code interpreter, tool provider system, text generation. |
+| AI features | AI agents, chat, model registry, tool provider system, text generation, and optional code interpreter. See `ai-and-mcp-layer.md` for runtime boundaries. |
 | User model | Multi-tenant with per-workspace users. JWT auth, SSO (SAML/OIDC), OAuth, API keys. |
 | Maturity | Active production use. Regular releases. Public roadmap. |
 
@@ -155,7 +155,7 @@ Apps are installed via `npx twenty app:install` and published with `npx twenty a
 
 ### Infrastructure
 
-- **Development**: The complete Docker Compose stack is the canonical local runtime for the server, compiled frontend, worker, PostgreSQL 16, and Redis 7.
+- **Development**: The complete Docker Compose stack is the canonical local runtime for the server, compiled frontend, worker, PostgreSQL 16, and Redis 7. The default tag is `twentycrm/twenty:mp-local`; a normal start reuses it and an explicit build refreshes it.
 - **Deployment artifacts**: Docker Compose and Kubernetes Helm charts remain available; deployment is outside the current CI contract.
 - **Monitoring**: OpenTelemetry collector, Grafana dashboards, Sentry error tracking, Prometheus metrics.
 - **CI**: GitHub Actions (22 workflows) cover package checks, documentation, integration/E2E, and targeted application validation. Deployment and promotion CD workflows are absent.

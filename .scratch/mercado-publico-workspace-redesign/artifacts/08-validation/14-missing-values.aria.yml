@@ -1,0 +1,71 @@
+- region "Exploración de Licitaciones":
+  - heading "Licitaciones" [level=2]
+  - text: "Prototipo aislado: valores de muestra, sin consulta a Mercado Público. Código del organismo"
+  - textbox "Código del organismo":
+    - /placeholder: Coincidencia exacta
+  - text: Estado
+  - button "Todos los estados":
+    - text: Todos los estados
+    - img
+  - text: Ordenar por
+  - button "Última observación, reciente primero":
+    - text: Última observación, reciente primero
+    - img
+  - table:
+    - rowgroup:
+      - row "Objeto Organismo Estado Cierre Publicada Código":
+        - columnheader "Objeto"
+        - columnheader "Organismo"
+        - columnheader "Estado"
+        - columnheader "Cierre"
+        - columnheader "Publicada"
+        - columnheader "Código"
+    - rowgroup:
+      - row "Licitación de prueba con una descripción extensa para validar jerarquía, corte de texto y lectura en filas densas ... Entidad de prueba con denominación extensa para revisar truncamiento y densidad en español publicada 04-08-2026 30-07-2026 L-FIXTURE-001":
+        - cell "Licitación de prueba con una descripción extensa para validar jerarquía, corte de texto y lectura en filas densas ...":
+          - button "Licitación de prueba con una descripción extensa para validar jerarquía, corte de texto y lectura en filas densas ..."
+        - cell "Entidad de prueba con denominación extensa para revisar truncamiento y densidad en español"
+        - cell "publicada"
+        - cell "04-08-2026"
+        - cell "30-07-2026"
+        - cell "L-FIXTURE-001"
+      - row "Segundo registro de prueba ... Entidad de prueba adjudicada 29-07-2026 22-07-2026 L-FIXTURE-002":
+        - cell "Segundo registro de prueba ...":
+          - button "Segundo registro de prueba ..."
+        - cell "Entidad de prueba"
+        - cell "adjudicada"
+        - cell "29-07-2026"
+        - cell "22-07-2026"
+        - cell "L-FIXTURE-002"
+  - text: Mostrando 1–2 de 2
+  - button "Anterior ..." [disabled]
+  - button "Siguiente ..." [disabled]
+- complementary "Detalle del proceso seleccionado":
+  - heading "Detalle" [level=3]
+  - text: Resumen
+  - term: Código
+  - definition: L-FIXTURE-002
+  - term: Organismo
+  - definition: Entidad de prueba
+  - term: Última observación
+  - definition: 31-07-2026
+  - text: Ítems
+  - list:
+    - listitem: item-fixture-01 · Ítem de prueba · Descripción de muestra suficientemente extensa para comprobar el flujo de lectura del detalle. · 1 unidad
+    - listitem: item-fixture-02 · No informado por fuente · No informado por fuente · No informado por fuente
+  - text: Adjudicaciones
+  - list:
+    - listitem: proveedor-fixture-01 · 1 · $142.800
+  - text: Órdenes de compra relacionadas
+  - list:
+    - listitem: OC-FIXTURE-001 · emitida · coincidencia exact
+  - text: Trazabilidad y conciliación
+  - term: Coincidencias exactas
+  - definition: "1"
+  - term: Candidatas
+  - definition: "1"
+  - term: Sin relación
+  - definition: "0"
+  - list:
+    - listitem: licitaciones-api-fixture · 1 filas · 31-07-2026
+  - text: No existe un contrato de frescura global. La interfaz muestra la última observación retenida, no una etiqueta de “actualizado”.

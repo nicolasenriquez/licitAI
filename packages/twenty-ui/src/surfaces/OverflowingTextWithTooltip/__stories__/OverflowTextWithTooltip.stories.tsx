@@ -1,5 +1,5 @@
 import { type Meta, type StoryObj } from '@storybook/react-vite';
-import { userEvent, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { ComponentDecorator } from '@ui/testing';
 
@@ -133,5 +133,21 @@ export const MultilineWithReactNodeNotOverflowing: Story = {
     const canvas = within(canvasElement);
     const tooltip = await canvas.findByTestId('tooltip');
     await userEvent.hover(tooltip);
+  },
+};
+
+export const SiblingTooltipsHaveUniqueIds: Story = {
+  render: () => (
+    <>
+      <OverflowingTextWithTooltip text="First title" />
+      <OverflowingTextWithTooltip text="Second title" />
+    </>
+  ),
+  decorators: [ComponentDecorator],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const tooltips = await canvas.findAllByTestId('tooltip');
+
+    expect(tooltips[0].id).not.toBe(tooltips[1].id);
   },
 };

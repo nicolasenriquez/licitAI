@@ -256,8 +256,8 @@ CI failed in GitHub Actions
 and I want to reproduce locally ───────► just ci-infra-up
                                           then run the failing command
 
-I just cloned the repo and
-want to start the app ─────────────────► just dev-up-build
+I just cloned the repo or
+changed application code ──────────────► just dev-up-build
 
 Application is already built,
 I just want to run it ─────────────────► just dev-up
@@ -301,9 +301,27 @@ command dependency tree:
 | Pre-commit | `just ci-prepush` | ~8 min |
 | Pre-PR (commit-build) | `just ci` | ~8 min |
 | Pre-PR + validate + integration | `just ci-full` | ~18 min |
-| Start app | `just dev-up` | ~2 min |
-| Rebuild app | `just dev-up-build` | ~15 min |
+| Start app from an existing local image | `just dev-up` | See observed local timings below |
+| Rebuild app | `just dev-up-build` | Several minutes; no cold-build benchmark is recorded yet |
 | Stop app | `just dev-down` | 5s |
+
+### Observed local startup timings
+
+The timings below are observations, not a service-level objective. They were
+recorded on 2026-07-31 on a Windows workstation with
+`twentycrm/twenty:mp-local` already present, PostgreSQL and Redis already
+healthy, and no pending migrations. Timing ended when `GET /healthz` returned
+success.
+
+| Action | Observed time |
+| --- | ---: |
+| `docker compose ... up -d` from the existing local image; server and worker recreated | 72.1 s |
+| `docker compose ... up -d` after applying a freshly rebuilt local image | 39.1 s |
+
+The explicit build completed with the available Docker and Yarn caches, but it
+was not measured as a cold rebuild. Do not interpret these figures as the cost
+of `just dev-up-build`; record a separate cold-build benchmark before assigning
+that command an exact duration.
 
 ## 6. Migrations and Safety
 

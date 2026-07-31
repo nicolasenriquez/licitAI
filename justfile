@@ -122,7 +122,8 @@ ci-server-test: _ensure-installed
 #   Terminal 2: just ci-server-validate
 ci-server-validate: _ensure-pg _ensure-redis _ensure-server-healthy
     @echo === Checking pending migrations ===
-    -npx nx database:migrate:generate twenty-server -- --name pending-migration-check
+    npx nx database:migrate:generate twenty-server -- --name pending-migration-check
+    git diff --quiet -- packages/twenty-server/src/database/commands/upgrade-version-command & if errorlevel 1 (echo ERROR: Unexpected migration files were generated. & git diff -- packages/twenty-server/src/database/commands/upgrade-version-command & exit 1)
     @echo === Checking pending codegen ===
     npx nx run twenty-front:graphql:generate
     npx nx run twenty-front:graphql:generate --configuration=metadata
@@ -236,9 +237,9 @@ ci-validate: _ensure-installed _ensure-server-healthy
 
 ci-security:
     @echo === yarn npm audit (HIGH/CRITICAL) ===
-    -yarn npm audit --severity high
+    yarn npm audit --severity high
     @echo === Secret scan of staged changes ===
-    git diff --cached --name-only
+    docker run --rm --platform {{PLATFORM}} --mount type=bind,source=%CD%,target=/repo,readonly -w /repo ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f git --pre-commit --redact --staged --verbose
     @echo === SBOM ===
     @(if exist node_modules\.bin\cyclonedx-npm.cmd (npx cyclonedx-npm --output sbom.json) else (echo cyclonedx-npm not installed, skipping))
 

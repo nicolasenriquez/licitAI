@@ -3,6 +3,11 @@
 **/.env
 **/node_modules
 .nx/cache
+.scratch/
+*.log
+coverage/
+test-results/
+playwright-report/
 packages/twenty-front/build
 packages/twenty-server/.env
 graphify-out/

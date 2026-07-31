@@ -1,0 +1,91 @@
+- banner:
+  - heading "Centro de Control" [level=2]
+  - text: Prototipo aislado · fixture compatible con contrato · sin consulta. Lectura continua
+- main:
+  - heading "Diagnóstico" [level=3]
+  - text: Pipeline y cuota por fuente. Sin clasificación de frescura.
+  - region "Estado del pipeline":
+    - table:
+      - rowgroup:
+        - row "Trabajo Estado Último éxito Último fallo Lag Fallos, 7 días":
+          - columnheader "Trabajo"
+          - columnheader "Estado"
+          - columnheader "Último éxito"
+          - columnheader "Último fallo"
+          - columnheader "Lag"
+          - columnheader "Fallos, 7 días"
+      - rowgroup:
+        - row "refresh-canonical-processes Completado 31 jul 2026, 10:20 No disponible con contrato actual 12 min 0":
+          - cell "refresh-canonical-processes"
+          - cell "Completado"
+          - cell "31 jul 2026, 10:20"
+          - cell "No disponible con contrato actual"
+          - cell "12 min"
+          - cell "0"
+        - row "hydrate-compra-agil Fallido 31 jul 2026, 08:12 31 jul 2026, 09:40 No disponible con contrato actual 2":
+          - cell "hydrate-compra-agil"
+          - cell "Fallido"
+          - cell "31 jul 2026, 08:12"
+          - cell "31 jul 2026, 09:40"
+          - cell "No disponible con contrato actual"
+          - cell "2"
+  - term: Fuente
+  - definition: mercado-publico-api-v2
+  - term: Uso diario
+  - definition: 836 de 2500
+  - term: Restante
+  - definition: "1664"
+  - term: Reinicio
+  - definition: 01 ago 2026, 00:00
+  - term: Último 429
+  - definition: No disponible con contrato actual
+  - paragraph: Restante = max(0, límite diario − uso). Cada fuente conserva su propio límite; no se suma una cuota global.
+  - heading "Investigación" [level=3]
+  - text: "Resultados paginados. El origen entrega `hasMore`, no un total global."
+  - button "Ejecuciones ..."
+  - button "Llamadas API ..."
+  - region "Ejecuciones de trabajos":
+    - table:
+      - rowgroup:
+        - row "Trabajo Estado Inicio Fin Identificador":
+          - columnheader "Trabajo"
+          - columnheader "Estado"
+          - columnheader "Inicio"
+          - columnheader "Fin"
+          - columnheader "Identificador"
+      - rowgroup:
+        - row "refresh-canonical-processes Completado 31 jul 2026, 10:08 31 jul 2026, 10:20 job-fixture-021":
+          - cell "refresh-canonical-processes"
+          - cell "Completado"
+          - cell "31 jul 2026, 10:08"
+          - cell "31 jul 2026, 10:20"
+          - cell "job-fixture-021"
+        - row "hydrate-compra-agil Fallido 31 jul 2026, 09:22 31 jul 2026, 09:40 job-fixture-020":
+          - cell "hydrate-compra-agil"
+          - cell "Fallido"
+          - cell "31 jul 2026, 09:22"
+          - cell "31 jul 2026, 09:40"
+          - cell "job-fixture-020"
+  - button "Anterior ..." [disabled]
+  - text: Página 1 · Sin total global
+  - button "Siguiente ..." [disabled]
+  - heading "Integridad" [level=3]
+  - text: CSV conserva conteos y estado del último procesamiento; no se infiere frescura.
+  - region "Integridad de archivos CSV":
+    - table:
+      - rowgroup:
+        - row "Dataset Archivo Estado Filas parseadas Rechazadas Última carga exitosa":
+          - columnheader "Dataset"
+          - columnheader "Archivo"
+          - columnheader "Estado"
+          - columnheader "Filas parseadas"
+          - columnheader "Rechazadas"
+          - columnheader "Última carga exitosa"
+      - rowgroup:
+        - row "licitaciones licitaciones-fixture.csv Parcial 128 3 31 jul 2026, 08:05":
+          - cell "licitaciones"
+          - cell "licitaciones-fixture.csv"
+          - cell "Parcial"
+          - cell "128"
+          - cell "3"
+          - cell "31 jul 2026, 08:05"

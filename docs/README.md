@@ -30,10 +30,12 @@ context.
 | Product vision | `vision-product.md` | Why Twenty exists, who it serves, product register, and MVP scope. |
 | Business | `business/` | Procurement domain: business case, lifecycle, source contracts, workflows, and market positioning for Mercado Publico / ChileCompra data ingestion. |
 | Architecture | `architecture/` | Current state, target state, reference architecture, data model, security, and repository strategy. |
+| AI and MCP architecture | `architecture/ai-and-mcp-layer.md` | Product AI execution, MCP authorization boundaries, and developer-tooling distinction. |
 | Docs topology | `architecture/documentation-topology.md` | OKF bundle shape, index hierarchy, and documentation topology. |
 | Design | `design/` | Design system, visual tokens, interaction patterns, and wireframe grammar. |
 | Governance | `governance/` | Ownership, decision boundaries, AI-assisted delivery rules, and domain operating model. |
 | Operations | `operations/` | Local development, command surface, database operations, CI (`operations/ci.md`), release expectations, ingestion operations, and documentation authoring guidance. |
+| AI runtime operations | `operations/ai-runtime-configuration.md` | Local Compose capability matrix, provider configuration, code interpreter, and safe diagnostics. |
 | Decisions | `decisions/` | ADR index and repository-level architectural decisions. |
 | Templates | `templates/` | Standard templates for ADR creation and governance assets. |
 | Standards | `standards/` | Technology-specific standards plus repository documentation standards such as OKF adoption guidance. |
@@ -47,20 +49,22 @@ context.
 3. `index.md` — `docs/` routing index
 4. `architecture/current-state.md` — What Twenty is today (packages, stack, architecture)
 5. `architecture/reference-architecture.md` — Architecture diagram and integration rules
-6. `architecture/repository-strategy.md` — Monorepo layout, package dependencies, build order
-7. `architecture/data-model.md` — Multi-tenant data model, entities, field types
-8. `architecture/security-and-identity.md` — Authentication, RBAC, RLS, guards
-9. `architecture/documentation-topology.md` — Documentation topology and index hierarchy
-10. `vision-product.md` — Product context and scope
-11. `governance/ai-assisted-delivery.md` — Agent guardrails and delivery workflow
-12. `operations/command-surface.md` — Developer command contract
-13. `operations/local-development.md` — Local setup and runtime
-14. `operations/okf-authoring-guide.md` — Safe additive documentation authoring rules
-15. `operations/mercado-publico-ingestion.md` — Ingestion command and operator contract
-16. `design/design-system.md` — Visual and interaction rules
-17. `standards/okf-standard.md` — Repository OKF taxonomy and frontmatter rules
-18. `decisions/` — Key architectural decisions with rationale
-19. `../.cursor/rules/` — Cursor-specific development rules (16 `.mdc` files)
+6. `architecture/ai-and-mcp-layer.md` — Product AI and MCP runtime boundaries
+7. `architecture/repository-strategy.md` — Monorepo layout, package dependencies, build order
+8. `architecture/data-model.md` — Multi-tenant data model, entities, field types
+9. `architecture/security-and-identity.md` — Authentication, RBAC, RLS, guards
+10. `architecture/documentation-topology.md` — Documentation topology and index hierarchy
+11. `vision-product.md` — Product context and scope
+12. `governance/ai-assisted-delivery.md` — Agent guardrails and delivery workflow
+13. `operations/command-surface.md` — Developer command contract
+14. `operations/local-development.md` — Local setup and runtime
+15. `operations/ai-runtime-configuration.md` — AI runtime setup and limits
+16. `operations/okf-authoring-guide.md` — Safe additive documentation authoring rules
+17. `operations/mercado-publico-ingestion.md` — Ingestion command and operator contract
+18. `design/design-system.md` — Visual and interaction rules
+19. `standards/okf-standard.md` — Repository OKF taxonomy and frontmatter rules
+20. `decisions/` — Key architectural decisions with rationale
+21. `../.cursor/rules/` — Cursor-specific development rules (16 `.mdc` files)
 
 ### For architecture and delivery
 

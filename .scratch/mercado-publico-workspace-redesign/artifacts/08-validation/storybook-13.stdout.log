@@ -1,0 +1,770 @@
+
+[7m[1m[36m NX [39m[22m[27m  [36mRunning target [1mstorybook:serve:dev[22m for project twenty-front and [1m6[22m tasks it depends on:[39m
+
+[2m[36m[39m[22m
+
+[2m> [22m[2mnx run[22m twenty-ui:build  [2m[local cache][22m
+
+
+[2m> [22m[2mnx run[22m twenty-shared:generateBarrels  [2m[local cache][22m
+
+
+[2m> [22m[2mnx run[22m twenty-shared:build  [2m[local cache][22m
+
+
+[2m> [22m[2mnx run[22m twenty-client-sdk:build  [2m[local cache][22m
+
+
+[2m> [22m[2mnx run[22m twenty-sdk:build  [2m[local cache][22m
+
+
+[2m> [22m[2mnx run[22m twenty-front-component-renderer:build  [2m[local cache][22m
+
+
+[2m> [22m[2mnx run[22m twenty-front:"storybook:serve:dev":modules --port=6006
+
+[2m> [22mstorybook dev --config-dir=.storybook --port=6006
+
+
+[90m┌[39m  storybook v10.2.13
+[90m│[39m
+[34m●[39m  Starting...
+[90m│[39m
+[33m▲[39m  No story files found for the specified pattern:
+[90m│[39m  [34msrc\modules\**\*.docs.mdx[39m
+[addon-coverage] Adding istanbul plugin to Vite config
+[90m│[39m
+[33m▲[39m  [43mVite[49m [33mThe plugin "vite-tsconfig-paths" is detected. Vite now supports[39m
+[90m│[39m  [33mtsconfig paths resolution natively via the [1mresolve.tsconfigPaths[22m
+[90m│[39m  option. You can remove the plugin and set [1mresolve.tsconfigPaths: true[22m
+[90m│[39m  in your Vite config instead.[39m
+[linaria/wyw] Starting CSS pre-build
+[linaria/wyw] Pre-warm: 1779ms ⚠️  slow
+│ [38;2;255;71;133m╭[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m╮[39m
+│ [38;2;255;71;133m│[39m   Storybook ready!                                     [38;2;255;71;133m│[39m
+│ [38;2;255;71;133m│[39m                                                        [38;2;255;71;133m│[39m
+│ [38;2;255;71;133m│[39m   - Local:             http://localhost:6006/          [38;2;255;71;133m│[39m
+│ [38;2;255;71;133m│[39m   - On your network:   http://192.168.100.111:6006/    [38;2;255;71;133m│[39m
+│ [38;2;255;71;133m╰[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m─[39m[38;2;255;71;133m╯[39m
+[90m│[39m
+[34m●[39m  [4m1.59 s[24m for manager and [4m2.84 s[24m for preview
+[linaria/wyw] slow: C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-front/src/modules/mercado-publico/components/__stories__/MercadoPublicoControlCenterPrototype.stories.tsx 263ms
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[linaria/wyw] slow: C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-front/src/modules/object-record/record-field/ui/form-types/components/FormFieldInputInnerContainer.tsx 298ms
+[linaria/wyw] slow: C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-front/src/modules/object-record/record-field/ui/form-types/components/TextVariableEditor.tsx 475ms
+[linaria/wyw] slow: C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-front/src/modules/ui/input/components/Select.tsx 1028ms
+[linaria/wyw] slow: C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-front/src/modules/object-record/record-field/ui/form-types/components/VariableChipStandalone.tsx 971ms
+[linaria/wyw] slow: C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-front/src/modules/workflow/workflow-variables/components/WorkflowTextEditorVariableChip.tsx 2120ms
+[90m│[39m  [43mVite[49m [32mhmr update[39m
+[90m│[39m  [32m[39m[2m/@id/__x00__virtual:/@storybook/builder-vite/project-annotations.js[22m
+[90m│[39m  [43mVite[49m [32mhmr update[39m
+[90m│[39m  [32m[39m[2m/src/modules/file-upload/components/FileUploadProvider.tsx,[22m
+[90m│[39m  [2m/@id/__x00__virtual:/@storybook/builder-vite/project-annotations.js,[22m
+[90m│[39m  [2m/src/testing/decorators/RootDecorator.tsx,[22m
+[90m│[39m  [2m/src/testing/decorators/WorkflowStepDecorator.tsx,[22m
+[90m│[39m  [2m/src/modules/file/components/FileIcon.tsx,[22m
+[90m│[39m  [2m/src/modules/object-record/record-field/ui/form-types/components/FormTextFieldInput.tsx,[22m
+[90m│[39m  [2m/src/modules/object-record/record-field/ui/form-types/components/FormSelectFieldInput.tsx,[22m
+[90m│[39m  [2m/src/modules/ui/input/components/InputErrorHelper.tsx and 1 more[22m
+[90m│[39m  [43mVite[49m [32mhmr update[39m
+[90m│[39m  [32m[39m[2m/src/modules/file-upload/components/FileUploadProvider.tsx,[22m
+[90m│[39m  [2m/@id/__x00__virtual:/@storybook/builder-vite/project-annotations.js,[22m
+[90m│[39m  [2m/src/testing/decorators/RootDecorator.tsx,[22m
+[90m│[39m  [2m/src/testing/decorators/WorkflowStepDecorator.tsx,[22m
+[90m│[39m  [2m/src/modules/file/components/FileIcon.tsx,[22m
+[90m│[39m  [2m/src/modules/object-record/record-field/ui/form-types/components/FormTextFieldInput.tsx,[22m
+[90m│[39m  [2m/src/modules/object-record/record-field/ui/form-types/components/FormSelectFieldInput.tsx,[22m
+[90m│[39m  [2m/src/modules/ui/input/components/InputErrorHelper.tsx and 1 more[22m
+[90m│[39m  [43mVite[49m [32mhmr update[39m
+[90m│[39m  [32m[39m[2m/src/modules/file-upload/components/FileUploadProvider.tsx,[22m
+[90m│[39m  [2m/@id/__x00__virtual:/@storybook/builder-vite/project-annotations.js,[22m
+[90m│[39m  [2m/src/testing/decorators/RootDecorator.tsx,[22m
+[90m│[39m  [2m/src/testing/decorators/WorkflowStepDecorator.tsx,[22m
+[90m│[39m  [2m/src/modules/file/components/FileIcon.tsx,[22m
+[90m│[39m  [2m/src/modules/object-record/record-field/ui/form-types/components/FormTextFieldInput.tsx,[22m
+[90m│[39m  [2m/src/modules/object-record/record-field/ui/form-types/components/FormSelectFieldInput.tsx,[22m
+[90m│[39m  [2m/src/modules/ui/input/components/InputErrorHelper.tsx and 1 more[22m
+[90m│[39m  [43mVite[49m [32mhmr update[39m
+[90m│[39m  [32m[39m[2m/src/modules/file-upload/components/FileUploadProvider.tsx,[22m
+[90m│[39m  [2m/@id/__x00__virtual:/@storybook/builder-vite/project-annotations.js,[22m
+[90m│[39m  [2m/src/testing/decorators/RootDecorator.tsx,[22m
+[90m│[39m  [2m/src/testing/decorators/WorkflowStepDecorator.tsx,[22m
+[90m│[39m  [2m/src/modules/file/components/FileIcon.tsx,[22m
+[90m│[39m  [2m/src/modules/object-record/record-field/ui/form-types/components/FormTextFieldInput.tsx,[22m
+[90m│[39m  [2m/src/modules/object-record/record-field/ui/form-types/components/FormSelectFieldInput.tsx,[22m
+[90m│[39m  [2m/src/modules/ui/input/components/InputErrorHelper.tsx and 1 more[22m
+[90m│[39m  [43mVite[49m [32mhmr update [39m[2m/src/testing/decorators/WorkflowStepDecorator.tsx[22m
+[linaria/wyw] slow: C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-front/src/modules/ui/input/components/SelectControl.tsx 1678ms
+[linaria/wyw] slow: C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-front/src/modules/ui/layout/dropdown/components/DropdownMenuSearchInput.tsx 1590ms
+[linaria/wyw] slow: C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-front/src/modules/ui/layout/dropdown/components/DropdownMenuItemsContainer.tsx 1553ms
+[linaria/wyw] slow: C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-front/src/modules/ui/layout/dropdown/components/DropdownMenuSeparator.tsx 1063ms
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/translations.mjs?t=1785523876862http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/utils.mjs?t=1785523876870http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[linaria/wyw] slow: C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-front/src/modules/object-record/record-field/ui/form-types/components/BaseChip.tsx 305ms
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/isDefined-Dtu5EYqP.mjs?t=1785523876866http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/utils-DEQ1-Q2k.mjs?t=1785523876870http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/SourceLocale-CfovCqKy.mjs?t=1785523876868http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/AppLocales-CxfCC4eU.mjs?t=1785523876863http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/constants-DnUrvSsW.mjs?t=1785523876870http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [31m[Unhandled rejection] [1mTypeError[22m: Failed to update a ServiceWorker
+[90m│[39m  for scope (']8;;http://localhost:6006/')http://localhost:6006/')]8;; with
+[90m│[39m  script
+[90m│[39m  (']8;;http://localhost:6006/mockServiceWorker.js'):http://localhost:6006/mockServiceWorker.js'):]8;;
+[90m│[39m  Not found
+[90m│[39m  [39m
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/utils.mjs?t=1785523876870http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/workflow.mjs?t=1785523876870http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/translations.mjs?t=1785523876862http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/logic-function.mjs?t=1785523876872http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/isDefined-Dtu5EYqP.mjs?t=1785523876866http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/utils-DEQ1-Q2k.mjs?t=1785523876870http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/SourceLocale-CfovCqKy.mjs?t=1785523876868http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/AppLocales-CxfCC4eU.mjs?t=1785523876863http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/constants-DnUrvSsW.mjs?t=1785523876870http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/workflow.mjs?t=1785523876870http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/logic-function.mjs?t=1785523876872http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m  [43mVite[49m [32mhmr update[39m
+[90m│[39m  [32m[39m[2m/@id/__x00__virtual:/@storybook/builder-vite/vite-app.js[22m
+[90m│[39m  [43mVite[49m [32mhmr update[39m
+[90m│[39m  [32m[39m[2m/@id/__x00__virtual:/@storybook/builder-vite/vite-app.js[22m
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m  [43mVite[49m [32mhmr update[39m
+[90m│[39m  [32m[39m[2m/@id/__x00__virtual:/@storybook/builder-vite/vite-app.js[22m
+[90m│[39m  [43mVite[49m [32mhmr update[39m
+[90m│[39m  [32m[39m[2m/@id/__x00__virtual:/@storybook/builder-vite/vite-app.js[22m
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m  [43mVite[49m [32mhmr update [39m[2m/src/modules/ui/input/components/TextInput.tsx[22m
+[90m│[39m  [43mVite[49m [32mpage reload[39m
+[90m│[39m  [32m[39m[2mC:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/layout-hcjN3fyy.js[22m
+[90m│[39m  [43mVite[49m [32mhmr update [39m[2m/src/modules/ui/input/components/Select.tsx[22m
+[90m│[39m  [43mVite[49m [32mpage reload[39m
+[90m│[39m  [32m[39m[2mC:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation-BP_GaQq2.js[22m
+[90m│[39m  [43mVite[49m [32mhmr update [39m[2m/src/modules/ui/input/components/SelectControl.tsx[22m
+[90m│[39m  [43mVite[49m [32mhmr update [39m[2m/src/modules/ui/input/components/SelectControl.tsx[22m
+[90m│[39m
+[31m■[39m  [43mVite[49m Pre-transform error: Failed to load url
+[90m│[39m  /@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/surfaces.mjs
+[90m│[39m  (resolved id:
+[90m│[39m  C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/surfaces.mjs)
+[90m│[39m  in
+[90m│[39m  C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-front/src/modules/ui/input/components/SelectControl.tsx.
+[90m│[39m  Does the file exist?
+[90m│[39m
+[31m■[39m  [43mVite[49m Pre-transform error: Failed to load url
+[90m│[39m  /@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs
+[90m│[39m  (resolved id:
+[90m│[39m  C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs)
+[90m│[39m  in
+[90m│[39m  C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-front/src/modules/ui/input/components/Select.tsx.
+[90m│[39m  Does the file exist?
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs?t=1785523955754http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/surfaces.mjs?t=1785523955757http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22m[vite] Failed to reload
+[90m│[39m  /src/modules/ui/input/components/Select.tsx. This could be due to
+[90m│[39m  syntax errors or importing non-existent modules. (see errors above)
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22m[vite] Failed to reload
+[90m│[39m  /src/modules/ui/input/components/SelectControl.tsx. This could be due
+[90m│[39m  to syntax errors or importing non-existent modules. (see errors above)
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22m[vite] Failed to reload
+[90m│[39m  /src/modules/ui/input/components/SelectControl.tsx. This could be due
+[90m│[39m  to syntax errors or importing non-existent modules. (see errors above)
+[90m│[39m  [43mVite[49m [32mhmr update[39m
+[90m│[39m  [32m[39m[2m/src/modules/ui/layout/dropdown/components/Dropdown.tsx,[22m
+[90m│[39m  [2m/src/testing/decorators/WorkflowStepDecorator.tsx[22m
+[90m│[39m
+[31m■[39m  [43mVite[49m Pre-transform error: Failed to load url
+[90m│[39m  /@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs
+[90m│[39m  (resolved id:
+[90m│[39m  C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs)
+[90m│[39m  in
+[90m│[39m  C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-front/src/modules/ui/layout/dropdown/components/Dropdown.tsx.
+[90m│[39m  Does the file exist?
+[90m│[39m
+[31m■[39m  [43mVite[49m Pre-transform error: Failed to load url
+[90m│[39m  /@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs
+[90m│[39m  (resolved id:
+[90m│[39m  C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs)
+[90m│[39m  in
+[90m│[39m  C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-front/src/modules/ui/layout/dropdown/components/Dropdown.tsx.
+[90m│[39m  Does the file exist?
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs?t=1785523955950http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22m[vite] Failed to reload
+[90m│[39m  /src/modules/ui/layout/dropdown/components/Dropdown.tsx. This could be
+[90m│[39m  due to syntax errors or importing non-existent modules. (see errors
+[90m│[39m  above)
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22m[vite] Failed to reload
+[90m│[39m  /src/testing/decorators/WorkflowStepDecorator.tsx. This could be due
+[90m│[39m  to syntax errors or importing non-existent modules. (see errors above)
+[90m│[39m
+[31m■[39m  [43mVite[49m Pre-transform error: Failed to load url
+[90m│[39m  /@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/layout.mjs
+[90m│[39m  (resolved id:
+[90m│[39m  C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/layout.mjs)
+[90m│[39m  in
+[90m│[39m  C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-front/src/modules/ui/input/components/TextInput.tsx.
+[90m│[39m  Does the file exist?
+[90m│[39m
+[31m■[39m  [43mVite[49m Pre-transform error: Failed to load url
+[90m│[39m  /@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs
+[90m│[39m  (resolved id:
+[90m│[39m  C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs)
+[90m│[39m  in
+[90m│[39m  C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-front/src/modules/ui/input/components/Select.tsx.
+[90m│[39m  Does the file exist?
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs?t=1785523955754http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/layout.mjs?t=1785523955752http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mTypeError: Failed to fetch dynamically imported
+[90m│[39m  module:
+[90m│[39m  ]8;;http://localhost:6006/src/modules/mercado-publico/components/__stories__/MercadoPublicoBrowseDetailPrototype.stories.tsx?t=1785523955757http://localhost:6006/src/modules/mercado-publico/components/__stories__/MercadoPublicoBrowseDetailPrototype.stories.tsx?t=1785523955757]8;;
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs?t=1785523955950http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/surfaces.mjs?t=1785523955757http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m  [43mVite[49m [32mhmr update [39m[2m/src/testing/decorators/WorkflowStepDecorator.tsx[22m
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/workflow.mjs?t=1785523876870http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/logic-function.mjs?t=1785523876872http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs?t=1785523955754http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs?t=1785523955950http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/surfaces.mjs?t=1785523955757http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-shared/dist/metadata.mjs?t=1785523957239http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs?t=1785523955754http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/layout.mjs?t=1785523955752http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs?t=1785523955950http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/surfaces.mjs?t=1785523955757http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/layout.mjs?t=1785523955752http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs?t=1785523955754http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs?t=1785523955950http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/surfaces.mjs?t=1785523955757http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/layout.mjs?t=1785523955752http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs?t=1785523955754http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs?t=1785523955950http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/surfaces.mjs?t=1785523955757http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs?t=1785523955754http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/layout.mjs?t=1785523955752http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs?t=1785523955950http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/surfaces.mjs?t=1785523955757http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs?t=1785523955754http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/layout.mjs?t=1785523955752http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs?t=1785523955950http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/surfaces.mjs?t=1785523955757http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs?t=1785523955754http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/layout.mjs?t=1785523955752http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs?t=1785523955950http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/surfaces.mjs?t=1785523955757http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs?t=1785523955754http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/layout.mjs?t=1785523955752http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs?t=1785523955950http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/surfaces.mjs?t=1785523955757http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs?t=1785523955754http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/layout.mjs?t=1785523955752http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs?t=1785523955950http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/surfaces.mjs?t=1785523955757http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/layout.mjs?t=1785523955752http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs?t=1785523955754http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs?t=1785523955950http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/surfaces.mjs?t=1785523955757http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/layout.mjs?t=1785523955752http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs?t=1785523955754http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs?t=1785523955950http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/surfaces.mjs?t=1785523955757http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/layout.mjs?t=1785523955752http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/navigation.mjs?t=1785523955754http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/utilities.mjs?t=1785523955950http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[31m■[39m  [43mVite[49m [2m[console.error] [22mCannot parse msw request body : SyntaxError:
+[90m│[39m  Unexpected end of input
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mUnhandled GET request to ]8;;http://localhost:6006/@fs/C:/Users/nenri/OneDrive/Desktop/proyectos/pry-omnibid/twenty/packages/twenty-ui/dist/surfaces.mjs?t=1785523955757http://localhost:6006/...]8;;
+[90m│[39m  This request should be mocked with MSW
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
+[90m│[39m
+[33m▲[39m  [43mVite[49m [2m[console.warn] [22mCan't access cssRules, likely due to CORS
+[90m│[39m  restrictions:
+[90m│[39m  ]8;;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swaphttps://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap]8;;
