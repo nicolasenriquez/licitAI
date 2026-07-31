@@ -8,6 +8,7 @@ import {
 import { isNonEmptyString } from '@sniptt/guards';
 
 import { MercadoPublicoApiV2CompraAgilClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
+import { type MercadoPublicoApiV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/types/mercado-publico-api-v2-compra-agil-record.type';
 import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
 import { InjectMessageQueue } from 'src/engine/core-modules/message-queue/decorators/message-queue.decorator';
 import { MessageQueue } from 'src/engine/core-modules/message-queue/message-queue.constants';
@@ -78,6 +79,7 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
       let recordsFetched = 0;
       let recordsStaged = 0;
       let recordsCanonicalized = 0;
+      const listedRecords: MercadoPublicoApiV2CompraAgilRecord[] = [];
 
       for (let page = firstPage; page <= lastPage; page += 1) {
         const apiResponse =
@@ -143,6 +145,7 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
             : await this.mercadoPublicoCanonicalRefreshService.refreshV2CompraAgilFromApiSnapshot(
                 persistenceResult.rawApiPayloadId,
               );
+        listedRecords.push(...apiResponse.compraAgil);
       }
 
       const partialSummary =
@@ -151,6 +154,7 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
           : undefined;
 
       if (partialSummary === undefined) {
+        await this.enqueuePublishedDetailHydration(listedRecords);
         await this.enqueueReconciliationRefresh();
       }
 
@@ -223,15 +227,82 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
     );
   }
 
+  private async enqueuePublishedDetailHydration(
+    records: MercadoPublicoApiV2CompraAgilRecord[],
+  ): Promise<void> {
+    const publishedByCode = new Map<string, string | null>();
+
+    for (const record of records) {
+      const code = record.codigo.trim();
+      const state =
+        typeof record.estado === 'string'
+          ? record.estado
+          : record.estado?.codigo;
+
+      if (code !== '' && state === 'publicada') {
+        publishedByCode.set(
+          code,
+          record.fecha_ultimo_cambio ??
+            record.fechas?.fecha_ultimo_cambio ??
+            null,
+        );
+      }
+    }
+
+    const detailChangeDates =
+      await this.mercadoPublicoPersistenceService.getV2CompraAgilDetailSnapshotChangeDates(
+        [...publishedByCode.keys()],
+      );
+    const settings = this.mercadoPublicoConfigService?.getSettings();
+
+    for (const [codigo, listChangeDate] of publishedByCode) {
+      const hasDetail = detailChangeDates.has(codigo);
+      const detailChangeDate = detailChangeDates.get(codigo);
+      const shouldHydrate =
+        !hasDetail ||
+        (listChangeDate !== null && listChangeDate !== detailChangeDate);
+
+      if (!shouldHydrate) {
+        continue;
+      }
+
+      await this.mercadoPublicoQueue.add(
+        'MercadoPublicoJob',
+        {
+          jobName: 'api-v2-compra-agil-detail-by-codigo',
+          payload: { codigo },
+          requestedAt: new Date().toISOString(),
+          requestedBy: 'schedule',
+        },
+        {
+          retryLimit: settings?.httpMaxRetries ?? 0,
+          backoff: {
+            type: 'fixed',
+            delay: settings?.httpRetryBackoffMs ?? 0,
+          },
+        },
+      );
+    }
+  }
+
   private parsePayload(
     payload: Record<string, unknown>,
   ): MercadoPublicoApiV2CompraAgilIncrementalPayload {
     const ttlCambioMs = payload.ttl_cambio_ms;
     const cambioDesde = payload.cambio_desde;
 
-    if (ttlCambioMs === undefined && !isNonEmptyString(cambioDesde)) {
+    const isPublishedBackfill =
+      payload.estado === 'publicada' &&
+      ttlCambioMs === undefined &&
+      !isNonEmptyString(cambioDesde);
+
+    if (
+      !isPublishedBackfill &&
+      ttlCambioMs === undefined &&
+      !isNonEmptyString(cambioDesde)
+    ) {
       throw new BadRequestException(
-        'Mercado Publico V2 Compra Agil incremental payload requires a non-empty "ttl_cambio_ms" or "cambio_desde" string',
+        'Mercado Publico V2 Compra Agil incremental payload requires a non-empty "ttl_cambio_ms" or "cambio_desde" string unless estado is exactly "publicada"',
       );
     }
 

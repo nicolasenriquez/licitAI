@@ -4,6 +4,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 
 import { findV2CompraAgilRawRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
+import { type MercadoPublicoApiV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/types/mercado-publico-api-v2-compra-agil-record.type';
 
 import { MERCADO_PUBLICO_DETECTED_PROCESS_TYPES } from 'src/engine/core-modules/mercado-publico/constants/detected-process-read.constants';
 import {
@@ -91,6 +92,9 @@ const nullableString = (value: unknown): string | null => {
 const nullableNumber = (value: unknown): number | null =>
   typeof value === 'number' && Number.isFinite(value) ? value : null;
 
+const nullableBoolean = (value: unknown): boolean | null =>
+  typeof value === 'boolean' ? value : null;
+
 const PROCESS_TYPE_SET = new Set<string>(
   MERCADO_PUBLICO_DETECTED_PROCESS_TYPES,
 );
@@ -114,16 +118,6 @@ const ORDEN_COMPRA_ITEM_SQL = `
   FROM mp.orden_compra_item
   WHERE codigo = $1
   ORDER BY iditem ASC
-`;
-
-const COMPRA_AGIL_ITEM_SQL = `
-  SELECT
-    codigo_producto,
-    nombre_producto,
-    cantidad_solicitada
-  FROM mp.compra_agil_producto_solicitado
-  WHERE codigo = $1
-  ORDER BY ordinal ASC, codigo_producto ASC
 `;
 
 const LICITACION_ADJUDICACION_SQL = `
@@ -176,7 +170,15 @@ export class MercadoPublicoProcessDetailReadService {
 
     const gold = goldRows[0];
 
-    const items = await this.resolveItems(processType, processCode);
+    const compraAgilRecord = await this.resolveCompraAgilDetailRecord(
+      processType,
+      processCode,
+    );
+    const items = await this.resolveItems(
+      processType,
+      processCode,
+      compraAgilRecord,
+    );
     const adjudications = await this.resolveAdjudications(
       processType,
       processCode,
@@ -190,10 +192,7 @@ export class MercadoPublicoProcessDetailReadService {
       processType,
       processCode,
     );
-    const compraAgilSource = await this.resolveCompraAgilSource(
-      processType,
-      processCode,
-    );
+    const compraAgilSource = this.toCompraAgilSource(compraAgilRecord);
 
     return {
       processType:
@@ -224,10 +223,10 @@ export class MercadoPublicoProcessDetailReadService {
     };
   }
 
-  private async resolveCompraAgilSource(
+  private async resolveCompraAgilDetailRecord(
     processType: string,
     processCode: string,
-  ): Promise<MercadoPublicoCompraAgilSourceDetail | null> {
+  ): Promise<MercadoPublicoApiV2CompraAgilRecord | null> {
     if (processType !== 'compra_agil') {
       return null;
     }
@@ -236,13 +235,11 @@ export class MercadoPublicoProcessDetailReadService {
       `
         SELECT raw.raw_payload
         FROM mp.raw_api_payload raw
-        INNER JOIN mp.stg_api_v2_compra_agil staging
-          ON staging.raw_api_payload_id = raw.id
         WHERE
           raw.source = 'api-v2-compra-agil'
-          AND staging.codigo = $1
+          AND raw.endpoint = 'detail-by-codigo'
+          AND raw.request_params ->> 'codigo' = $1
         ORDER BY
-          staging.fecha_ultimo_cambio DESC NULLS LAST,
           raw.fetched_at DESC,
           raw.id DESC
         LIMIT 1
@@ -251,6 +248,12 @@ export class MercadoPublicoProcessDetailReadService {
     );
     const record = findV2CompraAgilRawRecord(rows[0]?.raw_payload, processCode);
 
+    return record;
+  }
+
+  private toCompraAgilSource(
+    record: MercadoPublicoApiV2CompraAgilRecord | null,
+  ): MercadoPublicoCompraAgilSourceDetail | null {
     if (record === null) {
       return null;
     }
@@ -305,13 +308,91 @@ export class MercadoPublicoProcessDetailReadService {
         description: nullableString(record.convocatoria?.descripcion),
         state: nullableString(record.convocatoria?.estado_convocatoria),
       },
+      need: { description: nullableString(record.descripcion) },
+      delivery: {
+        address: nullableString(record.entrega?.direccion_entrega),
+        leadTimeDays: nullableNumber(record.entrega?.plazo_entrega_dias),
+      },
+      budget: {
+        type: nullableString(record.presupuesto?.tipo_presupuesto),
+        currency: nullableString(record.presupuesto?.moneda),
+        estimated: nullableNumber(record.presupuesto?.presupuesto_estimado),
+        available: nullableNumber(record.presupuesto?.monto_disponible),
+        availableClp: nullableNumber(record.presupuesto?.monto_disponible_clp),
+        exchangeRate: nullableNumber(record.presupuesto?.valor_cambio_moneda),
+        exchangeRateAt: nullableString(record.presupuesto?.fecha_cambio_moneda),
+      },
+      suppliers: (record.proveedores_cotizando ?? []).map((supplier) => ({
+        rut: nullableString(supplier.rut_proveedor),
+        name: nullableString(supplier.razon_social),
+        isEsm: nullableBoolean(supplier.es_emt),
+        quote: {
+          id: nullableString(supplier.id_cotizacion),
+          companyCode: nullableString(supplier.codigo_empresa),
+          branchCode: nullableString(supplier.codigo_sucursal_empresa),
+          active: nullableBoolean(supplier.activo),
+          buyerState: nullableString(supplier.estado_por_comprador),
+          createdAt: nullableString(supplier.fecha_creacion),
+          validUntil: nullableString(supplier.fecha_vigencia),
+          netAmount: nullableNumber(supplier.valor_neto),
+          taxAmount: nullableNumber(supplier.total_impuesto),
+          shippingAmount: nullableNumber(supplier.monto_despacho),
+          totalAmount: nullableNumber(supplier.monto_total),
+          taxName: nullableString(supplier.nombre_impuesto),
+          taxRate: nullableNumber(supplier.porcentaje_impuesto),
+          description:
+            nullableString(supplier.descripcion_cotizacion) ??
+            nullableString(supplier.descripcion),
+          inadmissibilityReason: nullableString(
+            supplier.justificacion_inadmisibilidad,
+          ),
+          products: (supplier.productos_cotizados ?? []).map((product) => ({
+            code: nullableString(product.codigo_producto),
+            name: nullableString(product.nombre_producto),
+            description: nullableString(product.descripcion),
+            quantity: nullableString(product.cantidad),
+            unitPrice: nullableNumber(product.precio_unitario),
+            totalAmount: nullableNumber(product.monto_total_producto),
+          })),
+        },
+      })),
+      flags: {
+        environmental: nullableBoolean(
+          record.flags?.considera_requisitos_medioambientales,
+        ),
+        socialEconomic: nullableBoolean(
+          record.flags?.considera_requisitos_impacto_social_economico,
+        ),
+      },
     };
   }
 
   private async resolveItems(
     processType: string,
     processCode: string,
+    compraAgilRecord: MercadoPublicoApiV2CompraAgilRecord | null,
   ): Promise<MercadoPublicoProcessDetailItem[]> {
+    if (processType === 'compra_agil') {
+      return (compraAgilRecord?.productos_solicitados ?? []).reduce<
+        MercadoPublicoProcessDetailItem[]
+      >((items, item) => {
+        const code = nullableString(item.codigo_producto);
+
+        if (code !== null) {
+          items.push({
+            code,
+            name: nullableString(item.nombre),
+            description: nullableString(item.descripcion),
+            quantity: nullableString(item.cantidad),
+            unit: nullableString(item.unidad_medida),
+            amount: null,
+          });
+        }
+
+        return items;
+      }, []);
+    }
+
     let sql: string | null = null;
 
     switch (processType) {
@@ -320,9 +401,6 @@ export class MercadoPublicoProcessDetailReadService {
         break;
       case 'orden_compra':
         sql = ORDEN_COMPRA_ITEM_SQL;
-        break;
-      case 'compra_agil':
-        sql = COMPRA_AGIL_ITEM_SQL;
         break;
       default:
         return [];
@@ -339,10 +417,6 @@ export class MercadoPublicoProcessDetailReadService {
         return (rows as OrdenCompraItemRow[]).map((row) =>
           this.toOrdenCompraItem(row),
         );
-      case 'compra_agil':
-        return (rows as CompraAgilItemRow[]).map((row) =>
-          this.toCompraAgilItem(row),
-        );
       default:
         return [];
     }
@@ -354,7 +428,9 @@ export class MercadoPublicoProcessDetailReadService {
     return {
       code: row.codigoitem,
       name: row.nombre_producto_generico,
+      description: null,
       quantity: row.cantidad,
+      unit: null,
       amount: row.monto_estimado,
     };
   }
@@ -365,19 +441,10 @@ export class MercadoPublicoProcessDetailReadService {
     return {
       code: row.iditem,
       name: row.nombre_producto_generico,
+      description: null,
       quantity: null,
+      unit: null,
       amount: row.total_linea_neto,
-    };
-  }
-
-  private toCompraAgilItem(
-    row: CompraAgilItemRow,
-  ): MercadoPublicoProcessDetailItem {
-    return {
-      code: row.codigo_producto,
-      name: row.nombre_producto,
-      quantity: row.cantidad_solicitada,
-      amount: null,
     };
   }
 

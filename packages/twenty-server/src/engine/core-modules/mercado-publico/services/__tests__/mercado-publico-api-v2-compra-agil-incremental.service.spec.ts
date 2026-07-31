@@ -56,6 +56,9 @@ describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
         .mockResolvedValue(mockPersistenceResult),
       persistApiFailure: jest.fn(),
       finalizeJobRun: jest.fn(),
+      getV2CompraAgilDetailSnapshotChangeDates: jest
+        .fn()
+        .mockResolvedValue(new Map()),
     } as unknown as jest.Mocked<MercadoPublicoPersistenceService>;
 
     mercadoPublicoQueue = {
@@ -147,6 +150,46 @@ describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
           cambio_desde: '2026-06-01T00:00:00Z',
           cambio_hasta: '2026-06-30T00:00:00Z',
         }),
+      );
+    });
+
+    it('should enqueue each new or changed publicada detail once after a complete list run', async () => {
+      clientService.getList.mockResolvedValue({
+        ...mockApiSuccessResponse,
+        compraAgil: [
+          { codigo: 'CA-1', estado: 'publicada', fecha_ultimo_cambio: 'v2' },
+          { codigo: 'CA-1', estado: 'publicada', fecha_ultimo_cambio: 'v2' },
+          { codigo: 'CA-2', estado: 'cerrada' },
+          { codigo: 'CA-3', estado: 'publicada' },
+        ],
+      } as any);
+      persistenceService.getV2CompraAgilDetailSnapshotChangeDates.mockResolvedValue(
+        new Map([
+          ['CA-1', 'v1'],
+          ['CA-3', null],
+        ]),
+      );
+
+      await service.run({ ttl_cambio_ms: 5000 });
+
+      expect(mercadoPublicoQueue.add).toHaveBeenCalledWith(
+        'MercadoPublicoJob',
+        expect.objectContaining({
+          jobName: 'api-v2-compra-agil-detail-by-codigo',
+          payload: { codigo: 'CA-1' },
+        }),
+        expect.any(Object),
+      );
+      expect(mercadoPublicoQueue.add).toHaveBeenCalledTimes(2);
+    });
+
+    it('should accept the bounded publicada backfill without a change window', async () => {
+      clientService.getList.mockResolvedValue(mockApiSuccessResponse as any);
+
+      await service.run({ estado: 'publicada' });
+
+      expect(clientService.getList).toHaveBeenCalledWith(
+        expect.objectContaining({ estado: 'publicada' }),
       );
     });
 

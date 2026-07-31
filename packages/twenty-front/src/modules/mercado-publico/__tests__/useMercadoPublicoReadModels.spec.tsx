@@ -7,14 +7,16 @@ import {
   GetMercadoPublicoApiQuotaUsageDocument,
   GetMercadoPublicoCsvFileHealthDocument,
   GetMercadoPublicoPipelineHealthDocument,
-  GetMercadoPublicoProcessDetailDocument,
   MercadoPublicoDetectedProcessType,
 } from '~/generated/graphql';
 
 import { useMercadoPublicoApiQuotaUsage } from '@/mercado-publico/hooks/useMercadoPublicoApiQuotaUsage';
 import { useMercadoPublicoCsvFileHealth } from '@/mercado-publico/hooks/useMercadoPublicoCsvFileHealth';
 import { useMercadoPublicoPipelineHealth } from '@/mercado-publico/hooks/useMercadoPublicoPipelineHealth';
-import { useMercadoPublicoProcessDetail } from '@/mercado-publico/hooks/useMercadoPublicoProcessDetail';
+import {
+  GET_MERCADO_PUBLICO_PROCESS_DETAIL_V2,
+  useMercadoPublicoProcessDetail,
+} from '@/mercado-publico/hooks/useMercadoPublicoProcessDetail';
 
 const createWrapper = (mocks: MockedResponse[]) =>
   function Wrapper({ children }: { children: ReactNode }) {
@@ -26,7 +28,7 @@ describe('Mercado Público read-model hooks', () => {
     const mocks: MockedResponse[] = [
       {
         request: {
-          query: GetMercadoPublicoProcessDetailDocument,
+          query: GET_MERCADO_PUBLICO_PROCESS_DETAIL_V2,
           variables: {
             processType: 'licitacion',
             processCode: 'LP-001',

@@ -435,7 +435,8 @@ describe('MercadoPublicoProcessDetailReadService (integration-shaped)', () => {
       {
         id: 'raw-ca1',
         source: 'api-v2-compra-agil',
-        codigo: 'CA1',
+        endpoint: 'detail-by-codigo',
+        request_params: { codigo: 'CA1' },
         fetched_at: new Date('2026-06-22T12:00:00.000Z'),
         raw_payload: {
           payload: {
@@ -448,6 +449,15 @@ describe('MercadoPublicoProcessDetailReadService (integration-shaped)', () => {
                   organismo_comprador: 'Municipalidad Uno',
                 },
                 documentos: [{ id: 'DOC-1', nombre: 'Bases.pdf' }],
+                productos_solicitados: [
+                  {
+                    codigo_producto: 'CP1',
+                    nombre: 'Producto CA',
+                    descripcion: 'Detalle',
+                    cantidad: 20,
+                    unidad_medida: 'EA',
+                  },
+                ],
               },
             ],
           },

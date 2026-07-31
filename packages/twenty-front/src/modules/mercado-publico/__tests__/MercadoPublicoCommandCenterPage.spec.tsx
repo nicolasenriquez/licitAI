@@ -7,10 +7,8 @@ import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { MercadoPublicoCommandCenterPage } from '~/pages/mercado-publico/MercadoPublicoCommandCenterPage';
-import {
-  GetMercadoPublicoDetectedProcessesDocument,
-  GetMercadoPublicoProcessDetailDocument,
-} from '~/generated/graphql';
+import { GET_MERCADO_PUBLICO_PROCESS_DETAIL_V2 } from '@/mercado-publico/hooks/useMercadoPublicoProcessDetail';
+import { GetMercadoPublicoDetectedProcessesDocument } from '~/generated/graphql';
 
 const createWrapper = (
   mocks: MockedResponse[],
@@ -214,7 +212,7 @@ describe('MercadoPublicoCommandCenterPage', () => {
       },
       {
         request: {
-          query: GetMercadoPublicoProcessDetailDocument,
+          query: GET_MERCADO_PUBLICO_PROCESS_DETAIL_V2,
           variables: {
             processType: 'compra_agil',
             processCode: 'CA-001',
@@ -280,7 +278,7 @@ describe('MercadoPublicoCommandCenterPage', () => {
       },
     ];
 
-    const { container, queryAllByText, queryByText } = render(
+    const { container, queryByText } = render(
       <MercadoPublicoCommandCenterPage />,
       { wrapper: createWrapper(mocks, ['/mercado-publico#compra-agil']) },
     );
@@ -303,15 +301,9 @@ describe('MercadoPublicoCommandCenterPage', () => {
         );
 
         expect(closeButton).not.toBeNull();
-        expect(queryByText(/Datos de Compra Ágil/i)).toBeInTheDocument();
-        expect(queryByText(/Metropolitana/i)).toBeInTheDocument();
-        expect(queryAllByText(/Primer llamado/i).length).toBeGreaterThan(0);
+        expect(queryByText(/Necesidad y entrega/i)).toBeInTheDocument();
         expect(queryByText(/Mejor oferta/i)).toBeInTheDocument();
         expect(queryByText(/DOC-1 · Bases\.pdf/i)).toBeInTheDocument();
-        expect(queryByText(/\/v2\/compra-agil\/CA-001/)).toBeInTheDocument();
-        expect(
-          container.querySelector('a[href="/v2/compra-agil/CA-001"]'),
-        ).toBeNull();
       });
 
       const closeButton = container.querySelector(

@@ -242,7 +242,13 @@ export class MercadoPublicoProcessDetailItemDTO {
   name: string | null;
 
   @Field(() => String, { nullable: true })
+  description: string | null;
+
+  @Field(() => String, { nullable: true })
   quantity: string | null;
+
+  @Field(() => String, { nullable: true })
+  unit: string | null;
 
   @Field(() => Number, { nullable: true })
   amount: number | null;
@@ -383,6 +389,78 @@ export class MercadoPublicoCompraAgilSourceCallDTO {
   state: string | null;
 }
 
+@ObjectType('MercadoPublicoCompraAgilSourceNeed')
+export class MercadoPublicoCompraAgilSourceNeedDTO {
+  @Field(() => String, { nullable: true })
+  description: string | null;
+}
+
+@ObjectType('MercadoPublicoCompraAgilSourceDelivery')
+export class MercadoPublicoCompraAgilSourceDeliveryDTO {
+  @Field(() => String, { nullable: true })
+  address: string | null;
+
+  @Field(() => Int, { nullable: true })
+  leadTimeDays: number | null;
+}
+
+@ObjectType('MercadoPublicoCompraAgilSourceBudget')
+export class MercadoPublicoCompraAgilSourceBudgetDTO {
+  @Field(() => String, { nullable: true }) type: string | null;
+  @Field(() => String, { nullable: true }) currency: string | null;
+  @Field(() => Float, { nullable: true }) estimated: number | null;
+  @Field(() => Float, { nullable: true }) available: number | null;
+  @Field(() => Float, { nullable: true }) availableClp: number | null;
+  @Field(() => Float, { nullable: true }) exchangeRate: number | null;
+  @Field(() => String, { nullable: true }) exchangeRateAt: string | null;
+}
+
+@ObjectType('MercadoPublicoCompraAgilSourceQuotedProduct')
+export class MercadoPublicoCompraAgilSourceQuotedProductDTO {
+  @Field(() => String, { nullable: true }) code: string | null;
+  @Field(() => String, { nullable: true }) name: string | null;
+  @Field(() => String, { nullable: true }) description: string | null;
+  @Field(() => String, { nullable: true }) quantity: string | null;
+  @Field(() => Float, { nullable: true }) unitPrice: number | null;
+  @Field(() => Float, { nullable: true }) totalAmount: number | null;
+}
+
+@ObjectType('MercadoPublicoCompraAgilSourceQuote')
+export class MercadoPublicoCompraAgilSourceQuoteDTO {
+  @Field(() => String, { nullable: true }) id: string | null;
+  @Field(() => String, { nullable: true }) companyCode: string | null;
+  @Field(() => String, { nullable: true }) branchCode: string | null;
+  @Field(() => Boolean, { nullable: true }) active: boolean | null;
+  @Field(() => String, { nullable: true }) buyerState: string | null;
+  @Field(() => String, { nullable: true }) createdAt: string | null;
+  @Field(() => String, { nullable: true }) validUntil: string | null;
+  @Field(() => Float, { nullable: true }) netAmount: number | null;
+  @Field(() => Float, { nullable: true }) taxAmount: number | null;
+  @Field(() => Float, { nullable: true }) shippingAmount: number | null;
+  @Field(() => Float, { nullable: true }) totalAmount: number | null;
+  @Field(() => String, { nullable: true }) taxName: string | null;
+  @Field(() => Float, { nullable: true }) taxRate: number | null;
+  @Field(() => String, { nullable: true }) description: string | null;
+  @Field(() => String, { nullable: true }) inadmissibilityReason: string | null;
+  @Field(() => [MercadoPublicoCompraAgilSourceQuotedProductDTO])
+  products: MercadoPublicoCompraAgilSourceQuotedProductDTO[];
+}
+
+@ObjectType('MercadoPublicoCompraAgilSourceSupplier')
+export class MercadoPublicoCompraAgilSourceSupplierDTO {
+  @Field(() => String, { nullable: true }) rut: string | null;
+  @Field(() => String, { nullable: true }) name: string | null;
+  @Field(() => Boolean, { nullable: true }) isEsm: boolean | null;
+  @Field(() => MercadoPublicoCompraAgilSourceQuoteDTO)
+  quote: MercadoPublicoCompraAgilSourceQuoteDTO;
+}
+
+@ObjectType('MercadoPublicoCompraAgilSourceFlags')
+export class MercadoPublicoCompraAgilSourceFlagsDTO {
+  @Field(() => Boolean, { nullable: true }) environmental: boolean | null;
+  @Field(() => Boolean, { nullable: true }) socialEconomic: boolean | null;
+}
+
 @ObjectType('MercadoPublicoCompraAgilSourceDetail')
 export class MercadoPublicoCompraAgilSourceDetailDTO {
   @Field(() => String, { nullable: true })
@@ -411,6 +489,21 @@ export class MercadoPublicoCompraAgilSourceDetailDTO {
 
   @Field(() => MercadoPublicoCompraAgilSourceCallDTO)
   call: MercadoPublicoCompraAgilSourceCallDTO;
+
+  @Field(() => MercadoPublicoCompraAgilSourceNeedDTO)
+  need: MercadoPublicoCompraAgilSourceNeedDTO;
+
+  @Field(() => MercadoPublicoCompraAgilSourceDeliveryDTO)
+  delivery: MercadoPublicoCompraAgilSourceDeliveryDTO;
+
+  @Field(() => MercadoPublicoCompraAgilSourceBudgetDTO)
+  budget: MercadoPublicoCompraAgilSourceBudgetDTO;
+
+  @Field(() => [MercadoPublicoCompraAgilSourceSupplierDTO])
+  suppliers: MercadoPublicoCompraAgilSourceSupplierDTO[];
+
+  @Field(() => MercadoPublicoCompraAgilSourceFlagsDTO)
+  flags: MercadoPublicoCompraAgilSourceFlagsDTO;
 }
 
 @ObjectType('MercadoPublicoProcessDetail')

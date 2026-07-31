@@ -233,6 +233,36 @@ export class MercadoPublicoPersistenceService {
     private readonly coreDataSource: DataSource,
   ) {}
 
+  async getV2CompraAgilDetailSnapshotChangeDates(
+    codes: string[],
+  ): Promise<Map<string, string | null>> {
+    if (codes.length === 0) {
+      return new Map();
+    }
+
+    const rows = await this.coreDataSource.query<
+      Array<{ codigo: string; raw_fecha_ultimo_cambio: string | null }>
+    >(
+      `
+        SELECT DISTINCT ON (staging.codigo)
+          staging.codigo,
+          staging.raw_fecha_ultimo_cambio
+        FROM mp.stg_api_v2_compra_agil staging
+        INNER JOIN mp.raw_api_payload raw ON raw.id = staging.raw_api_payload_id
+        WHERE staging.codigo = ANY($1)
+          AND staging.snapshot_kind = 'detail'
+          AND raw.source = 'api-v2-compra-agil'
+          AND raw.endpoint = 'detail-by-codigo'
+        ORDER BY staging.codigo, raw.fetched_at DESC, raw.id DESC
+      `,
+      [codes],
+    );
+
+    return new Map(
+      rows.map((row) => [row.codigo, row.raw_fecha_ultimo_cambio]),
+    );
+  }
+
   async createJobRun(
     jobName: MercadoPublicoJobName,
     input: CreateMercadoPublicoJobRunInput = {},

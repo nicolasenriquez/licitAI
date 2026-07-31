@@ -539,3 +539,23 @@ components.
   tablet, mobile list, and mobile detail
 - **AND** visual review treats fixture values as illustrative only and verifies
   all visible values against DTO-backed data
+
+### Requirement: Hydrate bounded Compra Ágil source detail
+
+After a complete, uncapped V2 list run, the backend MUST enqueue the existing
+detail job once per deduplicated normalized `publicada` code when no retained
+detail exists or its provider change date differs. It MUST accept no-window
+backfill only for `estado=publicada`, reuse the existing retry/backoff settings,
+and enqueue no details after a partial or failed list run.
+
+#### Scenario: Retained source detail is authoritative
+
+- **WHEN** a Compra Ágil detail is read
+- **THEN** only the latest retained `detail-by-codigo` raw row is selected
+- **AND** a newer list snapshot MUST NOT override it
+- **AND** its products, need, delivery, budget, suppliers/cotizations,
+  documents, reasons, flags, state, and dates are exposed only through typed
+  GraphQL fields
+- **AND** `compraAgilSource = null` renders `Detalle fuente aún no disponible.`
+- **AND** a null member in an existing source object renders
+  `No informado por fuente.`

@@ -296,10 +296,22 @@ okf_version: "0.1"
   `/opsx-sync` or `/opsx-archive`.
   Traceability: final artifact-level proof.
 
+## 5. Compra Ágil V2 Detail Hydration Amendment
+
+- [x] 0.5 Amend the V2 scope for bounded `publicada` detail hydration while
+  preserving CLI-only operation and the 250-page discovery cap.
+- [x] 1.8–1.10 Add fan-out, selector-precedence, and null/zero/false/invalid
+  date contract coverage.
+- [x] 2.22–2.25 Add the guarded list fan-out, detail-only raw selection, typed
+  GraphQL source fields, and Spanish panel sections.
+- [x] 3.6 Run focused backend fan-out/detail and frontend type validation.
+- [x] 4.4 Regenerate frontend GraphQL output against a compatible schema; keep
+  the authored typed document while local introspection is disabled.
+
 ## Execution Order
 
 ### Slice 0 — Scope lock
-- Tasks: `0.1 -> 0.2 -> 0.3 -> 0.4`
+- Tasks: `0.1 -> 0.2 -> 0.3 -> 0.4 -> 0.5`
 - Checkpoint: read service DTOs verified, route/redirect seam verified,
   read-query bounds and source-to-read evidence verified.
 - Blocks: Slices 1, 2.
@@ -333,7 +345,7 @@ okf_version: "0.1"
 - Blocks: Slice 4.
 
 ### Slice 4 — Closeout
-- Tasks: `4.1 -> 4.2 -> 4.3`
+- Tasks: `4.1 -> 4.2 -> 4.3 -> 4.4`
 - Checkpoint: changelog, docs, and `openspec validate` aligned.
 - Blocked by: Slice 3.
 - Blocks: None.

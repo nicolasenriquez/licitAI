@@ -642,3 +642,20 @@ real verification. These wireframes do not claim WCAG conformance.
   upgrade workflow before V2 ingestion/backfill, then record the applied
   version and job evidence. Do not exercise that write path as part of this
   documentation-only alignment.
+
+## Compra Ágil V2 Detail Hydration Amendment
+
+The list endpoint remains discovery-only. After every complete, uncapped list
+run, the incremental service deduplicates normalized `publicada` codes and
+queues the existing `api-v2-compra-agil-detail-by-codigo` job only when no
+detail snapshot is retained or `fecha_ultimo_cambio` differs. A list failure or
+partial/capped run produces no detail fan-out. Detail failures are independent
+job-run failures and never invalidate the list result. A no-window backfill is
+accepted only with `estado=publicada`.
+
+The read adapter selects only raw payloads whose endpoint is
+`detail-by-codigo`; a list snapshot can never override it. Products (including
+description and unit), need, delivery, budget, supplier quotes and quoted
+products, documents, reasons, flags, state, and dates map from that typed
+detail record. `compraAgilSource=null` means the source detail is pending;
+nullable members of an existing object mean the provider omitted that value.

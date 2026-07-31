@@ -21,7 +21,9 @@ export const MERCADO_PUBLICO_PROCESS_DETAIL_FRAGMENT = gql`
     items {
       code
       name
+      description
       quantity
+      unit
       amount
     }
     adjudications {
@@ -82,6 +84,56 @@ export const MERCADO_PUBLICO_PROCESS_DETAIL_FRAGMENT = gql`
       call {
         description
         state
+      }
+      need {
+        description
+      }
+      delivery {
+        address
+        leadTimeDays
+      }
+      budget {
+        type
+        currency
+        estimated
+        available
+        availableClp
+        exchangeRate
+        exchangeRateAt
+      }
+      suppliers {
+        rut
+        name
+        isEsm
+        quote {
+          id
+          companyCode
+          branchCode
+          active
+          buyerState
+          createdAt
+          validUntil
+          netAmount
+          taxAmount
+          shippingAmount
+          totalAmount
+          taxName
+          taxRate
+          description
+          inadmissibilityReason
+          products {
+            code
+            name
+            description
+            quantity
+            unitPrice
+            totalAmount
+          }
+        }
+      }
+      flags {
+        environmental
+        socialEconomic
       }
     }
     sourcePriority

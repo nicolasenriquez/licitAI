@@ -3,7 +3,9 @@ import { type MercadoPublicoDetectedProcessType } from 'src/engine/core-modules/
 export type MercadoPublicoProcessDetailItem = {
   code: string;
   name: string | null;
+  description: string | null;
   quantity: string | null;
+  unit: string | null;
   amount: number | null;
 };
 
@@ -60,6 +62,48 @@ export type MercadoPublicoCompraAgilSourceDetail = {
     buyerName: string | null;
   };
   call: { description: string | null; state: string | null };
+  need: { description: string | null };
+  delivery: { address: string | null; leadTimeDays: number | null };
+  budget: {
+    type: string | null;
+    currency: string | null;
+    estimated: number | null;
+    available: number | null;
+    availableClp: number | null;
+    exchangeRate: number | null;
+    exchangeRateAt: string | null;
+  };
+  suppliers: Array<{
+    rut: string | null;
+    name: string | null;
+    isEsm: boolean | null;
+    quote: {
+      id: string | null;
+      companyCode: string | null;
+      branchCode: string | null;
+      active: boolean | null;
+      buyerState: string | null;
+      createdAt: string | null;
+      validUntil: string | null;
+      netAmount: number | null;
+      taxAmount: number | null;
+      shippingAmount: number | null;
+      totalAmount: number | null;
+      taxName: string | null;
+      taxRate: number | null;
+      description: string | null;
+      inadmissibilityReason: string | null;
+      products: Array<{
+        code: string | null;
+        name: string | null;
+        description: string | null;
+        quantity: string | null;
+        unitPrice: number | null;
+        totalAmount: number | null;
+      }>;
+    };
+  }>;
+  flags: { environmental: boolean | null; socialEconomic: boolean | null };
 };
 
 export type MercadoPublicoDetectedProcessDetail = {

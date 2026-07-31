@@ -2,20 +2,22 @@ import { type DataSource } from 'typeorm';
 
 import { MercadoPublicoProcessDetailReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-process-detail-read.service';
 
-const makeGoldRow = (overrides: Partial<{
-  process_type: string;
-  process_code: string;
-  title: string | null;
-  canonical_state: string | null;
-  raw_state_code: string | null;
-  raw_state_label: string | null;
-  buyer_code: string | null;
-  buyer_name: string | null;
-  published_at: Date | null;
-  closing_at: Date | null;
-  source_priority: string | null;
-  last_seen_at: Date;
-}> = {}) => ({
+const makeGoldRow = (
+  overrides: Partial<{
+    process_type: string;
+    process_code: string;
+    title: string | null;
+    canonical_state: string | null;
+    raw_state_code: string | null;
+    raw_state_label: string | null;
+    buyer_code: string | null;
+    buyer_name: string | null;
+    published_at: Date | null;
+    closing_at: Date | null;
+    source_priority: string | null;
+    last_seen_at: Date;
+  }> = {},
+) => ({
   process_type: 'licitacion',
   process_code: 'L1',
   title: 'Licitacion Uno',
@@ -91,10 +93,7 @@ describe('MercadoPublicoProcessDetailReadService (unit)', () => {
   });
 
   it('returns null for unknown processType', async () => {
-    const result = await service.getDetectedProcessDetail(
-      'unknown_type',
-      'X',
-    );
+    const result = await service.getDetectedProcessDetail('unknown_type', 'X');
 
     expect(result).toBeNull();
     expect(mockQuery).not.toHaveBeenCalled();
@@ -110,10 +109,7 @@ describe('MercadoPublicoProcessDetailReadService (unit)', () => {
       .mockResolvedValueOnce([SRC_LINEAGE_CSV_ROW])
       .mockResolvedValueOnce([RECON_COUNT_ROW]);
 
-    const result = await service.getDetectedProcessDetail(
-      'licitacion',
-      'L1',
-    );
+    const result = await service.getDetectedProcessDetail('licitacion', 'L1');
 
     expect(result).not.toBeNull();
     expect(result!.processType).toBe('licitacion');
@@ -132,7 +128,9 @@ describe('MercadoPublicoProcessDetailReadService (unit)', () => {
     expect(result!.items[0]).toEqual({
       code: '1001',
       name: 'Producto A',
+      description: null,
       quantity: '10',
+      unit: null,
       amount: 5000000,
     });
     expect(result!.adjudications).toHaveLength(1);
@@ -166,9 +164,7 @@ describe('MercadoPublicoProcessDetailReadService (unit)', () => {
       manualReviewRequired: 0,
     });
     expect(result!.sourcePriority).toBe('api');
-    expect(result!.lastSeenAt).toEqual(
-      new Date('2026-06-15T12:00:00.000Z'),
-    );
+    expect(result!.lastSeenAt).toEqual(new Date('2026-06-15T12:00:00.000Z'));
     expect(mockQuery).toHaveBeenCalledTimes(7);
   });
 
@@ -224,16 +220,6 @@ describe('MercadoPublicoProcessDetailReadService (unit)', () => {
       .mockResolvedValueOnce([caGoldRow])
       .mockResolvedValueOnce([
         {
-          codigo_producto: 'CP1',
-          nombre_producto: 'Producto CA',
-          cantidad_solicitada: '20',
-        },
-      ])
-      .mockResolvedValueOnce([RELATED_OC_ROW])
-      .mockResolvedValueOnce([SRC_LINEAGE_API_ROW])
-      .mockResolvedValueOnce([RECON_COUNT_ROW])
-      .mockResolvedValueOnce([
-        {
           raw_payload: {
             payload: {
               items: [
@@ -253,22 +239,36 @@ describe('MercadoPublicoProcessDetailReadService (unit)', () => {
                     organismo_comprador: 'Municipalidad Uno',
                   },
                   documentos: [{ id: 9, nombre: 'Bases.pdf' }],
+                  productos_solicitados: [
+                    {
+                      codigo_producto: 'CP1',
+                      nombre: 'Producto CA',
+                      descripcion: 'Detalle',
+                      cantidad: 20,
+                      unidad_medida: 'EA',
+                    },
+                  ],
                   links: { detalle: '/v2/compra-agil/CA1' },
                 },
               ],
             },
           },
         },
-      ]);
+      ])
+      .mockResolvedValueOnce([RELATED_OC_ROW])
+      .mockResolvedValueOnce([SRC_LINEAGE_API_ROW])
+      .mockResolvedValueOnce([RECON_COUNT_ROW]);
 
-    const result = await service.getDetectedProcessDetail(
-      'compra_agil',
-      'CA1',
-    );
+    const result = await service.getDetectedProcessDetail('compra_agil', 'CA1');
 
     expect(result).not.toBeNull();
     expect(result!.processType).toBe('compra_agil');
     expect(result!.items).toHaveLength(1);
+    expect(result!.items[0]).toMatchObject({
+      code: 'CP1',
+      description: 'Detalle',
+      unit: 'EA',
+    });
     expect(result!.adjudications).toBeNull();
     expect(result!.relatedOcs).toHaveLength(1);
     expect(result!.sourceLineage).toHaveLength(1);
@@ -281,7 +281,7 @@ describe('MercadoPublicoProcessDetailReadService (unit)', () => {
       },
       documents: [{ id: '9', name: 'Bases.pdf' }],
     });
-    expect(mockQuery).toHaveBeenCalledTimes(6);
+    expect(mockQuery).toHaveBeenCalledTimes(5);
   });
 
   it('returns empty arrays for items, relatedOcs, and sourceLineage when data is missing', async () => {
@@ -342,10 +342,7 @@ describe('MercadoPublicoProcessDetailReadService (unit)', () => {
         { match_type: 'manual_review_required', count: '2' },
       ]);
 
-    const result = await service.getDetectedProcessDetail(
-      'licitacion',
-      'L1',
-    );
+    const result = await service.getDetectedProcessDetail('licitacion', 'L1');
 
     expect(result!.reconciliationSummary).toEqual({
       exact: 6,
@@ -361,14 +358,13 @@ describe('MercadoPublicoProcessDetailReadService (unit)', () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{ source: 'api-v1-licitaciones', row_count: '0', last_seen_at: null }])
+      .mockResolvedValueOnce([
+        { source: 'api-v1-licitaciones', row_count: '0', last_seen_at: null },
+      ])
       .mockResolvedValueOnce([SRC_LINEAGE_CSV_ROW])
       .mockResolvedValueOnce([]);
 
-    const result = await service.getDetectedProcessDetail(
-      'licitacion',
-      'L1',
-    );
+    const result = await service.getDetectedProcessDetail('licitacion', 'L1');
 
     expect(result!.sourceLineage).toHaveLength(1);
     expect(result!.sourceLineage[0].source).toBe('csv-datos-abiertos');

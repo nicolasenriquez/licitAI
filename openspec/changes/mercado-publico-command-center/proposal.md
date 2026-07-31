@@ -131,6 +131,9 @@ command center into an ingestion control surface.
   percentage confidence, approval states, quota, cadence, or metrics.
 - A generic raw-JSON viewer, automatic GraphQL/UI exposure of future provider
   fields, document downloads, or an external link built from `links.detalle`.
+- Any unbounded or browser-initiated detail hydration. A complete CLI list run
+  MAY enqueue one existing detail job per deduplicated `publicada` code when
+  no detail snapshot exists or the provider change timestamp differs.
 
 ## Impact
 

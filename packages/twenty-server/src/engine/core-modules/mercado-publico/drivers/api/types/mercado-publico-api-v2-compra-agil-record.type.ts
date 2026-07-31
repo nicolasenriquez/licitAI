@@ -25,6 +25,46 @@ export type MercadoPublicoApiV2CompraAgilDocumento = {
   nombre?: string;
 };
 
+export type MercadoPublicoApiV2CompraAgilProducto = {
+  codigo_producto?: number | string;
+  nombre?: string;
+  descripcion?: string | null;
+  cantidad?: number | string;
+  unidad_medida?: string | null;
+};
+
+export type MercadoPublicoApiV2CompraAgilProductoCotizado = {
+  codigo_producto?: number | string;
+  nombre_producto?: string;
+  descripcion?: string | null;
+  cantidad?: number | string;
+  precio_unitario?: number | null;
+  monto_total_producto?: number | null;
+};
+
+export type MercadoPublicoApiV2CompraAgilProveedor = {
+  rut_proveedor?: string;
+  razon_social?: string;
+  es_emt?: boolean;
+  id_cotizacion?: number | string;
+  codigo_empresa?: string;
+  codigo_sucursal_empresa?: string;
+  activo?: boolean;
+  estado_por_comprador?: string | null;
+  fecha_creacion?: string;
+  fecha_vigencia?: string | null;
+  valor_neto?: number | null;
+  total_impuesto?: number | null;
+  monto_despacho?: number | null;
+  monto_total?: number | null;
+  nombre_impuesto?: string | null;
+  porcentaje_impuesto?: number | null;
+  descripcion_cotizacion?: string | null;
+  descripcion?: string | null;
+  justificacion_inadmisibilidad?: string | null;
+  productos_cotizados?: MercadoPublicoApiV2CompraAgilProductoCotizado[];
+};
+
 export type MercadoPublicoApiV2CompraAgilRecord = {
   codigo: string;
   nombre?: string;
@@ -45,6 +85,19 @@ export type MercadoPublicoApiV2CompraAgilRecord = {
     monto_disponible?: number;
     monto_disponible_clp?: number;
   };
+  presupuesto?: {
+    tipo_presupuesto?: string;
+    moneda?: string;
+    presupuesto_estimado?: number | null;
+    monto_disponible?: number | null;
+    monto_disponible_clp?: number | null;
+    valor_cambio_moneda?: number | null;
+    fecha_cambio_moneda?: string | null;
+  };
+  entrega?: {
+    direccion_entrega?: string;
+    plazo_entrega_dias?: number | null;
+  };
   motivos?: {
     motivo_desierta?: string;
     motivo_seleccion?: string;
@@ -52,6 +105,13 @@ export type MercadoPublicoApiV2CompraAgilRecord = {
   };
   resumen?: { total_ofertas_recibidas?: number };
   documentos?: MercadoPublicoApiV2CompraAgilDocumento[];
+  productos_solicitados?: MercadoPublicoApiV2CompraAgilProducto[];
+  proveedores_cotizando?: MercadoPublicoApiV2CompraAgilProveedor[];
+  descripcion?: string;
+  flags?: {
+    considera_requisitos_medioambientales?: boolean;
+    considera_requisitos_impacto_social_economico?: boolean;
+  };
   convocatoria?: {
     descripcion?: string;
     estado_convocatoria?: string;
