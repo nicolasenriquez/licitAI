@@ -136,6 +136,20 @@ feature-branch diff. Detailed validation and migration commands:
 - `docs/operations/local-development.md` — runtime setup.
 - `packages/twenty-server/docs/UPGRADE_COMMANDS.md` — instance-command rules.
 
+## Agent skills
+
+### Issue tracker
+
+Issues and planning artifacts use local Markdown under `.scratch/<feature>/`; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The canonical labels are `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Use the existing mapped contexts under `docs/` and `openspec/`; no root `CONTEXT.md` is created. See `docs/agents/domain.md`.
+
 Treat `AGENTS.md` as living documentation. Run the repository's
 `rules-check-drift` skill before merging a change that materially alters these
 invariants or the architecture map.

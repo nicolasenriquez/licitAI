@@ -21,6 +21,8 @@ Describe the role of `openspec/` in this repository during the workspace routing
   - `investigation.md` — Phase 0 pattern inventory, baseline, blast-radius, implementation plan
   - `test-design.md` — Phase 1 tracer-bullet path, test surface, unit/integration test specs
   - `schema-catalog.md` — binding column-level SQL schema for implementation phases
+  When the numbered-folder extension is used, execution evidence belongs under
+  `03_execution/`; the canonical artifacts remain at the change root.
 - `specs/` is reserved for accepted or synced spec surfaces and may be sparse while work is still change-local.
 
 ## Current Routing Status
@@ -51,3 +53,36 @@ It is not the durable home for:
 - general package implementation guidance under `packages/` unrelated to an active change
 
 If the prompt is about those topics, go back to `../index.md` and reroute.
+
+## Estructura de subcarpetas numeradas
+
+Además de los artefactos canónicos en raíz, este repositorio permite subcarpetas
+numeradas dentro de cada change como extensión local:
+
+| Carpeta | Propósito |
+| --- | --- |
+| `00_wayfinding/` | Mapa wayfinder + tickets de investigación resueltos |
+| `01_spec/` | Borrador to-spec (insumo para proposal.md) |
+| `02_tickets/` | Borrador to-tickets (insumo para tasks.md) |
+| `03_execution/` | Evidencia de implementación (diagnósticos, runbooks, test design) |
+
+Los artefactos canónicos (`proposal.md`, `design.md`, `tasks.md`, `specs/`)
+**nunca** se mueven a estas subcarpetas. Las subcarpetas son solo para
+material fuente, borradores y evidencia.
+
+## Selección del flujo de descubrimiento
+
+- Usa `wayfinder` solo cuando el trabajo pueda requerir varias sesiones o
+  todavía exista `fog` de decisiones. Su mapa y tickets viven en
+  `.scratch/<effort>/`; no se crea el change OpenSpec mientras el camino siga
+  abierto.
+- Para una spec que cabe en una sesión pero mantiene ambigüedad material, crea
+  el change y usa `/grill-with-docs <change-name> source=openspec mode=grill`.
+- Para una spec pequeña y clara, omite ambos flujos y usa
+  `/opsx-new <change-name>` seguido de `/plan source=openspec <change-name>`.
+- Si Wayfinder no encuentra `fog`, no se crea un mapa. Si grilling no encuentra
+  una ambigüedad material, no se prolonga la entrevista.
+
+Una vez cerrado el descubrimiento, OpenSpec es la única fuente de verdad del
+change. `to-spec` y `to-tickets` no se usan como pasos paralelos de autoría
+normal.
