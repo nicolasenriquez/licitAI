@@ -15,8 +15,9 @@ AI agents (Claude Code, Codex), engineers, architects, and reviewers working on 
 ## Executive Summary
 This checkout is the `licitai` fork of the Twenty CRM monorepo. Internal package
 names and inherited product references remain `twenty-*`; the repository now
-also carries a deployment-local Mercado Publico ingestion domain. The 22-package
-Nx monorepo has CI workflows, Docker-canonical local runtime, and a
+also carries a deployment-local Mercado Publico ingestion domain. The 23
+package-directory Nx monorepo has 22 CI workflows, Docker-canonical local
+runtime, and a
 metadata-driven architecture. This repository now exposes a coherent internal documentation baseline that
 consolidates architecture, decisions, governance, and operations. Root
 `AGENTS.md` remains the operational entrypoint, root `index.md` is the
@@ -42,6 +43,19 @@ context.
 
 ## Reading Paths
 
+### Mercado Público
+
+Read this path in order for the current procurement contract:
+
+1. [Compra Agil V2 contract for AI agents](business/compra-agil-ai-contract.md)
+2. [Source and ingestion contract](business/mercado-publico-source-contract.md)
+3. [Deployment-local data boundary](architecture/data-model.md) and
+   [ADR 0005](decisions/0005-deployment-local-mercado-publico-schema.md)
+4. [Operator ingestion runbook](operations/mercado-publico-ingestion.md)
+
+Archived OpenSpec changes remain provenance and implementation evidence only;
+they are not current operating instructions.
+
 ### For AI agents (onboarding)
 
 1. `../CLAUDE.md` — Fast operational rules (dev workflow, testing, lint commands)
@@ -60,11 +74,12 @@ context.
 14. `operations/local-development.md` — Local setup and runtime
 15. `operations/ai-runtime-configuration.md` — AI runtime setup and limits
 16. `operations/okf-authoring-guide.md` — Safe additive documentation authoring rules
-17. `operations/mercado-publico-ingestion.md` — Ingestion command and operator contract
-18. `design/design-system.md` — Visual and interaction rules
-19. `standards/okf-standard.md` — Repository OKF taxonomy and frontmatter rules
-20. `decisions/` — Key architectural decisions with rationale
-21. `../.cursor/rules/` — Cursor-specific development rules (16 `.mdc` files)
+17. `business/compra-agil-ai-contract.md` — Compra Agil V2 evidence labels and agent invariants, when this source family is touched
+18. `operations/mercado-publico-ingestion.md` — Ingestion command and operator contract
+19. `design/design-system.md` — Visual and interaction rules
+20. `standards/okf-standard.md` — Repository OKF taxonomy and frontmatter rules
+21. `decisions/` — Key architectural decisions with rationale
+22. `../.cursor/rules/` — Cursor-specific development rules (16 `.mdc` files)
 
 ### For architecture and delivery
 
@@ -91,7 +106,7 @@ context.
 
 | Topic | Current State |
 | --- | --- |
-| Repository maturity | Production-grade. 22 packages, 22 GitHub Actions CI workflows, published SDK (`twenty-sdk` v2.15.0), Docker Compose + Kubernetes Helm charts. Deployment and promotion CD workflows are not part of the current repository contract. |
+| Repository maturity | Production-grade. 23 package directories, 22 GitHub Actions CI workflows, published SDK (`twenty-sdk` v2.15.0), Docker Compose + Kubernetes Helm charts. Deployment and promotion CD workflows are not part of the current repository contract. |
 | Product maturity | Active licitai fork. Self-hosted deployment is the current product boundary; inherited Twenty app and package surfaces remain available in the monorepo. |
 | Architecture maturity | High but implicit. Architecture is visible in code and `CLAUDE.md` but not consolidated in a single durable document. |
 | Documentation maturity | Structured. Public docs at docs.twenty.com (Mintlify), root routing via `AGENTS.md` + `index.md`, and an internal baseline under `docs/`. |

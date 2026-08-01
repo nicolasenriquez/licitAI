@@ -1,3 +1,10 @@
+---
+type: agent-contract
+title: "Issue Tracker"
+description: "Local Markdown issue-tracker conventions for repository skills."
+okf_version: "0.1"
+---
+
 # Issue tracker: Local Markdown
 
 Issues and PRDs for this repo live as markdown files in `.scratch/`.

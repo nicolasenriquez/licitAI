@@ -37,6 +37,8 @@ Before making any code change, an AI agent must read:
    - Auth/security changes → `docs/architecture/security-and-identity.md`
    - Frontend/UI changes → `docs/design/design-system.md`
    - Operations changes → `docs/operations/command-surface.md`, `docs/operations/local-development.md`, `docs/operations/data-operations.md`
+   - Compra Agil V2 changes → `docs/business/compra-agil-ai-contract.md`, then
+     `docs/business/mercado-publico-source-contract.md`
 8. **Relevant ADRs**: read any ADR that covers the decision space being modified.
 9. **`.cursor/rules/`**: read the technology-specific rule file for the language/framework being changed.
 

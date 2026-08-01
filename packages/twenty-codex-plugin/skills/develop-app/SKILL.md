@@ -106,8 +106,9 @@ Read the smallest reference that matches the requested entity work:
 - Tests — what to cover and where to put the files: `../../references/develop-app/tests.md`
 - App file structure and entity validation checklist: `../../references/develop-app/app-structure.md`
 - Detailed front component UI design: `../../references/design/front-component-ui.md`
+- Product UI discovery, Storybook evidence, and token-first selection: `../../references/design/storybook-ui-generation.md`
 
-For front components, read `front-components.md` before implementation. Use `layout.md` for placement, `standalone-pages.md` for full-page custom UI, and `front-component-ui.md` for visual design and Twenty UI component selection.
+For front components, read `front-components.md` before implementation. Use `layout.md` for placement, `standalone-pages.md` for full-page custom UI, and `front-component-ui.md` for visual design and Twenty UI component selection. Read `storybook-ui-generation.md` for Storybook-first component selection and proof.
 
 # Handoffs
 

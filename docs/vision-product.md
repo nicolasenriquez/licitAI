@@ -113,7 +113,7 @@ These primitives are complemented by:
 ## Current State
 
 - **Deployment identity**: This checkout is the `licitai` fork; inherited Twenty product references describe upstream context, not a managed cloud runtime here.
-- **22-package monorepo**: 22 GitHub Actions CI workflows. Deployment and promotion CD workflows are not part of the current repository contract.
+- **23 package directories**: 22 GitHub Actions CI workflows. Deployment and promotion CD workflows are not part of the current repository contract.
 - **SDK published**: `twenty-sdk` v2.15.0 on npm. CLI scaffolding and app publishing.
 - **12 internal apps**: Slack, Linear, Discord, Fireflies, and more.
 - **Community**: Discord server, GitHub discussions, public roadmap, Crowdin translations.

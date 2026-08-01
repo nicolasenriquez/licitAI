@@ -1,10 +1,14 @@
+const fs = require('node:fs');
 const path = require('node:path');
 
-const { PLUGIN_ROOT, readText } = require('./lib');
+const { PLUGIN_ROOT, REPO_ROOT, readText } = require('./lib');
 
 const assertTwentyMcpFormattingContract = (fail) => {
   const skillPath = path.join(PLUGIN_ROOT, 'skills/use-twenty-mcp/SKILL.md');
-  const resultFormattingPath = path.join(PLUGIN_ROOT, 'references/use-twenty-mcp/result-formatting.md');
+  const resultFormattingPath = path.join(
+    PLUGIN_ROOT,
+    'references/use-twenty-mcp/result-formatting.md',
+  );
   const skill = readText(skillPath);
   const formatting = readText(resultFormattingPath);
 
@@ -18,7 +22,9 @@ const assertTwentyMcpFormattingContract = (fail) => {
 
   for (const fragment of requiredSkillFragments) {
     if (!skill.includes(fragment)) {
-      fail(`use-twenty-mcp/SKILL.md is missing formatting contract fragment: ${fragment}`);
+      fail(
+        `use-twenty-mcp/SKILL.md is missing formatting contract fragment: ${fragment}`,
+      );
     }
   }
 
@@ -32,18 +38,35 @@ const assertTwentyMcpFormattingContract = (fail) => {
 
   for (const fragment of requiredFormattingFragments) {
     if (!formatting.includes(fragment)) {
-      fail(`result-formatting.md is missing record-link guidance fragment: ${fragment}`);
+      fail(
+        `result-formatting.md is missing record-link guidance fragment: ${fragment}`,
+      );
     }
   }
 };
 
 const assertFrontComponentGuidance = (fail) => {
-  const developSkillPath = path.join(PLUGIN_ROOT, 'skills/develop-app/SKILL.md');
+  const developSkillPath = path.join(
+    PLUGIN_ROOT,
+    'skills/develop-app/SKILL.md',
+  );
   const layoutPath = path.join(PLUGIN_ROOT, 'references/develop-app/layout.md');
-  const frontComponentsPath = path.join(PLUGIN_ROOT, 'references/develop-app/front-components.md');
-  const standalonePagesPath = path.join(PLUGIN_ROOT, 'references/develop-app/standalone-pages.md');
-  const appStructurePath = path.join(PLUGIN_ROOT, 'references/develop-app/app-structure.md');
-  const frontComponentUiPath = path.join(PLUGIN_ROOT, 'references/design/front-component-ui.md');
+  const frontComponentsPath = path.join(
+    PLUGIN_ROOT,
+    'references/develop-app/front-components.md',
+  );
+  const standalonePagesPath = path.join(
+    PLUGIN_ROOT,
+    'references/develop-app/standalone-pages.md',
+  );
+  const appStructurePath = path.join(
+    PLUGIN_ROOT,
+    'references/develop-app/app-structure.md',
+  );
+  const frontComponentUiPath = path.join(
+    PLUGIN_ROOT,
+    'references/design/front-component-ui.md',
+  );
   const developSkill = readText(developSkillPath);
   const layout = readText(layoutPath);
   const frontComponents = readText(frontComponentsPath);
@@ -60,7 +83,9 @@ const assertFrontComponentGuidance = (fail) => {
 
   for (const fragment of requiredDevelopSkillFragments) {
     if (!developSkill.includes(fragment)) {
-      fail(`develop-app/SKILL.md is missing front component guidance: ${fragment}`);
+      fail(
+        `develop-app/SKILL.md is missing front component guidance: ${fragment}`,
+      );
     }
   }
 
@@ -115,7 +140,9 @@ const assertFrontComponentGuidance = (fail) => {
 
   for (const fragment of requiredStandalonePageFragments) {
     if (!standalonePages.includes(fragment)) {
-      fail(`standalone-pages.md is missing standalone page guidance: ${fragment}`);
+      fail(
+        `standalone-pages.md is missing standalone page guidance: ${fragment}`,
+      );
     }
   }
 
@@ -127,7 +154,9 @@ const assertFrontComponentGuidance = (fail) => {
 
   for (const fragment of requiredAppStructureFragments) {
     if (!appStructure.includes(fragment)) {
-      fail(`app-structure.md is missing validation checklist command: ${fragment}`);
+      fail(
+        `app-structure.md is missing validation checklist command: ${fragment}`,
+      );
     }
   }
 
@@ -145,7 +174,9 @@ const assertFrontComponentGuidance = (fail) => {
 
   for (const fragment of requiredUiDesignFragments) {
     if (!frontComponentUi.includes(fragment)) {
-      fail(`front-component-ui.md is missing design-only guidance: ${fragment}`);
+      fail(
+        `front-component-ui.md is missing design-only guidance: ${fragment}`,
+      );
     }
   }
 
@@ -158,16 +189,101 @@ const assertFrontComponentGuidance = (fail) => {
 
   for (const fragment of forbiddenUiFragments) {
     if (frontComponentUi.includes(fragment)) {
-      fail(`front-component-ui.md should stay design-only and not include: ${fragment}`);
+      fail(
+        `front-component-ui.md should stay design-only and not include: ${fragment}`,
+      );
+    }
+  }
+};
+
+const assertStorybookUiGenerationGuidance = (
+  fail,
+  repositoryRoot = REPO_ROOT,
+) => {
+  const developSkillPath = path.join(
+    PLUGIN_ROOT,
+    'skills/develop-app/SKILL.md',
+  );
+  const storybookReferencePath = path.join(
+    PLUGIN_ROOT,
+    'references/design/storybook-ui-generation.md',
+  );
+  const durableContractPath = path.join(
+    repositoryRoot,
+    'docs/design/storybook-ui-source-of-truth.md',
+  );
+  const twentyUiStorybookPath = path.join(
+    repositoryRoot,
+    'packages/twenty-ui/.storybook/main.ts',
+  );
+  const twentyFrontStorybookPath = path.join(
+    repositoryRoot,
+    'packages/twenty-front/.storybook/main.ts',
+  );
+  const productTokenSourcePath = path.join(
+    repositoryRoot,
+    'packages/twenty-design-tokens/src/source/product/common.json',
+  );
+  const developSkill = readText(developSkillPath);
+
+  if (!fs.existsSync(storybookReferencePath)) {
+    fail(
+      'required reference is missing: references/design/storybook-ui-generation.md',
+    );
+    return;
+  }
+
+  for (const [label, sourcePath] of [
+    ['durable Storybook contract', durableContractPath],
+    ['twenty-ui Storybook configuration', twentyUiStorybookPath],
+    ['twenty-front Storybook configuration', twentyFrontStorybookPath],
+    ['product token source', productTokenSourcePath],
+  ]) {
+    if (!fs.existsSync(sourcePath)) {
+      fail(`Storybook UI source is missing: ${label}`);
+    }
+  }
+
+  if (!developSkill.includes('storybook-ui-generation.md')) {
+    fail('develop-app/SKILL.md is missing Storybook UI generation routing');
+  }
+
+  const storybookReference = readText(storybookReferencePath);
+  const requiredReferenceFragments = [
+    'docs/design/storybook-ui-source-of-truth.md',
+    'packages/twenty-ui/.storybook/main.ts',
+    'packages/twenty-front/.storybook/main.ts',
+    'packages/twenty-design-tokens/src/source/product/',
+    'No generated registry',
+    'Do not assume Storybook MCP',
+    'front-components.md',
+    'layout.md',
+    'front-component-ui.md',
+  ];
+
+  for (const fragment of requiredReferenceFragments) {
+    if (!storybookReference.includes(fragment)) {
+      fail(
+        `storybook-ui-generation.md is missing source-of-truth guidance: ${fragment}`,
+      );
     }
   }
 };
 
 const assertCliGuidanceSplit = (fail) => {
-  const developSkillPath = path.join(PLUGIN_ROOT, 'skills/develop-app/SKILL.md');
+  const developSkillPath = path.join(
+    PLUGIN_ROOT,
+    'skills/develop-app/SKILL.md',
+  );
   const manageSkillPath = path.join(PLUGIN_ROOT, 'skills/manage-app/SKILL.md');
-  const appStructurePath = path.join(PLUGIN_ROOT, 'references/develop-app/app-structure.md');
-  const cliAndSyncPath = path.join(PLUGIN_ROOT, 'references/manage-app/cli-and-sync.md');
+  const appStructurePath = path.join(
+    PLUGIN_ROOT,
+    'references/develop-app/app-structure.md',
+  );
+  const cliAndSyncPath = path.join(
+    PLUGIN_ROOT,
+    'references/manage-app/cli-and-sync.md',
+  );
   const developSkill = readText(developSkillPath);
   const manageSkill = readText(manageSkillPath);
   const appStructure = readText(appStructurePath);
@@ -194,7 +310,9 @@ const assertCliGuidanceSplit = (fail) => {
 
   for (const fragment of requiredManageFragments) {
     if (!manageSkill.includes(fragment)) {
-      fail(`manage-app/SKILL.md is missing CLI reference guidance: ${fragment}`);
+      fail(
+        `manage-app/SKILL.md is missing CLI reference guidance: ${fragment}`,
+      );
     }
   }
 
@@ -211,7 +329,9 @@ const assertCliGuidanceSplit = (fail) => {
 
   for (const fragment of requiredAppStructureFragments) {
     if (!appStructure.includes(fragment)) {
-      fail(`app-structure.md is missing develop-app structure guidance: ${fragment}`);
+      fail(
+        `app-structure.md is missing develop-app structure guidance: ${fragment}`,
+      );
     }
   }
 
@@ -229,7 +349,9 @@ const assertCliGuidanceSplit = (fail) => {
 
   for (const fragment of forbiddenAppStructureFragments) {
     if (appStructure.includes(fragment)) {
-      fail(`app-structure.md should not own CLI semantics or forbid post-edit validation: ${fragment}`);
+      fail(
+        `app-structure.md should not own CLI semantics or forbid post-edit validation: ${fragment}`,
+      );
     }
   }
 
@@ -241,7 +363,9 @@ const assertCliGuidanceSplit = (fail) => {
 
   for (const fragment of requiredDevelopValidationFragments) {
     if (!developSkill.includes(fragment)) {
-      fail(`develop-app/SKILL.md is missing post-edit validation guidance: ${fragment}`);
+      fail(
+        `develop-app/SKILL.md is missing post-edit validation guidance: ${fragment}`,
+      );
     }
   }
 
@@ -253,7 +377,9 @@ const assertCliGuidanceSplit = (fail) => {
 
   for (const fragment of forbiddenDevelopFragments) {
     if (developSkill.includes(fragment)) {
-      fail(`develop-app/SKILL.md should not forbid post-edit validation or warn about the sandbox: ${fragment}`);
+      fail(
+        `develop-app/SKILL.md should not forbid post-edit validation or warn about the sandbox: ${fragment}`,
+      );
     }
   }
 
@@ -285,7 +411,9 @@ const assertCliGuidanceSplit = (fail) => {
 
   for (const fragment of forbiddenCliFragments) {
     if (cliAndSync.includes(fragment)) {
-      fail(`cli-and-sync.md should not warn about the sandbox or reference the removed command-execution.md: ${fragment}`);
+      fail(
+        `cli-and-sync.md should not warn about the sandbox or reference the removed command-execution.md: ${fragment}`,
+      );
     }
   }
 };
@@ -293,7 +421,10 @@ const assertCliGuidanceSplit = (fail) => {
 const assertTestingGuidance = (fail) => {
   const manageSkillPath = path.join(PLUGIN_ROOT, 'skills/manage-app/SKILL.md');
   const testsPath = path.join(PLUGIN_ROOT, 'references/develop-app/tests.md');
-  const cliAndSyncPath = path.join(PLUGIN_ROOT, 'references/manage-app/cli-and-sync.md');
+  const cliAndSyncPath = path.join(
+    PLUGIN_ROOT,
+    'references/manage-app/cli-and-sync.md',
+  );
   const agentsPath = path.join(PLUGIN_ROOT, 'AGENTS.md');
   const manageSkill = readText(manageSkillPath);
   const tests = readText(testsPath);
@@ -310,7 +441,9 @@ const assertTestingGuidance = (fail) => {
 
   for (const fragment of requiredManageFragments) {
     if (!manageSkill.includes(fragment)) {
-      fail(`manage-app/SKILL.md is missing test execution guidance: ${fragment}`);
+      fail(
+        `manage-app/SKILL.md is missing test execution guidance: ${fragment}`,
+      );
     }
   }
 
@@ -323,7 +456,9 @@ const assertTestingGuidance = (fail) => {
 
   for (const fragment of requiredSharedFragments) {
     if (!tests.includes(fragment)) {
-      fail(`tests.md is missing isolated integration-test guidance: ${fragment}`);
+      fail(
+        `tests.md is missing isolated integration-test guidance: ${fragment}`,
+      );
     }
   }
 
@@ -336,7 +471,9 @@ const assertTestingGuidance = (fail) => {
 
   for (const fragment of requiredCliFragments) {
     if (!cliAndSync.includes(fragment)) {
-      fail(`cli-and-sync.md is missing integration-test target guidance: ${fragment}`);
+      fail(
+        `cli-and-sync.md is missing integration-test target guidance: ${fragment}`,
+      );
     }
   }
 
@@ -355,6 +492,7 @@ const assertTestingGuidance = (fail) => {
 module.exports = {
   assertTwentyMcpFormattingContract,
   assertFrontComponentGuidance,
+  assertStorybookUiGenerationGuidance,
   assertCliGuidanceSplit,
   assertTestingGuidance,
 };

@@ -41,7 +41,7 @@ flowchart TB
 
     subgraph Engine["Engine Layer"]
         CoreModules["Core Modules (76)\nauth · billing · storage\nemail · messaging · search\nAI · workflow · file"]
-        MetaModules["Metadata Modules (72)\nobject-metadata · field-metadata\nviews · roles · permissions\npage-layouts · navigation"]
+        MetaModules["Metadata Modules (71 dirs + aggregate)\nobject-metadata · field-metadata\nviews · roles · permissions\npage-layouts · navigation"]
         TwentyORM["TwentyORM\nWorkspaceEntityManager\nWorkspaceSchemaManager\nEntitySchemaFactory"]
     end
 
@@ -109,7 +109,7 @@ flowchart TB
 
 | Component | Responsibility |
 | --- | --- |
-| React 19 | UI framework. 56 feature modules, 6 route pages. |
+| React 19 | UI framework. 57 feature modules, 7 route pages, including Mercado Público. |
 | Jotai | Atomic state management. Atoms, selectors, atom families for global state. |
 | Apollo Client | GraphQL data fetching. Cache management. Typed hooks from codegen. |
 | Linaria | Zero-runtime CSS-in-JS. styled-components API. Theme tokens from `twenty-ui`. |
@@ -129,7 +129,7 @@ flowchart TB
 | Layer | Responsibility | Key Components |
 | --- | --- | --- |
 | Core Modules (76) | Infrastructure and cross-cutting concerns. Auth, billing, users, workspaces, email, storage, search, AI, workflow. | `CoreEngineModule` aggregates all core modules. |
-| Metadata Modules (72) | Schema definition and management. Object and field metadata, views, roles, permissions, layouts, navigation. | `MetadataEngineModule` aggregates all metadata modules. |
+| Metadata Modules (71 directories + aggregate) | Schema definition and management. Object and field metadata, views, roles, permissions, layouts, navigation. | `MetadataEngineModule` aggregates all metadata modules. |
 | TwentyORM | Custom multi-tenant ORM on TypeORM. Per-workspace DataSource management, dynamic entity schema compilation, workspace-scoped entity manager. | `WorkspaceEntityManager`, `WorkspaceSchemaManager`, `EntitySchemaFactory`. |
 
 ### Data Layer

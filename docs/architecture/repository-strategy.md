@@ -13,7 +13,7 @@ Describe how the Twenty CRM monorepo is organized, how packages relate, build or
 AI agents, engineers onboarding to the Twenty codebase.
 
 ## Executive Summary
-Twenty uses an Nx-managed monorepo with Yarn 4 workspaces containing 22 packages. All packages live under `packages/`. Nx provides task orchestration (build order, caching, parallel execution) while Yarn handles dependency resolution. The monorepo enforces a strict build order: `twenty-shared` must build first as it is the foundational library consumed by every other package. Custom tooling packages (`twenty-oxlint-rules`) must also build before lint targets.
+Twenty uses an Nx-managed monorepo with Yarn 4 workspaces containing 23 package directories. All packages live under `packages/`. Nx provides task orchestration (build order, caching, parallel execution) while Yarn handles dependency resolution. The monorepo enforces a strict build order: `twenty-shared` must build first as it is the foundational library consumed by every other package. Custom tooling packages (`twenty-oxlint-rules`) must also build before lint targets.
 
 ## Current Repository Topology
 
@@ -22,6 +22,7 @@ twenty/
 ├── packages/
 │   ├── twenty-shared/                  # Foundation — types, utils, constants
 │   ├── twenty-ui/                      # Design system — React components, themes
+│   ├── twenty-design-tokens/           # Canonical DTCG tokens + generated adapters
 │   ├── twenty-server/                  # NestJS backend API + queue worker
 │   ├── twenty-front/                   # React SPA (CRM UI)
 │   ├── twenty-emails/                  # Transactional email templates
@@ -59,6 +60,7 @@ twenty/
 | Category | Packages | Description |
 | --- | --- | --- |
 | Foundation | `twenty-shared` | Zero-dependency shared library. Types, utilities, constants, validators. Must build first. |
+| Design tokens | `twenty-design-tokens` | Canonical DTCG token source and generated adapters consumed by the design system. |
 | UI | `twenty-ui` | React component library. Design system, themes, icons, layout primitives. Consumed by `twenty-front`. |
 | Applications | `twenty-server`, `twenty-front`, `twenty-website`, `twenty-website-redone`, `twenty-docs`, `twenty-companion` | Runnable applications. Each has a `start` target. |
 | Libraries | `twenty-emails`, `twenty-client-sdk`, `twenty-front-component-renderer`, `twenty-oxlint-rules` | Shared code consumed by applications. |

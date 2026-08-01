@@ -1,3 +1,10 @@
+---
+type: agent-contract
+title: "Domain Documentation"
+description: "Routing and vocabulary rules for domain documentation work."
+okf_version: "0.1"
+---
+
 # Domain Docs
 
 Engineering skills should follow the repository's mapped documentation

@@ -9,6 +9,9 @@
     "validate": "node ./scripts/validate.js",
     "test": "node --test ./scripts/__tests__/*.spec.js"
   },
+  "dependencies": {
+    "typescript": "^5.9.3"
+  },
   "files": [
     ".codex-plugin",
     ".mcp.json",

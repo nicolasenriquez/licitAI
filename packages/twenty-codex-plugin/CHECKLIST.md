@@ -24,28 +24,28 @@ A release is shippable when:
 |---|---|---|---|
 | M1 | `name` present, kebab-case, lowercase | Build guide §Naming | [automated] `assertJsonMetadata` |
 | M2 | `version` follows SemVer and matches `package.json` | Build guide §Manifest | [automated] `assertJsonMetadata` |
-| M3 | `description` present and concise | Build guide §Required fields | [automated] `assertInterfaceFields` (planned) |
+| M3 | `description` present and concise | Build guide §Required fields | [automated] `assertInterfaceFields` |
 | M4 | `mcpServers` points at `./.mcp.json` | Build guide §MCP | [automated] `assertJsonMetadata` |
 | M5 | `skills` points at `./skills/` | Build guide §Skills | [automated] `assertJsonMetadata` |
-| M6 | `interface.displayName` present and non-empty | Build guide §Interface | [automated] `assertInterfaceFields` (planned) |
-| M7 | `interface.shortDescription` ≤ 64 chars | Build guide §Marketplace | [automated] `assertInterfaceFields` (planned) |
-| M8 | `interface.longDescription` present, multi-sentence | Build guide §Marketplace | [automated] `assertInterfaceFields` (planned) |
-| M9 | `interface.category` matches marketplace enum (`Coding`) | Build guide §Marketplace | [automated] `assertInterfaceFields` (planned) |
-| M10 | `interface.capabilities` non-empty subset of `Interactive,Read,Write` | Build guide §Capabilities | [automated] `assertInterfaceFields` (planned) |
-| M11 | `interface.websiteURL`, `privacyPolicyURL`, `termsOfServiceURL` present | Build guide §Publisher links | [automated] `assertInterfaceFields` (planned) |
-| M12 | `interface.brandColor` matches `#RRGGBB` and reflects Twenty brand | Build guide §Marketplace | [automated] `assertInterfaceFields` (planned), [manual] brand alignment |
-| M13 | `interface.defaultPrompt` is a non-empty array of strings | Build guide §Defaults | [automated] `assertInterfaceFields` (planned) |
+| M6 | `interface.displayName` present and non-empty | Build guide §Interface | [automated] `assertInterfaceFields` |
+| M7 | `interface.shortDescription` ≤ 64 chars | Build guide §Marketplace | [automated] `assertInterfaceFields` |
+| M8 | `interface.longDescription` present, multi-sentence | Build guide §Marketplace | [automated] `assertInterfaceFields` |
+| M9 | `interface.category` matches marketplace enum (`Coding`) | Build guide §Marketplace | [automated] `assertInterfaceFields` |
+| M10 | `interface.capabilities` non-empty subset of `Interactive,Read,Write` | Build guide §Capabilities | [automated] `assertInterfaceFields` |
+| M11 | `interface.websiteURL`, `privacyPolicyURL`, `termsOfServiceURL` present | Build guide §Publisher links | [automated] `assertInterfaceFields` |
+| M12 | `interface.brandColor` matches `#RRGGBB` and reflects Twenty brand | Build guide §Marketplace | [automated] `assertInterfaceFields`, [manual] brand alignment |
+| M13 | `interface.defaultPrompt` is a non-empty array of strings | Build guide §Defaults | [automated] `assertInterfaceFields` |
 | M14 | All manifest paths start with `./` and stay within plugin root | Build guide §Paths | [automated] `assertJsonMetadata` |
 
 ## Assets (`assets/`)
 
 | # | Requirement | Source | Check |
 |---|---|---|---|
-| A1 | `interface.logo` exists and is PNG | Build guide §Assets | [automated] `assertAssets` (planned) |
-| A2 | Logo PNG is ≥ 256×256 | Build guide §Assets | [automated] `assertAssets` (planned, PNG IHDR parse) |
-| A3 | `interface.composerIcon` exists and is valid SVG or PNG | Build guide §Assets | [automated] `assertAssets` (planned) |
-| A4 | `interface.screenshots` has ≥ 1 entry | Build guide §Assets | [automated] `assertAssets` (planned) |
-| A5 | Every screenshot path exists and is PNG | Build guide §Assets | [automated] `assertAssets` (planned) |
+| A1 | `interface.logo` exists and is PNG | Build guide §Assets | [automated] `assertAssets` |
+| A2 | Logo PNG is ≥ 256×256 | Build guide §Assets | [automated] `assertAssets` (PNG IHDR parse) |
+| A3 | `interface.composerIcon` exists and is valid SVG or PNG | Build guide §Assets | [automated] `assertAssets` |
+| A4 | `interface.screenshots` has ≥ 1 entry | Build guide §Assets | [automated] `assertAssets` (deferred; validator permits `[]`) |
+| A5 | Every screenshot path exists and is PNG | Build guide §Assets | [automated] `assertAssets` (deferred with A4) |
 | A6 | Screenshots show the plugin in action (not placeholder mocks) | Build guide §Marketplace | [manual] reviewer sign-off |
 
 ## Skills (`skills/<name>/SKILL.md`)
@@ -58,7 +58,7 @@ A release is shippable when:
 | S4 | Frontmatter `name` matches directory | Build guide §Skills | [automated] `assertSkills` |
 | S5 | Each skill has `agents/openai.yaml` with `display_name`, `short_description` (≤64), `default_prompt` (mentions `$<skill>`) | OpenAI Agent format | [automated] `assertSkills` |
 | S6 | Each skill is scoped to a single job with clear boundaries | Best practices §Skill scope | [manual] cross-skill audit |
-| S7 | Each skill includes a `## When to use` trigger-phrase section | Best practices §Descriptions | [automated] `assertSkillTriggerPhrases` (planned) |
+| S7 | Each skill includes a `## When to use` trigger-phrase section | Best practices §Descriptions | [automated] `assertSkillTriggerPhrases` |
 | S8 | Descriptions are disjoint across skills (no routing collision) | Best practices §Descriptions | [manual] cross-skill audit |
 
 ## References (`references/`)
@@ -86,7 +86,7 @@ A release is shippable when:
 
 | # | Requirement | Source | Check |
 |---|---|---|---|
-| D1 | `templates/marketplace.example.json` matches plugin name/version | Internal convention | [automated] `assertMarketplaceTemplate` (planned) |
+| D1 | `templates/marketplace.example.json` matches plugin name/version | Internal convention | [automated] `assertMarketplaceTemplate` |
 | D2 | Optional repo-level `.agents/plugins/marketplace.json` points at `./packages/twenty-codex-plugin` | Build guide §Distribution | [automated] `assertJsonMetadata` |
 | D3 | `CHANGELOG.md` updated for every version bump | Reference impl | [manual] release reviewer sign-off |
 

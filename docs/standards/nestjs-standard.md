@@ -48,7 +48,7 @@ API Layer (engine/api/)
 Core Modules (engine/core-modules/)  — 76 modules
   └── auth, billing, workspace, user, storage, email, search, AI, etc.
           │
-Metadata Modules (engine/metadata-modules/)  — 72 modules
+Metadata Modules (engine/metadata-modules/)  — 71 module directories plus the `MetadataEngineModule` aggregate
   └── object-metadata, field-metadata, views, roles, permissions, etc.
           │
 TwentyORM (engine/twenty-orm/)

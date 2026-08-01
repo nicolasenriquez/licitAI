@@ -113,12 +113,26 @@ the product UI.
 
 ## Read-only command center
 
-The workspace route `/mercado-publico#compra-agil` provides the compact
-six-column Compra Agil browse view. Opening an existing detail panel reads the
-latest retained raw record by `fecha_ultimo_cambio`, then `fetched_at`, and
-projects typed source fields. The browser never receives stored raw JSON and
-does not call the provider on panel open. Source paths are plain text;
-documents expose only observed ID and name.
+The workspace route `/mercado-publico` exposes three read-only tabs:
+
+- `#compra-agil` — compact six-column Compra Agil browse.
+- `#licitaciones` — licitation browse with the same retained-source detail
+  contract.
+- `#centro-de-control` — ingestion, quota, API-call, CSV-health, and pipeline
+  observability reads.
+
+Browse tabs support source-backed filters, sorting, and pagination. Selecting a
+process opens the native detail SidePanel; it reads the latest retained raw
+record by `fecha_ultimo_cambio`, then `fetched_at`, and projects typed source
+fields. The browser never receives stored raw JSON and does not call the
+provider on panel open. Source paths are plain text; documents expose only
+observed ID and name.
+
+When the source has not supplied data, the UI shows source-pending or
+unavailable state. It must not synthesize totals or imply freshness from
+partial page data. The workspace remains read-only: ingestion, retries,
+backfills, and configuration stay in the CLI/operator boundary documented
+above.
 
 ## CSV execution order
 
@@ -150,10 +164,11 @@ WHERE started_at >= now() - interval '2 hours'
 ORDER BY started_at DESC;
 ```
 
-Valid job statuses are `success`, `failed`, `soft_miss`, `param_error`,
-`retryable_failed`, and `skipped`. Positive runs require `success`, zero
-`records_failed`, and run-scoped counter reconciliation. The contract has no
-`records_written` counter.
+Valid job statuses are `success`, `partial`, `failed`, `soft_miss`,
+`param_error`, `retryable_failed`, and `skipped`. A `partial` run is not
+complete and must retain its limiting evidence. Positive complete runs require
+`success`, zero `records_failed`, and run-scoped counter reconciliation. The
+contract has no `records_written` counter.
 
 Repeat each input once. The second run must not create duplicate raw, staging,
 or canonical identities. Preserve both raw files when the same source period

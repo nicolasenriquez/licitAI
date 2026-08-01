@@ -13,7 +13,7 @@ Accepted (2026-06-20)
 Formalize the decision to use Nx 22.7.5 with Yarn 4 for the Twenty CRM monorepo.
 
 ## Context
-Twenty is a multi-package project with 22 packages spanning a backend API, frontend SPA, design system, SDK, marketing website, documentation, and infrastructure. The project needed a monorepo tool that provides:
+At the time of this decision, Twenty was a multi-package project spanning a backend API, frontend SPA, design system, SDK, marketing website, documentation, and infrastructure. The project needed a monorepo tool that provides:
 
 - **Dependency graph awareness**: automatically build packages in correct order
 - **Caching**: avoid rebuilding unchanged packages

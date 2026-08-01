@@ -5,6 +5,7 @@ const { PLUGIN_ROOT, readText } = require('./lib');
 
 const REQUIRED_REFERENCES = [
   'references/design/front-component-ui.md',
+  'references/design/storybook-ui-generation.md',
   'references/develop-app/app-structure.md',
   'references/develop-app/data-model.md',
   'references/develop-app/front-components.md',
@@ -31,7 +32,10 @@ const assertReferences = (fail) => {
 };
 
 const assertHowAppsWork = (fail) => {
-  const howAppsWorkPath = path.join(PLUGIN_ROOT, 'references/concepts/how-apps-work.md');
+  const howAppsWorkPath = path.join(
+    PLUGIN_ROOT,
+    'references/concepts/how-apps-work.md',
+  );
 
   if (!fs.existsSync(howAppsWorkPath)) {
     fail('required reference is missing: references/concepts/how-apps-work.md');

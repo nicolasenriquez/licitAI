@@ -16,7 +16,15 @@ const LEGACY_SKILL_NAMES = [
 ];
 
 const VALID_CAPABILITIES = new Set(['Interactive', 'Read', 'Write']);
-const VALID_CATEGORIES = new Set(['Coding', 'Productivity', 'Communication', 'Data', 'Design', 'Marketing', 'Sales']);
+const VALID_CATEGORIES = new Set([
+  'Coding',
+  'Productivity',
+  'Communication',
+  'Data',
+  'Design',
+  'Marketing',
+  'Sales',
+]);
 const SHORT_DESCRIPTION_MAX = 64;
 const MIN_LOGO_DIMENSION = 256;
 
@@ -61,9 +69,11 @@ const parseSkillFrontmatter = (skillPath) => {
 };
 
 const parseQuotedYamlField = (contents, fieldName) => {
-  const match = contents.match(new RegExp(`^\\s+${fieldName}:\\s+"([^"]+)"\\s*$`, 'm'));
+  const match = contents.match(
+    new RegExp(`^\\s+${fieldName}:\\s+(['"])(.*?)\\1\\s*$`, 'm'),
+  );
 
-  return match?.[1];
+  return match?.[2];
 };
 
 const isAllowedDocumentationHost = (hostname) => {
@@ -95,7 +105,9 @@ const isAllowedDocumentationHost = (hostname) => {
 
 const readPngDimensions = (filePath) => {
   const buffer = fs.readFileSync(filePath);
-  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const signature = Buffer.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+  ]);
 
   if (buffer.length < 24 || !buffer.subarray(0, 8).equals(signature)) {
     return undefined;
@@ -113,7 +125,10 @@ const readPngDimensions = (filePath) => {
 
 const createJsonReaders = (fail) => {
   const readJson = (relativePath) => {
-    const absolutePath = path.join(REPO_ROOT, relativePath);
+    const pluginPrefix = 'packages/twenty-codex-plugin/';
+    const absolutePath = relativePath.startsWith(pluginPrefix)
+      ? path.join(PLUGIN_ROOT, relativePath.slice(pluginPrefix.length))
+      : path.join(REPO_ROOT, relativePath);
 
     try {
       return JSON.parse(readText(absolutePath));
@@ -149,8 +164,13 @@ const createInterfacePathResolver = (fail) => (relativePath) => {
   const resolvedPath = path.resolve(PLUGIN_ROOT, relativePath.slice(2));
 
   // Reject ../ traversal that escapes the plugin directory after normalization
-  if (resolvedPath !== PLUGIN_ROOT && !resolvedPath.startsWith(PLUGIN_ROOT + path.sep)) {
-    fail(`interface path must stay within the plugin directory (got: ${relativePath})`);
+  if (
+    resolvedPath !== PLUGIN_ROOT &&
+    !resolvedPath.startsWith(PLUGIN_ROOT + path.sep)
+  ) {
+    fail(
+      `interface path must stay within the plugin directory (got: ${relativePath})`,
+    );
     return undefined;
   }
 

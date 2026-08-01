@@ -13,7 +13,7 @@ Describe the current architecture of the licitai/Twenty monorepo as visible in t
 AI agents, engineers, architects onboarding to the Twenty codebase.
 
 ## Executive Summary
-Licitai is a Twenty-derived, production-grade open-source CRM with a 22-package Nx monorepo. The architecture follows a metadata-driven design: object definitions, field definitions, views, roles, and permissions are stored as metadata and drive both the backend API and the frontend UI dynamically. The backend is a NestJS application with a custom ORM layer (TwentyORM) for multi-tenant per-workspace PostgreSQL schemas. The frontend is a React 19 SPA using Jotai for state management and Linaria for styling. Background jobs run via BullMQ with Redis. The monorepo is managed by Nx with Yarn 4.
+Licitai is a Twenty-derived, production-grade open-source CRM with 23 package directories in an Nx monorepo, including the canonical design-token compiler. The architecture follows a metadata-driven design: object definitions, field definitions, views, roles, and permissions are stored as metadata and drive both the backend API and the frontend UI dynamically. The backend is a NestJS application with a custom ORM layer (TwentyORM) for multi-tenant per-workspace PostgreSQL schemas. The frontend is a React 19 SPA using Jotai for state management and Linaria for styling. Background jobs run via BullMQ with Redis. The monorepo is managed by Nx with Yarn 4.
 
 ## Confirmed Current State
 
@@ -32,7 +32,7 @@ Licitai is a Twenty-derived, production-grade open-source CRM with a 22-package 
 
 | Area | Decision |
 | --- | --- |
-| Monorepo tool | Nx 22.7.5 with Yarn 4 (Berry). 22 packages with defined task pipelines. |
+| Monorepo tool | Nx 22.7.5 with Yarn 4 (Berry). 23 package directories with defined task pipelines. |
 | Backend framework | NestJS 11. Code-first approach with modules, decorators, dependency injection. |
 | API protocol | GraphQL (GraphQL Yoga) with triple-endpoint design: `/graphql` (core data), `/metadata` (schema management), `/admin-panel` (admin operations). REST at `/rest/*`, MCP at `/mcp`. |
 | ORM | TypeORM 0.3.26 (patched) with custom TwentyORM layer for multi-tenant schema isolation. |
@@ -53,6 +53,7 @@ Licitai is a Twenty-derived, production-grade open-source CRM with a 22-package 
 | `twenty-front` | React SPA (CRM UI) | Application |
 | `twenty-shared` | Foundation types, utilities, constants shared by all packages | Library |
 | `twenty-ui` | Design system (React components, themes, icons) | Library |
+| `twenty-design-tokens` | Canonical DTCG token source and generated adapters | Tooling |
 | `twenty-emails` | Transactional email templates (React Email) | Library |
 | `twenty-website` | Marketing website (Next.js 16) | Application |
 | `twenty-website-redone` | Redesigned marketing website | Application |
@@ -93,7 +94,7 @@ The backend (`packages/twenty-server/src/engine/`) is organized in four layers:
 - AI: code interpreter, tool provider, workflow engine, logic functions
 - Infrastructure: Redis, BullMQ message queue, caching, logging, telemetry, Sentry
 
-**Layer 3: Metadata Modules** (`engine/metadata-modules/`) — 72 modules
+**Layer 3: Metadata Modules** (`engine/metadata-modules/`) — 71 module directories plus the `MetadataEngineModule` aggregate
 - Object metadata and field metadata CRUD
 - View definitions (list, kanban, calendar, table)
 - Page layouts, navigation menus, command palette items
@@ -115,8 +116,8 @@ The backend (`packages/twenty-server/src/engine/`) is organized in four layers:
 
 The frontend (`packages/twenty-front/src/`) is organized around feature modules:
 
-- **56 feature modules** (`src/modules/`): accounts, activities, AI, Apollo config, auth, companies, contacts, workflow, settings, dashboards, navigation, command menu, etc.
-- **6 route pages** (`src/pages/`): auth, object-record (list/detail), settings, onboarding, layout, 404
+- **57 feature modules** (`src/modules/`): accounts, activities, AI, Apollo config, auth, companies, contacts, workflow, settings, dashboards, navigation, command menu, Mercado Público, etc.
+- **7 route pages** (`src/pages/`): auth, object-record (list/detail), settings, onboarding, layout, Mercado Público, 404
 - **State management**: Jotai atoms for global state, Apollo Client cache for GraphQL data
 - **Metadata-driven UI**: Object and field definitions from the metadata API drive form rendering, table columns, and record detail layouts
 - **Code generation**: Three GraphQL codegen configs (`codegen.cjs`, `codegen-metadata.cjs`, `codegen-admin.cjs`) generate typed hooks and fragments into `generated/`, `generated-metadata/`, `generated-admin/`

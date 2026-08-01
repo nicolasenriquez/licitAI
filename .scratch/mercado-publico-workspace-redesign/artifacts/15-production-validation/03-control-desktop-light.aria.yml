@@ -1,0 +1,85 @@
+- region "Diagnóstico":
+  - heading "Diagnóstico" [level=2]
+  - region "Salud del pipeline":
+    - table:
+      - rowgroup:
+        - row "Job Estado Último éxito Último fallo Lag Fallos":
+          - columnheader "Job"
+          - columnheader "Estado"
+          - columnheader "Último éxito"
+          - columnheader "Último fallo"
+          - columnheader "Lag"
+          - columnheader "Fallos"
+      - rowgroup:
+        - row "compra-agil Parcial No informado No informado No informado No informado":
+          - cell "compra-agil"
+          - cell "Parcial"
+          - cell "No informado"
+          - cell "No informado"
+          - cell "No informado"
+          - cell "No informado"
+  - heading "Cuota API" [level=3]
+  - strong: api-v2
+  - text: 240 / 1,000
+  - progressbar "Uso de cuota de api-v2"
+  - text: "Restante: 760 · No configurado · Sin errores 429"
+  - paragraph: Restante = máximo entre 0 y límite diario menos uso. Cada fuente conserva su propio límite.
+- region "Investigación":
+  - heading "Investigación" [level=2]
+  - paragraph: Resultados paginados. El origen informa si hay más resultados, no un total global.
+  - button "Ejecuciones": Ejecuciones ...
+  - button "Llamadas API": Llamadas API ...
+  - text: Trabajo
+  - textbox "Trabajo"
+  - text: Estado
+  - combobox "Estado":
+    - option "Todos" [selected]
+    - option "Correcta"
+    - option "Parcial"
+    - option "Fallida"
+    - option "Sin resultados"
+    - option "Parámetros inválidos"
+    - option "Reintentable"
+    - option "Omitida"
+  - region "Ejecuciones":
+    - table:
+      - rowgroup:
+        - row "Job Estado Inicio Fin Obtenidos Error":
+          - columnheader "Job"
+          - columnheader "Estado"
+          - columnheader "Inicio"
+          - columnheader "Fin"
+          - columnheader "Obtenidos"
+          - columnheader "Error"
+      - rowgroup:
+        - row "compra-agil Parcial Jul 31, 2026 8:00 AM No informado No informado No informado":
+          - cell "compra-agil":
+            - button "compra-agil"
+          - cell "Parcial"
+          - cell "Jul 31, 2026 8:00 AM"
+          - cell "No informado"
+          - cell "No informado"
+          - cell "No informado"
+  - button "Anterior ..." [disabled]
+  - text: Página 1 · Sin total global
+  - button "Siguiente ..."
+- region "Integridad de fuentes":
+  - heading "Integridad de fuentes" [level=2]
+  - region "Salud de archivos CSV":
+    - table:
+      - rowgroup:
+        - row "Dataset Archivo Filas Parseadas Errores Carga":
+          - columnheader "Dataset"
+          - columnheader "Archivo"
+          - columnheader "Filas"
+          - columnheader "Parseadas"
+          - columnheader "Errores"
+          - columnheader "Carga"
+      - rowgroup:
+        - row "compras-agiles fuente.csv No informado No informado No informado No informado":
+          - cell "compras-agiles"
+          - cell "fuente.csv"
+          - cell "No informado"
+          - cell "No informado"
+          - cell "No informado"
+          - cell "No informado"

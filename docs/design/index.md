@@ -14,6 +14,8 @@ artifacts must not be edited by hand.
 
 - `design-system.md` — product and marketing registers, interaction, and
   accessibility baseline.
+- `storybook-ui-source-of-truth.md` — executable product UI discovery,
+  Storybook evidence, ownership, and AI-generation contract.
 - `token-governance.md` — vocabulary, hierarchy, mode rules, and ownership.
 - `token-contribution.md` — authoring, deprecation, validation, and review.
 - `technical-plan.md` — incremental migration waves and exit criteria.

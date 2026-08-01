@@ -10,7 +10,7 @@
       "cache": true,
       "options": {
         "cwd": "{projectRoot}",
-        "command": "node ./scripts/validate.js"
+        "command": "node ./scripts/validate.js --repo-root ../.."
       },
       "inputs": [
         "{projectRoot}/.codex-plugin/**/*",
@@ -20,7 +20,14 @@
         "{projectRoot}/references/**/*",
         "{projectRoot}/scripts/**/*",
         "{projectRoot}/skills/**/*",
-        "{projectRoot}/templates/**/*"
+        "{projectRoot}/templates/**/*",
+        "{workspaceRoot}/packages/twenty-ui/.storybook/**/*",
+        "{workspaceRoot}/packages/twenty-ui/src/**/*.stories.*",
+        "{workspaceRoot}/packages/twenty-front/.storybook/**/*",
+        "{workspaceRoot}/packages/twenty-front/src/**/*.stories.*",
+        "{workspaceRoot}/packages/twenty-design-tokens/src/source/**/*",
+        "{workspaceRoot}/docs/design/storybook-ui-source-of-truth.md",
+        "{workspaceRoot}/docs/README.md"
       ]
     },
     "test": {
@@ -30,9 +37,7 @@
         "cwd": "{projectRoot}",
         "command": "node --test ./scripts/__tests__/*.spec.js"
       },
-      "inputs": [
-        "{projectRoot}/scripts/**/*"
-      ]
+      "inputs": ["{projectRoot}/scripts/**/*"]
     },
     "setup:mcp": {
       "executor": "nx:run-commands",
@@ -46,12 +51,12 @@
       "cache": true,
       "options": {
         "cwd": "{projectRoot}",
-        "command": "prettier . --check --cache --cache-location ../../.cache/prettier/{projectRoot} --cache-strategy metadata"
+        "command": "npx oxfmt --check ."
       },
       "configurations": {
         "ci": {},
         "fix": {
-          "command": "prettier . --write --cache --cache-location ../../.cache/prettier/{projectRoot} --cache-strategy metadata"
+          "command": "npx oxfmt ."
         }
       }
     }

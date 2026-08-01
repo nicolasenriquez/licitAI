@@ -1,30 +1,20 @@
 ---
-description: Twenty CRM architecture overview - monorepo structure, tech stack, and development principles
+description: Cursor adapter for the repository architecture contract
 globs: []
 alwaysApply: true
 ---
 
-# Twenty Architecture
+# Repository architecture
 
-## Tech Stack
-- **Frontend**: React 18, TypeScript, Jotai, Styled Components, Vite
-- **Backend**: NestJS, TypeORM, PostgreSQL, Redis, GraphQL
-- **Monorepo**: Nx workspace with yarn
+Use these canonical sources; do not duplicate their counts or diagrams here:
 
-## Package Structure
-```
-packages/
-├── twenty-front/     # React app
-├── twenty-server/    # NestJS API  
-├── twenty-ui/        # Shared components
-├── twenty-shared/    # Common types/utils
-└── twenty-emails/    # Email templates
-```
+- `AGENTS.md` — routing, invariants, runtime, and package boundaries.
+- `docs/architecture/current-state.md` — measured repository state.
+- `docs/architecture/reference-architecture.md` — integration boundaries.
+- `docs/architecture/technology-standards.md` — framework and tooling rules.
 
-## Key Principles
-- **Functional components only** (no classes)
-- **Named exports only** (no default exports)
-- **Types over interfaces** (except for extending third-party)
-- **String literals over enums** (except GraphQL)
-- **No 'any' type allowed**
-- **Event handlers over useEffect** for state updates
+Current anchors: React 19, Vite, Linaria, Lingui, Nx, Yarn 4, NestJS,
+PostgreSQL, Redis, GraphQL, and Docker Compose.
+
+When a rule conflicts with those sources, follow the canonical documentation
+and update this adapter instead of inventing a second policy.

@@ -24,6 +24,10 @@ Mercado Publico ingestion uses three source families:
 
 The pipeline is raw-first, idempotent, auditable, tolerant to schema drift, separated by source, and reconciled explicitly. Raw source data is never overwritten destructively.
 
+For compact, evidence-labelled instructions for agents touching API V2 Compra
+Agil, read the [Compra Agil V2 contract for AI agents](compra-agil-ai-contract.md)
+first. This source contract remains the detailed repository and source record.
+
 ## Source Boundary
 
 In scope:
@@ -178,15 +182,17 @@ Endpoints:
 | `region` | integer | Region code. |
 | `id` | string | Exact Compra Agil code. |
 | `q` | string | Text search. |
-| `tamano_pagina` | integer | Default 15, minimum 10, maximum 50. |
+| `tamano_pagina` | integer | Official default 15 and maximum 50; this repository additionally enforces a minimum of 10. |
 | `numero_pagina` | integer | Starts at 1. |
 | `ordenar_por` | string | Sort field. |
-| `orden` | string | Sort direction. |
+| `orden` | string | Repository-implemented sort direction; not documented as an official V2 parameter. |
 
 Parameter rules:
 
 - `id` and `q` are mutually exclusive.
-- `tamano_pagina` must be between 10 and 50, inclusive.
+- The official guide documents `tamano_pagina` default 15 and maximum 50. The
+  repository currently enforces `10..50`; the lower bound is an implementation
+  constraint, not an official V2 claim.
 - `numero_pagina` starts at 1.
 - There is no documented `codigo_organismo` filter for this API.
 
@@ -583,11 +589,16 @@ The source contract is implementation-ready when:
 
 ## Quota and Rate Limits
 
-The Mercado Publico API enforces a daily call limit tracked by the ingestion backbone.
+The current ChileCompra API terms state a daily 10,000-call limit per ticket;
+they do not confirm a single shared V1/V2 counter. The repository treats that
+limit as a per-ticket policy and may configure a lower local threshold through
+`MERCADO_PUBLICO_API_DAILY_LIMIT` (default 10000).
 
-- **Daily limit**: 10000 calls per day, shared across all Mercado Publico API sources (V1 Licitaciones, V1 Ordenes de Compra, V2 Compra Agil).
-- **Window**: 24-hour anchored to `America/Santiago` local time. Counter resets at 00:00 America/Santiago.
-- **429 handling**: On a 429 response, the system records `last_429_at` in `mp.gold_api_quota_usage`. The `used` counter increments until the reset boundary passes, then resets to 1.
-- **Configurable**: The daily limit is configurable via `MERCADO_PUBLICO_API_DAILY_LIMIT` (default 10000, non-sensitive). Lowering it in config allows early warning before hitting the actual API limit.
+`America/Santiago` is the repository scheduling fallback, not a provider
+timezone guarantee. The V2 guide refers to calendar days and illustrates UTC.
 
-Per-source tracking is implemented at the endpoint level (`api-v1-licitaciones`, `api-v1-oc`, `api-v2-compra-agil`). The shared limit applies to all sources.
+Current implementation evidence is narrower than that policy: it records quota
+usage after HTTP 429 and at the source level (`api-v1-licitaciones`,
+`api-v1-oc`, `api-v2-compra-agil`). It is not a preemptive, per-ticket counter.
+See the [Compra Agil V2 contract for AI agents](compra-agil-ai-contract.md) for
+the evidence labels and known implementation divergences.

@@ -25,6 +25,16 @@ without replacing the existing `docs/README.md` baseline.
 | Standards | `standards/` | Repository documentation and technology standards |
 | Templates | `templates/` | ADR and documentation templates |
 
+## Mercado Público reading map
+
+1. [Compra Agil V2 contract for AI agents](business/compra-agil-ai-contract.md)
+2. [Source and ingestion contract](business/mercado-publico-source-contract.md)
+3. [Data model boundary](architecture/data-model.md) and
+   [ADR 0005](decisions/0005-deployment-local-mercado-publico-schema.md)
+4. [Operator runbook](operations/mercado-publico-ingestion.md)
+
+Archived OpenSpec changes provide provenance; they are not current instructions.
+
 ## Routing Rule
 
 - Stay in `docs/` for durable repository docs.

@@ -1,3 +1,10 @@
+---
+type: agent-contract
+title: "Triage Labels"
+description: "Canonical issue-tracker triage label mappings."
+okf_version: "0.1"
+---
+
 # Triage Labels
 
 The skills speak in terms of five canonical triage roles. This file maps those

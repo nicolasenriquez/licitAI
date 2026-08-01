@@ -1,0 +1,57 @@
+- text: Estado
+- combobox "Estado":
+  - option "Todos" [selected]
+  - option "Publicada"
+  - option "Cerrada"
+  - option "Desierta"
+  - option "Proveedor seleccionado"
+  - option "OC emitida"
+  - option "Cancelada"
+- text: Publicada desde
+- textbox "Publicada desde"
+- text: Publicada hasta
+- textbox "Publicada hasta"
+- text: Orden
+- combobox "Orden":
+  - option "Última observación, reciente primero" [selected]
+  - option "Última observación, antigua primero"
+  - option "Publicación, reciente primero"
+  - option "Publicación, antigua primero"
+  - option "Cierre, próximo primero"
+  - option "Cierre, lejano primero"
+  - option "Código, ascendente"
+  - option "Código, descendente"
+  - option "Estado, ascendente"
+  - option "Estado, descendente"
+- button "Más filtros"
+- region "Resultados de procesos":
+  - table:
+    - rowgroup:
+      - row "Objeto Organismo Estado Cierre Publicada Código":
+        - columnheader "Objeto"
+        - columnheader "Organismo"
+        - columnheader "Estado"
+        - columnheader "Cierre"
+        - columnheader "Publicada"
+        - columnheader "Código"
+    - rowgroup:
+      - row "Abrir detalle de Proceso de prueba con descripción extensa para validar lectura y contención Organismo de prueba con nombre extenso Publicada Aug 4, 2026 11:00 AM Jul 30, 2026 6:00 AM CA-FIXTURE-001":
+        - cell "Abrir detalle de Proceso de prueba con descripción extensa para validar lectura y contención":
+          - button "Abrir detalle de Proceso de prueba con descripción extensa para validar lectura y contención": Proceso de prueba con descripción extensa para validar lectura y contención ...
+        - cell "Organismo de prueba con nombre extenso"
+        - cell "Publicada"
+        - cell "Aug 4, 2026 11:00 AM"
+        - cell "Jul 30, 2026 6:00 AM"
+        - cell "CA-FIXTURE-001"
+      - row "Abrir detalle de CA-FIXTURE-002 No informado Cerrada Cierre no informado No informado CA-FIXTURE-002":
+        - cell "Abrir detalle de CA-FIXTURE-002":
+          - button "Abrir detalle de CA-FIXTURE-002": Sin información ...
+        - cell "No informado"
+        - cell "Cerrada"
+        - cell "Cierre no informado"
+        - cell "No informado"
+        - cell "CA-FIXTURE-002"
+- text: 1–2 de 2
+- button "Anterior ..." [disabled]
+- text: Página 1
+- button "Siguiente ..." [disabled]

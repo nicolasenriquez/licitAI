@@ -1,0 +1,790 @@
+{
+  "capturedAt": "2026-07-31T22:35:16.485Z",
+  "cases": [
+    {
+      "audit": {
+        "axeViolations": [],
+        "documentOverflow": false,
+        "duplicateIds": [],
+        "localScrollers": [
+          {
+            "label": "Resultados de procesos",
+            "clientWidth": 1309,
+            "scrollWidth": 1309,
+            "tabIndex": "0"
+          }
+        ],
+        "tableHeaders": [
+          [
+            "Objeto",
+            "Organismo",
+            "Estado",
+            "Cierre",
+            "Publicada",
+            "Código"
+          ]
+        ],
+        "unnamedInteractive": []
+      },
+      "consoleErrors": [],
+      "height": 1000,
+      "harnessWarnings": [
+        "Cannot parse msw request body : SyntaxError: Unexpected end of input"
+      ],
+      "keyboard": [
+        {
+          "name": "Estado",
+          "tag": "SELECT",
+          "visible": true
+        },
+        {
+          "name": "Publicada desde",
+          "tag": "INPUT",
+          "visible": true
+        },
+        {
+          "name": "Publicada desde",
+          "tag": "INPUT",
+          "visible": true
+        },
+        {
+          "name": "Publicada desde",
+          "tag": "INPUT",
+          "visible": true
+        },
+        {
+          "name": "Publicada desde",
+          "tag": "INPUT",
+          "visible": true
+        },
+        {
+          "name": "Publicada hasta",
+          "tag": "INPUT",
+          "visible": true
+        },
+        {
+          "name": "Publicada hasta",
+          "tag": "INPUT",
+          "visible": true
+        },
+        {
+          "name": "Publicada hasta",
+          "tag": "INPUT",
+          "visible": true
+        },
+        {
+          "name": "Publicada hasta",
+          "tag": "INPUT",
+          "visible": true
+        },
+        {
+          "name": "Orden",
+          "tag": "SELECT",
+          "visible": true
+        },
+        {
+          "name": "Más filtros",
+          "tag": "BUTTON",
+          "visible": true
+        },
+        {
+          "name": "Resultados de procesos",
+          "tag": "DIV",
+          "visible": true
+        },
+        {
+          "name": "Abrir detalle de Proceso de prueba con descripción extensa para validar lectura y contención",
+          "tag": "BUTTON",
+          "visible": true
+        },
+        {
+          "name": "Abrir detalle de CA-FIXTURE-002",
+          "tag": "BUTTON",
+          "visible": true
+        }
+      ],
+      "name": "01-compra-desktop-light",
+      "pageErrors": [],
+      "screenshot": "01-compra-desktop-light.png",
+      "storyId": "modules-mercadopublico-workspace--compra-agil",
+      "theme": "light",
+      "width": 1440
+    },
+    {
+      "audit": {
+        "axeViolations": [],
+        "documentOverflow": false,
+        "duplicateIds": [],
+        "localScrollers": [
+          {
+            "label": "Resultados de procesos",
+            "clientWidth": 1306,
+            "scrollWidth": 1306,
+            "tabIndex": "0"
+          }
+        ],
+        "tableHeaders": [
+          [
+            "Objeto",
+            "Organismo",
+            "Estado",
+            "Cierre",
+            "Publicada",
+            "Código"
+          ]
+        ],
+        "unnamedInteractive": []
+      },
+      "consoleErrors": [],
+      "height": 1000,
+      "harnessWarnings": [
+        "Cannot parse msw request body : SyntaxError: Unexpected end of input"
+      ],
+      "keyboard": [
+        {
+          "name": "Estado",
+          "tag": "SELECT",
+          "visible": true
+        },
+        {
+          "name": "Publicada desde",
+          "tag": "INPUT",
+          "visible": true
+        },
+        {
+          "name": "Publicada desde",
+          "tag": "INPUT",
+          "visible": true
+        },
+        {
+          "name": "Publicada desde",
+          "tag": "INPUT",
+          "visible": true
+        },
+        {
+          "name": "Publicada desde",
+          "tag": "INPUT",
+          "visible": true
+        },
+        {
+          "name": "Publicada hasta",
+          "tag": "INPUT",
+          "visible": true
+        },
+        {
+          "name": "Publicada hasta",
+          "tag": "INPUT",
+          "visible": true
+        },
+        {
+          "name": "Publicada hasta",
+          "tag": "INPUT",
+          "visible": true
+        },
+        {
+          "name": "Publicada hasta",
+          "tag": "INPUT",
+          "visible": true
+        },
+        {
+          "name": "Orden",
+          "tag": "SELECT",
+          "visible": true
+        },
+        {
+          "name": "Más filtros",
+          "tag": "BUTTON",
+          "visible": true
+        },
+        {
+          "name": "Resultados de procesos",
+          "tag": "DIV",
+          "visible": true
+        },
+        {
+          "name": "Abrir detalle de Proceso de prueba con descripción extensa para validar lectura y contención",
+          "tag": "BUTTON",
+          "visible": true
+        },
+        {
+          "name": "Abrir detalle de LP-FIXTURE-002",
+          "tag": "BUTTON",
+          "visible": true
+        }
+      ],
+      "name": "02-licitaciones-desktop-light",
+      "pageErrors": [],
+      "screenshot": "02-licitaciones-desktop-light.png",
+      "storyId": "modules-mercadopublico-workspace--licitaciones",
+      "theme": "light",
+      "width": 1440
+    },
+    {
+      "audit": {
+        "axeViolations": [],
+        "documentOverflow": false,
+        "duplicateIds": [],
+        "localScrollers": [
+          {
+            "label": "Salud del pipeline",
+            "clientWidth": 700,
+            "scrollWidth": 700,
+            "tabIndex": "0"
+          },
+          {
+            "label": "Ejecuciones",
+            "clientWidth": 700,
+            "scrollWidth": 700,
+            "tabIndex": "0"
+          },
+          {
+            "label": "Salud de archivos CSV",
+            "clientWidth": 700,
+            "scrollWidth": 700,
+            "tabIndex": "0"
+          }
+        ],
+        "tableHeaders": [
+          [
+            "Job",
+            "Estado",
+            "Último éxito",
+            "Último fallo",
+            "Lag",
+            "Fallos"
+          ],
+          [
+            "Job",
+            "Estado",
+            "Inicio",
+            "Fin",
+            "Obtenidos",
+            "Error"
+          ],
+          [
+            "Dataset",
+            "Archivo",
+            "Filas",
+            "Parseadas",
+            "Errores",
+            "Carga"
+          ]
+        ],
+        "unnamedInteractive": []
+      },
+      "consoleErrors": [],
+      "height": 1100,
+      "harnessWarnings": [
+        "Cannot parse msw request body : SyntaxError: Unexpected end of input"
+      ],
+      "keyboard": [
+        {
+          "name": "Salud del pipeline",
+          "tag": "DIV",
+          "visible": true
+        },
+        {
+          "name": "Ejecuciones",
+          "tag": "BUTTON",
+          "visible": true
+        },
+        {
+          "name": "Llamadas API",
+          "tag": "BUTTON",
+          "visible": true
+        },
+        {
+          "name": "",
+          "tag": "INPUT",
+          "visible": true
+        },
+        {
+          "name": "TodosCorrectaParcialFallidaSin resultadosParámetros inválidosReintentableOmitida",
+          "tag": "SELECT",
+          "visible": true
+        },
+        {
+          "name": "Ejecuciones",
+          "tag": "DIV",
+          "visible": true
+        },
+        {
+          "name": "compra-agil",
+          "tag": "BUTTON",
+          "visible": true
+        },
+        {
+          "name": "Siguiente...",
+          "tag": "BUTTON",
+          "visible": true
+        },
+        {
+          "name": "Salud de archivos CSV",
+          "tag": "DIV",
+          "visible": true
+        },
+        {
+          "name": "Salud del pipeline",
+          "tag": "DIV",
+          "visible": true
+        },
+        {
+          "name": "Ejecuciones",
+          "tag": "BUTTON",
+          "visible": true
+        },
+        {
+          "name": "Llamadas API",
+          "tag": "BUTTON",
+          "visible": true
+        },
+        {
+          "name": "",
+          "tag": "INPUT",
+          "visible": true
+        }
+      ],
+      "name": "03-control-desktop-light",
+      "pageErrors": [],
+      "screenshot": "03-control-desktop-light.png",
+      "storyId": "modules-mercadopublico-workspace--control-center",
+      "theme": "light",
+      "width": 1440
+    },
+    {
+      "audit": {
+        "axeViolations": [],
+        "documentOverflow": false,
+        "duplicateIds": [],
+        "localScrollers": [],
+        "tableHeaders": [],
+        "unnamedInteractive": []
+      },
+      "consoleErrors": [],
+      "height": 900,
+      "harnessWarnings": [
+        "Cannot parse msw request body : SyntaxError: Unexpected end of input"
+      ],
+      "keyboard": [],
+      "name": "04-source-pending-light",
+      "pageErrors": [],
+      "screenshot": "04-source-pending-light.png",
+      "storyId": "modules-mercadopublico-workspace--source-pending",
+      "theme": "light",
+      "width": 720
+    },
+    {
+      "audit": {
+        "axeViolations": [],
+        "documentOverflow": false,
+        "duplicateIds": [],
+        "localScrollers": [
+          {
+            "label": "Resultados de procesos",
+            "clientWidth": 274,
+            "scrollWidth": 922,
+            "tabIndex": "0"
+          }
+        ],
+        "tableHeaders": [
+          [
+            "Objeto",
+            "Organismo",
+            "Estado",
+            "Cierre",
+            "Publicada",
+            "Código"
+          ]
+        ],
+        "unnamedInteractive": []
+      },
+      "consoleErrors": [],
+      "height": 844,
+      "harnessWarnings": [
+        "Cannot parse msw request body : SyntaxError: Unexpected end of input"
+      ],
+      "keyboard": [],
+      "name": "05-compra-mobile-light",
+      "pageErrors": [],
+      "screenshot": "05-compra-mobile-light.png",
+      "storyId": "modules-mercadopublico-workspace--compra-agil",
+      "theme": "light",
+      "width": 390
+    },
+    {
+      "audit": {
+        "axeViolations": [],
+        "documentOverflow": false,
+        "duplicateIds": [],
+        "localScrollers": [
+          {
+            "label": "Resultados de procesos",
+            "clientWidth": 274,
+            "scrollWidth": 922,
+            "tabIndex": "0"
+          }
+        ],
+        "tableHeaders": [
+          [
+            "Objeto",
+            "Organismo",
+            "Estado",
+            "Cierre",
+            "Publicada",
+            "Código"
+          ]
+        ],
+        "unnamedInteractive": []
+      },
+      "consoleErrors": [],
+      "height": 844,
+      "harnessWarnings": [
+        "Cannot parse msw request body : SyntaxError: Unexpected end of input"
+      ],
+      "keyboard": [],
+      "name": "06-licitaciones-mobile-light",
+      "pageErrors": [],
+      "screenshot": "06-licitaciones-mobile-light.png",
+      "storyId": "modules-mercadopublico-workspace--licitaciones",
+      "theme": "light",
+      "width": 390
+    },
+    {
+      "audit": {
+        "axeViolations": [],
+        "documentOverflow": false,
+        "duplicateIds": [],
+        "localScrollers": [
+          {
+            "label": "Salud del pipeline",
+            "clientWidth": 276,
+            "scrollWidth": 700,
+            "tabIndex": "0"
+          },
+          {
+            "label": "Ejecuciones",
+            "clientWidth": 276,
+            "scrollWidth": 700,
+            "tabIndex": "0"
+          },
+          {
+            "label": "Salud de archivos CSV",
+            "clientWidth": 276,
+            "scrollWidth": 700,
+            "tabIndex": "0"
+          }
+        ],
+        "tableHeaders": [
+          [
+            "Job",
+            "Estado",
+            "Último éxito",
+            "Último fallo",
+            "Lag",
+            "Fallos"
+          ],
+          [
+            "Job",
+            "Estado",
+            "Inicio",
+            "Fin",
+            "Obtenidos",
+            "Error"
+          ],
+          [
+            "Dataset",
+            "Archivo",
+            "Filas",
+            "Parseadas",
+            "Errores",
+            "Carga"
+          ]
+        ],
+        "unnamedInteractive": []
+      },
+      "consoleErrors": [],
+      "height": 844,
+      "harnessWarnings": [
+        "Cannot parse msw request body : SyntaxError: Unexpected end of input"
+      ],
+      "keyboard": [],
+      "name": "07-control-mobile-light",
+      "pageErrors": [],
+      "screenshot": "07-control-mobile-light.png",
+      "storyId": "modules-mercadopublico-workspace--control-center",
+      "theme": "light",
+      "width": 390
+    },
+    {
+      "audit": {
+        "axeViolations": [],
+        "documentOverflow": false,
+        "duplicateIds": [],
+        "localScrollers": [
+          {
+            "label": "Resultados de procesos",
+            "clientWidth": 1309,
+            "scrollWidth": 1309,
+            "tabIndex": "0"
+          }
+        ],
+        "tableHeaders": [
+          [
+            "Objeto",
+            "Organismo",
+            "Estado",
+            "Cierre",
+            "Publicada",
+            "Código"
+          ]
+        ],
+        "unnamedInteractive": []
+      },
+      "consoleErrors": [],
+      "height": 1000,
+      "harnessWarnings": [
+        "Cannot parse msw request body : SyntaxError: Unexpected end of input"
+      ],
+      "keyboard": [],
+      "name": "08-compra-desktop-dark",
+      "pageErrors": [],
+      "screenshot": "08-compra-desktop-dark.png",
+      "storyId": "modules-mercadopublico-workspace--compra-agil-dark",
+      "theme": "dark",
+      "width": 1440
+    },
+    {
+      "audit": {
+        "axeViolations": [],
+        "documentOverflow": false,
+        "duplicateIds": [],
+        "localScrollers": [
+          {
+            "label": "Resultados de procesos",
+            "clientWidth": 1306,
+            "scrollWidth": 1306,
+            "tabIndex": "0"
+          }
+        ],
+        "tableHeaders": [
+          [
+            "Objeto",
+            "Organismo",
+            "Estado",
+            "Cierre",
+            "Publicada",
+            "Código"
+          ]
+        ],
+        "unnamedInteractive": []
+      },
+      "consoleErrors": [],
+      "height": 1000,
+      "harnessWarnings": [
+        "Cannot parse msw request body : SyntaxError: Unexpected end of input"
+      ],
+      "keyboard": [],
+      "name": "09-licitaciones-desktop-dark",
+      "pageErrors": [],
+      "screenshot": "09-licitaciones-desktop-dark.png",
+      "storyId": "modules-mercadopublico-workspace--licitaciones-dark",
+      "theme": "dark",
+      "width": 1440
+    },
+    {
+      "audit": {
+        "axeViolations": [],
+        "documentOverflow": false,
+        "duplicateIds": [],
+        "localScrollers": [
+          {
+            "label": "Salud del pipeline",
+            "clientWidth": 700,
+            "scrollWidth": 700,
+            "tabIndex": "0"
+          },
+          {
+            "label": "Ejecuciones",
+            "clientWidth": 700,
+            "scrollWidth": 700,
+            "tabIndex": "0"
+          },
+          {
+            "label": "Salud de archivos CSV",
+            "clientWidth": 700,
+            "scrollWidth": 700,
+            "tabIndex": "0"
+          }
+        ],
+        "tableHeaders": [
+          [
+            "Job",
+            "Estado",
+            "Último éxito",
+            "Último fallo",
+            "Lag",
+            "Fallos"
+          ],
+          [
+            "Job",
+            "Estado",
+            "Inicio",
+            "Fin",
+            "Obtenidos",
+            "Error"
+          ],
+          [
+            "Dataset",
+            "Archivo",
+            "Filas",
+            "Parseadas",
+            "Errores",
+            "Carga"
+          ]
+        ],
+        "unnamedInteractive": []
+      },
+      "consoleErrors": [],
+      "height": 1100,
+      "harnessWarnings": [
+        "Cannot parse msw request body : SyntaxError: Unexpected end of input"
+      ],
+      "keyboard": [],
+      "name": "10-control-desktop-dark",
+      "pageErrors": [],
+      "screenshot": "10-control-desktop-dark.png",
+      "storyId": "modules-mercadopublico-workspace--control-center-dark",
+      "theme": "dark",
+      "width": 1440
+    }
+  ],
+  "interaction": {
+    "apiTableCount": 1,
+    "jobTableCount": 0
+  },
+  "reducedMotion": {
+    "mediaMatches": true
+  },
+  "zoom200": [
+    {
+      "audit": {
+        "axeViolations": [],
+        "documentOverflow": false,
+        "duplicateIds": [],
+        "localScrollers": [
+          {
+            "label": "Resultados de procesos",
+            "clientWidth": 604,
+            "scrollWidth": 922,
+            "tabIndex": "0"
+          }
+        ],
+        "tableHeaders": [
+          [
+            "Objeto",
+            "Organismo",
+            "Estado",
+            "Cierre",
+            "Publicada",
+            "Código"
+          ]
+        ],
+        "unnamedInteractive": []
+      },
+      "name": "11-compra-zoom-200",
+      "storyId": "modules-mercadopublico-workspace--compra-agil"
+    },
+    {
+      "audit": {
+        "axeViolations": [],
+        "documentOverflow": false,
+        "duplicateIds": [],
+        "localScrollers": [
+          {
+            "label": "Resultados de procesos",
+            "clientWidth": 604,
+            "scrollWidth": 922,
+            "tabIndex": "0"
+          }
+        ],
+        "tableHeaders": [
+          [
+            "Objeto",
+            "Organismo",
+            "Estado",
+            "Cierre",
+            "Publicada",
+            "Código"
+          ]
+        ],
+        "unnamedInteractive": []
+      },
+      "name": "12-licitaciones-zoom-200",
+      "storyId": "modules-mercadopublico-workspace--licitaciones"
+    },
+    {
+      "audit": {
+        "axeViolations": [],
+        "documentOverflow": false,
+        "duplicateIds": [],
+        "localScrollers": [
+          {
+            "label": "Salud del pipeline",
+            "clientWidth": 606,
+            "scrollWidth": 700,
+            "tabIndex": "0"
+          },
+          {
+            "label": "Ejecuciones",
+            "clientWidth": 606,
+            "scrollWidth": 700,
+            "tabIndex": "0"
+          },
+          {
+            "label": "Salud de archivos CSV",
+            "clientWidth": 606,
+            "scrollWidth": 700,
+            "tabIndex": "0"
+          }
+        ],
+        "tableHeaders": [
+          [
+            "Job",
+            "Estado",
+            "Último éxito",
+            "Último fallo",
+            "Lag",
+            "Fallos"
+          ],
+          [
+            "Job",
+            "Estado",
+            "Inicio",
+            "Fin",
+            "Obtenidos",
+            "Error"
+          ],
+          [
+            "Dataset",
+            "Archivo",
+            "Filas",
+            "Parseadas",
+            "Errores",
+            "Carga"
+          ]
+        ],
+        "unnamedInteractive": []
+      },
+      "name": "13-control-zoom-200",
+      "storyId": "modules-mercadopublico-workspace--control-center"
+    }
+  ],
+  "failures": {
+    "axeViolations": [],
+    "consoleErrors": [],
+    "documentOverflow": 0,
+    "duplicateIds": [],
+    "pageErrors": [],
+    "unnamedInteractive": []
+  }
+}
