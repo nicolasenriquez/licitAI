@@ -40,5 +40,5 @@ export const initialI18nActivate = () => {
     locale = normalizedNavigatorLocale;
   }
 
-  dynamicActivate(locale);
+  return dynamicActivate(locale);
 };

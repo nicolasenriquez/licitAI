@@ -9,15 +9,12 @@ import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
 import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
 import { type MercadoPublicoJobRunStatus } from '~/generated/graphql';
 import {
-  getMercadoPublicoFreshnessLabel,
-  getMercadoPublicoStatusColor,
   getMercadoPublicoStatusLabel,
-  isMercadoPublicoStale,
   useMercadoPublicoDisplay,
 } from '@/mercado-publico/utils/mercadoPublicoDisplay';
 import { styled } from '@linaria/react';
 import { t } from '@lingui/core/macro';
-import { Fragment, type KeyboardEvent, useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Tag } from 'twenty-ui/data-display';
 import { Button } from 'twenty-ui/input';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
@@ -75,19 +72,97 @@ const StyledTable = styled.table`
   th,
   td {
     border-bottom: 1px solid ${themeCssVariables.border.color.medium};
+    overflow-wrap: anywhere;
     padding: ${themeCssVariables.spacing[2]};
     text-align: left;
     vertical-align: top;
-    overflow-wrap: anywhere;
+  }
+`;
+
+const StyledExpandableRow = styled.tr`
+  cursor: pointer;
+
+  &:hover {
+    background: ${themeCssVariables.background.transparent.light};
+  }
+`;
+
+const StyledRowToggle = styled.button`
+  appearance: none;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+
+  &:focus-visible {
+    border-radius: ${themeCssVariables.border.radius.sm};
+    outline: 2px solid ${themeCssVariables.accent.primary};
+    outline-offset: 2px;
+  }
+`;
+
+const StyledInvestigationControls = styled.div`
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${themeCssVariables.spacing[2]};
+`;
+
+const StyledControl = styled.label`
+  display: flex;
+  flex-direction: column;
+  font-size: ${themeCssVariables.font.size.sm};
+  gap: ${themeCssVariables.spacing[1]};
+`;
+
+const StyledInput = styled.input`
+  background: ${themeCssVariables.background.primary};
+  border: 1px solid ${themeCssVariables.border.color.medium};
+  border-radius: ${themeCssVariables.border.radius.sm};
+  color: ${themeCssVariables.font.color.primary};
+  min-height: ${themeCssVariables.spacing[8]};
+  padding: 0 ${themeCssVariables.spacing[2]};
+
+  &:focus-visible {
+    outline: 2px solid ${themeCssVariables.accent.primary};
+    outline-offset: 2px;
+  }
+`;
+
+const StyledSelect = styled.select`
+  background: ${themeCssVariables.background.primary};
+  border: 1px solid ${themeCssVariables.border.color.medium};
+  border-radius: ${themeCssVariables.border.radius.sm};
+  color: ${themeCssVariables.font.color.primary};
+  min-height: ${themeCssVariables.spacing[8]};
+  padding: 0 ${themeCssVariables.spacing[2]};
+
+  &:focus-visible {
+    outline: 2px solid ${themeCssVariables.accent.primary};
+    outline-offset: 2px;
+  }
+`;
+
+const StyledSupportingText = styled.p`
+  color: ${themeCssVariables.font.color.secondary};
+  margin: 0;
+`;
+
+const StyledQuotaList = styled.div`
+  display: grid;
+  gap: ${themeCssVariables.spacing[2]};
+
+  > div {
+    display: grid;
+    gap: ${themeCssVariables.spacing[1]};
   }
 
-  tbody tr {
-    cursor: pointer;
-
-    &:focus-visible {
-      outline: 2px solid ${themeCssVariables.accent.primary};
-      outline-offset: -2px;
-    }
+  progress {
+    max-width: 320px;
+    width: 100%;
   }
 `;
 
@@ -104,13 +179,6 @@ const StyledFeedback = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: ${themeCssVariables.spacing[2]};
-`;
-
-const StyledNotice = styled.p`
-  background: ${themeCssVariables.background.transparent.orange};
-  border-radius: ${themeCssVariables.border.radius.sm};
-  margin: 0;
-  padding: ${themeCssVariables.spacing[2]};
 `;
 
 const StyledSkeleton = styled.div`
@@ -150,7 +218,7 @@ const toRedactedRequestParameters = (value: unknown): string => {
 export const MercadoPublicoControlCenterTab = () => {
   const tokenPair = useAtomStateValue(tokenPairState);
   const { enqueueErrorSnackBar } = useSnackBar();
-  const { formatCount, formatDate, formatDuration, formatPercent } =
+  const { formatCount, formatDate, formatDuration } =
     useMercadoPublicoDisplay();
   const [investigationView, setInvestigationView] =
     useState<InvestigationView>('job-runs');
@@ -242,16 +310,6 @@ export const MercadoPublicoControlCenterTab = () => {
     setExpandedRowId((currentRowId) => (currentRowId === rowId ? null : rowId));
   };
 
-  const handleExpandableRowKeyDown = (
-    event: KeyboardEvent<HTMLTableRowElement>,
-    rowId: string,
-  ) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      toggleExpandedRow(rowId);
-    }
-  };
-
   const selectInvestigationView = (view: InvestigationView) => {
     setInvestigationView(view);
     setExpandedRowId(null);
@@ -298,8 +356,6 @@ export const MercadoPublicoControlCenterTab = () => {
                   <th>{t`Último fallo`}</th>
                   <th>{t`Lag`}</th>
                   <th>{t`Fallos`}</th>
-                  <th>{t`Frescura`}</th>
-                  <th>{t`Cadencia`}</th>
                 </tr>
               </thead>
               <tbody>
@@ -308,7 +364,7 @@ export const MercadoPublicoControlCenterTab = () => {
                     <td>{job.jobName}</td>
                     <td>
                       <Tag
-                        color={getMercadoPublicoStatusColor(job.latestStatus)}
+                        color="gray"
                         text={getMercadoPublicoStatusLabel(job.latestStatus)}
                       />
                     </td>
@@ -316,23 +372,15 @@ export const MercadoPublicoControlCenterTab = () => {
                     <td>{formatDate(job.lastFailureAt)}</td>
                     <td>{formatDuration(job.lagSinceLastSuccessMs)}</td>
                     <td>{formatCount(job.failureCount)}</td>
-                    <td>{getMercadoPublicoFreshnessLabel(job.freshness)}</td>
-                    <td>{formatDuration(job.expectedCadenceMs)}</td>
                   </tr>
                 ))}
               </tbody>
             </StyledTable>
           </StyledTableWrap>
         ) : null}
-        {pipelineJobs?.some((job) => isMercadoPublicoStale(job.freshness)) ? (
-          <StyledNotice role="status">
-            {t`Datos desactualizados`} · {t`Última actualización`}:{' '}
-            {formatDate(pipelineHealth.pipelineHealth?.generatedAt)}
-          </StyledNotice>
-        ) : null}
         {!pipelineHealth.isInitialLoading &&
         !pipelineHealth.error &&
-        pipelineHealth.pipelineHealth?.jobs.length === 0 ? (
+        pipelineHealth.pipelineHealth?.jobs?.length === 0 ? (
           <p aria-live="polite">{t`Aún no hay ejecuciones registradas. Los datos aparecerán después de la primera ingesta por CLI.`}</p>
         ) : null}
         <h3>{t`Cuota API`}</h3>
@@ -356,8 +404,8 @@ export const MercadoPublicoControlCenterTab = () => {
             <StyledSkeleton />
           </StyledSkeletonList>
         ) : null}
-        <div aria-busy={apiQuotaUsage.loading}>
-          {apiQuotaUsage.apiQuotaUsage?.sources.map((source) => (
+        <StyledQuotaList aria-busy={apiQuotaUsage.loading}>
+          {apiQuotaUsage.apiQuotaUsage?.sources?.map((source) => (
             <div key={source.source}>
               <strong>{source.source}</strong> {formatCount(source.used)} /{' '}
               {formatCount(source.dailyLimit)}
@@ -370,7 +418,8 @@ export const MercadoPublicoControlCenterTab = () => {
               ) : null}
               <span>
                 {' '}
-                {t`Restante`}: {formatCount(source.remaining)} ·{' '}
+                {t`Restante`}:{' '}
+                {formatCount(Math.max(0, source.dailyLimit - source.used))} ·{' '}
                 {source.resetAt
                   ? t`Reinicio: ${formatDate(source.resetAt)}`
                   : t`No configurado`}{' '}
@@ -381,16 +430,24 @@ export const MercadoPublicoControlCenterTab = () => {
               </span>
             </div>
           ))}
-        </div>
+          {apiQuotaUsage.apiQuotaUsage?.sources?.length ? (
+            <StyledSupportingText>
+              {t`Restante = máximo entre 0 y límite diario menos uso. Cada fuente conserva su propio límite.`}
+            </StyledSupportingText>
+          ) : null}
+        </StyledQuotaList>
         {!apiQuotaUsage.isInitialLoading &&
         !apiQuotaUsage.error &&
-        apiQuotaUsage.apiQuotaUsage?.sources.length === 0 ? (
+        apiQuotaUsage.apiQuotaUsage?.sources?.length === 0 ? (
           <p aria-live="polite">{t`No configurado`}</p>
         ) : null}
       </StyledSection>
 
       <StyledSection aria-labelledby="mercado-publico-investigacion">
         <h2 id="mercado-publico-investigacion">{t`Investigación`}</h2>
+        <StyledSupportingText>
+          {t`Resultados paginados. El origen informa si hay más resultados, no un total global.`}
+        </StyledSupportingText>
         <div>
           <Button
             ariaLabel={t`Ejecuciones`}
@@ -408,10 +465,10 @@ export const MercadoPublicoControlCenterTab = () => {
           />
         </div>
         {isJobRuns ? (
-          <div>
-            <label htmlFor="mercado-publico-job-name">
+          <StyledInvestigationControls>
+            <StyledControl htmlFor="mercado-publico-job-name">
               {t`Trabajo`}
-              <input
+              <StyledInput
                 id="mercado-publico-job-name"
                 onChange={(event) => {
                   setJobName(event.target.value);
@@ -419,10 +476,10 @@ export const MercadoPublicoControlCenterTab = () => {
                 }}
                 value={jobName}
               />
-            </label>
-            <label htmlFor="mercado-publico-job-status">
+            </StyledControl>
+            <StyledControl htmlFor="mercado-publico-job-status">
               {t`Estado`}
-              <select
+              <StyledSelect
                 id="mercado-publico-job-status"
                 onChange={(event) => {
                   setJobStatus(
@@ -440,14 +497,14 @@ export const MercadoPublicoControlCenterTab = () => {
                 <option value="param_error">{t`Parámetros inválidos`}</option>
                 <option value="retryable_failed">{t`Reintentable`}</option>
                 <option value="skipped">{t`Omitida`}</option>
-              </select>
-            </label>
-          </div>
+              </StyledSelect>
+            </StyledControl>
+          </StyledInvestigationControls>
         ) : (
-          <div>
-            <label htmlFor="mercado-publico-api-source">
+          <StyledInvestigationControls>
+            <StyledControl htmlFor="mercado-publico-api-source">
               {t`Fuente`}
-              <input
+              <StyledInput
                 id="mercado-publico-api-source"
                 onChange={(event) => {
                   setApiSource(event.target.value);
@@ -455,10 +512,10 @@ export const MercadoPublicoControlCenterTab = () => {
                 }}
                 value={apiSource}
               />
-            </label>
-            <label htmlFor="mercado-publico-api-endpoint">
+            </StyledControl>
+            <StyledControl htmlFor="mercado-publico-api-endpoint">
               {t`Endpoint`}
-              <input
+              <StyledInput
                 id="mercado-publico-api-endpoint"
                 onChange={(event) => {
                   setApiEndpoint(event.target.value);
@@ -466,10 +523,10 @@ export const MercadoPublicoControlCenterTab = () => {
                 }}
                 value={apiEndpoint}
               />
-            </label>
-            <label htmlFor="mercado-publico-api-http-status">
+            </StyledControl>
+            <StyledControl htmlFor="mercado-publico-api-http-status">
               {t`HTTP`}
-              <input
+              <StyledInput
                 id="mercado-publico-api-http-status"
                 min="100"
                 max="599"
@@ -480,8 +537,8 @@ export const MercadoPublicoControlCenterTab = () => {
                 type="number"
                 value={apiHttpStatus}
               />
-            </label>
-          </div>
+            </StyledControl>
+          </StyledInvestigationControls>
         )}
         {activeError ? (
           <StyledFeedback role="alert">
@@ -524,21 +581,27 @@ export const MercadoPublicoControlCenterTab = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {jobRuns.jobRuns?.items.map((run) => (
+                  {jobRuns.jobRuns?.items?.map((run) => (
                     <Fragment key={run.id}>
-                      <tr
-                        aria-controls={`${run.id}-details`}
-                        aria-expanded={expandedRowId === run.id}
+                      <StyledExpandableRow
                         onClick={() => toggleExpandedRow(run.id)}
-                        onKeyDown={(event) =>
-                          handleExpandableRowKeyDown(event, run.id)
-                        }
-                        tabIndex={0}
                       >
-                        <td>{run.jobName}</td>
+                        <td>
+                          <StyledRowToggle
+                            aria-controls={`${run.id}-details`}
+                            aria-expanded={expandedRowId === run.id}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              toggleExpandedRow(run.id);
+                            }}
+                            type="button"
+                          >
+                            {run.jobName}
+                          </StyledRowToggle>
+                        </td>
                         <td>
                           <Tag
-                            color={getMercadoPublicoStatusColor(run.status)}
+                            color="gray"
                             text={getMercadoPublicoStatusLabel(run.status)}
                           />
                         </td>
@@ -546,31 +609,30 @@ export const MercadoPublicoControlCenterTab = () => {
                         <td>{formatDate(run.finishedAt)}</td>
                         <td>{formatCount(run.recordsFetched)}</td>
                         <td>{run.errorSummary ?? t`No informado`}</td>
+                      </StyledExpandableRow>
+                      <tr
+                        hidden={expandedRowId !== run.id}
+                        id={`${run.id}-details`}
+                      >
+                        <td colSpan={6}>
+                          {t`Ejecución`}: {run.jobRunId} · {t`Canonizados`}:{' '}
+                          {formatCount(run.recordsCanonicalized)} ·{' '}
+                          {t`Fallidos`}: {formatCount(run.recordsFailed)} ·{' '}
+                          {run.rawCsvFileId ? (
+                            <Button
+                              ariaLabel={t`Descargar CSV`}
+                              onClick={() =>
+                                void handleDownloadRawCsvFile(run.rawCsvFileId!)
+                              }
+                              size="small"
+                              title={t`Descargar CSV`}
+                              variant="secondary"
+                            />
+                          ) : (
+                            t`Sin archivo CSV`
+                          )}
+                        </td>
                       </tr>
-                      {expandedRowId === run.id ? (
-                        <tr id={`${run.id}-details`}>
-                          <td colSpan={6}>
-                            {t`Ejecución`}: {run.jobRunId} · {t`Canonizados`}:{' '}
-                            {formatCount(run.recordsCanonicalized)} ·{' '}
-                            {t`Fallidos`}: {formatCount(run.recordsFailed)} ·{' '}
-                            {run.rawCsvFileId ? (
-                              <Button
-                                ariaLabel={t`Descargar CSV`}
-                                onClick={() =>
-                                  void handleDownloadRawCsvFile(
-                                    run.rawCsvFileId!,
-                                  )
-                                }
-                                size="small"
-                                title={t`Descargar CSV`}
-                                variant="secondary"
-                              />
-                            ) : (
-                              t`Sin archivo CSV`
-                            )}
-                          </td>
-                        </tr>
-                      ) : null}
                     </Fragment>
                   ))}
                 </tbody>
@@ -587,32 +649,39 @@ export const MercadoPublicoControlCenterTab = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {apiCallLog.callLog?.items.map((call) => (
+                  {apiCallLog.callLog?.items?.map((call) => (
                     <Fragment key={call.id}>
-                      <tr
-                        aria-controls={`${call.id}-details`}
-                        aria-expanded={expandedRowId === call.id}
+                      <StyledExpandableRow
                         onClick={() => toggleExpandedRow(call.id)}
-                        onKeyDown={(event) =>
-                          handleExpandableRowKeyDown(event, call.id)
-                        }
-                        tabIndex={0}
                       >
-                        <td>{call.source}</td>
+                        <td>
+                          <StyledRowToggle
+                            aria-controls={`${call.id}-details`}
+                            aria-expanded={expandedRowId === call.id}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              toggleExpandedRow(call.id);
+                            }}
+                            type="button"
+                          >
+                            {call.source}
+                          </StyledRowToggle>
+                        </td>
                         <td>{call.endpoint}</td>
                         <td>{formatCount(call.httpStatus)}</td>
                         <td>{formatDate(call.fetchedAt)}</td>
                         <td>{formatCount(call.recordsFetched)}</td>
+                      </StyledExpandableRow>
+                      <tr
+                        hidden={expandedRowId !== call.id}
+                        id={`${call.id}-details`}
+                      >
+                        <td colSpan={5}>
+                          {t`Parámetros`}:{' '}
+                          {toRedactedRequestParameters(call.requestParams)} ·{' '}
+                          {call.errorSummary ?? t`Sin error`}
+                        </td>
                       </tr>
-                      {expandedRowId === call.id ? (
-                        <tr id={`${call.id}-details`}>
-                          <td colSpan={5}>
-                            {t`Parámetros`}:{' '}
-                            {toRedactedRequestParameters(call.requestParams)} ·{' '}
-                            {call.errorSummary ?? t`Sin error`}
-                          </td>
-                        </tr>
-                      ) : null}
                     </Fragment>
                   ))}
                 </tbody>
@@ -620,7 +689,7 @@ export const MercadoPublicoControlCenterTab = () => {
             )}
           </StyledTableWrap>
         ) : null}
-        {!activeLoading && !activeError && activeLog?.items.length === 0 ? (
+        {!activeLoading && !activeError && activeLog?.items?.length === 0 ? (
           <p aria-live="polite">
             {isJobRuns
               ? t`Aún no hay ejecuciones registradas. Los datos aparecerán después de la primera ingesta por CLI.`
@@ -653,7 +722,8 @@ export const MercadoPublicoControlCenterTab = () => {
                 (isJobRuns ? jobRunsOffset : apiCallLogOffset) /
                   INVESTIGATION_LIMIT,
               ) + 1,
-            )}
+            )}{' '}
+            · {t`Sin total global`}
           </span>
           <Button
             disabled={!activeLog?.hasMore || activeLoading}
@@ -709,45 +779,29 @@ export const MercadoPublicoControlCenterTab = () => {
                   <th>{t`Dataset`}</th>
                   <th>{t`Archivo`}</th>
                   <th>{t`Filas`}</th>
-                  <th>{t`Parse correcto`}</th>
+                  <th>{t`Parseadas`}</th>
                   <th>{t`Errores`}</th>
                   <th>{t`Carga`}</th>
-                  <th>{t`Frescura`}</th>
                 </tr>
               </thead>
               <tbody>
-                {csvFileHealth.csvFileHealth?.files.map((file) => (
+                {csvFileHealth.csvFileHealth?.files?.map((file) => (
                   <tr key={`${file.sourceDataset}-${file.sourceFileName}`}>
                     <td>{file.sourceDataset}</td>
                     <td>{file.sourceFileName}</td>
                     <td>{formatCount(file.rowCount)}</td>
-                    <td>
-                      {file.rowCount > 0
-                        ? formatPercent(
-                            (file.parseSuccessCount / file.rowCount) * 100,
-                          )
-                        : t`No informado`}
-                    </td>
+                    <td>{formatCount(file.parseSuccessCount)}</td>
                     <td>{formatCount(file.parseErrorCount)}</td>
                     <td>{formatDate(file.lastLoadedAt)}</td>
-                    <td>{getMercadoPublicoFreshnessLabel(file.freshness)}</td>
                   </tr>
                 ))}
               </tbody>
             </StyledTable>
           </StyledTableWrap>
         ) : null}
-        {csvFileHealth.csvFileHealth?.files.some((file) =>
-          isMercadoPublicoStale(file.freshness),
-        ) ? (
-          <StyledNotice role="status">
-            {t`Datos desactualizados`} · {t`Última actualización`}:{' '}
-            {formatDate(csvFileHealth.csvFileHealth.generatedAt)}
-          </StyledNotice>
-        ) : null}
         {!csvFileHealth.isInitialLoading &&
         !csvFileHealth.error &&
-        csvFileHealth.csvFileHealth?.files.length === 0 ? (
+        csvFileHealth.csvFileHealth?.files?.length === 0 ? (
           <p aria-live="polite">{t`Sin información`}</p>
         ) : null}
       </StyledSection>

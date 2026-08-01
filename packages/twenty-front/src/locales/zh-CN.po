@@ -3092,11 +3092,6 @@ msgstr ""
 msgid "Cached read"
 msgstr ""
 
-#. js-lingui-id: LzO8WX
-#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
-msgid "Cadencia"
-msgstr ""
-
 #. js-lingui-id: PmmvzS
 #: src/modules/object-record/record-table/record-table-footer/components/RecordTableColumnAggregateFooterValue.tsx
 msgid "Calculate"
@@ -3273,7 +3268,6 @@ msgid "Cancel your subscription"
 msgstr "取消订阅"
 
 #. js-lingui-id: 1RKyF1
-#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
 #: src/modules/mercado-publico/utils/mercadoPublicoDisplay.ts
 #: src/modules/mercado-publico/utils/mercadoPublicoDisplay.ts
 msgid "Cancelada"
@@ -3399,15 +3393,9 @@ msgid "Centro de Control"
 msgstr ""
 
 #. js-lingui-id: YzzR1x
-#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
 #: src/modules/mercado-publico/utils/mercadoPublicoDisplay.ts
 #: src/modules/mercado-publico/utils/mercadoPublicoDisplay.ts
 msgid "Cerrada"
-msgstr ""
-
-#. js-lingui-id: 0hJhdE
-#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
-msgid "Cerrar detalle"
 msgstr ""
 
 #. js-lingui-id: tHntRt
@@ -3605,15 +3593,33 @@ msgstr "选择试用"
 
 #. js-lingui-id: RJQ7im
 #: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
-#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
-#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
 #: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
 msgid "Cierre"
+msgstr ""
+
+#. js-lingui-id: xIl3zs
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Cierre del primer llamado"
+msgstr ""
+
+#. js-lingui-id: RwZ02e
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Cierre del segundo llamado"
 msgstr ""
 
 #. js-lingui-id: XO4cTV
 #: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
 msgid "Cierre no informado"
+msgstr ""
+
+#. js-lingui-id: HTtREv
+#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
+msgid "Cierre, lejano primero"
+msgstr ""
+
+#. js-lingui-id: wgJwCv
+#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
+msgid "Cierre, próximo primero"
 msgstr ""
 
 #. js-lingui-id: 3wV73y
@@ -3764,13 +3770,22 @@ msgstr "编写您的功能"
 
 #. js-lingui-id: eJpKIK
 #: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
-#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
 msgid "Código"
 msgstr ""
 
 #. js-lingui-id: xoZGnG
 #: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
 msgid "Código exacto de organismo"
+msgstr ""
+
+#. js-lingui-id: LUdk06
+#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
+msgid "Código, ascendente"
+msgstr ""
+
+#. js-lingui-id: CRJXav
+#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
+msgid "Código, descendente"
 msgstr ""
 
 #. js-lingui-id: H86f9p
@@ -3959,6 +3974,11 @@ msgstr ""
 #. js-lingui-id: N4duaA
 #: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
 msgid "Comprador"
+msgstr ""
+
+#. js-lingui-id: vG3mwG
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Comprador de origen"
 msgstr ""
 
 #. js-lingui-id: BglnOD
@@ -4356,6 +4376,11 @@ msgstr "会话"
 #. js-lingui-id: EnJuK0
 #: src/pages/settings/ai/components/SettingsAiOverviewTab.tsx
 msgid "Conversations"
+msgstr ""
+
+#. js-lingui-id: +JCXLY
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Convocatoria"
 msgstr ""
 
 #. js-lingui-id: HRGl1X
@@ -5268,12 +5293,6 @@ msgstr "日期粒度 X"
 msgid "Date Granularity Y"
 msgstr "日期粒度 Y"
 
-#. js-lingui-id: ACNau4
-#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
-#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
-msgid "Datos desactualizados"
-msgstr ""
-
 #. js-lingui-id: H7OUPr
 #: src/modules/object-record/object-options-dropdown/components/ObjectOptionsDropdownCustomView.tsx
 #: src/modules/object-record/object-options-dropdown/components/ObjectOptionsDropdownLayoutContent.tsx
@@ -5749,6 +5768,12 @@ msgstr ""
 msgid "Desactualizada"
 msgstr ""
 
+#. js-lingui-id: n71vJt
+#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
+msgid "Descargar CSV"
+msgstr ""
+
 #. js-lingui-id: O3LJh6
 #: src/modules/side-panel/pages/page-layout/utils/getSortLabelSuffixForFieldType.ts
 #: src/modules/side-panel/pages/page-layout/utils/getSortLabelSuffixForFieldType.ts
@@ -5848,6 +5873,11 @@ msgstr ""
 msgid "Details"
 msgstr "详情"
 
+#. js-lingui-id: okggpp
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Detalle fuente aún no disponible."
+msgstr ""
+
 #. js-lingui-id: /RlqQE
 #: src/pages/settings/admin-panel/SettingsAdminInferredVersion.tsx
 msgid "Detected application version running on this instance"
@@ -5871,6 +5901,11 @@ msgstr "开发者链接"
 #. js-lingui-id: viJ8PX
 #: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
 msgid "Diagnóstico"
+msgstr ""
+
+#. js-lingui-id: imlbUq
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Dirección"
 msgstr ""
 
 #. js-lingui-id: MRB7nI
@@ -5939,6 +5974,16 @@ msgstr "在多行上展示文本"
 msgid "Display this app in the NPM packages list"
 msgstr ""
 
+#. js-lingui-id: TratRq
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Disponible"
+msgstr ""
+
+#. js-lingui-id: omm8zJ
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Disponible CLP"
+msgstr ""
+
 #. js-lingui-id: vU/Hht
 #: src/pages/settings/admin-panel/SettingsAdminApplicationRegistrationDetail.tsx
 #: src/pages/settings/applications/components/SettingsApplicationRegistrationGeneralStats.tsx
@@ -5958,6 +6003,11 @@ msgstr "不导入"
 #: src/pages/settings/api-webhooks/SettingsApiWebhooks.tsx
 msgid "Documentation"
 msgstr "文档"
+
+#. js-lingui-id: SXi/3x
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Documentos"
+msgstr ""
 
 #. js-lingui-id: U9q4zF
 #: src/modules/object-record/object-filter-dropdown/utils/getOperandLabel.ts
@@ -7111,11 +7161,40 @@ msgstr "建立 Webhook 端点，用于通知异步事件。"
 #: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
 #: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
 #: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
-#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
 #: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
 #: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
 #: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
 msgid "Estado"
+msgstr ""
+
+#. js-lingui-id: qXpXgK
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Estado de convocatoria"
+msgstr ""
+
+#. js-lingui-id: QDm2bj
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Estado de origen"
+msgstr ""
+
+#. js-lingui-id: cOsCq5
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Estado original"
+msgstr ""
+
+#. js-lingui-id: BtnqfH
+#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
+msgid "Estado, ascendente"
+msgstr ""
+
+#. js-lingui-id: fvUqUW
+#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
+msgid "Estado, descendente"
+msgstr ""
+
+#. js-lingui-id: rctJQc
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Estado, fechas y motivos"
 msgstr ""
 
 #. js-lingui-id: cwRLTa
@@ -7127,6 +7206,11 @@ msgstr ""
 #. js-lingui-id: fT5QMn
 #: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
 msgid "Este proceso ya no está disponible"
+msgstr ""
+
+#. js-lingui-id: jGloX3
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Estimado"
 msgstr ""
 
 #. js-lingui-id: 4ASb34
@@ -8211,12 +8295,6 @@ msgstr "第四"
 msgid "French"
 msgstr "法语"
 
-#. js-lingui-id: u1c/QF
-#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
-#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
-msgid "Frescura"
-msgstr ""
-
 #. js-lingui-id: ejVYRQ
 #: src/modules/activities/emails/components/CampaignComposerFields.tsx
 #: src/modules/activities/emails/components/EmailComposerFields.tsx
@@ -9235,6 +9313,11 @@ msgstr ""
 #: src/pages/settings/data-model/constants/SettingsObjectTableMetadata.ts
 msgid "Instances"
 msgstr "实例"
+
+#. js-lingui-id: ER8/K/
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Institución y convocatoria"
+msgstr ""
 
 #. js-lingui-id: tc328m
 #: src/modules/workflow/workflow-steps/workflow-actions/ai-agent-action/components/WorkflowOutputSchemaBuilder.tsx
@@ -10766,6 +10849,11 @@ msgstr "此提供商的模型。切换以启用或禁用。"
 msgid "Monday"
 msgstr "星期一"
 
+#. js-lingui-id: 7EDVKS
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Moneda no informada"
+msgstr ""
+
 #. js-lingui-id: 8g3Cgz
 #: src/modules/settings/admin-panel/health-status/components/SettingsAdminConnectedAccountHealthStatus.tsx
 msgid "Monitor the execution of your calendar events sync job"
@@ -10812,6 +10900,16 @@ msgstr ""
 msgid "months"
 msgstr ""
 
+#. js-lingui-id: Flwwxv
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Monto disponible CLP de origen"
+msgstr ""
+
+#. js-lingui-id: SUu1XJ
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Monto disponible de origen"
+msgstr ""
+
 #. js-lingui-id: 2FYpfJ
 #: src/modules/ui/layout/tab-list/components/TabMoreButton.tsx
 msgid "More"
@@ -10850,6 +10948,21 @@ msgstr "更多小部件"
 #: src/pages/settings/applications/components/SettingsApplicationRegistrationGeneralStats.tsx
 msgid "Most installed version"
 msgstr "安装量最高的版本"
+
+#. js-lingui-id: bmkGgJ
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Motivo de cancelación"
+msgstr ""
+
+#. js-lingui-id: cdghYL
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Motivo de deserción"
+msgstr ""
+
+#. js-lingui-id: NNGDUb
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Motivo de selección"
+msgstr ""
 
 #. js-lingui-id: 3Ib6FN
 #: src/modules/navigation-menu-item/edit/side-panel/components/SidePanelEditOrganizeActions.tsx
@@ -11040,6 +11153,11 @@ msgstr ""
 #: src/modules/navigation/components/MainNavigationDrawerTabsRow.tsx
 msgid "Navigation tabs"
 msgstr "导航选项卡"
+
+#. js-lingui-id: 6Y1rwC
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Necesidad y entrega"
+msgstr ""
 
 #. js-lingui-id: wW3b68
 #: src/modules/workflow/workflow-run/observability/WorkflowRunStepLogsHttpRequestDetail.tsx
@@ -11633,6 +11751,11 @@ msgstr "没有可用的文件夹"
 msgid "No folders found for this account"
 msgstr "此账户未找到文件夹"
 
+#. js-lingui-id: BIHZf5
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailSidePanelPage.tsx
+msgid "No hay un proceso seleccionado."
+msgstr ""
+
 #. js-lingui-id: 9kCSLK
 #: src/pages/settings/data-model/SettingsObjectIndexTable.tsx
 msgid "No indexes match your filters."
@@ -11641,7 +11764,10 @@ msgstr ""
 #. js-lingui-id: k1FdLR
 #: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
 #: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
-#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
 #: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
 #: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
 #: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
@@ -11653,6 +11779,31 @@ msgstr ""
 #: src/modules/mercado-publico/utils/mercadoPublicoDisplay.ts
 #: src/modules/mercado-publico/utils/mercadoPublicoDisplay.ts
 msgid "No informado"
+msgstr ""
+
+#. js-lingui-id: PRAgce
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "No informado por fuente."
 msgstr ""
 
 #. js-lingui-id: gIrKyO
@@ -11905,6 +12056,12 @@ msgstr "未找到角色"
 #: src/modules/spreadsheet-import/steps/components/ValidationStep/ValidationStep.tsx
 msgid "No rows with errors"
 msgstr "没有错误的行"
+
+#. js-lingui-id: ZtzRb1
+#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
+msgid "No se pudo descargar el archivo CSV"
+msgstr ""
 
 #. js-lingui-id: Hsl+kr
 #: src/modules/views/view-picker/components/ViewPickerContentCreateMode.tsx
@@ -12317,7 +12474,6 @@ msgstr "对象和字段权限设置"
 
 #. js-lingui-id: tbqP/S
 #: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
-#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
 msgid "Objeto"
 msgstr ""
 
@@ -12335,6 +12491,11 @@ msgstr ""
 #: src/modules/settings/admin-panel/health-status/components/SettingsAdminQueueJobsTable.tsx
 msgid "of"
 msgstr "的"
+
+#. js-lingui-id: xuJxZr
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Ofertas recibidas"
+msgstr ""
 
 #. js-lingui-id: KNz3EF
 #: src/pages/not-found/NotFound.tsx
@@ -12627,7 +12788,6 @@ msgstr ""
 
 #. js-lingui-id: g/Ep/z
 #: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
-#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
 msgid "Organismo"
 msgstr ""
 
@@ -12856,13 +13016,20 @@ msgid "Parámetros"
 msgstr ""
 
 #. js-lingui-id: bo2dyw
+#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
 #: src/modules/mercado-publico/utils/mercadoPublicoDisplay.ts
 msgid "Parámetros inválidos"
 msgstr ""
 
-#. js-lingui-id: S0HVVW
+#. js-lingui-id: aiEqNi
 #: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
-msgid "Parse correcto"
+#: src/modules/mercado-publico/utils/mercadoPublicoDisplay.ts
+msgid "Parcial"
+msgstr ""
+
+#. js-lingui-id: U2F2F/
+#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
+msgid "Parseadas"
 msgstr ""
 
 #. js-lingui-id: mPkInZ
@@ -13157,6 +13324,11 @@ msgstr "计划切换已取消。"
 msgid "Planned for {formattedStartDate}"
 msgstr ""
 
+#. js-lingui-id: huSzo2
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Plazo (días)"
+msgstr ""
+
 #. js-lingui-id: VUi6Nf
 #: src/modules/workflow/workflow-trigger/components/CronExpressionHelper.tsx
 msgid "Please check your cron expression syntax."
@@ -13292,6 +13464,11 @@ msgstr "正在预填您的工作区数据..."
 #: src/modules/side-panel/pages/page-layout/constants/settings/ChartConfigurationSettingLabels.ts
 msgid "Prefix"
 msgstr "前缀"
+
+#. js-lingui-id: nz5YyA
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Presupuesto"
+msgstr ""
 
 #. js-lingui-id: ut1ZY+
 #: src/modules/settings/data-model/fields/forms/components/SettingsDataModelFieldIsUniqueForm.tsx
@@ -13446,6 +13623,11 @@ msgstr "属性值"
 msgid "Proveedor seleccionado"
 msgstr ""
 
+#. js-lingui-id: Bt6BAu
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Proveedores y cotizaciones"
+msgstr ""
+
 #. js-lingui-id: GVxbU6
 #: src/modules/settings/security/components/SSO/SettingsSSOOIDCForm.tsx
 msgid "Provide your OIDC provider details"
@@ -13530,14 +13712,17 @@ msgstr "公共域"
 msgid "Public topics appear on the recipient preferences page."
 msgstr ""
 
-#. js-lingui-id: dvhoDu
+#. js-lingui-id: d/tCVG
 #: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
-msgid "Publicación"
+msgid "Publicación, antigua primero"
+msgstr ""
+
+#. js-lingui-id: bBS5Lp
+#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
+msgid "Publicación, reciente primero"
 msgstr ""
 
 #. js-lingui-id: QxfXo1
-#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
-#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
 #: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
 #: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
 #: src/modules/mercado-publico/utils/mercadoPublicoDisplay.ts
@@ -13607,6 +13792,12 @@ msgstr "队列性能"
 #: src/pages/settings/admin-panel/SettingsAdminQueueDetail.tsx
 msgid "Queue: {queueName}"
 msgstr "队列：{queueName}"
+
+#. js-lingui-id: g5+2aZ
+#. placeholder {0}: filter.label
+#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
+msgid "Quitar filtro {0}"
+msgstr ""
 
 #. js-lingui-id: opSifa
 #: src/modules/ai/utils/getToolDisplayMessage.ts
@@ -13880,6 +14071,11 @@ msgstr "重新生成密钥"
 msgid "Region"
 msgstr "区域"
 
+#. js-lingui-id: Jhr8W0
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Región"
+msgstr ""
+
 #. js-lingui-id: bPJyAg
 #: src/pages/settings/admin-panel/SettingsAdminNewAiProvider.tsx
 msgid "Region is required for Bedrock"
@@ -13902,6 +14098,7 @@ msgid "Reinicio: {0}"
 msgstr ""
 
 #. js-lingui-id: yEXrcg
+#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
 #: src/modules/mercado-publico/utils/mercadoPublicoDisplay.ts
 msgid "Reintentable"
 msgstr ""
@@ -14257,6 +14454,11 @@ msgstr "REST"
 msgid "Restante"
 msgstr ""
 
+#. js-lingui-id: skSLMc
+#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
+msgid "Restante = máximo entre 0 y límite diario menos uso. Cada fuente conserva su propio límite."
+msgstr ""
+
 #. js-lingui-id: 6z9W13
 #: src/modules/spreadsheet-import/steps/components/MatchColumnsStep/MatchColumnsStep.tsx
 msgid "Restart"
@@ -14304,6 +14506,11 @@ msgstr "结果"
 msgid "Resultados de procesos"
 msgstr ""
 
+#. js-lingui-id: HIgc5i
+#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
+msgid "Resultados paginados. El origen informa si hay más resultados, no un total global."
+msgstr ""
+
 #. js-lingui-id: kx0s+n
 #: src/modules/navigation-menu-item/edit/side-panel/components/SidePanelNewSidebarItemRecordSubPage.tsx
 #: src/modules/side-panel/pages/search/components/SidePanelSearchRecordsPage.tsx
@@ -14338,6 +14545,11 @@ msgstr "返回值"
 #: src/modules/side-panel/pages/page-layout/utils/getSortLabelSuffixForFieldType.ts
 msgid "reverse alphabetical"
 msgstr "逆字母顺序"
+
+#. js-lingui-id: hH9dUS
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Revisión manual"
+msgstr ""
 
 #. js-lingui-id: 7uOSIJ
 #: src/modules/mercado-publico/utils/mercadoPublicoDisplay.ts
@@ -14548,6 +14760,16 @@ msgstr "正在运行..."
 #: src/pages/settings/profile/appearance/components/LocalePicker.tsx
 msgid "Russian"
 msgstr "俄语"
+
+#. js-lingui-id: ryZMIo
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "RUT de institución"
+msgstr ""
+
+#. js-lingui-id: N418u3
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Ruta de detalle de origen"
+msgstr ""
 
 #. js-lingui-id: Bd3TsH
 #: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
@@ -15612,6 +15834,11 @@ msgstr ""
 msgid "Sin archivo CSV"
 msgstr ""
 
+#. js-lingui-id: 4uZ8F7
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Sin código"
+msgstr ""
+
 #. js-lingui-id: D0oDFy
 #: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
 msgid "Sin error"
@@ -15620,6 +15847,11 @@ msgstr ""
 #. js-lingui-id: UcytN/
 #: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
 msgid "Sin errores 429"
+msgstr ""
+
+#. js-lingui-id: LPAzhY
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Sin ID"
 msgstr ""
 
 #. js-lingui-id: v4QuCt
@@ -15642,6 +15874,7 @@ msgstr ""
 
 #. js-lingui-id: wTBHlq
 #: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
+#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
 #: src/modules/mercado-publico/utils/mercadoPublicoDisplay.ts
 msgid "Sin resultados"
 msgstr ""
@@ -15649,6 +15882,11 @@ msgstr ""
 #. js-lingui-id: 80o5yY
 #: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
 msgid "Sin resultados."
+msgstr ""
+
+#. js-lingui-id: 32Iz4N
+#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
+msgid "Sin total global"
 msgstr ""
 
 #. js-lingui-id: BZdVGR
@@ -17110,6 +17348,11 @@ msgstr "时区"
 msgid "Timing"
 msgstr "耗时"
 
+#. js-lingui-id: g0mreA
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Tipo"
+msgstr ""
+
 #. js-lingui-id: q7F5am
 #: src/modules/advanced-text-editor/extensions/slash-command/DefaultSlashCommands.ts
 msgid "title"
@@ -17280,6 +17523,11 @@ msgstr "总任务"
 #: src/modules/ai/components/RoutingDebugDisplay.tsx
 msgid "Total time"
 msgstr "总耗时"
+
+#. js-lingui-id: cqaUpx
+#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
+msgid "Trabajo"
+msgstr ""
 
 #. js-lingui-id: BxecEJ
 #: src/pages/settings/ai/components/SettingsAiUsageTab.tsx
@@ -17533,22 +17781,30 @@ msgstr "乌克兰语"
 msgid "ul"
 msgstr ""
 
-#. js-lingui-id: GAliBV
-#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
-#: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
-msgid "Última actualización"
-msgstr ""
-
 #. js-lingui-id: tqDOB9
-#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
 #: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
 msgid "Última observación"
+msgstr ""
+
+#. js-lingui-id: BmsaoL
+#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
+msgid "Última observación, antigua primero"
+msgstr ""
+
+#. js-lingui-id: K5sM8F
+#: src/modules/mercado-publico/components/MercadoPublicoBrowseTab.tsx
+msgid "Última observación, reciente primero"
 msgstr ""
 
 #. js-lingui-id: +jmea3
 #. placeholder {0}: formatDate(source.last429At)
 #: src/modules/mercado-publico/components/MercadoPublicoControlCenterTab.tsx
 msgid "Último 429: {0}"
+msgstr ""
+
+#. js-lingui-id: d9yMeN
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Último cambio"
 msgstr ""
 
 #. js-lingui-id: j1s8rU
@@ -17615,6 +17871,11 @@ msgstr ""
 #. js-lingui-id: 0LZhoy
 #: src/modules/side-panel/pages/page-layout/utils/getChartLimitMessage.ts
 msgid "Undisplayed data: max {maxItems} slices per chart."
+msgstr ""
+
+#. js-lingui-id: QlJuaU
+#: src/modules/mercado-publico/components/MercadoPublicoProcessDetailPanel.tsx
+msgid "Unidad de compra"
 msgstr ""
 
 #. js-lingui-id: fo0VXg

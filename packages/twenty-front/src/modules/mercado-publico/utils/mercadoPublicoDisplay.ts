@@ -11,28 +11,28 @@ import { dateLocaleState } from '~/localization/states/dateLocaleState';
 import { DateFormat } from '@/localization/constants/DateFormat';
 import { TimeFormat } from '@/localization/constants/TimeFormat';
 
-const statusLabels: Record<string, string> = {
-  active: t`Activa`,
-  adjudicada: t`Adjudicada`,
-  cancelled: t`Cancelada`,
-  cancelada: t`Cancelada`,
-  closed: t`Cerrada`,
-  cerrada: t`Cerrada`,
-  completed: t`Completada`,
-  desierta: t`Desierta`,
-  failed: t`Fallida`,
-  oc_emitida: t`OC emitida`,
-  param_error: t`Parámetros inválidos`,
-  partial: t`Parcial`,
-  published: t`Publicada`,
-  publicada: t`Publicada`,
-  proveedor_seleccionado: t`Proveedor seleccionado`,
-  retryable_failed: t`Reintentable`,
-  revocada: t`Revocada`,
-  skipped: t`Omitida`,
-  soft_miss: t`Sin resultados`,
-  success: t`Correcta`,
-  suspendida: t`Suspendida`,
+const statusLabels: Record<string, () => string> = {
+  active: () => t`Activa`,
+  adjudicada: () => t`Adjudicada`,
+  cancelled: () => t`Cancelada`,
+  cancelada: () => t`Cancelada`,
+  closed: () => t`Cerrada`,
+  cerrada: () => t`Cerrada`,
+  completed: () => t`Completada`,
+  desierta: () => t`Desierta`,
+  failed: () => t`Fallida`,
+  oc_emitida: () => t`OC emitida`,
+  param_error: () => t`Parámetros inválidos`,
+  partial: () => t`Parcial`,
+  published: () => t`Publicada`,
+  publicada: () => t`Publicada`,
+  proveedor_seleccionado: () => t`Proveedor seleccionado`,
+  retryable_failed: () => t`Reintentable`,
+  revocada: () => t`Revocada`,
+  skipped: () => t`Omitida`,
+  soft_miss: () => t`Sin resultados`,
+  success: () => t`Correcta`,
+  suspendida: () => t`Suspendida`,
 };
 
 const statusColors: Record<string, TagColor> = {
@@ -59,15 +59,15 @@ const statusColors: Record<string, TagColor> = {
   suspendida: 'orange',
 };
 
-const freshnessLabels: Record<string, string> = {
-  degraded: t`Degradada`,
-  fresh: t`Actualizada`,
-  healthy: t`Saludable`,
-  stale: t`Desactualizada`,
+const freshnessLabels: Record<string, () => string> = {
+  degraded: () => t`Degradada`,
+  fresh: () => t`Actualizada`,
+  healthy: () => t`Saludable`,
+  stale: () => t`Desactualizada`,
 };
 
 export const getMercadoPublicoStatusLabel = (status?: string | null) =>
-  statusLabels[status?.toLowerCase() ?? ''] ?? t`No informado`;
+  statusLabels[status?.toLowerCase() ?? '']?.() ?? t`No informado`;
 
 export const getMercadoPublicoStatusColor = (
   status?: string | null,
@@ -77,7 +77,7 @@ export const getMercadoPublicoStatusColor = (
 export const getMercadoPublicoFreshnessLabel = (freshness?: string | null) =>
   freshness === null || freshness === undefined
     ? t`No configurado`
-    : (freshnessLabels[freshness.toLowerCase()] ?? t`No informado`);
+    : (freshnessLabels[freshness.toLowerCase()]?.() ?? t`No informado`);
 
 export const isMercadoPublicoStale = (freshness?: string | null) =>
   freshness?.toLowerCase() === 'stale';

@@ -11,9 +11,6 @@ import { jotaiStore } from '@/ui/utilities/state/jotai/jotaiStore';
 import { Provider as JotaiProvider } from 'jotai';
 import { HelmetProvider } from '@dr.pogodin/react-helmet';
 import { IconsProvider } from 'twenty-ui/icon';
-import { initialI18nActivate } from '~/utils/i18n/initialI18nActivate';
-
-initialI18nActivate();
 
 export const App = () => {
   return (

@@ -1,8 +1,8 @@
 import ReactDOM from 'react-dom/client';
 
-import { App } from '@/app/components/App';
 import { migrateTokenPairCookieToLocalStorage } from '@/auth/utils/migrateTokenPairCookieToLocalStorage';
 import { hydrateMetadataStore } from '@/metadata-store/storage/metadataStoreStorage';
+import { initialI18nActivate } from '~/utils/i18n/initialI18nActivate';
 import 'react-loading-skeleton/dist/skeleton.css';
 import 'twenty-ui/style.css';
 import 'twenty-ui/theme-light.css';
@@ -13,7 +13,8 @@ import './index.css';
 // legacy cookie to localStorage (legacy cookie has a 180-day expiry).
 migrateTokenPairCookieToLocalStorage();
 
-const renderApp = () => {
+const renderApp = async () => {
+  const { App } = await import('@/app/components/App');
   const root = ReactDOM.createRoot(
     document.getElementById('root') ?? document.body,
   );
@@ -21,4 +22,9 @@ const renderApp = () => {
   root.render(<App />);
 };
 
-hydrateMetadataStore().then(renderApp, renderApp);
+const bootstrap = async () => {
+  await initialI18nActivate();
+  await hydrateMetadataStore().then(renderApp, renderApp);
+};
+
+void bootstrap();

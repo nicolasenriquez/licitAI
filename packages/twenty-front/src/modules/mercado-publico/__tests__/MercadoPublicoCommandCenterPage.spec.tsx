@@ -5,9 +5,15 @@ import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
 import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { Provider as JotaiProvider } from 'jotai';
 
 import { MercadoPublicoCommandCenterPage } from '~/pages/mercado-publico/MercadoPublicoCommandCenterPage';
-import { GET_MERCADO_PUBLICO_PROCESS_DETAIL_V2 } from '@/mercado-publico/hooks/useMercadoPublicoProcessDetail';
+import { mercadoPublicoProcessDetailComponentState } from '@/mercado-publico/states/mercadoPublicoProcessDetailComponentState';
+import { sidePanelPageInfoState } from '@/side-panel/states/sidePanelPageInfoState';
+import { sidePanelPageState } from '@/side-panel/states/sidePanelPageState';
+import { SIDE_PANEL_CLOSE_EVENT_NAME } from '@/ui/layout/side-panel/utils/emitSidePanelCloseEvent';
+import { jotaiStore } from '@/ui/utilities/state/jotai/jotaiStore';
+import { SidePanelPages } from 'twenty-shared/types';
 import { GetMercadoPublicoDetectedProcessesDocument } from '~/generated/graphql';
 
 const createWrapper = (
@@ -18,9 +24,11 @@ const createWrapper = (
   function Wrapper({ children }: { children: React.ReactNode }) {
     return (
       <MemoryRouter initialEntries={initialEntries}>
-        <MockedProvider mocks={mocks} cache={cache}>
-          <I18nProvider i18n={i18n}>{children}</I18nProvider>
-        </MockedProvider>
+        <JotaiProvider store={jotaiStore}>
+          <MockedProvider mocks={mocks} cache={cache}>
+            <I18nProvider i18n={i18n}>{children}</I18nProvider>
+          </MockedProvider>
+        </JotaiProvider>
       </MemoryRouter>
     );
   };
@@ -62,7 +70,7 @@ const initialProcessVariables = {
   limit: 25,
   page: 1,
   processTypes: ['compra_agil'],
-  sort: { direction: 'asc', key: 'closingAt' },
+  sort: { direction: 'desc', key: 'lastSeenAt' },
   states: [],
 };
 
@@ -78,10 +86,17 @@ const closedCompraAgilVariables = {
 
 const clearedCompraAgilVariables = {
   ...initialProcessVariables,
-  sort: { direction: 'desc', key: 'lastSeenAt' },
 };
 
 describe('MercadoPublicoCommandCenterPage', () => {
+  beforeEach(() => {
+    jotaiStore.set(sidePanelPageState.atom, SidePanelPages.CommandMenuDisplay);
+    jotaiStore.set(sidePanelPageInfoState.atom, {
+      title: undefined,
+      Icon: undefined,
+      instanceId: '',
+    });
+  });
   it('should redirect unknown hash to compra-agil', async () => {
     const mocks: MockedResponse[] = [
       {
@@ -194,7 +209,7 @@ describe('MercadoPublicoCommandCenterPage', () => {
     fireEvent.click(getByRole('button', { name: /limpiar filtros/i }));
 
     await waitFor(() => {
-      expect(getByText(/Proceso CA-003/i)).toBeInTheDocument();
+      expect(compraAgilStateSelect).toHaveValue('');
     });
   });
 
@@ -210,75 +225,9 @@ describe('MercadoPublicoCommandCenterPage', () => {
           processItem('CA-002', 'cerrada'),
         ]),
       },
-      {
-        request: {
-          query: GET_MERCADO_PUBLICO_PROCESS_DETAIL_V2,
-          variables: {
-            processType: 'compra_agil',
-            processCode: 'CA-001',
-          },
-        },
-        result: {
-          data: {
-            mercadoPublicoProcessDetail: {
-              __typename: 'MercadoPublicoProcessDetail',
-              processType: 'compra_agil',
-              processCode: 'CA-001',
-              title: 'Proceso CA-001',
-              canonicalState: 'publicada',
-              rawState: { code: 'pub', label: 'Publicada' },
-              buyer: { code: 'B001', name: 'Organismo' },
-              dates: {
-                publishedAt: '2025-06-01T00:00:00.000Z',
-                closingAt: '2025-08-01T00:00:00.000Z',
-              },
-              items: [],
-              adjudications: null,
-              relatedOcs: [],
-              sourceLineage: [],
-              reconciliationSummary: {
-                exact: 0,
-                candidate: 0,
-                unmatched: 0,
-                manualReviewRequired: 0,
-              },
-              compraAgilSource: {
-                sourcePath: '/v2/compra-agil/CA-001',
-                state: { id: '2', code: 'publicada', label: 'Publicada' },
-                additionalDates: {
-                  lastChangedAt: '2025-06-20T00:00:00.000Z',
-                  firstCallClosingAt: null,
-                  secondCallClosingAt: null,
-                },
-                amounts: {
-                  currency: 'CLP',
-                  available: 1000000,
-                  availableClp: 1000000,
-                },
-                reasons: {
-                  deserted: null,
-                  selection: 'Mejor oferta',
-                  cancellation: null,
-                },
-                offersReceived: 3,
-                documents: [{ id: 'DOC-1', name: 'Bases.pdf' }],
-                institution: {
-                  rut: '60.000.000-0',
-                  regionName: 'Metropolitana',
-                  purchaseUnit: 'Abastecimiento',
-                  buyerName: 'Organismo',
-                },
-                call: { description: 'Primer llamado', state: 'abierta' },
-              },
-              sourcePriority: 'api-v2-compra-agil',
-              lastSeenAt: '2025-06-20T00:00:00.000Z',
-            },
-          },
-        },
-      },
     ];
 
-    const { container, queryByText } = render(
+    const { container, getAllByRole, queryAllByText, queryByText } = render(
       <MercadoPublicoCommandCenterPage />,
       { wrapper: createWrapper(mocks, ['/mercado-publico#compra-agil']) },
     );
@@ -287,40 +236,58 @@ describe('MercadoPublicoCommandCenterPage', () => {
       expect(queryByText(/Proceso CA-001/i)).toBeInTheDocument();
     });
 
-    const row = container.querySelector('[data-testid="process-row-CA-001"]');
+    expect(
+      getAllByRole('columnheader').map((header) => header.textContent),
+    ).toEqual([
+      'Objeto',
+      'Organismo',
+      'Estado',
+      'Cierre',
+      'Publicada',
+      'Código',
+    ]);
 
-    if (row) {
-      act(() => {
-        row.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        fireEvent.keyDown(row, { key: 'Enter', code: 'Enter' });
-      });
+    const sortSelect = container.querySelector<HTMLSelectElement>(
+      '#mercado-publico-compra_agil-sort',
+    );
+    const row = getAllByRole('button', {
+      name: /abrir detalle de Proceso CA-001/i,
+    })[0];
 
-      await waitFor(() => {
-        const closeButton = container.querySelector(
-          '[aria-label*="Cerrar" i], [aria-label*="Close" i], [data-close-panel]',
-        );
+    expect(sortSelect?.options).toHaveLength(10);
+    expect(row).not.toBeNull();
 
-        expect(closeButton).not.toBeNull();
-        expect(queryByText(/Necesidad y entrega/i)).toBeInTheDocument();
-        expect(queryByText(/Mejor oferta/i)).toBeInTheDocument();
-        expect(queryByText(/DOC-1 · Bases\.pdf/i)).toBeInTheDocument();
-      });
+    act(() => {
+      row!.focus();
+      fireEvent.click(row!);
+    });
 
-      const closeButton = container.querySelector(
-        '[aria-label*="Cerrar" i], [aria-label*="Close" i], [data-close-panel]',
+    await waitFor(() => {
+      expect(jotaiStore.get(sidePanelPageState.atom)).toBe(
+        SidePanelPages.MercadoPublicoProcessDetail,
       );
+    });
 
-      if (closeButton) {
-        fireEvent.keyDown(closeButton, {
-          key: 'Escape',
-          code: 'Escape',
-        });
-      }
+    const { instanceId } = jotaiStore.get(sidePanelPageInfoState.atom);
 
-      await waitFor(() => {
-        expect(document.activeElement).toBe(row);
-      });
-    }
+    expect(
+      jotaiStore.get(
+        mercadoPublicoProcessDetailComponentState.atomFamily({ instanceId }),
+      ),
+    ).toEqual({
+      processCode: 'CA-001',
+      processType: 'compra_agil',
+    });
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent(SIDE_PANEL_CLOSE_EVENT_NAME));
+    });
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(row);
+    });
+
+    expect(queryAllByText(/Proceso CA-/i)).toHaveLength(2);
   });
 
   it('should not lose browse context when closing detail panel', async () => {

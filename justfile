@@ -25,9 +25,9 @@ set windows-shell := ["cmd.exe", "/C"]
 PLATFORM := "linux/amd64"
 TAG := "latest"
 DOCKER_NETWORK := "twenty_network"
-COMPOSE_APP := "packages/twenty-docker/docker-compose.yml"
-COMPOSE_DEV := "packages/twenty-docker/docker-compose.dev.yml"
-ENV_FILE := "packages/twenty-docker/.env"
+COMPOSE_APP := packages/twenty-docker/docker-compose.yml
+COMPOSE_DEV := packages/twenty-docker/docker-compose.dev.yml
+ENV_FILE := packages/twenty-docker/.env
 
 _default:
     @just --list --unsorted

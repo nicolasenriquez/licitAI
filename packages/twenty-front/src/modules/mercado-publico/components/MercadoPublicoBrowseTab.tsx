@@ -1,13 +1,13 @@
-import { MercadoPublicoProcessDetailPanel } from '@/mercado-publico/components/MercadoPublicoProcessDetailPanel';
 import { useMercadoPublicoDetectedProcesses } from '@/mercado-publico/hooks/useMercadoPublicoDetectedProcesses';
+import { useOpenMercadoPublicoProcessInSidePanel } from '@/mercado-publico/hooks/useOpenMercadoPublicoProcessInSidePanel';
+import { useListenToSidePanelClosing } from '@/ui/layout/side-panel/hooks/useListenToSidePanelClosing';
 import {
-  getMercadoPublicoStatusColor,
   getMercadoPublicoStatusLabel,
   useMercadoPublicoDisplay,
 } from '@/mercado-publico/utils/mercadoPublicoDisplay';
 import { styled } from '@linaria/react';
 import { t } from '@lingui/core/macro';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   MercadoPublicoDetectedProcessSortDirection,
   MercadoPublicoDetectedProcessSortKey,
@@ -15,7 +15,7 @@ import {
 } from '~/generated/graphql';
 import { Tag } from 'twenty-ui/data-display';
 import { Button } from 'twenty-ui/input';
-import { MOBILE_VIEWPORT, themeCssVariables } from 'twenty-ui/theme-constants';
+import { themeCssVariables } from 'twenty-ui/theme-constants';
 
 type MercadoPublicoBrowseTabProps = {
   processType: MercadoPublicoDetectedProcessType;
@@ -156,122 +156,49 @@ const StyledChipButton = styled.button`
   }
 `;
 
-const StyledTable = styled.div`
-  min-width: 0;
+const StyledTable = styled.table`
+  border-collapse: collapse;
+  min-width: 720px;
   width: 100%;
+
+  th {
+    background: ${themeCssVariables.background.secondary};
+    color: ${themeCssVariables.font.color.secondary};
+    font-size: ${themeCssVariables.font.size.sm};
+    font-weight: ${themeCssVariables.font.weight.medium};
+    text-align: left;
+  }
+
+  th,
+  td {
+    border-bottom: 1px solid ${themeCssVariables.border.color.light};
+    padding: ${themeCssVariables.spacing[2]};
+    vertical-align: middle;
+  }
 `;
 
 const StyledTableWrap = styled.div`
+  border: 1px solid ${themeCssVariables.border.color.light};
+  border-radius: ${themeCssVariables.border.radius.md};
   max-width: 100%;
   min-width: 0;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
-`;
 
-const StyledHeader = styled.div`
-  color: ${themeCssVariables.font.color.secondary};
-  display: grid;
-  font-size: ${themeCssVariables.font.size.sm};
-  gap: ${themeCssVariables.spacing[2]};
-  grid-template-columns:
-    minmax(0, 2fr) minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr)
-    minmax(0, 1fr) minmax(0, 0.9fr);
-  padding: ${themeCssVariables.spacing[2]};
-
-  > div {
-    min-width: 0;
-  }
-
-  @media (max-width: 1024px) {
-    grid-template-columns:
-      minmax(0, 2fr) minmax(0, 1.3fr) minmax(0, 1fr)
-      minmax(0, 1fr);
-
-    > :nth-child(5),
-    > :nth-child(6) {
-      display: none;
-    }
-  }
-`;
-
-const StyledRow = styled.button`
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: ${themeCssVariables.border.radius.sm};
-  color: inherit;
-  cursor: pointer;
-  display: grid;
-  font: inherit;
-  gap: ${themeCssVariables.spacing[2]};
-  grid-template-columns:
-    minmax(0, 2fr) minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr)
-    minmax(0, 1fr) minmax(0, 0.9fr);
-  min-width: 0;
-  padding: ${themeCssVariables.spacing[2]};
-  text-align: left;
-  width: 100%;
-
-  &:hover {
-    background: ${themeCssVariables.background.transparent.light};
-  }
   &:focus-visible {
     outline: 2px solid ${themeCssVariables.accent.primary};
     outline-offset: 2px;
   }
-
-  &[aria-selected='true'] {
-    background: ${themeCssVariables.background.transparent.light};
-  }
-
-  > span {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  @media (max-width: 1024px) {
-    grid-template-columns:
-      minmax(0, 2fr) minmax(0, 1.3fr) minmax(0, 1fr)
-      minmax(0, 1fr);
-
-    > :nth-child(5),
-    > :nth-child(6) {
-      display: none;
-    }
-  }
-
-  @media (max-width: ${MOBILE_VIEWPORT}px) {
-    align-items: flex-start;
-    display: grid;
-    gap: ${themeCssVariables.spacing[1]};
-    grid-template-columns: minmax(0, 1fr);
-    padding: ${themeCssVariables.spacing[3]};
-
-    > span {
-      overflow: visible;
-      text-overflow: clip;
-      white-space: normal;
-    }
-
-    > span::before {
-      color: ${themeCssVariables.font.color.secondary};
-      content: attr(data-label) ': ';
-      font-size: ${themeCssVariables.font.size.sm};
-      font-weight: ${themeCssVariables.font.weight.medium};
-    }
-
-    > :first-child {
-      font-weight: ${themeCssVariables.font.weight.semiBold};
-    }
-  }
 `;
 
-const StyledMobileHiddenHeader = styled(StyledHeader)`
-  @media (max-width: ${MOBILE_VIEWPORT}px) {
-    display: none;
-  }
+const StyledSelectedRow = styled.tr<{ isSelected: boolean }>`
+  background: ${({ isSelected }) =>
+    isSelected ? themeCssVariables.accent.quaternary : 'transparent'};
+`;
+
+const StyledTitleButton = styled(Button)`
+  justify-content: flex-start;
+  max-width: 100%;
 `;
 
 const StyledBrowseContent = styled.div`
@@ -316,6 +243,8 @@ export const MercadoPublicoBrowseTab = ({
   processType,
 }: MercadoPublicoBrowseTabProps) => {
   const { formatCount, formatDate } = useMercadoPublicoDisplay();
+  const { openMercadoPublicoProcessInSidePanel } =
+    useOpenMercadoPublicoProcessInSidePanel();
   const [filters, setFilters] = useState<BrowseFilters>(EMPTY_FILTERS);
   const [draftBuyerCode, setDraftBuyerCode] = useState('');
   const [draftChangedSince, setDraftChangedSince] = useState('');
@@ -325,7 +254,10 @@ export const MercadoPublicoBrowseTab = ({
   const [isMoreFiltersOpen, setIsMoreFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState(
-    MercadoPublicoDetectedProcessSortKey.closingAt,
+    MercadoPublicoDetectedProcessSortKey.lastSeenAt,
+  );
+  const [sortDirection, setSortDirection] = useState(
+    MercadoPublicoDetectedProcessSortDirection.desc,
   );
   const [selectedProcessCode, setSelectedProcessCode] = useState<string | null>(
     null,
@@ -333,7 +265,7 @@ export const MercadoPublicoBrowseTab = ({
   const [originElement, setOriginElement] = useState<HTMLButtonElement | null>(
     null,
   );
-  const browseContentElement = useRef<HTMLDivElement>(null);
+  const publishedFromInputElement = useRef<HTMLInputElement>(null);
   const controlIdPrefix = `mercado-publico-${processType}`;
 
   const { processes, isInitialLoading, isRefetching, error, refetch } =
@@ -347,19 +279,21 @@ export const MercadoPublicoBrowseTab = ({
       publishedTo: filters.publishedTo || undefined,
       sort: {
         key: sortKey,
-        direction:
-          sortKey === MercadoPublicoDetectedProcessSortKey.lastSeenAt
-            ? MercadoPublicoDetectedProcessSortDirection.desc
-            : MercadoPublicoDetectedProcessSortDirection.asc,
+        direction: sortDirection,
       },
       states: filters.state ? [filters.state] : [],
     });
 
-  useEffect(() => {
-    if (browseContentElement.current) {
-      browseContentElement.current.inert = selectedProcessCode !== null;
+  const restoreOriginFocus = useCallback(() => {
+    if (originElement === null) {
+      return;
     }
-  }, [selectedProcessCode]);
+
+    originElement.focus();
+    setOriginElement(null);
+  }, [originElement]);
+
+  useListenToSidePanelClosing(restoreOriginFocus);
 
   const updateFilters = (updates: Partial<BrowseFilters>) => {
     setFilters((currentFilters) => ({ ...currentFilters, ...updates }));
@@ -386,6 +320,7 @@ export const MercadoPublicoBrowseTab = ({
       nextPublishedFrom > nextPublishedTo
     ) {
       setDateRangeError(true);
+      publishedFromInputElement.current?.focus();
       return;
     }
 
@@ -405,6 +340,7 @@ export const MercadoPublicoBrowseTab = ({
     setDateRangeError(false);
     setPage(1);
     setSortKey(MercadoPublicoDetectedProcessSortKey.lastSeenAt);
+    setSortDirection(MercadoPublicoDetectedProcessSortDirection.desc);
   };
 
   const removeFilter = (key: keyof BrowseFilters) => {
@@ -427,14 +363,6 @@ export const MercadoPublicoBrowseTab = ({
     }
 
     setPage(1);
-  };
-
-  const closeProcessDetail = () => {
-    if (browseContentElement.current) {
-      browseContentElement.current.inert = false;
-    }
-
-    setSelectedProcessCode(null);
   };
 
   const activeFilters = [
@@ -480,7 +408,7 @@ export const MercadoPublicoBrowseTab = ({
 
   return (
     <StyledContainer>
-      <StyledBrowseContent aria-busy={isRefetching} ref={browseContentElement}>
+      <StyledBrowseContent aria-busy={isRefetching}>
         <StyledControls>
           <StyledControl htmlFor={`${controlIdPrefix}-state`}>
             {t`Estado`}
@@ -509,6 +437,7 @@ export const MercadoPublicoBrowseTab = ({
               onChange={(event) =>
                 updatePublishedDate('publishedFrom', event.target.value)
               }
+              ref={publishedFromInputElement}
               type="date"
               value={draftPublishedFrom}
             />
@@ -534,22 +463,46 @@ export const MercadoPublicoBrowseTab = ({
               disabled={isRefetching}
               id={`${controlIdPrefix}-sort`}
               onChange={(event) => {
-                setSortKey(
-                  event.target.value as MercadoPublicoDetectedProcessSortKey,
+                const [nextSortKey, nextSortDirection] =
+                  event.target.value.split(':');
+                setSortKey(nextSortKey as MercadoPublicoDetectedProcessSortKey);
+                setSortDirection(
+                  nextSortDirection as MercadoPublicoDetectedProcessSortDirection,
                 );
                 setPage(1);
               }}
-              value={sortKey}
+              value={`${sortKey}:${sortDirection}`}
             >
               <option
-                value={MercadoPublicoDetectedProcessSortKey.closingAt}
-              >{t`Cierre`}</option>
+                value={`${MercadoPublicoDetectedProcessSortKey.lastSeenAt}:${MercadoPublicoDetectedProcessSortDirection.desc}`}
+              >{t`Última observación, reciente primero`}</option>
               <option
-                value={MercadoPublicoDetectedProcessSortKey.publishedAt}
-              >{t`Publicación`}</option>
+                value={`${MercadoPublicoDetectedProcessSortKey.lastSeenAt}:${MercadoPublicoDetectedProcessSortDirection.asc}`}
+              >{t`Última observación, antigua primero`}</option>
               <option
-                value={MercadoPublicoDetectedProcessSortKey.lastSeenAt}
-              >{t`Última observación`}</option>
+                value={`${MercadoPublicoDetectedProcessSortKey.publishedAt}:${MercadoPublicoDetectedProcessSortDirection.desc}`}
+              >{t`Publicación, reciente primero`}</option>
+              <option
+                value={`${MercadoPublicoDetectedProcessSortKey.publishedAt}:${MercadoPublicoDetectedProcessSortDirection.asc}`}
+              >{t`Publicación, antigua primero`}</option>
+              <option
+                value={`${MercadoPublicoDetectedProcessSortKey.closingAt}:${MercadoPublicoDetectedProcessSortDirection.asc}`}
+              >{t`Cierre, próximo primero`}</option>
+              <option
+                value={`${MercadoPublicoDetectedProcessSortKey.closingAt}:${MercadoPublicoDetectedProcessSortDirection.desc}`}
+              >{t`Cierre, lejano primero`}</option>
+              <option
+                value={`${MercadoPublicoDetectedProcessSortKey.processCode}:${MercadoPublicoDetectedProcessSortDirection.asc}`}
+              >{t`Código, ascendente`}</option>
+              <option
+                value={`${MercadoPublicoDetectedProcessSortKey.processCode}:${MercadoPublicoDetectedProcessSortDirection.desc}`}
+              >{t`Código, descendente`}</option>
+              <option
+                value={`${MercadoPublicoDetectedProcessSortKey.canonicalState}:${MercadoPublicoDetectedProcessSortDirection.asc}`}
+              >{t`Estado, ascendente`}</option>
+              <option
+                value={`${MercadoPublicoDetectedProcessSortKey.canonicalState}:${MercadoPublicoDetectedProcessSortDirection.desc}`}
+              >{t`Estado, descendente`}</option>
             </StyledSelect>
           </StyledControl>
           <StyledDisclosureButton
@@ -652,65 +605,69 @@ export const MercadoPublicoBrowseTab = ({
             role="region"
             tabIndex={0}
           >
-            <StyledTable role="table">
-              <StyledMobileHiddenHeader>
-                <div role="columnheader">{t`Objeto`}</div>
-                <div role="columnheader">{t`Organismo`}</div>
-                <div role="columnheader">{t`Estado`}</div>
-                <div role="columnheader">{t`Cierre`}</div>
-                <div role="columnheader">{t`Publicada`}</div>
-                <div role="columnheader">{t`Código`}</div>
-              </StyledMobileHiddenHeader>
-              {processes.items.map((process) => {
-                const processTitle = process.title ?? process.processCode;
+            <StyledTable>
+              <thead>
+                <tr>
+                  <th scope="col">{t`Objeto`}</th>
+                  <th scope="col">{t`Organismo`}</th>
+                  <th scope="col">{t`Estado`}</th>
+                  <th scope="col">{t`Cierre`}</th>
+                  <th scope="col">{t`Publicada`}</th>
+                  <th scope="col">{t`Código`}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {processes.items.map((process) => {
+                  const processTitle = process.title ?? process.processCode;
 
-                return (
-                  <StyledRow
-                    aria-haspopup="dialog"
-                    aria-label={t`Abrir detalle de ${processTitle}`}
-                    aria-selected={selectedProcessCode === process.processCode}
-                    data-process-code={process.processCode}
-                    data-testid={`process-row-${process.processCode}`}
-                    key={process.processCode}
-                    onClick={(event) => {
-                      setOriginElement(event.currentTarget);
-                      setSelectedProcessCode(process.processCode);
-                    }}
-                    type="button"
-                  >
-                    <span
-                      data-label={t`Objeto`}
-                      title={process.title ?? process.processCode}
+                  return (
+                    <StyledSelectedRow
+                      isSelected={selectedProcessCode === process.processCode}
+                      key={process.processCode}
                     >
-                      {process.title ?? t`Sin información`}
-                    </span>
-                    <span data-label={t`Organismo`}>
-                      {process.buyerName ??
-                        process.buyerCode ??
-                        t`No informado`}
-                    </span>
-                    <span data-label={t`Estado`}>
-                      <Tag
-                        color={getMercadoPublicoStatusColor(
-                          process.canonicalState,
-                        )}
-                        text={getMercadoPublicoStatusLabel(
-                          process.canonicalState,
-                        )}
-                      />
-                    </span>
-                    <span data-label={t`Cierre`}>
-                      {process.closingAt
-                        ? formatDate(process.closingAt)
-                        : t`Cierre no informado`}
-                    </span>
-                    <span data-label={t`Publicada`}>
-                      {formatDate(process.publishedAt)}
-                    </span>
-                    <span data-label={t`Código`}>{process.processCode}</span>
-                  </StyledRow>
-                );
-              })}
+                      <td>
+                        <StyledTitleButton
+                          ariaLabel={t`Abrir detalle de ${processTitle}`}
+                          data-process-code={process.processCode}
+                          data-testid={`process-row-${process.processCode}`}
+                          onClick={(event) => {
+                            setOriginElement(event.currentTarget);
+                            setSelectedProcessCode(process.processCode);
+                            openMercadoPublicoProcessInSidePanel({
+                              processCode: process.processCode,
+                              processTitle,
+                              processType,
+                            });
+                          }}
+                          size="small"
+                          title={process.title ?? t`Sin información`}
+                          variant="tertiary"
+                        />
+                      </td>
+                      <td>
+                        {process.buyerName ??
+                          process.buyerCode ??
+                          t`No informado`}
+                      </td>
+                      <td>
+                        <Tag
+                          color="gray"
+                          text={getMercadoPublicoStatusLabel(
+                            process.canonicalState,
+                          )}
+                        />
+                      </td>
+                      <td>
+                        {process.closingAt
+                          ? formatDate(process.closingAt)
+                          : t`Cierre no informado`}
+                      </td>
+                      <td>{formatDate(process.publishedAt)}</td>
+                      <td>{process.processCode}</td>
+                    </StyledSelectedRow>
+                  );
+                })}
+              </tbody>
             </StyledTable>
           </StyledTableWrap>
         ) : null}
@@ -748,14 +705,6 @@ export const MercadoPublicoBrowseTab = ({
           </StyledPagination>
         ) : null}
       </StyledBrowseContent>
-      {selectedProcessCode ? (
-        <MercadoPublicoProcessDetailPanel
-          onClose={closeProcessDetail}
-          originElement={originElement}
-          processCode={selectedProcessCode}
-          processType={processType}
-        />
-      ) : null}
     </StyledContainer>
   );
 };
