@@ -26,7 +26,8 @@ The pipeline is raw-first, idempotent, auditable, tolerant to schema drift, sepa
 
 For compact, evidence-labelled instructions for agents touching API V2 Compra
 Agil, read the [Compra Agil V2 contract for AI agents](compra-agil-ai-contract.md)
-first. This source contract remains the detailed repository and source record.
+first, then the [Compra Agil V2 user and AI extraction guide](../operations/mercado-publico-compra-agil-v2-research.md).
+This source contract remains the detailed repository and source record.
 
 ## Source Boundary
 
@@ -184,16 +185,24 @@ Endpoints:
 | `q` | string | Text search. |
 | `tamano_pagina` | integer | Official default 15 and maximum 50; this repository additionally enforces a minimum of 10. |
 | `numero_pagina` | integer | Starts at 1. |
-| `ordenar_por` | string | Sort field. |
-| `orden` | string | Repository-implemented sort direction; not documented as an official V2 parameter. |
+| `ordenar_por` | string | `FechaUltimaModificacion` or `FechaPublicacion`. |
 
 Parameter rules:
 
 - `id` and `q` are mutually exclusive.
+- `ttl_cambio_ms` is mutually exclusive with `cambio_desde` and
+  `cambio_hasta`.
+- `cambio_desde` and `cambio_hasta` must be supplied together.
+- `publicado_desde` and `publicado_hasta` must be supplied together.
+- When supplied, change and publication bounds must be full ISO-8601
+  date-times with an explicit UTC offset or `Z`; the start cannot be after the
+  end. This is a repository validation rule, not an additional provider limit.
 - The official guide documents `tamano_pagina` default 15 and maximum 50. The
   repository currently enforces `10..50`; the lower bound is an implementation
   constraint, not an official V2 claim.
 - `numero_pagina` starts at 1.
+- `ordenar_por` accepts the official values `FechaUltimaModificacion` and
+  `FechaPublicacion`.
 - There is no documented `codigo_organismo` filter for this API.
 
 Documented states:

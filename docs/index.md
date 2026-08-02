@@ -28,10 +28,11 @@ without replacing the existing `docs/README.md` baseline.
 ## Mercado Público reading map
 
 1. [Compra Agil V2 contract for AI agents](business/compra-agil-ai-contract.md)
-2. [Source and ingestion contract](business/mercado-publico-source-contract.md)
-3. [Data model boundary](architecture/data-model.md) and
+2. [Compra Agil V2 user and AI extraction guide](operations/mercado-publico-compra-agil-v2-research.md)
+3. [Source and ingestion contract](business/mercado-publico-source-contract.md)
+4. [Data model boundary](architecture/data-model.md) and
    [ADR 0005](decisions/0005-deployment-local-mercado-publico-schema.md)
-4. [Operator runbook](operations/mercado-publico-ingestion.md)
+5. [Operator runbook](operations/mercado-publico-ingestion.md)
 
 Archived OpenSpec changes provide provenance; they are not current instructions.
 

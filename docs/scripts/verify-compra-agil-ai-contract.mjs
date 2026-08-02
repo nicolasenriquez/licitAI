@@ -6,9 +6,12 @@ const read = (relativePath) => readFile(resolve(root, relativePath), 'utf8');
 const contractPath = 'business/compra-agil-ai-contract.md';
 const contract = await read(contractPath);
 const sourceContract = await read('business/mercado-publico-source-contract.md');
+const extractionGuidePath = 'operations/mercado-publico-compra-agil-v2-research.md';
+const extractionGuide = await read(extractionGuidePath);
 const docsIndex = await read('index.md');
 const docsReadme = await read('README.md');
 const aiDelivery = await read('governance/ai-assisted-delivery.md');
+const ingestionRunbook = await read('operations/mercado-publico-ingestion.md');
 
 const requiredLabels = [
   'official',
@@ -32,6 +35,21 @@ for (const url of [
   }
 }
 
+for (const requiredGuideClaim of [
+  'https://api2.mercadopublico.cl',
+  'ticket',
+  'tamano_pagina=50',
+  'MP_COMPRA_AGIL_MAX_PAGES',
+  'fallback_used',
+  'manifest_json',
+  'Retry-After',
+  'ISO-8601',
+]) {
+  if (!extractionGuide.includes(requiredGuideClaim)) {
+    throw new Error(`${extractionGuidePath} is missing required guide claim: ${requiredGuideClaim}`);
+  }
+}
+
 for (const [name, document] of [
   ['docs index', docsIndex],
   ['docs README', docsReadme],
@@ -43,9 +61,20 @@ for (const [name, document] of [
   }
 }
 
+for (const [name, document] of [
+  ['AI contract', contract],
+  ['source contract', sourceContract],
+  ['ingestion runbook', ingestionRunbook],
+]) {
+  if (!document.includes('mercado-publico-compra-agil-v2-research.md')) {
+    throw new Error(`${name} must link to ${extractionGuidePath}`);
+  }
+}
+
 for (const relativePath of [
   contractPath,
   'business/mercado-publico-source-contract.md',
+  extractionGuidePath,
   'governance/ai-assisted-delivery.md',
   'operations/mercado-publico-ingestion.md',
 ]) {

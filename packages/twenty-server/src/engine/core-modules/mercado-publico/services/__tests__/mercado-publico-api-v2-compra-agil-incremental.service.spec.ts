@@ -98,6 +98,26 @@ describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
         MercadoPublicoRecordedJobFailureError,
       );
     });
+
+    it('should record and reject when ttl_cambio_ms is combined with a date range', async () => {
+      await expect(
+        service.run({
+          ttl_cambio_ms: 5000,
+          cambio_desde: '2026-06-01T00:00:00Z',
+          cambio_hasta: '2026-06-30T23:59:59Z',
+        }),
+      ).rejects.toThrow(MercadoPublicoRecordedJobFailureError);
+
+      expect(clientService.getList).not.toHaveBeenCalled();
+    });
+
+    it('should record and reject when a date range has only one bound', async () => {
+      await expect(
+        service.run({ cambio_desde: '2026-06-01T00:00:00Z' }),
+      ).rejects.toThrow(MercadoPublicoRecordedJobFailureError);
+
+      expect(clientService.getList).not.toHaveBeenCalled();
+    });
   });
 
   describe('run', () => {
@@ -250,7 +270,10 @@ describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
       clientService.getList.mockRejectedValue(new Error('Network error'));
 
       await expect(
-        service.run({ cambio_desde: '2026-06-01T00:00:00Z' }),
+        service.run({
+          cambio_desde: '2026-06-01T00:00:00Z',
+          cambio_hasta: '2026-06-30T00:00:00Z',
+        }),
       ).rejects.toThrow();
 
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(

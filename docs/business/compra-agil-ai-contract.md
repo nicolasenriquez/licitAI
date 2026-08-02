@@ -25,7 +25,7 @@ Every claim in this document uses one of these labels:
 - **unknown** — not established by the official material or by a verified
   implementation path; do not infer it.
 
-Primary sources were checked on 2026-08-01:
+Primary sources were checked on 2026-08-02:
 
 - **official** — [Compra Agil API V2 guide (v2.1)](https://www.chilecompra.cl/wp-content/uploads/2026/05/Documentacion_API_Compra_Agil-2-1.pdf).
 - **official** — [ChileCompra API terms](https://www.chilecompra.cl/api/).
@@ -52,10 +52,15 @@ Primary sources were checked on 2026-08-01:
 ## Parameters, limits, and time
 
 - **official** — The list endpoint documents `tamano_pagina` default `15` and
-  maximum `50`, plus `ordenar_por`.
+  maximum `50`, plus `ordenar_por`. The change-window alternatives are
+  `ttl_cambio_ms` or the complete `cambio_desde`/`cambio_hasta` pair; a
+  publication window uses the complete `publicado_desde`/`publicado_hasta`
+  pair.
 - **repository-implemented** — The current client rejects
-  `tamano_pagina < 10` and accepts `orden`. These are repository constraints,
-  not official V2 guarantees.
+  `tamano_pagina < 10`, incomplete or malformed ISO-8601 date ranges,
+  reversed ranges, incompatible change-window alternatives, and non-official
+  `ordenar_por` values. The lower page bound is a repository constraint, not an
+  official V2 guarantee.
 - **repository-policy** — A `10,000`-call daily ceiling is treated as a limit
   per API ticket, following the current API terms; do not describe it as a
   confirmed shared V1/V2 quota.
@@ -67,12 +72,17 @@ Primary sources were checked on 2026-08-01:
 
 These are tracked facts about the current repository, not supported behavior:
 
-- **repository-implemented** — Change-window validation does not completely
-  enforce mutually exclusive alternatives.
-- **repository-implemented** — Date-range validation is incomplete for some
-  list inputs.
 - **repository-implemented** — Quota usage is recorded after HTTP `429` and by
   source; it is not a per-ticket preemptive counter.
+- **repository-implemented** — A V2 list response retains a numeric
+  `retryAfterSeconds` value when the provider sends `Retry-After`; complete
+  response headers are not persisted.
+- **repository-implemented** — V2 list jobs persist a secret-free extraction
+  manifest in `mp.stg_job_run.manifest_json`. An empty result is represented as
+  manifest status `empty` and existing job status `soft_miss`.
+- **repository-policy** — The code does not infer Chilean holidays. A
+  last-business-day fallback requires an explicit calendar source and remains
+  visible in the manifest.
 
 Treat each divergence as a separate implementation change. Do not paper over
 it in API behavior, runbooks, or UI claims.
@@ -87,5 +97,6 @@ the official guide.
 ## Related contracts
 
 - [Mercado Publico source contract](mercado-publico-source-contract.md)
+- [Compra Agil V2 user and AI extraction guide](../operations/mercado-publico-compra-agil-v2-research.md)
 - [Mercado Publico ingestion context](mercado-publico-ingestion-context.md)
 - [Operator ingestion runbook](../operations/mercado-publico-ingestion.md)

@@ -17,6 +17,12 @@ import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/m
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
 import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
+import {
+  createMercadoPublicoCompraAgilExtractionManifest,
+  mapMercadoPublicoErrorSummaryToManifestStatus,
+  recordMercadoPublicoCompraAgilManifestPage,
+  type MercadoPublicoCompraAgilExtractionManifest,
+} from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-compra-agil-extraction-manifest.util';
 import { mapMercadoPublicoErrorSummaryToJobRunStatus } from 'src/engine/core-modules/mercado-publico/services/utils/map-mercado-publico-error-summary-to-job-run-status.util';
 import {
   buildMercadoPublicoErrorSummaryText,
@@ -34,7 +40,6 @@ type MercadoPublicoApiV2CompraAgilIncrementalPayload = {
   estado?: string;
   region?: number;
   ordenar_por?: string;
-  orden?: string;
 };
 
 @Injectable()
@@ -58,9 +63,26 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
       await this.mercadoPublicoPersistenceService.createJobRun(
         'api-v2-compra-agil-incremental',
       );
+    let extractionManifest: MercadoPublicoCompraAgilExtractionManifest | undefined;
 
     try {
+      extractionManifest = createMercadoPublicoCompraAgilExtractionManifest({
+        jobName: 'api-v2-compra-agil-incremental',
+        requestParams: {},
+        requestedLocalWindow: payload.requested_local_window,
+        fallbackUsed: payload.fallback_used,
+        fallbackReason: payload.fallback_reason,
+        effectiveDate: payload.effective_date,
+      });
       const parsedPayload = this.parsePayload(payload);
+      extractionManifest = createMercadoPublicoCompraAgilExtractionManifest({
+        jobName: 'api-v2-compra-agil-incremental',
+        requestParams: parsedPayload,
+        requestedLocalWindow: payload.requested_local_window,
+        fallbackUsed: payload.fallback_used,
+        fallbackReason: payload.fallback_reason,
+        effectiveDate: payload.effective_date,
+      });
       const firstPage = parsedPayload.numero_pagina ?? 1;
       const firstApiResponse =
         await this.mercadoPublicoApiV2CompraAgilClientService.getList({
@@ -80,6 +102,9 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
       let recordsStaged = 0;
       let recordsCanonicalized = 0;
       const listedRecords: MercadoPublicoApiV2CompraAgilRecord[] = [];
+      const uniqueCodes = new Set<string>();
+
+      extractionManifest.pagesRequested = lastPage - firstPage + 1;
 
       for (let page = firstPage; page <= lastPage; page += 1) {
         const apiResponse =
@@ -90,9 +115,21 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
                 numero_pagina: page,
               });
 
+        recordMercadoPublicoCompraAgilManifestPage(
+          extractionManifest,
+          apiResponse,
+          uniqueCodes,
+          apiResponse.errorSummary === undefined,
+        );
+
         if (apiResponse.errorSummary !== undefined) {
           const errorSummaryText =
             buildMercadoPublicoErrorSummaryText(apiResponse);
+          extractionManifest.status =
+            mapMercadoPublicoErrorSummaryToManifestStatus(
+              apiResponse.errorSummary,
+            );
+          extractionManifest.errorSummary = errorSummaryText;
 
           await this.mercadoPublicoPersistenceService.persistApiFailure({
             jobRunRecordId: jobRunRecord.id,
@@ -119,6 +156,7 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
             recordsStaged,
             recordsCanonicalized,
             recordsFailed: 1,
+            manifest: extractionManifest,
           });
 
           throw new MercadoPublicoRecordedJobFailureError(
@@ -153,20 +191,31 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
           ? `partial: provider declared ${declaredLastPage} pages; stopped at configured cap ${lastPage - firstPage + 1}`
           : undefined;
 
-      if (partialSummary === undefined) {
+      const isPartial = partialSummary !== undefined;
+      const hasNoRecords = recordsFetched === 0;
+
+      extractionManifest.status = isPartial
+        ? 'partial'
+        : hasNoRecords
+          ? 'empty'
+          : 'complete';
+      extractionManifest.errorSummary = partialSummary ?? null;
+
+      if (!isPartial) {
         await this.enqueuePublishedDetailHydration(listedRecords);
         await this.enqueueReconciliationRefresh();
       }
 
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,
-        status: partialSummary === undefined ? 'success' : 'partial',
+        status: isPartial ? 'partial' : hasNoRecords ? 'soft_miss' : 'success',
         finishedAt: new Date(),
         errorSummary: partialSummary,
         recordsFetched,
         recordsStaged,
         recordsCanonicalized,
         recordsFailed: 0,
+        manifest: extractionManifest,
       });
 
       this.logger.log(
@@ -185,12 +234,19 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
         error,
       );
 
+      if (extractionManifest !== undefined) {
+        extractionManifest.status =
+          mapMercadoPublicoErrorSummaryToManifestStatus(errorSummary);
+        extractionManifest.errorSummary = errorSummaryText;
+      }
+
       await this.mercadoPublicoPersistenceService.finalizeJobRun({
         jobRunRecordId: jobRunRecord.id,
         status: mapMercadoPublicoErrorSummaryToJobRunStatus(errorSummary),
         finishedAt: new Date(),
         errorSummary: errorSummaryText,
         recordsFailed: 1,
+        manifest: extractionManifest,
       });
 
       this.logger.error(errorSummaryText);
@@ -296,6 +352,25 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
       ttlCambioMs === undefined &&
       !isNonEmptyString(cambioDesde);
 
+    const cambioHasta = payload.cambio_hasta;
+    const hasCambioDesde = isNonEmptyString(cambioDesde);
+    const hasCambioHasta = isNonEmptyString(cambioHasta);
+
+    if (
+      ttlCambioMs !== undefined &&
+      (hasCambioDesde || hasCambioHasta)
+    ) {
+      throw new BadRequestException(
+        'Mercado Publico V2 Compra Agil incremental payload cannot combine "ttl_cambio_ms" with "cambio_desde" or "cambio_hasta"',
+      );
+    }
+
+    if (hasCambioDesde !== hasCambioHasta) {
+      throw new BadRequestException(
+        'Mercado Publico V2 Compra Agil incremental payload requires both "cambio_desde" and "cambio_hasta"',
+      );
+    }
+
     if (
       !isPublishedBackfill &&
       ttlCambioMs === undefined &&
@@ -317,8 +392,8 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
       cambio_desde: isNonEmptyString(cambioDesde)
         ? (cambioDesde as string)
         : undefined,
-      cambio_hasta: isNonEmptyString(payload.cambio_hasta)
-        ? (payload.cambio_hasta as string)
+      cambio_hasta: hasCambioHasta
+        ? (cambioHasta as string)
         : undefined,
       tamano_pagina:
         typeof payload.tamano_pagina === 'number'
@@ -336,9 +411,6 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
       region: typeof payload.region === 'number' ? payload.region : undefined,
       ordenar_por: isNonEmptyString(payload.ordenar_por)
         ? (payload.ordenar_por as string)
-        : undefined,
-      orden: isNonEmptyString(payload.orden)
-        ? (payload.orden as string)
         : undefined,
     };
   }

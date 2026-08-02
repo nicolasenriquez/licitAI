@@ -56,6 +56,49 @@ describe('MercadoPublicoPersistenceService', () => {
     expect(executedQueries[0]?.sql).not.toContain('raw_csv_file_id');
     expect(executedQueries[0]?.params).toHaveLength(3);
   });
+
+  it('persists a manifest as JSONB when finalizing a job run', async () => {
+    const mockDataSource = {
+      query: jest.fn().mockResolvedValue([]),
+    };
+    const service = new MercadoPublicoPersistenceService(
+      mockDataSource as never,
+    );
+
+    await service.finalizeJobRun({
+      jobRunRecordId: 'job-run-row-id',
+      status: 'success',
+      finishedAt: new Date('2026-08-02T00:00:00Z'),
+      manifest: {
+        schemaVersion: 1,
+        source: 'api-v2-compra-agil',
+        jobName: 'api-v2-compra-agil-by-publication-window',
+        requestParams: {},
+        requestedLocalWindow: null,
+        sentUtcWindow: null,
+        fallbackUsed: false,
+        fallbackReason: null,
+        effectiveDate: null,
+        pagesRequested: 1,
+        pagesCompleted: 1,
+        providerTotalPages: 1,
+        providerTotalResults: 0,
+        rawItemsReceived: 0,
+        uniqueCodes: 0,
+        retryAfterSeconds: null,
+        status: 'complete',
+        errorSummary: null,
+      },
+    });
+
+    expect(mockDataSource.query).toHaveBeenCalledWith(
+      expect.stringContaining('manifest_json = $9::jsonb'),
+      expect.arrayContaining([
+        'job-run-row-id',
+        expect.stringContaining('"schemaVersion":1'),
+      ]),
+    );
+  });
   it('creates a legacy-safe job run when file context is provided but the schema column is unavailable', async () => {
     const executedQueries: Array<{ sql: string; params: unknown[] }> = [];
     const mockDataSource = {

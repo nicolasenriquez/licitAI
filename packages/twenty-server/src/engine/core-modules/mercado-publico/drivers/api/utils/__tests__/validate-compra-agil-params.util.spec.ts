@@ -109,6 +109,78 @@ describe('validateCompraAgilListParams', () => {
     expect(errors).toEqual([]);
   });
 
+  it('should reject combining ttl_cambio_ms with a change range', () => {
+    expect(
+      validateCompraAgilListParams({
+        ttl_cambio_ms: 5000,
+        cambio_desde: '2026-06-01T00:00:00Z',
+        cambio_hasta: '2026-06-30T23:59:59Z',
+      }),
+    ).toEqual([{ field: 'cambio', code: 'mutually_exclusive' }]);
+  });
+
+  it('should require both bounds for change and publication ranges', () => {
+    expect(
+      validateCompraAgilListParams({
+        cambio_desde: '2026-06-01T00:00:00Z',
+      }),
+    ).toContainEqual({
+      field: 'cambio_desde/cambio_hasta',
+      code: 'range_requires_both',
+    });
+
+    expect(
+      validateCompraAgilListParams({
+        publicado_hasta: '2026-06-30T23:59:59Z',
+      }),
+    ).toContainEqual({
+      field: 'publicado_desde/publicado_hasta',
+      code: 'range_requires_both',
+    });
+  });
+
+  it('should reject malformed and impossible ISO-8601 date-times', () => {
+    expect(
+      validateCompraAgilListParams({
+        publicado_desde: '2026-06-01',
+        publicado_hasta: '2026-02-30T23:59:59Z',
+      }),
+    ).toEqual([
+      { field: 'publicado_desde', code: 'invalid_iso8601' },
+      { field: 'publicado_hasta', code: 'invalid_iso8601' },
+    ]);
+  });
+
+  it('should reject a range whose start is after its end', () => {
+    expect(
+      validateCompraAgilListParams({
+        cambio_desde: '2026-06-30T23:59:59Z',
+        cambio_hasta: '2026-06-01T00:00:00Z',
+      }),
+    ).toEqual([
+      { field: 'cambio_desde/cambio_hasta', code: 'range_start_after_end' },
+    ]);
+  });
+
+  it('should accept ISO-8601 date-times with an explicit offset', () => {
+    expect(
+      validateCompraAgilListParams({
+        publicado_desde: '2026-06-01T00:00:00-04:00',
+        publicado_hasta: '2026-06-30T23:59:59-04:00',
+      }),
+    ).toEqual([]);
+  });
+
+  it('should accept only official ordering values', () => {
+    expect(
+      validateCompraAgilListParams({ ordenar_por: 'FechaPublicacion' }),
+    ).toEqual([]);
+
+    expect(
+      validateCompraAgilListParams({ ordenar_por: 'created_at' }),
+    ).toEqual([{ field: 'ordenar_por', code: 'unsupported_value' }]);
+  });
+
   it('should accumulate multiple errors', () => {
     const errors = validateCompraAgilListParams({
       tamano_pagina: 100,

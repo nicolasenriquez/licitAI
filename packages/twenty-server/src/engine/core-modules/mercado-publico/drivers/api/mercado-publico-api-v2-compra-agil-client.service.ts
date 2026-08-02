@@ -2,16 +2,19 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 
 import { isNonEmptyString } from '@sniptt/guards';
 
-import { type MercadoPublicoApiV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/types/mercado-publico-api-v2-compra-agil-record.type';
+import {
+  type MercadoPublicoApiV2CompraAgilPagination,
+  type MercadoPublicoApiV2CompraAgilRecord,
+} from 'src/engine/core-modules/mercado-publico/drivers/api/types/mercado-publico-api-v2-compra-agil-record.type';
 import {
   createJsonShapeSha256,
   createJsonSha256,
 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/create-json-sha256.util';
+import { parseRetryAfterSeconds } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/parse-retry-after-seconds.util';
 import {
   extractV2CompraAgilListRecords,
   extractV2CompraAgilPagination,
 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
-import { type MercadoPublicoApiV2CompraAgilPagination } from 'src/engine/core-modules/mercado-publico/drivers/api/types/mercado-publico-api-v2-compra-agil-record.type';
 import {
   CompraAgilListParams,
   validateCompraAgilListParams,
@@ -44,6 +47,7 @@ export type MercadoPublicoApiV2CompraAgilListResponse = {
   errorSummary?: MercadoPublicoErrorSummary;
   errorMessage?: string;
   errorCode?: string;
+  retryAfterSeconds?: number;
 };
 
 const ensureTrailingSlash = (value: string): string => {
@@ -90,9 +94,6 @@ const sanitizeParams = (
   }
   if (isNonEmptyString(params.ordenar_por)) {
     entries.ordenar_por = params.ordenar_por as string;
-  }
-  if (isNonEmptyString(params.orden)) {
-    entries.orden = params.orden as string;
   }
 
   return entries;
@@ -156,6 +157,9 @@ export class MercadoPublicoApiV2CompraAgilClientService {
     });
 
     const rawPayload = response.data;
+    const retryAfterSeconds = parseRetryAfterSeconds(
+      response.headers?.['retry-after'],
+    );
     const compraAgil = extractV2CompraAgilListRecords(rawPayload);
     const bodyError = parseMercadoPublicoBodyError(rawPayload);
     const httpStatusErrorSummary = classifyMercadoPublicoHttpStatus(
@@ -178,6 +182,7 @@ export class MercadoPublicoApiV2CompraAgilClientService {
       errorSummary: bodyError?.errorSummary ?? httpStatusErrorSummary,
       errorMessage: bodyError?.message,
       errorCode: bodyError?.code ?? undefined,
+      retryAfterSeconds: retryAfterSeconds ?? undefined,
     };
   }
 
@@ -219,6 +224,9 @@ export class MercadoPublicoApiV2CompraAgilClientService {
     });
 
     const rawPayload = response.data;
+    const retryAfterSeconds = parseRetryAfterSeconds(
+      response.headers?.['retry-after'],
+    );
     const compraAgil = extractV2CompraAgilListRecords(rawPayload);
     const bodyError = parseMercadoPublicoBodyError(rawPayload);
     const httpStatusErrorSummary = classifyMercadoPublicoHttpStatus(
@@ -241,6 +249,7 @@ export class MercadoPublicoApiV2CompraAgilClientService {
       errorSummary: bodyError?.errorSummary ?? httpStatusErrorSummary,
       errorMessage: bodyError?.message,
       errorCode: bodyError?.code ?? undefined,
+      retryAfterSeconds: retryAfterSeconds ?? undefined,
     };
   }
 

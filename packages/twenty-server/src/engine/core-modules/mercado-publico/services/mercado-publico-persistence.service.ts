@@ -14,6 +14,7 @@ import {
   type MercadoPublicoJobName,
   type MercadoPublicoJobRunStatus,
 } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
+import { type MercadoPublicoCompraAgilExtractionManifest } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-compra-agil-extraction-manifest.util';
 
 export type MercadoPublicoJobRunRecord = {
   id: string;
@@ -42,6 +43,7 @@ type FinalizeMercadoPublicoJobRunInput = {
   recordsStaged?: number;
   recordsCanonicalized?: number;
   recordsFailed?: number;
+  manifest?: MercadoPublicoCompraAgilExtractionManifest;
 };
 
 type CreateMercadoPublicoJobRunInput = {
@@ -368,7 +370,8 @@ export class MercadoPublicoPersistenceService {
           records_staged = $5,
           records_canonicalized = $6,
           records_failed = $7,
-          error_summary = $8
+          error_summary = $8,
+          manifest_json = $9::jsonb
         WHERE id = $1
       `,
       [
@@ -380,6 +383,7 @@ export class MercadoPublicoPersistenceService {
         input.recordsCanonicalized ?? null,
         input.recordsFailed ?? null,
         input.errorSummary ?? null,
+        input.manifest ? JSON.stringify(input.manifest) : null,
       ],
     );
   }

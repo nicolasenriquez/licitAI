@@ -84,10 +84,13 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
   });
 
   describe('run', () => {
-    it('should persist and canonicalize on success with publicado_desde only', async () => {
+    it('should persist and canonicalize on success with a complete publication window', async () => {
       clientService.getList.mockResolvedValue(mockApiSuccessResponse as any);
 
-      await service.run({ publicado_desde: '2026-06-01T00:00:00Z' });
+      await service.run({
+        publicado_desde: '2026-06-01T00:00:00Z',
+        publicado_hasta: '2026-06-30T23:59:59Z',
+      });
 
       expect(persistenceService.createJobRun).toHaveBeenCalledWith(
         'api-v2-compra-agil-by-publication-window',
@@ -95,6 +98,7 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
       expect(clientService.getList).toHaveBeenCalledWith(
         expect.objectContaining({
           publicado_desde: '2026-06-01T00:00:00Z',
+          publicado_hasta: '2026-06-30T23:59:59Z',
         }),
       );
       expect(
@@ -110,6 +114,39 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
           recordsFetched: 2,
           recordsCanonicalized: 0,
           recordsFailed: 0,
+        }),
+      );
+    });
+
+    it('should mark an empty list as soft_miss and persist an empty manifest', async () => {
+      clientService.getList.mockResolvedValue({
+        ...mockApiSuccessResponse,
+        compraAgil: [],
+        pagination: {
+          page: 1,
+          pageSize: 50,
+          totalPages: 1,
+          totalResults: 0,
+        },
+      } as any);
+      persistenceService.persistV2CompraAgilSnapshot.mockResolvedValueOnce({
+        ...mockPersistenceResult,
+        recordsFetched: 0,
+      });
+
+      await service.run({
+        publicado_desde: '2026-06-01T00:00:00Z',
+        publicado_hasta: '2026-06-30T23:59:59Z',
+      });
+
+      expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'soft_miss',
+          manifest: expect.objectContaining({
+            status: 'empty',
+            providerTotalResults: 0,
+            pagesCompleted: 1,
+          }),
         }),
       );
     });
@@ -136,7 +173,10 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
           },
         } as any);
 
-      await service.run({ publicado_desde: '2026-06-01T00:00:00Z' });
+      await service.run({
+        publicado_desde: '2026-06-01T00:00:00Z',
+        publicado_hasta: '2026-06-30T23:59:59Z',
+      });
 
       expect(clientService.getList).toHaveBeenNthCalledWith(
         2,
@@ -176,7 +216,10 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
         },
       } as any);
 
-      await cappedService.run({ publicado_desde: '2026-06-01T00:00:00Z' });
+      await cappedService.run({
+        publicado_desde: '2026-06-01T00:00:00Z',
+        publicado_hasta: '2026-06-30T23:59:59Z',
+      });
 
       expect(clientService.getList).toHaveBeenCalledTimes(250);
       expect(
@@ -209,18 +252,12 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
       );
     });
 
-    it('should pass only publicado_hasta when publicado_desde is not provided', async () => {
-      clientService.getList.mockResolvedValue(mockApiSuccessResponse as any);
+    it('should reject an incomplete publication window', async () => {
+      await expect(
+        service.run({ publicado_desde: '2026-06-01T00:00:00Z' }),
+      ).rejects.toThrow(MercadoPublicoRecordedJobFailureError);
 
-      await service.run({
-        publicado_hasta: '2026-06-30T23:59:59Z',
-      });
-
-      expect(clientService.getList).toHaveBeenCalledWith(
-        expect.objectContaining({
-          publicado_hasta: '2026-06-30T23:59:59Z',
-        }),
-      );
+      expect(clientService.getList).not.toHaveBeenCalled();
     });
 
     it('should record failure when api returns errorSummary', async () => {
@@ -233,7 +270,10 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
       } as any);
 
       await expect(
-        service.run({ publicado_desde: '2026-06-01T00:00:00Z' }),
+        service.run({
+          publicado_desde: '2026-06-01T00:00:00Z',
+          publicado_hasta: '2026-06-30T23:59:59Z',
+        }),
       ).rejects.toThrow();
 
       expect(persistenceService.persistApiFailure).toHaveBeenCalled();
@@ -244,11 +284,40 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
       );
     });
 
+    it('should retain Retry-After in the failed extraction manifest', async () => {
+      clientService.getList.mockResolvedValue({
+        ...mockApiSuccessResponse,
+        httpStatus: 429,
+        errorSummary: 'retryable_failed',
+        retryAfterSeconds: 120,
+        compraAgil: [],
+      } as any);
+
+      await expect(
+        service.run({
+          publicado_desde: '2026-06-01T00:00:00Z',
+          publicado_hasta: '2026-06-30T23:59:59Z',
+        }),
+      ).rejects.toThrow();
+
+      expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          manifest: expect.objectContaining({
+            status: 'retryable_failed',
+            retryAfterSeconds: 120,
+          }),
+        }),
+      );
+    });
+
     it('should handle transport failure', async () => {
       clientService.getList.mockRejectedValue(new Error('Network error'));
 
       await expect(
-        service.run({ publicado_desde: '2026-06-01T00:00:00Z' }),
+        service.run({
+          publicado_desde: '2026-06-01T00:00:00Z',
+          publicado_hasta: '2026-06-30T23:59:59Z',
+        }),
       ).rejects.toThrow();
 
       expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(

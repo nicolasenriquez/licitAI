@@ -48,10 +48,11 @@ context.
 Read this path in order for the current procurement contract:
 
 1. [Compra Agil V2 contract for AI agents](business/compra-agil-ai-contract.md)
-2. [Source and ingestion contract](business/mercado-publico-source-contract.md)
-3. [Deployment-local data boundary](architecture/data-model.md) and
+2. [Compra Agil V2 user and AI extraction guide](operations/mercado-publico-compra-agil-v2-research.md)
+3. [Source and ingestion contract](business/mercado-publico-source-contract.md)
+4. [Deployment-local data boundary](architecture/data-model.md) and
    [ADR 0005](decisions/0005-deployment-local-mercado-publico-schema.md)
-4. [Operator ingestion runbook](operations/mercado-publico-ingestion.md)
+5. [Operator ingestion runbook](operations/mercado-publico-ingestion.md)
 
 Archived OpenSpec changes remain provenance and implementation evidence only;
 they are not current operating instructions.
@@ -75,11 +76,12 @@ they are not current operating instructions.
 15. `operations/ai-runtime-configuration.md` — AI runtime setup and limits
 16. `operations/okf-authoring-guide.md` — Safe additive documentation authoring rules
 17. `business/compra-agil-ai-contract.md` — Compra Agil V2 evidence labels and agent invariants, when this source family is touched
-18. `operations/mercado-publico-ingestion.md` — Ingestion command and operator contract
-19. `design/design-system.md` — Visual and interaction rules
-20. `standards/okf-standard.md` — Repository OKF taxonomy and frontmatter rules
-21. `decisions/` — Key architectural decisions with rationale
-22. `../.cursor/rules/` — Cursor-specific development rules (16 `.mdc` files)
+18. `operations/mercado-publico-compra-agil-v2-research.md` — Step-by-step Compra Agil V2 extraction guide for operators and AI agents
+19. `operations/mercado-publico-ingestion.md` — Ingestion command and operator contract
+20. `design/design-system.md` — Visual and interaction rules
+21. `standards/okf-standard.md` — Repository OKF taxonomy and frontmatter rules
+22. `decisions/` — Key architectural decisions with rationale
+23. `../.cursor/rules/` — Cursor-specific development rules (16 `.mdc` files)
 
 ### For architecture and delivery
 

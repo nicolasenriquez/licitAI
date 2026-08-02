@@ -108,6 +108,15 @@ The system SHALL support Compra Agil V2 paginated listing, incremental change wi
 - **AND** `numero_pagina` starts at 1
 - **AND** `id` and `q` are not sent together
 
+#### Scenario: Compra Agil list rejects invalid filter combinations before the request
+
+- **WHEN** a list request combines `ttl_cambio_ms` with `cambio_desde` or `cambio_hasta`
+- **OR WHEN** a change or publication range provides only one bound
+- **OR WHEN** `ordenar_por` is not `FechaUltimaModificacion` or `FechaPublicacion`
+- **OR WHEN** a supplied date-time is not valid ISO-8601 or its start is after its end
+- **THEN** the request fails with a parameter error
+- **AND** no upstream API request is sent
+
 #### Scenario: Compra Agil incremental listing supports change windows
 
 - **WHEN** the Compra Agil incremental job executes
@@ -118,6 +127,21 @@ The system SHALL support Compra Agil V2 paginated listing, incremental change wi
 
 - **WHEN** the Compra Agil publication-window job executes
 - **THEN** it supports `publicado_desde` and `publicado_hasta`
+- **AND** it requires both bounds of the publication window
+
+#### Scenario: Compra Agil list job records a secret-free extraction manifest
+
+- **WHEN** a Compra Agil V2 list job completes, returns no records, reaches its page guard, or receives an upstream failure
+- **THEN** the system persists `manifest_json` on the associated `mp.stg_job_run`
+- **AND** the manifest records requested/effective windows, page counts, provider totals, unique codes, fallback metadata, and final status
+- **AND** the manifest never contains the ticket or complete response headers
+
+#### Scenario: Compra Agil rate-limit evidence is retained without headers
+
+- **WHEN** the provider responds with `429` and a `Retry-After` header
+- **THEN** the API response retains the parsed delay as `retryAfterSeconds`
+- **AND** the extraction manifest retains that delay
+- **AND** the system does not persist the complete response headers
 
 #### Scenario: Compra Agil detail uses explicit OC linkage
 
@@ -274,6 +298,7 @@ The system SHALL record every ingestion job with traceability fields required fo
 
 - **WHEN** an API ingestion job runs
 - **THEN** the system stores `job_id`, `source`, `endpoint`, `request_params`, `http_status`, `fetched_at`, `checksum`, `schema_fingerprint`, record counters, and `error_summary`
+- **AND** V2 list jobs store a secret-free extraction manifest in `manifest_json`
 
 #### Scenario: CSV job metadata is persisted
 

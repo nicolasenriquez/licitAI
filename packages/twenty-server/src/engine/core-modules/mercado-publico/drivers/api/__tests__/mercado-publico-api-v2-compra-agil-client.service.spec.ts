@@ -94,6 +94,34 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       );
     });
 
+    it('should reject mutually exclusive change filters before the upstream request', async () => {
+      await expect(
+        service.getList({
+          ttl_cambio_ms: 5000,
+          cambio_desde: '2026-06-01T00:00:00Z',
+          cambio_hasta: '2026-06-30T23:59:59Z',
+        }),
+      ).rejects.toThrow('Compra Agil V2 list params invalid');
+
+      expect(mockHttpClient.get).not.toHaveBeenCalled();
+    });
+
+    it('should reject incomplete date ranges before the upstream request', async () => {
+      await expect(
+        service.getList({ publicado_desde: '2026-06-01T00:00:00Z' }),
+      ).rejects.toThrow('Compra Agil V2 list params invalid');
+
+      expect(mockHttpClient.get).not.toHaveBeenCalled();
+    });
+
+    it('should reject non-official ordering values before the upstream request', async () => {
+      await expect(
+        service.getList({ ordenar_por: 'created_at' }),
+      ).rejects.toThrow('Compra Agil V2 list params invalid');
+
+      expect(mockHttpClient.get).not.toHaveBeenCalled();
+    });
+
     it('should fetch list and return formatted response', async () => {
       mockHttpClient.get.mockResolvedValue({
         status: 200,
@@ -147,6 +175,22 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       const result = await service.getList({});
 
       expect(result.errorSummary).toBe('retryable_failed');
+    });
+
+    it('should retain Retry-After seconds without retaining response headers', async () => {
+      mockHttpClient.get.mockResolvedValue({
+        status: 429,
+        headers: { 'retry-after': '120' },
+        data: {},
+      });
+
+      const result = await service.getList({});
+
+      expect(result).toMatchObject({
+        httpStatus: 429,
+        retryAfterSeconds: 120,
+      });
+      expect(result).not.toHaveProperty('headers');
     });
 
     it('should resolve normally when quota settings lookup throws during 429 tracking', async () => {
