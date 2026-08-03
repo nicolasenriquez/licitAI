@@ -17,14 +17,9 @@ commands.
   - create or refine artifacts without touching production code
 - `/grill-with-docs <change-name|proposal-path> source=openspec mode=grill`
   - resolve ambiguity before implementation planning continues
-- `/execute <change-name> <task-selector>`
-  - perform code and doc changes from already-planned tasks
-- `/opsx-verify <change-name>`
-  - audit artifact and implementation alignment
-- `/opsx-sync <change-name>`
-  - sync implemented spec deltas into canonical specs
-- `/opsx-archive <change-name>`
-  - archive a completed and verified change
+
+Implementation, verification of implemented code, synchronization, and
+archiving are separate workflows and are not command roles for this skill.
 
 ## Required Artifact Compatibility
 
@@ -59,13 +54,15 @@ It should:
 - normalize artifacts
 - close design ambiguities
 - shape tasks into implementation-ready slices
-- stop at `Proposal Ready for Implementation`
+- create or normalize the complete specification only after material gaps are
+  closed
+- validate it and stop at `Implementation Ready`
 
 It should not:
 
 - perform production code changes itself
 - substitute for `/execute`
-- recommend `/execute` as an automatic next step
+- hand off to or recommend an implementation command
 - hide unresolved ambiguity
 
 ## Output Contract
@@ -77,12 +74,11 @@ sections:
   - return one exact next command
 - `in-progress`
   - return one exact next command
-- `proposal-ready`
-  - report `Proposal Ready for Implementation`
-  - stop cleanly
-  - do not require a next command
-  - mention `/execute <change-name> <task-selector>` only as a future entrypoint
-    when the user explicitly decides to start implementation
+- `implementation-ready`
+  - report `Implementation Ready`
+  - stop cleanly without a next command or implementation handoff
+  - include concise ASCII diagrams for the skill sequence and actual slice
+    order
 
 ## Recommended Next Commands
 
@@ -91,13 +87,10 @@ Use one exact next command only while the spec is incomplete or blocked:
 - `/opsx-new <change-name>` when the change does not exist yet
 - `/opsx-continue <change-name>` when the change exists but artifacts are partial or stale
 - `/grill-with-docs <change-name|proposal-path> source=openspec mode=grill` when ambiguity blocks implementation planning
-- `/plan source=openspec <change-name>` when the change is clear enough for artifact authoring but not yet `Proposal Ready for Implementation`
-- `/opsx-verify <change-name>` after implementation when artifact and implementation alignment must be checked
-- `/opsx-sync <change-name>` when implemented deltas must be synced into canonical specs
-- `/opsx-archive <change-name>` only after verification and sync are complete
+- `/plan source=openspec <change-name>` when the change is clear enough for artifact authoring but not yet `Implementation Ready`
 
-When the spec is already `Proposal Ready for Implementation`, do not recommend
-an automatic next command.
+When the spec is already `Implementation Ready`, do not recommend an automatic
+next command or implementation command.
 ## Quality-Gate Compatibility
 
 Execution Order is required only when the house-style dependency rule applies:

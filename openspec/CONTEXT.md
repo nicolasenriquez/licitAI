@@ -76,10 +76,14 @@ material fuente, borradores y evidencia.
   todavía exista `fog` de decisiones. Su mapa y tickets viven en
   `.scratch/<effort>/`; no se crea el change OpenSpec mientras el camino siga
   abierto.
-- Para una spec que cabe en una sesión pero mantiene ambigüedad material, crea
-  el change y usa `/grill-with-docs <change-name> source=openspec mode=grill`.
-- Para una spec pequeña y clara, omite ambos flujos y usa
-  `/opsx-new <change-name>` seguido de `/plan source=openspec <change-name>`.
+- Si la persona elige explícitamente el flujo OpenSpec para una spec que cabe
+  en una sesión pero mantiene ambigüedad material, crea el change y usa
+  `/grill-with-docs <change-name> source=openspec mode=grill`.
+- Si la persona elige explícitamente el flujo OpenSpec para una spec pequeña y
+  clara, omite ambos flujos y usa `/opsx-new <change-name>` seguido de
+  `/plan source=openspec <change-name>`.
+- Para cualquier plan sin esa elección explícita, conserva el trabajo en el
+  flujo de planificación elegido y no introduzcas OpenSpec.
 - Si Wayfinder no encuentra `fog`, no se crea un mapa. Si grilling no encuentra
   una ambigüedad material, no se prolonga la entrevista.
 

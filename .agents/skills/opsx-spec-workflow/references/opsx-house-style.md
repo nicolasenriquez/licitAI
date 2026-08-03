@@ -134,13 +134,15 @@ understanding:
 - wait for the human answer
 - record the decision in `proposal.md` or `design.md`
 
-## Exit Gate
+## Implementation-Ready Exit Gate
 
-A spec is `Proposal Ready for Implementation` only when:
+A spec is `Implementation Ready` only when:
 
 - the scope is locked
 - no material ambiguity remains
 - the active change profile is explicit
+- the required artifacts, including `spec.md`, are created or normalized and
+  pass artifact validation
 - the canonical phase order is present
 - every task has `Traceability:`
 - phase `1` is present when runtime behavior, contract, persistence, integration, UI behavior, or regression risk changes
@@ -149,8 +151,8 @@ A spec is `Proposal Ready for Implementation` only when:
 - release hygiene work stays in final closeout
 - the workflow can stop without assuming implementation starts immediately
 
-This gate ends planning and hands control back to the human.
-It does not automatically transition into `/execute`.
+This gate ends planning and hands control back to the human. It does not
+transition into an implementation workflow.
 
 ## Closeout Policy
 

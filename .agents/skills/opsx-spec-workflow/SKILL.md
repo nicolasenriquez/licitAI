@@ -1,6 +1,6 @@
 ---
 name: opsx-spec-workflow
-description: Standardize legacy OpenSpec and `opsx-*` spec work in repositories that still use `openspec/`. Use when the repo contains `openspec/`, the user references `openspec/changes/**`, `/plan source=openspec`, or `opsx-*`, or asks to author, refine, normalize, grill, verify, sync, or archive a legacy spec-driven change. Stop at `Proposal Ready for Implementation` and defer `/execute` until the user explicitly asks to start implementation.
+description: Prepare legacy OpenSpec and `opsx-*` changes until their specification is Implementation Ready. Use only when the human explicitly selects the OpenSpec workflow, references `openspec/changes/**`, asks for `/plan source=openspec`, or invokes an `opsx-*` command. This skill never starts implementation.
 ---
 
 # Opsx Spec Workflow
@@ -26,20 +26,21 @@ compatibility or repo-local workflow expectations.
 Treat slash commands as the workflow engine and this skill as the policy,
 authoring, normalization, and proposal-readiness layer.
 
-This workflow exists to close design and handoff, not to authorize
+This workflow exists only to close design and produce an implementation-ready
+specification. It does not authorize, start, delegate, or recommend
 implementation.
 
-Do not replace `/plan`, `/execute`, `/grill-with-docs`, `/opsx-sync`, or
-`/opsx-archive`.
+Do not replace `/plan` or `/grill-with-docs`. `/execute`, `/opsx-verify`,
+`/opsx-sync`, and `/opsx-archive` are outside this skill's scope.
 
-Stop at `Proposal Ready for Implementation`. Implementation starts later and
-only after the user explicitly asks for `/execute`.
+Stop at `Implementation Ready`. Implementation is a separate future workflow
+that begins only after an explicit user request outside this skill.
 
 ## Activation Gate
 
 Use this skill only when at least one of these is true:
 
-- the repo contains `openspec/`
+- the user explicitly chooses the OpenSpec workflow for the current plan
 - the user references `openspec/changes/**`
 - the user asks for `/plan source=openspec`
 - the user references `opsx-*` commands
@@ -48,23 +49,29 @@ Use this skill only when at least one of these is true:
 Do not trigger this skill only because generic artifact names such as
 `proposal.md`, `design.md`, `tasks.md`, or `spec.md` appear in the request.
 
-If the user is already asking to implement tasks, hand off to `/execute`
-instead of treating this skill as an implementation surface.
+If the user is already asking to implement tasks, state that this skill can
+only prepare the specification. Do not start, hand off to, or recommend an
+implementation command.
 
 ## Operating Sequence
 
 1. Confirm that `openspec/` and `opsx-*` are the right workflow.
 2. Resolve the active change name or path.
-3. Investigate first and lock the ownership boundary before planning slices.
-4. Use the canonical phase order from
+3. Investigate first, lock the ownership boundary, and identify every material
+   gap before authoring the specification.
+4. When a material gap remains, use `grill-with-docs` to resolve it and return
+   to investigation. Do not create a supposedly ready specification while a
+   gap remains.
+5. Once review confirms no material gaps, create or normalize the complete
+   required artifact set, including `spec.md`.
+6. Use the canonical phase order from
    [references/opsx-house-style.md](references/opsx-house-style.md).
-5. Author or normalize `README.md`, `proposal.md`, `design.md`, `tasks.md`,
-   and `spec.md` only as needed for the active change.
-6. Shape `## 2. Implementation` into implementation-ready slices with
+7. Shape `## 2. Implementation` into implementation-ready slices with
    sequential numeric task IDs only.
-7. Stop and use `grill-with-docs` when shared understanding is not yet
-   polished.
-8. Validate artifacts and stop cleanly once they are proposal-ready.
+8. Validate the completed artifacts and stop cleanly once they are
+   `Implementation Ready`.
+9. Report the final readiness state with concise ASCII diagrams for the skill
+   sequence and the actual slice order.
 
 ## Authoring Rules
 
@@ -116,13 +123,11 @@ Use this state machine as the exit contract:
 - `in-progress`
   - use when artifacts still need authoring or normalization
   - return one exact next command only
-- `proposal-ready`
+- `implementation-ready`
   - use only when the spec satisfies the exit gate in
     [references/opsx-house-style.md](references/opsx-house-style.md)
-  - report `Proposal Ready for Implementation`
-  - stop without recommending a mandatory next command
-  - mention `/execute <change> <task-selector>` only as a later entrypoint if
-    the user explicitly decides to start implementation
+  - report `Implementation Ready`
+  - stop without a next command or an implementation handoff
 
 Use one exact next command only while the spec is incomplete or blocked:
 
@@ -132,12 +137,7 @@ Use one exact next command only while the spec is incomplete or blocked:
 - `/grill-with-docs <change-name|proposal-path> source=openspec mode=grill`
   when clarification is required
 - `/plan source=openspec <change-name>` when the change is clear enough to
-  author artifacts but is not yet `Proposal Ready for Implementation`
-- `/opsx-verify <change-name>` when implementation has already happened and
-  alignment must be checked
-- `/opsx-sync <change-name>` when implemented deltas must be synchronized into
-  canonical specs
-- `/opsx-archive <change-name>` only after verification and sync are complete
+  author artifacts but is not yet `Implementation Ready`
 
 ## Validation
 
@@ -145,9 +145,8 @@ When `openspec/` exists, prefer these checks:
 
 - `openspec list --json`
 - `openspec status --change "<change-name>" --json`
-- `openspec instructions apply --change "<change-name>" --json`
-- use `openspec instructions proposal --change "<change-name>" --json` only
-  when artifact diagnosis is needed
+- `openspec instructions proposal --change "<change-name>" --json` when
+  artifact diagnosis is needed
 - `openspec validate "<change-name>"`
 
 Always report:
@@ -156,10 +155,32 @@ Always report:
   refined, or normalized
 - what compatibility fixes were applied and whether clarification through
   `grill-with-docs` is required
-- whether the spec is blocked, in progress, or `Proposal Ready for Implementation`
+- whether the spec is blocked, in progress, or `Implementation Ready`
 - the exact next command only when the spec is blocked or in progress
-- when proposal-ready, that implementation is deferred pending explicit user
-  instruction
+- when implementation-ready, that the complete specification was created or
+  normalized and implementation remains deferred
+
+When the state is `implementation-ready`, include these two concise ASCII
+diagrams in the final report. They must reflect the actual change; do not
+invent slices or dependencies.
+
+```text
+Skill sequence
+[opsx-spec-workflow: investigate] --> [grill-with-docs: only if a gap]
+                                      |
+                                      v
+                         [opsx-spec-workflow: author + validate]
+                                      |
+                                      v
+                         [Implementation Ready: stop]
+
+Slice order
+[Slice 1: <actual name>] --> [Slice 2: <actual name>] --> ...
+```
+
+Omit the optional `grill-with-docs` node when it was not used. Derive the
+slice diagram from `## Execution Order` and show only genuine dependency
+edges; a single slice is shown as one node.
 
 ## Stop Conditions
 
