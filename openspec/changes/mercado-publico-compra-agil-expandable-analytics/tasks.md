@@ -19,45 +19,57 @@ okf_version: "0.1"
 
 ## 1. Contract Coverage (Failing First)
 
-- [ ] 1.1 Prove extraction and canonical refresh preserve unknown versus explicit zero for documents and offers.
+- [x] 1.1 Prove extraction and canonical refresh preserve unknown versus explicit zero for documents and offers.
   Traceability: null and zero have different business meaning and must fail before the schema/source mapping change.
+  Notes: Added fail-first staging-extraction and canonical-refresh coverage; green after 2.1 nullable mappings landed.
 
-- [ ] 1.2 Prove list and analytics share business filters and that pagination/order never change aggregate population.
+- [x] 1.2 Prove list and analytics share business filters and that pagination/order never change aggregate population.
   Traceability: prevents page-derived KPI and filter drift at the owning read-service seam.
+  Notes: Added fail-first read-service coverage for Compra Ágil filters, amount ordering, and analytics independence from list pagination/order; tests remain red until 2.2 adds shared read-contract support.
 
-- [ ] 1.3 Prove four KPI, closed disclosure, six charts, five-column table, SidePanel, and partial coverage in the productive page/Storybook contract.
+- [x] 1.3 Prove four KPI, closed disclosure, six charts, five-column table, SidePanel, and partial coverage in the productive page/Storybook contract.
   Traceability: locks the complete user-visible Compra Ágil composition before replacing production markup.
+  Notes: Added productive-route contract test covering four KPI, two primary charts, closed disclosure with four secondary charts, five-column table, SidePanel activation, and partial coverage language. Test is intentionally red until 2.4 replaces production composition.
 
 ## 2. Implementation
 
-- [ ] 2.1 Expand the nullable canon with reversible instance commands, extraction, idempotent retained-payload backfill, and gold projection.
+- [x] 2.1 Expand the nullable canon with reversible instance commands, extraction, idempotent retained-payload backfill, and gold projection.
   Traceability: preserves source truth through the existing CLI-only persistence path without aggregate storage.
+  Notes: Added seven nullable fields across staging, canonical, and gold; wired source extraction, reversible commands, idempotent retained-payload backfill, canonical refresh, and reconciliation projection.
 
-- [ ] 2.2 Extend the read service, DTO, resolver, GraphQL schema/documents, generated types, and hooks with shared filters and one analytics query.
+- [x] 2.2 Extend the read service, DTO, resolver, GraphQL schema/documents, generated types, and hooks with shared filters and one analytics query.
   Traceability: provides one parameterized full-population contract for list, KPI, and charts.
+  Notes: Added shared business filters, one full-population aggregate SQL query, typed GraphQL transport, generated documents/types, and Apollo hook; validated server and frontend contracts.
 
-- [ ] 2.3 Build the productive Workspace story first with MSW scenarios for full, loading, empty, error, and partial coverage.
+- [x] 2.3 Build the productive Workspace story first with MSW scenarios for full, loading, empty, error, and partial coverage.
   Traceability: turns Storybook into the production composition proof rather than a disconnected prototype.
+  Notes: Extended the productive Workspace story with typed list/analytics fixtures and dedicated full, loading, empty, GraphQL error, and partial-coverage MSW scenarios; frontend typecheck and modules Storybook build pass.
 
-- [ ] 2.4 Integrate filters, KPI, six native charts, five-column table, business-language panel, iconography, and responsive/a11y behavior in the real route.
+- [x] 2.4 Integrate filters, KPI, six native charts, five-column table, business-language panel, iconography, and responsive/a11y behavior in the real route.
   Traceability: ships the approved Compra Ágil experience at the highest existing product seam.
+  Notes: Added the domain-local productive Compra Ágil workspace with shared list/analytics filters, four coverage-aware KPI, six native charts, closed disclosure, five-column table, native SidePanel focus return, business-language detail, responsive containment, reduced-motion/focus behavior, and header iconography; focused tests, frontend typecheck, changed-file lint, formatting, and modules Storybook build pass.
 
-- [ ] 2.5 Remove only superseded prototype markup and stories after productive parity passes.
+- [x] 2.5 Remove only superseded prototype markup and stories after productive parity passes.
   Traceability: avoids dual presentation authorities without deleting evidence prematurely.
+  Notes: Removed the superseded browse/detail prototype story after productive Workspace parity passed; retained the Control Center prototype because that adjacent surface remains out of scope.
 
 ## 3. Verification
 
-- [ ] 3.1 Validate reversible schema commands, canonical refresh/backfill, arithmetic, Santiago timezone, null/zero semantics, and deterministic ordering.
+- [x] 3.1 Validate reversible schema commands, canonical refresh/backfill, arithmetic, Santiago timezone, null/zero semantics, and deterministic ordering.
   Traceability: proves the persistence and analytical correctness boundaries directly.
+  Notes: Focused backend Jest proof passed 7 suites / 83 tests across fast and slow commands, extraction, persistence, canonical refresh, reconciliation, and the detected-process analytics read seam on 2026-08-03.
 
 - [ ] 3.2 Validate resolver, frontend code generation, hooks, shared filters, and aggregate independence from pagination.
   Traceability: proves transport and client consumers preserve the owning read contract.
+  Notes: Resolver/read-service Jest passed 2 suites / 15 tests and hook/composition Jest passed 2 suites / 8 tests on 2026-08-03. Fresh codegen remains blocked: the healthy production-mode Docker server rejects unauthenticated introspection, and the documented current-source server did not open its isolated port within 10 minutes.
 
-- [ ] 3.3 Validate light/dark, desktop/390 px, keyboard, focus, reduced motion, loading, empty, error, partial coverage, and no-data chart behavior.
+- [x] 3.3 Validate light/dark, desktop/390 px, keyboard, focus, reduced motion, loading, empty, error, partial coverage, and no-data chart behavior.
   Traceability: proves the productive presentation remains usable and truthful across required states.
+  Notes: Chromium Storybook passed all 12 productive Workspace stories; isolated interaction runs proved loading, empty, error, and partial handlers without concurrent MSW cross-talk. Full-state keyboard disclosure, light/dark, exact 390 px overflow, focused composition, six-chart/no-data containment, five-column table, SidePanel focus return, visible-focus, and reduced-motion contracts passed.
 
-- [ ] 3.4 Confirm no regression in default hash, Licitaciones, Centro de Control, and native SidePanel behavior.
+- [x] 3.4 Confirm no regression in default hash, Licitaciones, Centro de Control, and native SidePanel behavior.
   Traceability: enforces the successor authority boundary against adjacent stable surfaces.
+  Notes: Focused frontend Jest passed 3 suites / 6 tests for command-center hash/tab behavior, Control Center, and process-detail SidePanel behavior on 2026-08-03.
 
 ## 4. Release Hygiene and Closeout
 
@@ -106,4 +118,3 @@ okf_version: "0.1"
 - Checkpoint: durable docs, concise evidence, validation, sync, and archive readiness agree.
 - Blocked by: Slice 5.
 - Blocks: None.
-
