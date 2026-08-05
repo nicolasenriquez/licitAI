@@ -1,0 +1,15 @@
+{
+  "Items": [
+    {
+      "codigo": "FIXTURE-CA-CODE",
+      "estado": {
+        "codigo": "cerrada",
+        "glosa": "Cerrada"
+      }
+    },
+    {
+      "codigo": "FIXTURE-CA-SCALAR",
+      "estado": "publicada"
+    }
+  ]
+}
