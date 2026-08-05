@@ -1,12 +1,18 @@
 import { type Meta, type StoryObj } from '@storybook/react-vite';
 import { styled } from '@linaria/react';
-import { HttpResponse, graphql } from 'msw';
+import { HttpResponse, delay, graphql } from 'msw';
 import { type ReactNode } from 'react';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { MercadoPublicoBrowseTab } from '@/mercado-publico/components/MercadoPublicoBrowseTab';
+import { MercadoPublicoCompraAgilTab } from '@/mercado-publico/components/MercadoPublicoCompraAgilTab';
 import { MercadoPublicoControlCenterTab } from '@/mercado-publico/components/MercadoPublicoControlCenterTab';
 import { MercadoPublicoProcessDetailPanel } from '@/mercado-publico/components/MercadoPublicoProcessDetailPanel';
-import { MercadoPublicoDetectedProcessType } from '~/generated/graphql';
+import {
+  type GetMercadoPublicoCompraAgilAnalyticsQuery,
+  MercadoPublicoCompraAgilCallStage,
+  MercadoPublicoDetectedProcessType,
+} from '~/generated/graphql';
 import { ComponentDecorator } from 'twenty-ui/testing';
 import { ThemeProvider, themeCssVariables } from 'twenty-ui/theme-constants';
 import { SnackBarDecorator } from '~/testing/decorators/SnackBarDecorator';
@@ -15,6 +21,9 @@ type WorkspaceStoryProps = {
   colorScheme: 'dark' | 'light';
   surface: 'compra-agil' | 'control-center' | 'licitaciones' | 'source-pending';
 };
+
+type AnalyticsFixture =
+  GetMercadoPublicoCompraAgilAnalyticsQuery['mercadoPublicoCompraAgilAnalytics'];
 
 const StyledStorySurface = styled.div`
   background: ${themeCssVariables.background.primary};
@@ -39,14 +48,12 @@ const WorkspaceStory = ({ colorScheme, surface }: WorkspaceStoryProps) => {
         processType={MercadoPublicoDetectedProcessType.compra_agil}
       />
     );
+  } else if (surface === 'compra-agil') {
+    content = <MercadoPublicoCompraAgilTab />;
   } else {
     content = (
       <MercadoPublicoBrowseTab
-        processType={
-          surface === 'compra-agil'
-            ? MercadoPublicoDetectedProcessType.compra_agil
-            : MercadoPublicoDetectedProcessType.licitacion
-        }
+        processType={MercadoPublicoDetectedProcessType.licitacion}
       />
     );
   }
@@ -60,57 +67,254 @@ const WorkspaceStory = ({ colorScheme, surface }: WorkspaceStoryProps) => {
 
 const processFixture = (processType: string) => ({
   __typename: 'MercadoPublicoDetectedProcess',
+  amountAvailableClp: processType === 'compra_agil' ? 1250000 : null,
   buyerCode: 'ORG-FIXTURE-01',
   buyerName: 'Organismo de prueba con nombre extenso',
+  buyerRut: processType === 'compra_agil' ? '61.111.111-1' : null,
+  callStage: processType === 'compra_agil' ? 'first_call' : null,
   canonicalState: 'publicada',
   closingAt: '2026-08-04T15:00:00.000Z',
+  documentCount: processType === 'compra_agil' ? 2 : null,
   lastSeenAt: '2026-07-31T12:00:00.000Z',
+  offersReceivedCount: processType === 'compra_agil' ? 3 : null,
   processCode:
     processType === 'compra_agil' ? 'CA-FIXTURE-001' : 'LP-FIXTURE-001',
   processType,
   publishedAt: '2026-07-30T10:00:00.000Z',
+  purchaseUnitName: processType === 'compra_agil' ? 'Unidad de compras' : null,
   rawStateCode: null,
   rawStateLabel: null,
   reconciliationStatus: null,
+  regionName:
+    processType === 'compra_agil' ? 'Metropolitana de Santiago' : null,
   sourcePriority: 'api-v2',
   title:
     'Proceso de prueba con descripción extensa para validar lectura y contención',
 });
 
-const queryState = {
-  handlers: [
-    graphql.query('GetMercadoPublicoDetectedProcesses', ({ variables }) => {
-      const processType =
-        (variables.processTypes as string[] | undefined)?.[0] ?? 'compra_agil';
+const fullAnalyticsFixture: AnalyticsFixture = {
+  __typename: 'MercadoPublicoCompraAgilAnalytics',
+  amountBands: [
+    {
+      __typename: 'MercadoPublicoCompraAgilAmountBand',
+      band: 'under_100k',
+      count: 0,
+    },
+    {
+      __typename: 'MercadoPublicoCompraAgilAmountBand',
+      band: '100k_to_500k',
+      count: 0,
+    },
+    {
+      __typename: 'MercadoPublicoCompraAgilAmountBand',
+      band: '500k_to_1m',
+      count: 0,
+    },
+    {
+      __typename: 'MercadoPublicoCompraAgilAmountBand',
+      band: '1m_to_3m',
+      count: 2,
+    },
+    {
+      __typename: 'MercadoPublicoCompraAgilAmountBand',
+      band: 'over_3m',
+      count: 0,
+    },
+  ],
+  callStages: [
+    {
+      __typename: 'MercadoPublicoCompraAgilCallStageBucket',
+      callStage: MercadoPublicoCompraAgilCallStage.first_call,
+      count: 2,
+    },
+  ],
+  closingByDay: [
+    {
+      __typename: 'MercadoPublicoCompraAgilClosingBucket',
+      date: '2026-08-03',
+      count: 0,
+    },
+    {
+      __typename: 'MercadoPublicoCompraAgilClosingBucket',
+      date: '2026-08-04',
+      count: 1,
+    },
+    {
+      __typename: 'MercadoPublicoCompraAgilClosingBucket',
+      date: '2026-08-05',
+      count: 1,
+    },
+    {
+      __typename: 'MercadoPublicoCompraAgilClosingBucket',
+      date: '2026-08-06',
+      count: 0,
+    },
+    {
+      __typename: 'MercadoPublicoCompraAgilClosingBucket',
+      date: '2026-08-07',
+      count: 0,
+    },
+    {
+      __typename: 'MercadoPublicoCompraAgilClosingBucket',
+      date: '2026-08-08',
+      count: 0,
+    },
+    {
+      __typename: 'MercadoPublicoCompraAgilClosingBucket',
+      date: '2026-08-09',
+      count: 0,
+    },
+  ],
+  documentAvailability: [
+    {
+      __typename: 'MercadoPublicoCompraAgilDocumentAvailabilityBucket',
+      count: 2,
+      hasDocuments: true,
+    },
+  ],
+  metadata: {
+    __typename: 'MercadoPublicoCompraAgilAnalyticsMetadata',
+    calculatedAt: '2026-08-03T12:00:00.000Z',
+    completePopulation: true,
+    coverage: {
+      __typename: 'MercadoPublicoCompraAgilCoverage',
+      amountAvailableClp: 2,
+      buyerIdentity: 2,
+      callStage: 2,
+      closingAt: 2,
+      documentCount: 2,
+      offersReceivedCount: 2,
+      regionName: 2,
+    },
+    filteredPopulation: 2,
+    timezone: 'America/Santiago',
+  },
+  regions: [
+    {
+      __typename: 'MercadoPublicoCompraAgilRegionBucket',
+      count: 2,
+      regionName: 'Metropolitana de Santiago',
+    },
+  ],
+  summary: {
+    __typename: 'MercadoPublicoCompraAgilAnalyticsSummary',
+    closingNext24Hours: 1,
+    knownAmountAvailableClp: 2500000,
+    positiveDocumentCount: 2,
+    totalFound: 2,
+  },
+  topBuyers: [
+    {
+      __typename: 'MercadoPublicoCompraAgilBuyerBucket',
+      buyerKey: '61.111.111-1',
+      buyerName: 'Organismo de prueba con nombre extenso',
+      count: 2,
+    },
+  ],
+};
 
-      return HttpResponse.json({
-        data: {
-          mercadoPublicoDetectedProcesses: {
-            __typename: 'MercadoPublicoDetectedProcesses',
-            items: [
-              processFixture(processType),
-              {
-                ...processFixture(processType),
-                buyerCode: null,
-                buyerName: null,
-                canonicalState: 'cerrada',
-                closingAt: null,
-                processCode:
-                  processType === 'compra_agil'
-                    ? 'CA-FIXTURE-002'
-                    : 'LP-FIXTURE-002',
-                publishedAt: null,
-                title: null,
-              },
-            ],
-            limit: 25,
-            page: 1,
-            total: 2,
-          },
-        },
-      });
+const emptyAnalyticsFixture: AnalyticsFixture = {
+  ...fullAnalyticsFixture,
+  amountBands: fullAnalyticsFixture.amountBands.map((bucket) => ({
+    ...bucket,
+    count: 0,
+  })),
+  callStages: [],
+  closingByDay: fullAnalyticsFixture.closingByDay.map((bucket) => ({
+    ...bucket,
+    count: 0,
+  })),
+  documentAvailability: [],
+  metadata: {
+    ...fullAnalyticsFixture.metadata,
+    coverage: {
+      ...fullAnalyticsFixture.metadata.coverage,
+      amountAvailableClp: 0,
+      buyerIdentity: 0,
+      callStage: 0,
+      closingAt: 0,
+      documentCount: 0,
+      offersReceivedCount: 0,
+      regionName: 0,
+    },
+    filteredPopulation: 0,
+  },
+  regions: [],
+  summary: {
+    ...fullAnalyticsFixture.summary,
+    closingNext24Hours: 0,
+    knownAmountAvailableClp: null,
+    positiveDocumentCount: 0,
+    totalFound: 0,
+  },
+  topBuyers: [],
+};
+
+const partialAnalyticsFixture: AnalyticsFixture = {
+  ...fullAnalyticsFixture,
+  metadata: {
+    ...fullAnalyticsFixture.metadata,
+    coverage: {
+      ...fullAnalyticsFixture.metadata.coverage,
+      amountAvailableClp: 2,
+      buyerIdentity: 2,
+      callStage: 2,
+      closingAt: 2,
+      documentCount: 2,
+      offersReceivedCount: 2,
+      regionName: 2,
+    },
+    filteredPopulation: 4,
+  },
+};
+
+const analyticsHandler = (fixture = fullAnalyticsFixture) =>
+  graphql.query('GetMercadoPublicoCompraAgilAnalytics', () =>
+    HttpResponse.json({
+      data: { mercadoPublicoCompraAgilAnalytics: fixture },
     }),
-    graphql.query('GetMercadoPublicoProcessDetailV2', () =>
+  );
+
+const detectedProcessesHandler = graphql.query(
+  'GetMercadoPublicoDetectedProcesses',
+  ({ variables }) => {
+    const processType =
+      (variables.processTypes as string[] | undefined)?.[0] ?? 'compra_agil';
+
+    return HttpResponse.json({
+      data: {
+        mercadoPublicoDetectedProcesses: {
+          __typename: 'MercadoPublicoDetectedProcesses',
+          items: [
+            processFixture(processType),
+            {
+              ...processFixture(processType),
+              buyerCode: null,
+              buyerName: null,
+              canonicalState: 'cerrada',
+              closingAt: '2026-08-05T15:00:00.000Z',
+              processCode:
+                processType === 'compra_agil'
+                  ? 'CA-FIXTURE-002'
+                  : 'LP-FIXTURE-002',
+              publishedAt: null,
+              title: null,
+            },
+          ],
+          limit: 25,
+          page: 1,
+          total: 2,
+        },
+      },
+    });
+  },
+);
+
+const queryState = {
+  handlers: {
+    analytics: analyticsHandler(),
+    detectedProcesses: detectedProcessesHandler,
+    processDetail: graphql.query('GetMercadoPublicoProcessDetailV2', () =>
       HttpResponse.json({
         data: {
           mercadoPublicoProcessDetail: {
@@ -139,7 +343,7 @@ const queryState = {
         },
       }),
     ),
-    graphql.query('GetMercadoPublicoPipelineHealth', () =>
+    pipelineHealth: graphql.query('GetMercadoPublicoPipelineHealth', () =>
       HttpResponse.json({
         data: {
           mercadoPublicoPipelineHealth: {
@@ -162,7 +366,7 @@ const queryState = {
         },
       }),
     ),
-    graphql.query('GetMercadoPublicoApiQuotaUsage', () =>
+    apiQuotaUsage: graphql.query('GetMercadoPublicoApiQuotaUsage', () =>
       HttpResponse.json({
         data: {
           mercadoPublicoApiQuotaUsage: {
@@ -183,7 +387,7 @@ const queryState = {
         },
       }),
     ),
-    graphql.query('GetMercadoPublicoJobRuns', () =>
+    jobRuns: graphql.query('GetMercadoPublicoJobRuns', () =>
       HttpResponse.json({
         data: {
           mercadoPublicoJobRuns: {
@@ -211,7 +415,7 @@ const queryState = {
         },
       }),
     ),
-    graphql.query('GetMercadoPublicoApiCallLog', () =>
+    apiCallLog: graphql.query('GetMercadoPublicoApiCallLog', () =>
       HttpResponse.json({
         data: {
           mercadoPublicoApiCallLog: {
@@ -235,7 +439,7 @@ const queryState = {
         },
       }),
     ),
-    graphql.query('GetMercadoPublicoCsvFileHealth', () =>
+    csvFileHealth: graphql.query('GetMercadoPublicoCsvFileHealth', () =>
       HttpResponse.json({
         data: {
           mercadoPublicoCsvFileHealth: {
@@ -264,7 +468,7 @@ const queryState = {
         },
       }),
     ),
-  ],
+  },
 };
 
 const meta: Meta<typeof WorkspaceStory> = {
@@ -282,6 +486,128 @@ type Story = StoryObj<typeof WorkspaceStory>;
 
 export const CompraAgil: Story = {
   args: { colorScheme: 'light', surface: 'compra-agil' },
+  name: 'Compra Agil / Full',
+  play: async ({ canvasElement }) => {
+    const disclosure = await within(canvasElement).findByTestId(
+      'compra-agil-disclosure',
+    );
+
+    disclosure.focus();
+    expect(disclosure).toHaveFocus();
+    await userEvent.keyboard('{Enter}');
+    expect(disclosure).toHaveAttribute('aria-expanded', 'true');
+  },
+};
+
+export const CompraAgilLoading: Story = {
+  args: { colorScheme: 'light', surface: 'compra-agil' },
+  parameters: {
+    msw: {
+      handlers: {
+        ...queryState.handlers,
+        detectedProcesses: graphql.query(
+          'GetMercadoPublicoDetectedProcesses',
+          async () => {
+            await delay('infinite');
+            return HttpResponse.json({ data: null });
+          },
+        ),
+        analytics: graphql.query(
+          'GetMercadoPublicoCompraAgilAnalytics',
+          async () => {
+            await delay('infinite');
+            return HttpResponse.json({ data: null });
+          },
+        ),
+      },
+    },
+  },
+};
+
+export const CompraAgilEmpty: Story = {
+  args: { colorScheme: 'light', surface: 'compra-agil' },
+  parameters: {
+    msw: {
+      handlers: {
+        ...queryState.handlers,
+        detectedProcesses: graphql.query(
+          'GetMercadoPublicoDetectedProcesses',
+          () =>
+            HttpResponse.json({
+              data: {
+                mercadoPublicoDetectedProcesses: {
+                  __typename: 'MercadoPublicoDetectedProcesses',
+                  items: [],
+                  limit: 25,
+                  page: 1,
+                  total: 0,
+                },
+              },
+            }),
+        ),
+        analytics: analyticsHandler(emptyAnalyticsFixture),
+      },
+    },
+  },
+};
+
+export const CompraAgilError: Story = {
+  args: { colorScheme: 'light', surface: 'compra-agil' },
+  parameters: {
+    msw: {
+      handlers: {
+        ...queryState.handlers,
+        detectedProcesses: graphql.query(
+          'GetMercadoPublicoDetectedProcesses',
+          () =>
+            HttpResponse.json({ errors: [{ message: 'Fixture list error' }] }),
+        ),
+        analytics: graphql.query('GetMercadoPublicoCompraAgilAnalytics', () =>
+          HttpResponse.json({
+            errors: [{ message: 'Fixture analytics error' }],
+          }),
+        ),
+      },
+    },
+  },
+};
+
+export const CompraAgilPartialCoverage: Story = {
+  args: { colorScheme: 'light', surface: 'compra-agil' },
+  parameters: {
+    msw: {
+      handlers: {
+        ...queryState.handlers,
+        analytics: analyticsHandler(partialAnalyticsFixture),
+        detectedProcesses: detectedProcessesHandler,
+      },
+    },
+  },
+};
+
+export const CompraAgil390: Story = {
+  args: { colorScheme: 'light', surface: 'compra-agil' },
+  globals: {
+    viewport: { isRotated: false, value: 'compraAgil390' },
+  },
+  parameters: {
+    viewport: {
+      options: {
+        compraAgil390: {
+          name: 'Compra Agil 390 px',
+          styles: { height: '844px', width: '390px' },
+          type: 'mobile',
+        },
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const documentElement = canvasElement.ownerDocument.documentElement;
+
+    expect(documentElement.scrollWidth).toBeLessThanOrEqual(
+      documentElement.clientWidth,
+    );
+  },
 };
 
 export const Licitaciones: Story = {

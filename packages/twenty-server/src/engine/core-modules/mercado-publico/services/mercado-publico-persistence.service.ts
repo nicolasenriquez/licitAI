@@ -9,6 +9,7 @@ import { type MercadoPublicoApiV1LicitacionesByDateResponse } from 'src/engine/c
 import { type MercadoPublicoApiV1OcByDateResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-ordenes-de-compra-client.service';
 import { type MercadoPublicoApiV2CompraAgilListResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { coerceToNullableString } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/coerce-to-nullable-string.util';
+import { extractV2CompraAgilCanonicalFields } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
 import { normalizeV2CompraAgilDate } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/normalize-v2-compra-agil-date.util';
 import {
   type MercadoPublicoJobName,
@@ -701,6 +702,13 @@ export class MercadoPublicoPersistenceService {
               codigo,
               title,
               buyer_name,
+              buyer_rut,
+              purchase_unit_name,
+              region_name,
+              amount_available_clp,
+              call_stage,
+              document_count,
+              offers_received_count,
               estado,
               id_orden_compra,
               id_oc,
@@ -719,11 +727,13 @@ export class MercadoPublicoPersistenceService {
               fetched_at
             )
           `,
-          22,
+          29,
         );
 
         for (const compraAgilItem of input.apiResponse.compraAgil) {
           const ordenCompra = compraAgilItem.orden_compra;
+          const canonicalFields =
+            extractV2CompraAgilCanonicalFields(compraAgilItem);
           const fechaPublicacion = normalizeV2CompraAgilDate(
             compraAgilItem.fecha_publicacion,
           );
@@ -743,6 +753,13 @@ export class MercadoPublicoPersistenceService {
             coerceToNullableString(
               compraAgilItem.institucion?.organismo_comprador,
             ),
+            canonicalFields.buyerRut,
+            canonicalFields.purchaseUnitName,
+            canonicalFields.regionName,
+            canonicalFields.amountAvailableClp,
+            canonicalFields.callStage,
+            canonicalFields.documentCount,
+            canonicalFields.offersReceivedCount,
             coerceToNullableString(compraAgilItem.estado),
             coerceToNullableString(ordenCompra?.id_orden_compra),
             coerceToNullableString(ordenCompra?.id_oc),

@@ -5,11 +5,13 @@ import { MercadoPublicoDetectedProcessReadService } from 'src/engine/core-module
 import { MercadoPublicoJobRunReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-job-run-read.service';
 import { MercadoPublicoPipelineHealthReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-pipeline-health-read.service';
 import { MercadoPublicoProcessDetailReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-process-detail-read.service';
+import { type MercadoPublicoCompraAgilCallStage } from 'src/engine/core-modules/mercado-publico/constants/detected-process-read.constants';
 import { MercadoPublicoQueryResolver } from 'src/engine/core-modules/mercado-publico/mercado-publico-query.resolver';
 
 describe('MercadoPublicoQueryResolver', () => {
   const detectedProcessReadService = {
     listDetectedProcesses: jest.fn(),
+    getCompraAgilAnalytics: jest.fn(),
   } as unknown as jest.Mocked<MercadoPublicoDetectedProcessReadService>;
   const processDetailReadService = {
     getDetectedProcessDetail: jest.fn(),
@@ -145,6 +147,40 @@ describe('MercadoPublicoQueryResolver', () => {
       limit: 10,
       offset: 20,
     });
+  });
+
+  it('delegates Compra Agil analytics business filters', async () => {
+    const analyticsResult = {
+      summary: {
+        totalFound: 1,
+        closingNext24Hours: 0,
+        knownAmountAvailableClp: 100_000,
+        positiveDocumentCount: 1,
+      },
+    };
+    detectedProcessReadService.getCompraAgilAnalytics.mockResolvedValue(
+      analyticsResult as never,
+    );
+
+    const filters = {
+      search: 'mantencion',
+      regionName: 'Metropolitana',
+      closingFrom: new Date('2026-06-01T00:00:00.000Z'),
+      closingTo: new Date('2026-06-30T23:59:59.000Z'),
+      hasDocuments: true,
+      callStages: ['first_call'] as MercadoPublicoCompraAgilCallStage[],
+      amountMin: 100_000,
+      amountMax: 1_000_000,
+      buyerRut: '60.000.000-0',
+    };
+
+    await expect(
+      resolver.mercadoPublicoCompraAgilAnalytics(filters),
+    ).resolves.toBe(analyticsResult);
+
+    expect(
+      detectedProcessReadService.getCompraAgilAnalytics,
+    ).toHaveBeenCalledWith(filters);
   });
 
   it('redacts sensitive request parameters recursively before returning API logs', async () => {

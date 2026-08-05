@@ -18,7 +18,10 @@ import {
 } from 'src/engine/core-modules/mercado-publico/constants/detected-process-read.constants';
 import { type MercadoPublicoJobRunStatus } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 import { type MercadoPublicoDetectedProcessDetail } from 'src/engine/core-modules/mercado-publico/types/process-detail-read.types';
-import { type MercadoPublicoListDetectedProcessesResult } from 'src/engine/core-modules/mercado-publico/types/detected-process-read.types';
+import {
+  type MercadoPublicoCompraAgilAnalytics,
+  type MercadoPublicoListDetectedProcessesResult,
+} from 'src/engine/core-modules/mercado-publico/types/detected-process-read.types';
 import { type MercadoPublicoListJobRunsResult } from 'src/engine/core-modules/mercado-publico/types/job-run-read.types';
 import { type MercadoPublicoListApiCallLogsResult } from 'src/engine/core-modules/mercado-publico/types/api-call-log-read.types';
 import { UserAuthGuard } from 'src/engine/guards/user-auth.guard';
@@ -28,6 +31,8 @@ import {
   MercadoPublicoApiCallLogArgs,
   MercadoPublicoApiCallLogsDTO,
   MercadoPublicoApiQuotaUsageDTO,
+  MercadoPublicoCompraAgilAnalyticsArgs,
+  MercadoPublicoCompraAgilAnalyticsDTO,
   MercadoPublicoCsvFileHealthDTO,
   MercadoPublicoDetectedProcessesArgs,
   MercadoPublicoDetectedProcessesDTO,
@@ -65,6 +70,15 @@ export class MercadoPublicoQueryResolver {
       publishedFrom: args.publishedFrom,
       publishedTo: args.publishedTo,
       changedSince: args.changedSince,
+      search: args.search,
+      regionName: args.regionName,
+      closingFrom: args.closingFrom,
+      closingTo: args.closingTo,
+      hasDocuments: args.hasDocuments,
+      callStages: args.callStages,
+      amountMin: args.amountMin,
+      amountMax: args.amountMax,
+      buyerRut: args.buyerRut,
       page: args.page,
       limit: args.limit,
       sort: args.sort
@@ -74,6 +88,23 @@ export class MercadoPublicoQueryResolver {
               .direction as MercadoPublicoDetectedProcessSortDirection,
           }
         : undefined,
+    });
+  }
+
+  @Query(() => MercadoPublicoCompraAgilAnalyticsDTO)
+  async mercadoPublicoCompraAgilAnalytics(
+    @Args() args: MercadoPublicoCompraAgilAnalyticsArgs,
+  ): Promise<MercadoPublicoCompraAgilAnalytics> {
+    return this.detectedProcessReadService.getCompraAgilAnalytics({
+      search: args.search,
+      regionName: args.regionName,
+      closingFrom: args.closingFrom,
+      closingTo: args.closingTo,
+      hasDocuments: args.hasDocuments,
+      callStages: args.callStages,
+      amountMin: args.amountMin,
+      amountMax: args.amountMax,
+      buyerRut: args.buyerRut,
     });
   }
 

@@ -105,6 +105,8 @@ import { MpCompraAgilV2BrowseBackfillSlowInstanceCommand } from 'src/database/co
 import { MpStgJobRunRawCsvFileLinkColumnFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1785354861319-mp-stg-job-run-raw-csv-file-link-column';
 import { MpStgJobRunAddPartialStatusFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1785354861320-mp-stg-job-run-add-partial-status';
 import { MpStgJobRunManifestFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1785354861321-mp-stg-job-run-manifest';
+import { MpCompraAgilV2AnalyticsFieldsFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1785354861322-mp-compra-agil-v2-analytics-fields';
+import { MpCompraAgilV2AnalyticsBackfillSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1785354861323-mp-compra-agil-v2-analytics-backfill';
 
 export const INSTANCE_COMMANDS = [
   AddViewFieldGroupIdIndexOnViewFieldFastInstanceCommand,
@@ -211,4 +213,6 @@ export const INSTANCE_COMMANDS = [
   MpStgJobRunRawCsvFileLinkColumnFastInstanceCommand,
   MpStgJobRunAddPartialStatusFastInstanceCommand,
   MpStgJobRunManifestFastInstanceCommand,
+  MpCompraAgilV2AnalyticsFieldsFastInstanceCommand,
+  MpCompraAgilV2AnalyticsBackfillSlowInstanceCommand,
 ];

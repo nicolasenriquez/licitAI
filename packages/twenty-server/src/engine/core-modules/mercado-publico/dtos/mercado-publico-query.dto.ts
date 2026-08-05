@@ -12,6 +12,19 @@ import {
 import GraphQLJSON from 'graphql-type-json';
 
 import {
+  type MercadoPublicoCompraAgilAnalytics,
+  type MercadoPublicoCompraAgilAnalyticsMetadata,
+  type MercadoPublicoCompraAgilAnalyticsSummary,
+  type MercadoPublicoCompraAgilAmountBand,
+  type MercadoPublicoCompraAgilBuyerBucket,
+  type MercadoPublicoCompraAgilCallStageBucket,
+  type MercadoPublicoCompraAgilClosingBucket,
+  type MercadoPublicoCompraAgilDocumentAvailabilityBucket,
+  type MercadoPublicoCompraAgilRegionBucket,
+  type MercadoPublicoCompraAgilCoverage,
+} from 'src/engine/core-modules/mercado-publico/types/detected-process-read.types';
+import {
+  type MercadoPublicoCompraAgilCallStage,
   type MercadoPublicoDetectedProcessSortDirection,
   type MercadoPublicoDetectedProcessSortKey,
   type MercadoPublicoDetectedProcessType,
@@ -28,6 +41,7 @@ export enum MercadoPublicoDetectedProcessSortKeyGraphQL {
   lastSeenAt = 'lastSeenAt',
   publishedAt = 'publishedAt',
   closingAt = 'closingAt',
+  amountAvailableClp = 'amountAvailableClp',
   processCode = 'processCode',
   canonicalState = 'canonicalState',
 }
@@ -35,6 +49,11 @@ export enum MercadoPublicoDetectedProcessSortKeyGraphQL {
 export enum MercadoPublicoDetectedProcessSortDirectionGraphQL {
   asc = 'asc',
   desc = 'desc',
+}
+
+export enum MercadoPublicoCompraAgilCallStageGraphQL {
+  first_call = 'first_call',
+  second_call = 'second_call',
 }
 
 export enum MercadoPublicoJobRunStatusGraphQL {
@@ -55,6 +74,9 @@ registerEnumType(MercadoPublicoDetectedProcessSortKeyGraphQL, {
 });
 registerEnumType(MercadoPublicoDetectedProcessSortDirectionGraphQL, {
   name: 'MercadoPublicoDetectedProcessSortDirection',
+});
+registerEnumType(MercadoPublicoCompraAgilCallStageGraphQL, {
+  name: 'MercadoPublicoCompraAgilCallStage',
 });
 registerEnumType(MercadoPublicoJobRunStatusGraphQL, {
   name: 'MercadoPublicoJobRunStatus',
@@ -81,6 +103,35 @@ export class MercadoPublicoDetectedProcessesArgs {
 
   @Field(() => String, { nullable: true })
   buyerCode?: string;
+
+  @Field(() => String, { nullable: true })
+  search?: string;
+
+  @Field(() => String, { nullable: true })
+  regionName?: string;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  closingFrom?: Date;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  closingTo?: Date;
+
+  @Field(() => Boolean, { nullable: true })
+  hasDocuments?: boolean;
+
+  @Field(() => [MercadoPublicoCompraAgilCallStageGraphQL], {
+    nullable: true,
+  })
+  callStages?: MercadoPublicoCompraAgilCallStage[];
+
+  @Field(() => Float, { nullable: true })
+  amountMin?: number;
+
+  @Field(() => Float, { nullable: true })
+  amountMax?: number;
+
+  @Field(() => String, { nullable: true })
+  buyerRut?: string;
 
   @Field(() => GraphQLISODateTime, { nullable: true })
   publishedFrom?: Date;
@@ -175,6 +226,27 @@ export class MercadoPublicoDetectedProcessDTO {
   @Field(() => String, { nullable: true })
   buyerName: string | null;
 
+  @Field(() => String, { nullable: true })
+  buyerRut: string | null;
+
+  @Field(() => String, { nullable: true })
+  purchaseUnitName: string | null;
+
+  @Field(() => String, { nullable: true })
+  regionName: string | null;
+
+  @Field(() => Float, { nullable: true })
+  amountAvailableClp: number | null;
+
+  @Field(() => MercadoPublicoCompraAgilCallStageGraphQL, { nullable: true })
+  callStage: MercadoPublicoCompraAgilCallStage | null;
+
+  @Field(() => Int, { nullable: true })
+  documentCount: number | null;
+
+  @Field(() => Int, { nullable: true })
+  offersReceivedCount: number | null;
+
   @Field(() => GraphQLISODateTime, { nullable: true })
   publishedAt: Date | null;
 
@@ -204,6 +276,179 @@ export class MercadoPublicoDetectedProcessesDTO {
 
   @Field(() => Int)
   limit: number;
+}
+
+@ArgsType()
+export class MercadoPublicoCompraAgilAnalyticsArgs {
+  @Field(() => String, { nullable: true })
+  search?: string;
+
+  @Field(() => String, { nullable: true })
+  regionName?: string;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  closingFrom?: Date;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  closingTo?: Date;
+
+  @Field(() => Boolean, { nullable: true })
+  hasDocuments?: boolean;
+
+  @Field(() => [MercadoPublicoCompraAgilCallStageGraphQL], {
+    nullable: true,
+  })
+  callStages?: MercadoPublicoCompraAgilCallStage[];
+
+  @Field(() => Float, { nullable: true })
+  amountMin?: number;
+
+  @Field(() => Float, { nullable: true })
+  amountMax?: number;
+
+  @Field(() => String, { nullable: true })
+  buyerRut?: string;
+}
+
+@ObjectType('MercadoPublicoCompraAgilAnalyticsSummary')
+export class MercadoPublicoCompraAgilAnalyticsSummaryDTO implements MercadoPublicoCompraAgilAnalyticsSummary {
+  @Field(() => Int)
+  totalFound: number;
+
+  @Field(() => Int)
+  closingNext24Hours: number;
+
+  @Field(() => Float, { nullable: true })
+  knownAmountAvailableClp: number | null;
+
+  @Field(() => Int)
+  positiveDocumentCount: number;
+}
+
+@ObjectType('MercadoPublicoCompraAgilClosingBucket')
+export class MercadoPublicoCompraAgilClosingBucketDTO implements MercadoPublicoCompraAgilClosingBucket {
+  @Field(() => String)
+  date: string;
+
+  @Field(() => Int)
+  count: number;
+}
+
+@ObjectType('MercadoPublicoCompraAgilRegionBucket')
+export class MercadoPublicoCompraAgilRegionBucketDTO implements MercadoPublicoCompraAgilRegionBucket {
+  @Field(() => String)
+  regionName: string;
+
+  @Field(() => Int)
+  count: number;
+}
+
+@ObjectType('MercadoPublicoCompraAgilBuyerBucket')
+export class MercadoPublicoCompraAgilBuyerBucketDTO implements MercadoPublicoCompraAgilBuyerBucket {
+  @Field(() => String)
+  buyerKey: string;
+
+  @Field(() => String, { nullable: true })
+  buyerName: string | null;
+
+  @Field(() => Int)
+  count: number;
+}
+
+@ObjectType('MercadoPublicoCompraAgilAmountBand')
+export class MercadoPublicoCompraAgilAmountBandDTO implements MercadoPublicoCompraAgilAmountBand {
+  @Field(() => String)
+  band: string;
+
+  @Field(() => Int)
+  count: number;
+}
+
+@ObjectType('MercadoPublicoCompraAgilCallStageBucket')
+export class MercadoPublicoCompraAgilCallStageBucketDTO implements MercadoPublicoCompraAgilCallStageBucket {
+  @Field(() => MercadoPublicoCompraAgilCallStageGraphQL)
+  callStage: MercadoPublicoCompraAgilCallStage;
+
+  @Field(() => Int)
+  count: number;
+}
+
+@ObjectType('MercadoPublicoCompraAgilDocumentAvailabilityBucket')
+export class MercadoPublicoCompraAgilDocumentAvailabilityBucketDTO implements MercadoPublicoCompraAgilDocumentAvailabilityBucket {
+  @Field(() => Boolean)
+  hasDocuments: boolean;
+
+  @Field(() => Int)
+  count: number;
+}
+
+@ObjectType('MercadoPublicoCompraAgilCoverage')
+export class MercadoPublicoCompraAgilCoverageDTO implements MercadoPublicoCompraAgilCoverage {
+  @Field(() => Int)
+  closingAt: number;
+
+  @Field(() => Int)
+  regionName: number;
+
+  @Field(() => Int)
+  buyerIdentity: number;
+
+  @Field(() => Int)
+  amountAvailableClp: number;
+
+  @Field(() => Int)
+  callStage: number;
+
+  @Field(() => Int)
+  documentCount: number;
+
+  @Field(() => Int)
+  offersReceivedCount: number;
+}
+
+@ObjectType('MercadoPublicoCompraAgilAnalyticsMetadata')
+export class MercadoPublicoCompraAgilAnalyticsMetadataDTO implements MercadoPublicoCompraAgilAnalyticsMetadata {
+  @Field(() => Int)
+  filteredPopulation: number;
+
+  @Field(() => GraphQLISODateTime)
+  calculatedAt: Date;
+
+  @Field(() => String)
+  timezone: string;
+
+  @Field(() => Boolean)
+  completePopulation: boolean;
+
+  @Field(() => MercadoPublicoCompraAgilCoverageDTO)
+  coverage: MercadoPublicoCompraAgilCoverageDTO;
+}
+
+@ObjectType('MercadoPublicoCompraAgilAnalytics')
+export class MercadoPublicoCompraAgilAnalyticsDTO implements MercadoPublicoCompraAgilAnalytics {
+  @Field(() => MercadoPublicoCompraAgilAnalyticsSummaryDTO)
+  summary: MercadoPublicoCompraAgilAnalyticsSummaryDTO;
+
+  @Field(() => [MercadoPublicoCompraAgilClosingBucketDTO])
+  closingByDay: MercadoPublicoCompraAgilClosingBucketDTO[];
+
+  @Field(() => [MercadoPublicoCompraAgilRegionBucketDTO])
+  regions: MercadoPublicoCompraAgilRegionBucketDTO[];
+
+  @Field(() => [MercadoPublicoCompraAgilBuyerBucketDTO])
+  topBuyers: MercadoPublicoCompraAgilBuyerBucketDTO[];
+
+  @Field(() => [MercadoPublicoCompraAgilAmountBandDTO])
+  amountBands: MercadoPublicoCompraAgilAmountBandDTO[];
+
+  @Field(() => [MercadoPublicoCompraAgilCallStageBucketDTO])
+  callStages: MercadoPublicoCompraAgilCallStageBucketDTO[];
+
+  @Field(() => [MercadoPublicoCompraAgilDocumentAvailabilityBucketDTO])
+  documentAvailability: MercadoPublicoCompraAgilDocumentAvailabilityBucketDTO[];
+
+  @Field(() => MercadoPublicoCompraAgilAnalyticsMetadataDTO)
+  metadata: MercadoPublicoCompraAgilAnalyticsMetadataDTO;
 }
 
 @ObjectType('MercadoPublicoProcessDetailRawState')

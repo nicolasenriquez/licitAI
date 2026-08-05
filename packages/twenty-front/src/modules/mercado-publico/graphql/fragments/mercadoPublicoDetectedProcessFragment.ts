@@ -10,6 +10,13 @@ export const MERCADO_PUBLICO_DETECTED_PROCESS_FRAGMENT = gql`
     rawStateLabel
     buyerCode
     buyerName
+    buyerRut
+    purchaseUnitName
+    regionName
+    amountAvailableClp
+    callStage
+    documentCount
+    offersReceivedCount
     publishedAt
     closingAt
     sourcePriority

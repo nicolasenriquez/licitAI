@@ -403,6 +403,68 @@ describe('MercadoPublicoPersistenceService', () => {
     expect(executedSql[1]).toContain('raw_fecha_publicacion');
   });
 
+  it('should preserve explicit zero and unknown document and offer counts in staging extraction', async () => {
+    const executedQueries: Array<{ sql: string; params: unknown[] }> = [];
+    const mockEntityManager = {
+      query: jest
+        .fn()
+        .mockImplementation(async (sql: string, params: unknown[] = []) => {
+          executedQueries.push({ sql, params: [...params] });
+
+          if (sql.includes('INSERT INTO mp.raw_api_payload')) {
+            return [{ id: 'raw-api-payload-id' }];
+          }
+
+          return [];
+        }),
+    };
+    const mockDataSource = {
+      transaction: jest.fn().mockImplementation(async (callback) => {
+        return callback(mockEntityManager);
+      }),
+    };
+    const service = new MercadoPublicoPersistenceService(
+      mockDataSource as never,
+    );
+
+    await service.persistV2CompraAgilSnapshot({
+      jobRunRecordId: 'job-run-record-id',
+      snapshotKind: 'detail',
+      apiResponse: {
+        endpoint: 'detail-by-codigo',
+        source: 'api-v2-compra-agil',
+        requestParams: { codigo: 'CA-KNOWN' },
+        requestFingerprint: 'request-fingerprint',
+        payloadChecksum: 'payload-checksum',
+        schemaFingerprint: 'schema-fingerprint',
+        httpStatus: 200,
+        fetchedAt: new Date('2026-06-15T00:00:00.000Z'),
+        rawPayload: {},
+        compraAgil: [
+          {
+            codigo: 'CA-KNOWN',
+            documentos: [],
+            resumen: { total_ofertas_recibidas: 0 },
+          },
+          { codigo: 'CA-UNKNOWN' },
+        ],
+      },
+    });
+
+    const stagingQuery = executedQueries.find((query) =>
+      query.sql.includes('INSERT INTO mp.stg_api_v2_compra_agil'),
+    );
+
+    expect(stagingQuery).toBeDefined();
+    expect(stagingQuery!.sql).toContain('document_count');
+    expect(stagingQuery!.sql).toContain('offers_received_count');
+
+    expect(stagingQuery!.params[11]).toBe(0);
+    expect(stagingQuery!.params[12]).toBe(0);
+    expect(stagingQuery!.params[40]).toBeNull();
+    expect(stagingQuery!.params[41]).toBeNull();
+  });
+
   it('does not restage a duplicate V2 Compra Agil raw payload', async () => {
     const executedSql: string[] = [];
     const mockEntityManager = {

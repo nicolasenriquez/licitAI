@@ -682,6 +682,13 @@ describe('MercadoPublicoReconciliationService', () => {
       );
       expect(compraAgilSql).toContain('title');
       expect(compraAgilSql).toContain('buyer_name');
+      expect(compraAgilSql).toContain('buyer_rut');
+      expect(compraAgilSql).toContain('purchase_unit_name');
+      expect(compraAgilSql).toContain('region_name');
+      expect(compraAgilSql).toContain('amount_available_clp');
+      expect(compraAgilSql).toContain('call_stage');
+      expect(compraAgilSql).toContain('document_count');
+      expect(compraAgilSql).toContain('offers_received_count');
       expect(compraAgilSql).toContain('fecha_publicacion AS published_at');
       expect(compraAgilSql).toContain('fecha_cierre AS closing_at');
       expect(materializationSql).toContain('BOOL_OR');

@@ -1,6 +1,37 @@
 import { type DataSource } from 'typeorm';
 
 import { MercadoPublicoDetectedProcessReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-detected-process-read.service';
+import { type MercadoPublicoListDetectedProcessesFilters } from 'src/engine/core-modules/mercado-publico/types/detected-process-read.types';
+
+type CompraAgilBusinessFilters = {
+  search: string;
+  regionName: string;
+  closingFrom: Date;
+  closingTo: Date;
+  hasDocuments: boolean;
+  callStages: string[];
+  amountMin: number;
+  amountMax: number;
+  buyerRut: string;
+};
+
+type MercadoPublicoCompraAgilAnalyticsReader = {
+  getCompraAgilAnalytics: (
+    filters: CompraAgilBusinessFilters,
+  ) => Promise<unknown>;
+};
+
+const COMPRA_AGIL_BUSINESS_FILTERS: CompraAgilBusinessFilters = {
+  search: 'mantención',
+  regionName: 'Metropolitana',
+  closingFrom: new Date('2026-06-01T00:00:00.000Z'),
+  closingTo: new Date('2026-06-30T23:59:59.000Z'),
+  hasDocuments: true,
+  callStages: ['first_call'],
+  amountMin: 100_000,
+  amountMax: 1_000_000,
+  buyerRut: '60.000.000-0',
+};
 
 describe('MercadoPublicoDetectedProcessReadService', () => {
   const mockQuery = jest.fn();
@@ -74,6 +105,13 @@ describe('MercadoPublicoDetectedProcessReadService', () => {
           rawStateLabel: 'Publicada',
           buyerCode: 'BUY-1',
           buyerName: 'Municipalidad Uno',
+          buyerRut: null,
+          purchaseUnitName: null,
+          regionName: null,
+          amountAvailableClp: null,
+          callStage: null,
+          documentCount: null,
+          offersReceivedCount: null,
           publishedAt: new Date('2026-06-10T00:00:00.000Z'),
           closingAt: new Date('2026-06-30T00:00:00.000Z'),
           sourcePriority: 'api',
@@ -119,6 +157,107 @@ describe('MercadoPublicoDetectedProcessReadService', () => {
       25,
       25,
     ]);
+  });
+
+  it('applies Compra Agil business filters before pagination', async () => {
+    mockQuery.mockResolvedValueOnce([{ total: '1' }]).mockResolvedValueOnce([]);
+
+    await service.listDetectedProcesses({
+      processTypes: ['compra_agil'],
+      ...COMPRA_AGIL_BUSINESS_FILTERS,
+    } as unknown as MercadoPublicoListDetectedProcessesFilters);
+
+    const [countSql, countParams] = mockQuery.mock.calls[0];
+    expect(countSql).toContain('process_code');
+    expect(countSql).toContain('title');
+    expect(countSql).toContain('buyer_name');
+    expect(countSql).toContain('purchase_unit_name');
+    expect(countSql).toContain('region_name');
+    expect(countSql).toContain('closing_at');
+    expect(countSql).toContain('document_count');
+    expect(countSql).toContain('call_stage');
+    expect(countSql).toContain('amount_available_clp');
+    expect(countSql).toContain('buyer_rut');
+    expect(countParams).toEqual(
+      expect.arrayContaining([
+        ['compra_agil'],
+        'Metropolitana',
+        COMPRA_AGIL_BUSINESS_FILTERS.closingFrom,
+        COMPRA_AGIL_BUSINESS_FILTERS.closingTo,
+        ['first_call'],
+        100_000,
+        1_000_000,
+        '60.000.000-0',
+      ]),
+    );
+  });
+
+  it('whitelists amount sorting for Compra Agil list reads', async () => {
+    mockQuery.mockResolvedValueOnce([{ total: '0' }]).mockResolvedValueOnce([]);
+
+    await service.listDetectedProcesses({
+      processTypes: ['compra_agil'],
+      ...COMPRA_AGIL_BUSINESS_FILTERS,
+      page: 2,
+      limit: 10,
+      sort: { key: 'amountAvailableClp', direction: 'desc' },
+    } as unknown as MercadoPublicoListDetectedProcessesFilters);
+
+    const [listSql, listParams] = mockQuery.mock.calls[1];
+    expect(listSql).toContain('ORDER BY amount_available_clp DESC');
+    expect(listParams).toEqual(expect.arrayContaining([10, 10]));
+  });
+
+  it('keeps analytics population independent from list pagination and order', async () => {
+    mockQuery.mockResolvedValue([]);
+
+    const analyticsReader =
+      service as unknown as MercadoPublicoCompraAgilAnalyticsReader;
+    const listFilters = {
+      processTypes: ['compra_agil'],
+      ...COMPRA_AGIL_BUSINESS_FILTERS,
+    };
+
+    await service.listDetectedProcesses({
+      ...listFilters,
+      page: 1,
+      limit: 10,
+      sort: { key: 'processCode', direction: 'asc' },
+    } as unknown as MercadoPublicoListDetectedProcessesFilters);
+    const firstAnalyticsResult = await analyticsReader.getCompraAgilAnalytics(
+      COMPRA_AGIL_BUSINESS_FILTERS,
+    );
+
+    await service.listDetectedProcesses({
+      ...listFilters,
+      page: 3,
+      limit: 200,
+      sort: { key: 'lastSeenAt', direction: 'desc' },
+    } as unknown as MercadoPublicoListDetectedProcessesFilters);
+    const secondAnalyticsResult = await analyticsReader.getCompraAgilAnalytics(
+      COMPRA_AGIL_BUSINESS_FILTERS,
+    );
+
+    const firstAnalyticsCall = mockQuery.mock.calls[2];
+    const secondAnalyticsCall = mockQuery.mock.calls[5];
+    const firstAnalyticsSql = firstAnalyticsCall[0] as string;
+    const firstAnalyticsParams = firstAnalyticsCall[1] as unknown[];
+
+    expect(firstAnalyticsParams).toEqual(
+      expect.arrayContaining([
+        'Metropolitana',
+        COMPRA_AGIL_BUSINESS_FILTERS.closingFrom,
+        COMPRA_AGIL_BUSINESS_FILTERS.closingTo,
+        ['first_call'],
+        100_000,
+        1_000_000,
+        '60.000.000-0',
+      ]),
+    );
+    expect(secondAnalyticsCall[1]).toEqual(firstAnalyticsParams);
+    expect(secondAnalyticsResult).toEqual(firstAnalyticsResult);
+    expect(firstAnalyticsSql).not.toMatch(/LIMIT \$\d+/);
+    expect(firstAnalyticsSql).not.toMatch(/OFFSET \$\d+/);
   });
 
   it('drops unknown processTypes values silently', async () => {

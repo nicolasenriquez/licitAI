@@ -49,6 +49,13 @@ type MercadoPublicoApiV2CompraAgilStagingRow = {
   codigo: string;
   title: string | null;
   buyer_name: string | null;
+  buyer_rut: string | null;
+  purchase_unit_name: string | null;
+  region_name: string | null;
+  amount_available_clp: number | string | null;
+  call_stage: string | null;
+  document_count: number | null;
+  offers_received_count: number | null;
   estado: string | null;
   id_orden_compra: string | null;
   id_oc: string | null;
@@ -336,6 +343,13 @@ export class MercadoPublicoCanonicalRefreshService {
           codigo,
           title,
           buyer_name,
+          buyer_rut,
+          purchase_unit_name,
+          region_name,
+          amount_available_clp,
+          call_stage,
+          document_count,
+          offers_received_count,
           estado,
           id_orden_compra,
           id_oc,
@@ -370,6 +384,13 @@ export class MercadoPublicoCanonicalRefreshService {
           codigo,
           title,
           buyer_name,
+          buyer_rut,
+          purchase_unit_name,
+          region_name,
+          amount_available_clp,
+          call_stage,
+          document_count,
+          offers_received_count,
           estado,
           id_orden_compra,
           id_oc,
@@ -394,27 +415,48 @@ export class MercadoPublicoCanonicalRefreshService {
           $10,
           $11,
           $12,
+          $13,
+          $14,
+          $15,
+          $16,
+          $17,
+          $18,
+          $19,
           now()
         )
         ON CONFLICT (codigo) DO UPDATE
         SET
           title = COALESCE($2, mp.compra_agil.title),
           buyer_name = COALESCE($3, mp.compra_agil.buyer_name),
-          estado = COALESCE($4, mp.compra_agil.estado),
-          id_orden_compra = COALESCE($5, mp.compra_agil.id_orden_compra),
-          id_oc = COALESCE($6, mp.compra_agil.id_oc),
-          codigo_orden_compra = COALESCE($7, mp.compra_agil.codigo_orden_compra),
-          region = COALESCE($8, mp.compra_agil.region),
-          fecha_publicacion = COALESCE($9, mp.compra_agil.fecha_publicacion),
-          fecha_cierre = COALESCE($10, mp.compra_agil.fecha_cierre),
-          fecha_ultimo_cambio = COALESCE($11, mp.compra_agil.fecha_ultimo_cambio),
-          last_seen_at = GREATEST(mp.compra_agil.last_seen_at, $12),
+          buyer_rut = COALESCE($4, mp.compra_agil.buyer_rut),
+          purchase_unit_name = COALESCE($5, mp.compra_agil.purchase_unit_name),
+          region_name = COALESCE($6, mp.compra_agil.region_name),
+          amount_available_clp = COALESCE($7, mp.compra_agil.amount_available_clp),
+          call_stage = COALESCE($8, mp.compra_agil.call_stage),
+          document_count = COALESCE($9, mp.compra_agil.document_count),
+          offers_received_count = COALESCE($10, mp.compra_agil.offers_received_count),
+          estado = COALESCE($11, mp.compra_agil.estado),
+          id_orden_compra = COALESCE($12, mp.compra_agil.id_orden_compra),
+          id_oc = COALESCE($13, mp.compra_agil.id_oc),
+          codigo_orden_compra = COALESCE($14, mp.compra_agil.codigo_orden_compra),
+          region = COALESCE($15, mp.compra_agil.region),
+          fecha_publicacion = COALESCE($16, mp.compra_agil.fecha_publicacion),
+          fecha_cierre = COALESCE($17, mp.compra_agil.fecha_cierre),
+          fecha_ultimo_cambio = COALESCE($18, mp.compra_agil.fecha_ultimo_cambio),
+          last_seen_at = GREATEST(mp.compra_agil.last_seen_at, $19),
           updated_at = now()
       `,
       [
         stagingRow.codigo,
         stagingRow.title,
         stagingRow.buyer_name,
+        stagingRow.buyer_rut ?? null,
+        stagingRow.purchase_unit_name ?? null,
+        stagingRow.region_name ?? null,
+        stagingRow.amount_available_clp ?? null,
+        stagingRow.call_stage ?? null,
+        stagingRow.document_count ?? null,
+        stagingRow.offers_received_count ?? null,
         stagingRow.estado,
         stagingRow.id_orden_compra,
         stagingRow.id_oc,

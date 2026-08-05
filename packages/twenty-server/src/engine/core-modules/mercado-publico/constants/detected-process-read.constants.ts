@@ -7,10 +7,19 @@ export const MERCADO_PUBLICO_DETECTED_PROCESS_TYPES = [
 export type MercadoPublicoDetectedProcessType =
   (typeof MERCADO_PUBLICO_DETECTED_PROCESS_TYPES)[number];
 
+export const MERCADO_PUBLICO_COMPRA_AGIL_CALL_STAGES = [
+  'first_call',
+  'second_call',
+] as const;
+
+export type MercadoPublicoCompraAgilCallStage =
+  (typeof MERCADO_PUBLICO_COMPRA_AGIL_CALL_STAGES)[number];
+
 export const MERCADO_PUBLICO_DETECTED_PROCESS_SORT_KEYS = [
   'lastSeenAt',
   'publishedAt',
   'closingAt',
+  'amountAvailableClp',
   'processCode',
   'canonicalState',
 ] as const;

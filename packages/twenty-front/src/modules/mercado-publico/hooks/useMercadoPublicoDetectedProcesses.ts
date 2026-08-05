@@ -15,11 +15,13 @@ import {
 
 export type UseMercadoPublicoDetectedProcessesVariables = Omit<
   GetMercadoPublicoDetectedProcessesQueryVariables,
-  'publishedFrom' | 'publishedTo' | 'changedSince'
+  'publishedFrom' | 'publishedTo' | 'changedSince' | 'closingFrom' | 'closingTo'
 > & {
   publishedFrom?: MercadoPublicoDateInput;
   publishedTo?: MercadoPublicoDateInput;
   changedSince?: MercadoPublicoDateInput;
+  closingFrom?: MercadoPublicoDateInput;
+  closingTo?: MercadoPublicoDateInput;
 };
 
 export const useMercadoPublicoDetectedProcesses = (
@@ -35,6 +37,11 @@ export const useMercadoPublicoDetectedProcesses = (
           'America/Santiago',
         ),
         changedSince: serializeMercadoPublicoDate(variables.changedSince),
+        closingFrom: serializeMercadoPublicoDate(variables.closingFrom),
+        closingTo: serializeMercadoPublicoDateEndOfDay(
+          variables.closingTo,
+          'America/Santiago',
+        ),
       },
     );
 

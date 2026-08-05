@@ -167,6 +167,13 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
         'CA-1',
         'Compra de insumos',
         'Municipalidad Uno',
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
         'publicada',
         'OC-123',
         null,
@@ -215,7 +222,93 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
       const upsertParams = mockEntityManager.query.mock
         .calls[1]![1] as unknown[];
 
-      expect(upsertParams.slice(1, 11)).toEqual(Array(10).fill(null));
+      expect(upsertParams.slice(1, 18)).toEqual(Array(17).fill(null));
+    });
+
+    it('should preserve explicit zero and unknown document and offer counts', async () => {
+      const baseStagingRow = {
+        source: 'api-v2-compra-agil',
+        snapshot_kind: 'detail',
+        title: null,
+        buyer_name: null,
+        estado: null,
+        id_orden_compra: null,
+        id_oc: null,
+        codigo_orden_compra: null,
+        publicado_desde: null,
+        publicado_hasta: null,
+        cambio_desde: null,
+        cambio_hasta: null,
+        fecha_publicacion: null,
+        fecha_cierre: null,
+        fecha_ultimo_cambio: null,
+        region: null,
+        fetched_at: new Date('2026-06-17T12:00:00.000Z'),
+        created_at: new Date('2026-06-17T12:00:01.000Z'),
+      };
+      mockEntityManager.query
+        .mockResolvedValueOnce([
+          {
+            ...baseStagingRow,
+            id: 'known-staging-row-id',
+            codigo: 'CA-KNOWN',
+            document_count: 0,
+            offers_received_count: 0,
+          },
+          {
+            ...baseStagingRow,
+            id: 'unknown-staging-row-id',
+            codigo: 'CA-UNKNOWN',
+            document_count: null,
+            offers_received_count: null,
+          },
+        ])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+
+      await service.refreshV2CompraAgilFromApiSnapshot('raw-api-payload-id');
+
+      const selectSql = mockEntityManager.query.mock.calls[0]?.[0] as string;
+      expect(selectSql).toContain('document_count');
+      expect(selectSql).toContain('offers_received_count');
+
+      const knownUpsertSql = mockEntityManager.query.mock
+        .calls[1]?.[0] as string;
+      const unknownUpsertSql = mockEntityManager.query.mock
+        .calls[2]?.[0] as string;
+      expect(knownUpsertSql).toContain('document_count');
+      expect(knownUpsertSql).toContain('offers_received_count');
+      expect(knownUpsertSql).toMatch(
+        /document_count\s*=\s*COALESCE\(\$\d+, mp\.compra_agil\.document_count\)/,
+      );
+      expect(knownUpsertSql).toMatch(
+        /offers_received_count\s*=\s*COALESCE\(\$\d+, mp\.compra_agil\.offers_received_count\)/,
+      );
+      expect(unknownUpsertSql).toMatch(
+        /document_count\s*=\s*COALESCE\(\$\d+, mp\.compra_agil\.document_count\)/,
+      );
+      expect(unknownUpsertSql).toMatch(
+        /offers_received_count\s*=\s*COALESCE\(\$\d+, mp\.compra_agil\.offers_received_count\)/,
+      );
+
+      const getUpsertParam = (
+        queryIndex: number,
+        columnName: string,
+      ): unknown => {
+        const query = mockEntityManager.query.mock.calls[queryIndex]!;
+        const columns = (query[0] as string)
+          .match(/INSERT INTO mp\.compra_agil \(([\s\S]*?)\)\s*VALUES/)?.[1]
+          ?.split(',')
+          .map((column) => column.trim());
+        const columnIndex = columns?.indexOf(columnName) ?? -1;
+
+        return (query[1] as unknown[])[columnIndex];
+      };
+
+      expect(getUpsertParam(1, 'document_count')).toBe(0);
+      expect(getUpsertParam(1, 'offers_received_count')).toBe(0);
+      expect(getUpsertParam(2, 'document_count')).toBeNull();
+      expect(getUpsertParam(2, 'offers_received_count')).toBeNull();
     });
   });
 

@@ -82,6 +82,70 @@ const normalizeV2CompraAgilRecord = (
   };
 };
 
+export type MercadoPublicoV2CompraAgilCanonicalFields = {
+  buyerRut: string | null;
+  purchaseUnitName: string | null;
+  regionName: string | null;
+  amountAvailableClp: number | null;
+  callStage: 'first_call' | 'second_call' | null;
+  documentCount: number | null;
+  offersReceivedCount: number | null;
+};
+
+const extractCallStage = (
+  value: unknown,
+): MercadoPublicoV2CompraAgilCanonicalFields['callStage'] => {
+  const normalized = coerceToNullableString(value)
+    ?.normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+
+  if (normalized === undefined || normalized === null) {
+    return null;
+  }
+
+  if (/(?:primer|1(?:er|ro)?|first)\s+llamad/.test(normalized)) {
+    return 'first_call';
+  }
+
+  if (/(?:segundo|2do|second)\s+llamad/.test(normalized)) {
+    return 'second_call';
+  }
+
+  return null;
+};
+
+const extractFiniteNumber = (value: unknown): number | null => {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+};
+
+const extractNonNegativeInteger = (value: unknown): number | null => {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0
+    ? value
+    : null;
+};
+
+export const extractV2CompraAgilCanonicalFields = (
+  record: MercadoPublicoApiV2CompraAgilRecord,
+): MercadoPublicoV2CompraAgilCanonicalFields => {
+  return {
+    buyerRut: coerceToNullableString(record.institucion?.rut),
+    purchaseUnitName: coerceToNullableString(record.institucion?.unidad_compra),
+    regionName: coerceToNullableString(record.institucion?.nombre_region),
+    amountAvailableClp: extractFiniteNumber(
+      record.montos?.monto_disponible_clp,
+    ),
+    callStage: extractCallStage(record.convocatoria?.descripcion),
+    documentCount: Array.isArray(record.documentos)
+      ? record.documentos.length
+      : null,
+    offersReceivedCount: extractNonNegativeInteger(
+      record.resumen?.total_ofertas_recibidas,
+    ),
+  };
+};
+
 const extractRecordArray = (
   value: unknown,
 ): MercadoPublicoApiV2CompraAgilRecord[] => {

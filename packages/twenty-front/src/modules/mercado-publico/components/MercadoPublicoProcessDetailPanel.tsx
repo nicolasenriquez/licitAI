@@ -146,37 +146,10 @@ export const MercadoPublicoProcessDetailPanel = ({
               <StyledSection>
                 <h2>{t`Presupuesto`}</h2>
                 <div>
-                  {t`Tipo`}:{' '}
-                  {detail.compraAgilSource.budget?.type ??
-                    t`No informado por fuente.`}
-                </div>
-                <div>
-                  {t`Estimado`}:{' '}
-                  {formatAmount(
-                    detail.compraAgilSource.budget?.estimated ?? null,
-                  )}
-                </div>
-                <div>
-                  {t`Disponible`}:{' '}
-                  {formatAmount(
-                    detail.compraAgilSource.budget?.available ?? null,
-                  )}
-                </div>
-                <div>
-                  {t`Disponible CLP`}:{' '}
+                  {t`Monto disponible`}:{' '}
                   {formatAmount(
                     detail.compraAgilSource.budget?.availableClp ?? null,
                   )}
-                </div>
-                <div>
-                  {t`Monto disponible de origen`}:{' '}
-                  {detail.compraAgilSource.amounts.currency ??
-                    t`Moneda no informada`}{' '}
-                  {formatCount(detail.compraAgilSource.amounts.available)}
-                </div>
-                <div>
-                  {t`Monto disponible CLP de origen`}:{' '}
-                  {formatAmount(detail.compraAgilSource.amounts.availableClp)}
                 </div>
                 <div>
                   {t`Ofertas recibidas`}:{' '}
@@ -212,7 +185,7 @@ export const MercadoPublicoProcessDetailPanel = ({
                     )}
                   </StyledList>
                 ) : (
-                  <p>{t`No informado por fuente.`}</p>
+                  <p>{t`Sin proveedores ni cotizaciones informados.`}</p>
                 )}
               </StyledSection>
               <StyledSection>
@@ -227,17 +200,15 @@ export const MercadoPublicoProcessDetailPanel = ({
                     ))}
                   </StyledList>
                 ) : (
-                  <p>{t`No informado por fuente.`}</p>
+                  <p>{t`Sin documentos informados.`}</p>
                 )}
               </StyledSection>
               <StyledSection>
                 <h2>{t`Estado, fechas y motivos`}</h2>
                 <div>
-                  {t`Estado de origen`}:{' '}
+                  {t`Estado informado`}:{' '}
                   {detail.compraAgilSource.state.label ??
-                    t`No informado por fuente.`}{' '}
-                  ({detail.compraAgilSource.state.code ?? t`Sin código`} ·{' '}
-                  {detail.compraAgilSource.state.id ?? t`Sin ID`})
+                    t`No informado por fuente.`}
                 </div>
                 <div>
                   {t`Último cambio`}:{' '}
@@ -341,71 +312,72 @@ export const MercadoPublicoProcessDetailPanel = ({
               <p>{t`Sin información`}</p>
             )}
           </StyledSection>
-          <StyledSection>
-            <h2>{t`Órdenes de compra relacionadas`}</h2>
-            {detail.relatedOcs.length ? (
-              <StyledList>
-                {detail.relatedOcs.map((order) => (
-                  <li key={order.code}>
-                    {order.code} ·{' '}
-                    {getMercadoPublicoStatusLabel(order.canonicalState)} ·{' '}
-                    {order.matchType} · {order.matchConfidence}
-                  </li>
-                ))}
-              </StyledList>
-            ) : (
-              <p>{t`Sin información`}</p>
-            )}
-          </StyledSection>
-          <StyledSection>
-            <h2>{t`Conciliación`}</h2>
-            <p>
-              {t`Exactas`}: {formatCount(detail.reconciliationSummary.exact)} ·{' '}
-              {t`Candidatas`}:{' '}
-              {formatCount(detail.reconciliationSummary.candidate)} ·{' '}
-              {t`Sin relación`}:{' '}
-              {formatCount(detail.reconciliationSummary.unmatched)} ·{' '}
-              {t`Revisión manual`}:{' '}
-              {formatCount(detail.reconciliationSummary.manualReviewRequired)}
-            </p>
-          </StyledSection>
-          <StyledSection>
-            <h2>{t`Fuentes`}</h2>
-            {detail.sourceLineage.length ? (
-              <StyledList>
-                {detail.sourceLineage.map((source) => (
-                  <li key={source.source}>
-                    {source.source} · {formatCount(source.rowCount)} ·{' '}
-                    {formatDate(source.lastSeenAt)}
-                  </li>
-                ))}
-              </StyledList>
-            ) : (
-              <p>{t`Sin información`}</p>
-            )}
-          </StyledSection>
-          <StyledTechnicalDetails>
-            <summary>{t`Información técnica`}</summary>
-            <p>
-              {t`Prioridad de fuente`}:{' '}
-              {detail.sourcePriority ?? t`No informado`}
-            </p>
-            <p>
-              {t`Última observación`}: {formatDate(detail.lastSeenAt)}
-            </p>
-            <p>
-              {t`Estado original`}:{' '}
-              {detail.rawState?.label ??
-                detail.rawState?.code ??
-                t`No informado`}
-            </p>
-            {detail.compraAgilSource ? (
-              <p>
-                {t`Ruta de detalle de origen`}:{' '}
-                {detail.compraAgilSource.sourcePath ?? t`No informado`}
-              </p>
-            ) : null}
-          </StyledTechnicalDetails>
+          {detail.processType !== 'compra_agil' ? (
+            <>
+              <StyledSection>
+                <h2>{t`Órdenes de compra relacionadas`}</h2>
+                {detail.relatedOcs.length ? (
+                  <StyledList>
+                    {detail.relatedOcs.map((order) => (
+                      <li key={order.code}>
+                        {order.code} ·{' '}
+                        {getMercadoPublicoStatusLabel(order.canonicalState)} ·{' '}
+                        {order.matchType} · {order.matchConfidence}
+                      </li>
+                    ))}
+                  </StyledList>
+                ) : (
+                  <p>{t`Sin información`}</p>
+                )}
+              </StyledSection>
+              <StyledSection>
+                <h2>{t`Conciliación`}</h2>
+                <p>
+                  {t`Exactas`}:{' '}
+                  {formatCount(detail.reconciliationSummary.exact)} ·{' '}
+                  {t`Candidatas`}:{' '}
+                  {formatCount(detail.reconciliationSummary.candidate)} ·{' '}
+                  {t`Sin relación`}:{' '}
+                  {formatCount(detail.reconciliationSummary.unmatched)} ·{' '}
+                  {t`Revisión manual`}:{' '}
+                  {formatCount(
+                    detail.reconciliationSummary.manualReviewRequired,
+                  )}
+                </p>
+              </StyledSection>
+              <StyledSection>
+                <h2>{t`Fuentes`}</h2>
+                {detail.sourceLineage.length ? (
+                  <StyledList>
+                    {detail.sourceLineage.map((source) => (
+                      <li key={source.source}>
+                        {source.source} · {formatCount(source.rowCount)} ·{' '}
+                        {formatDate(source.lastSeenAt)}
+                      </li>
+                    ))}
+                  </StyledList>
+                ) : (
+                  <p>{t`Sin información`}</p>
+                )}
+              </StyledSection>
+              <StyledTechnicalDetails>
+                <summary>{t`Información técnica`}</summary>
+                <p>
+                  {t`Prioridad de fuente`}:{' '}
+                  {detail.sourcePriority ?? t`No informado`}
+                </p>
+                <p>
+                  {t`Última observación`}: {formatDate(detail.lastSeenAt)}
+                </p>
+                <p>
+                  {t`Estado original`}:{' '}
+                  {detail.rawState?.label ??
+                    detail.rawState?.code ??
+                    t`No informado`}
+                </p>
+              </StyledTechnicalDetails>
+            </>
+          ) : null}
         </>
       ) : null}
     </StyledContent>

@@ -1,165 +1,299 @@
 ---
-type: design-overview
-title: "Twenty Website — DESIGN.md"
-description: "Design direction and constraints for the Twenty marketing website."
-okf_version: "0.1"
+name: Twenty Website
+description: Editorial marketing system for Twenty's open-source CRM.
+colors:
+  paper: "#ffffff"
+  muted-surface: "#f4f4f4"
+  ink: "#1c1c1c"
+  ink-hover: "#333333"
+  blue-signal: "#4a38f5"
+  blue-signal-muted: "#8174f8"
+  pink-signal: "#ed87fc"
+  yellow-signal: "#feffb7"
+  green-signal: "#89fc9a"
+typography:
+  display:
+    fontFamily: "var(--font-serif), serif"
+    fontSize: "5rem"
+    fontWeight: 300
+    lineHeight: 1.075
+    letterSpacing: "-0.02em"
+  headline:
+    fontFamily: "var(--font-serif), serif"
+    fontSize: "3.75rem"
+    fontWeight: 300
+    lineHeight: 1.1
+    letterSpacing: "-0.02em"
+  title:
+    fontFamily: "var(--font-serif), serif"
+    fontSize: "3rem"
+    fontWeight: 400
+    lineHeight: 1.17
+    letterSpacing: "-0.02em"
+  body:
+    fontFamily: "var(--font-sans), sans-serif"
+    fontSize: "1.125rem"
+    fontWeight: 400
+    lineHeight: 1.55
+  label:
+    fontFamily: "var(--font-mono), monospace"
+    fontSize: "0.75rem"
+    fontWeight: 500
+    lineHeight: 1.33
+    letterSpacing: "0.08em"
+rounded:
+  base: "2px"
+  control: "4px"
+  popover: "6px"
+  chip: "16px"
+spacing:
+  base: "4px"
+  tight: "8px"
+  standard: "16px"
+  control: "20px"
+  card: "24px"
+  section: "40px"
+components:
+  button-ink:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.paper}"
+    typography: "{typography.label}"
+    rounded: "{rounded.control}"
+    padding: "0 20px"
+    height: "40px"
+  button-outline:
+    backgroundColor: "transparent"
+    textColor: "{colors.ink}"
+    typography: "{typography.label}"
+    rounded: "{rounded.control}"
+    padding: "0 20px"
+    height: "40px"
+  card-editorial:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.control}"
+    padding: "20px 24px"
+  field-dark:
+    backgroundColor: "transparent"
+    textColor: "{colors.paper}"
+    rounded: "{rounded.control}"
+    padding: "0 12px"
+    height: "clamp(40px, 5.5vh, 56px)"
+  navigation-link:
+    backgroundColor: "transparent"
+    textColor: "{colors.ink}"
+    typography: "{typography.label}"
+    padding: "0"
+  chip-active:
+    backgroundColor: "rgba(74, 56, 245, 0.18)"
+    textColor: "{colors.paper}"
+    typography: "{typography.body}"
+    rounded: "{rounded.chip}"
+    padding: "2px 8px"
 ---
-# Twenty Website — DESIGN.md
 
-> Visual system for the Twenty marketing site. Distilled from `packages/twenty-website/src/theme/`. Loaded by every `impeccable` invocation alongside PRODUCT.md.
+# Design System: Twenty Website
 
-## Theme
+## Overview
 
-**Light by default.** A founder browsing a partner profile in daylight on a 14–27 inch monitor is the default scene. The site does ship a `data-scheme="dark"` override (see `css-variables.ts`), but no current public page opts into it. Treat dark as a deferred surface.
+**Creative North Star: "The Editorial Instrument"**
 
-## Color
+Twenty Website treats marketing as considered publishing with functional
+product mechanics. Paper and ink establish calm, readable hierarchy; a serif
+display face carries editorial conviction while a sans face explains and a mono
+face operates. The system is deliberately sparse, yet never passive: controls
+move with clear direction when a visitor expresses intent.
 
-Palette is OKLCH-equivalent neutrals at the surface level. The brand accents (blue, pink, yellow, green) are present in the token system but used sparingly — none of them appear on the partner pages.
+Surfaces stay flat and legible at rest. Borders do quiet structural work, then
+hover, focus, opening, and selection introduce only enough movement or lift to
+clarify a change of state. Accent color is signal, not decoration. The result
+should feel precise and founder-led rather than generic SaaS or corporate
+enterprise.
 
-### Strategy: Restrained
+**Key Characteristics:**
 
-Tinted neutrals + one accent ≤10%. The accent for partner pages is the deep ink black (`var(--color-black-100)`) used in CTAs and hover states. Anything beyond a hairline border, an icon glyph, or a primary CTA should question whether it needs color at all.
+- Editorial type contrast over decorative chrome.
+- Ink, paper, and rare color signals.
+- Asymmetrical details within restrained geometry.
+- Flat-at-rest surfaces with directional interaction feedback.
 
-### Tokens (from `src/theme/colors.ts` + `css-variables.ts`)
+## Colors
 
-Neutrals (the workhorses):
+The palette is a paper-and-ink publishing system with four bright signals used
+to locate action, state, or a discrete product moment.
 
-| Token | Hex (computed) | Role |
-| --- | --- | --- |
-| `colors.primary.background[100]` | `#ffffff` | Page + card surface |
-| `colors.primary.text[100]` | `#1c1c1c` | Headlines, primary text |
-| `colors.primary.text[80]` | `#1c1c1ccc` | Body text |
-| `colors.primary.text[60]` | `#1c1c1c99` | Eyebrows, meta, captions |
-| `colors.primary.text[40]` | `#1c1c1c66` | Disabled / placeholder |
-| `colors.primary.text[20]` | `#1c1c1c33` | Subtle separators |
-| `colors.primary.text[10]` | `#1c1c1c1a` | Hairline borders |
-| `colors.primary.text[5]` | `#1c1c1c0d` | Subtle fills (rates panel, skill chips) |
-| `colors.primary.border[10]` | `#1c1c1c1a` | Default border |
-| `colors.primary.border[20]` | `#1c1c1c33` | Hover border |
+### Primary
 
-Reverse palette (for dark CTAs):
+- **Editorial Ink:** `{colors.ink}`. Primary reading color, filled action
+  surface, and highest-emphasis mark.
+- **Pressed Ink:** `{colors.ink-hover}`. Hover fill for ink actions and dark
+  surface shifts.
 
-| Token | Role |
-| --- | --- |
-| `colors.secondary.background[100]` | Filled CTA background (deep ink) |
-| `colors.secondary.text[100]` | Filled CTA text (white) |
+### Secondary
 
-Brand accents (currently absent from partner pages; available if needed):
+- **Electric Blue Signal:** `{colors.blue-signal}`. Focus rings, active
+  navigation, and selected interaction states.
+- **Soft Blue Signal:** `{colors.blue-signal-muted}`. Lower-emphasis blue
+  states and supporting visual treatment.
 
-- `colors.accent.blue` — `#4a38f5` / `#8174f8`
-- `colors.accent.pink` — `#ed87fc` / `#f3abfd`
-- `colors.accent.yellow` — `#feffb7` / `#feffd9`
-- `colors.accent.green` — `#89fc9a` / `#b0fdbe`
-- `colors.highlight` — same hue as blue accent
+### Tertiary
 
-**Do not introduce gradients, glass blurs, or saturated fills on partner pages.** Color is conviction here, not decoration.
+- **Pink Signal:** `{colors.pink-signal}`. Available for contained,
+  product-specific emphasis.
+- **Yellow Signal:** `{colors.yellow-signal}`. Available for contained,
+  product-specific emphasis.
+- **Green Signal:** `{colors.green-signal}`. Available for contained,
+  product-specific emphasis.
+
+### Neutral
+
+- **Paper:** `{colors.paper}`. Default page, card, popup, and reversed-text
+  surface.
+- **Quiet Surface:** `{colors.muted-surface}`. Secondary backgrounds and
+  restrained separation.
+
+**The Rare Signal Rule.** Ink and paper carry ordinary hierarchy. Use a bright
+signal to express focus, selection, or an intentional product moment, never as
+ambient decoration across a screen.
 
 ## Typography
 
-Three families, each load-balanced via CSS variables:
+**Display Font:** Aleo via `var(--font-serif)`, with serif fallback.
+**Body Font:** Host Grotesk via `var(--font-sans)`, with sans-serif fallback.
+**Label/Mono Font:** Azeret Mono via `var(--font-mono)`, with monospace
+fallback.
 
-| Family | Var | Use |
-| --- | --- | --- |
-| `theme.font.family.serif` | `--font-serif` | Headlines, partner names, headline values |
-| `theme.font.family.sans` | `--font-sans` | Body, prose, interactive labels |
-| `theme.font.family.mono` | `--font-mono` | Eyebrows, meta, currency labels, tabular numerics |
-| `theme.font.family.retro` | `--font-retro` | Reserved (not used on partner pages) |
+**Character:** The serif face gives large statements a composed editorial
+voice. Host Grotesk keeps explanatory copy direct. Azeret Mono turns utilities,
+navigation, and actions into precise instruments rather than generic controls.
 
-### Weight + Size Contrast
+### Hierarchy
 
-Weights: `light: 300`, `regular: 400`, `medium: 500`. No bold. Hierarchy is driven by scale and family contrast, never by weight alone.
+- **Display** (`300`, `5rem` desktop / `3.75rem` mobile, `1.075`): page-scale
+  statements and high-conviction headlines.
+- **Headline** (`300`, `3.75rem` desktop / `2.5rem` mobile, `1.1`): section
+  titles and prominent stories.
+- **Title** (`400`, `3rem` desktop, `1.17`): component and mid-scale content
+  hierarchy; card titles often step down to `1.5rem`.
+- **Body** (`400`, `1.125rem` desktop / `1rem` mobile, `1.55`): explanatory
+  prose. Keep reading measures within the implemented `720px` to `800px`
+  range.
+- **Label** (`500`, `0.75rem`, `0.08em`, uppercase when operative): navigation,
+  action labels, categories, and metadata.
 
-Scale (`theme.font.size(n)` → `calc(var(--font-base) * n)`, where `--font-base: 0.25rem` ≈ 4px):
+**The Three-Voice Rule.** Use serif for conviction, sans for explanation, and
+mono for operation. Do not use weight alone to replace these roles.
 
-- Display / h1: size 9–12 (36–48px)
-- h2 / section heads: size 7–8 (28–32px)
-- h3 / card heads: size 5–6 (20–24px)
-- Body / prose: size 4–5 (16–20px)
-- Eyebrow / meta: size 3 (12px) with `letter-spacing: 0.06–0.08em` and `text-transform: uppercase`
+## Layout
 
-Body line length: cap at 65–75ch (the existing `PartnerProfileIntro` uses `max-width: 62ch` — keep that order of magnitude).
+The outer container centers content at a maximum of `1440px`. Reading measures
+are deliberate: `720px` narrow, `800px` wide, and `921px` editorial. The base
+spacing unit is `4px`; repeated intervals grow through `8px`, `16px`, `20px`,
+`24px`, and `40px` rather than arbitrary gaps.
 
-### Hierarchy contract
+Mobile is the default composition. At `921px`, headings grow, desktop
+navigation appears, and selected cards shift into horizontal composition. At
+`1281px`, navigation receives wider internal padding. Keep mobile controls at
+least `40px` high; forms use `clamp(40px, 5.5vh, 56px)`.
 
-- A serif `<h1>` at size 9 light reads as a partner's name on the detail page.
-- A mono eyebrow above or below it locates the partner (region · city · country).
-- A serif size 6 light reads as a section head.
-- Body prose is sans regular.
-- Currency values are serif (they read as headline numbers, not stats).
-- Currency labels and meta are mono.
+## Elevation & Depth
 
-## Spacing & Layout
+The system is flat at rest. Hairline borders and tonal surfaces define most
+edges. Depth appears only to clarify interaction, stacking, or an open overlay.
 
-Base unit `4px`. Spacing helper `theme.spacing(n)` returns `n * 4px`. Common rhythms on the partner pages:
+### Shadow Vocabulary
 
-- Inter-section gap on the detail page: `theme.spacing(10–14)` — generous, editorial breathing room.
-- Inter-element gap inside a section: `theme.spacing(3–5)`.
-- Card padding: `theme.spacing(6)`.
-- Page horizontal padding: `theme.spacing(4)` mobile, `theme.spacing(10)` ≥ md breakpoint.
+- **Interactive Card Lift** (`0 12px 32px -16px rgba(0, 0, 0, 0.18)`): card
+  hover only, paired with a `-2px` lift.
+- **Navigation Settle** (`0 1px 3px 0 rgba(0, 0, 0, 0.06)`): sticky navigation
+  once scrolling establishes separation.
+- **Popup Stack** (`0 1px 1px rgba(0, 0, 0, 0.02), 0 8px 24px rgba(0, 0, 0, 0.06), 0 24px 64px rgba(0, 0, 0, 0.04)`): floating navigation content.
 
-### Radius
+**The Intent-Only Lift Rule.** Never pre-elevate ordinary surfaces. Add shadow
+or movement only when state, hierarchy, or interaction needs explaining.
 
-`theme.radius(n)` returns `n * 2px`. The default card radius is `theme.radius(2)` = 4px. Pills use `999px`. No softer rounding than that.
+## Shapes
 
-### Borders
+Corners are restrained: `2px` base radius, `4px` for controls and cards, and
+`6px` for popovers. Chips can extend to `16px` when grouping small, removable
+items. Borders stay at `1px` with low-contrast ink or paper alpha.
 
-Borders are hairline (`1px solid theme.colors.primary.border[10]`). They define edges quietly. On hover they step to `border[20]`. Never use a chunky border as decoration.
+The signature silhouette is the tapered wipe button: a softly rounded left cap
+and asymmetric right edge hold a directional fill animation. Preserve this
+asymmetry for primary actions; do not replace it with generic soft pills.
 
 ## Components
 
-### Card (PartnerCard, RatesPanel)
+### Buttons
 
-White surface, hairline border, 4px radius, 24px padding, soft shadow on hover only:
+**Character:** Compact mono instruments with a material, directional response.
 
-```css
-background-color: ${theme.colors.primary.background[100]};
-border: 1px solid ${theme.colors.primary.border[10]};
-border-radius: ${theme.radius(2)};
-padding: ${theme.spacing(6)};
+- **Shape:** `40px` regular and `32px` small height; `4px` control radius with
+  the signature tapered right cap.
+- **Primary:** Ink fill with paper text on light surfaces; `20px` horizontal
+  padding; mono uppercase label.
+- **Hover / Focus:** A fill travels left-to-right over `260ms`
+  `cubic-bezier(0.22, 1, 0.36, 1)`; label color changes over `220ms`; focus is
+  a `1px` blue-signal outline with `1px` offset.
+- **Secondary / Outline:** Transparent field with a `1px` stroke. The same
+  directional fill provides response without adding ambient shadow.
 
-&:hover {
-  border-color: ${theme.colors.primary.border[20]};
-  box-shadow: 0 12px 32px -16px rgba(0, 0, 0, 0.18);
-  transform: translateY(-2px);
-}
-```
+### Chips
 
-### Chip / Pill
+- **Style:** Small removable tags use a blue-tinted selected fill, white text,
+  and `16px` radius.
+- **State:** Active options use stronger blue transparency; suggestion actions
+  use a dashed low-contrast border rather than a filled pill.
 
-Rounded `999px`, 1px border, subtle background fill (`primary.text[5]` for filter pills, transparent for chip rows), `text[80]` color, mono or sans font.
+### Cards / Containers
 
-### Button / LinkButton
+- **Corner Style:** Restrained `4px` radius.
+- **Background:** Paper surface over page background.
+- **Shadow Strategy:** Flat at rest; use Interactive Card Lift only on hover.
+- **Border:** `1px` low-alpha ink, deepening one step on hover.
+- **Internal Padding:** Common editorial card content uses `20px 24px`.
 
-Lives in `@/design-system/components`. Two color modes: `primary` (deep ink fill, white text) and `secondary` (transparent fill, ink text + 1px border). `variant="contained"` is what partner pages use.
+### Inputs / Fields
 
-### Avatar
+- **Style:** Transparent field, `1px` low-alpha paper or ink stroke, `4px`
+  radius, and `40px` to `56px` control height.
+- **Focus:** Border shifts to blue signal; controls suppress browser outline
+  only when that visible replacement is present.
+- **Error / Disabled:** Error states use the implemented pale-red border;
+  placeholders and inactive values reduce text contrast through existing alpha
+  tokens, never opacity on the whole control.
 
-`PartnerAvatar` is a deterministic generated mark from name + slug. Used as fallback when `profilePictureUrl` is missing. The real photo overlays it at 120px circle on the detail page, 56px on the list card.
+### Navigation
 
-## Motion
+- **Style:** Sticky, compact, and centered in the outer container. Desktop nav
+  uses mono uppercase labels with `32px` column gaps; mobile collapses into a
+  `40px` icon control and drawer.
+- **States:** Active and hover states use blue signal; active routes add a
+  narrow `2px` underline. A translucent blur and faint shadow appear only once
+  scrolling needs separation.
 
-- Hover transitions: 250ms, ease-out (cubic-bezier curve in `PartnerCard`: `0.25s ease`).
-- Card entrance: 700ms cubic-bezier `0.22, 1, 0.36, 1` (ease-out-quart), 90ms stagger per index.
-- All motion respects `@media (prefers-reduced-motion: reduce)` — animations stop, hover translate disabled.
-- **No bounce, no elastic, no parallax.** Editorial restraint.
+### Tapered Wipe Button
 
-## Iconography
+The system's signature control uses segmented SVG geometry: a rounded left cap,
+stretchable center, and tapered right cap. Keep its fill transition directional
+and honor `prefers-reduced-motion` by removing the sweep.
 
-`@tabler/icons-react`, 14–16px on body-level chips, 18–24px on buttons. Always `aria-hidden="true"` when decorative. Stroke width `2` (default).
+## Do's and Don'ts
 
-## Accessibility Defaults
+### Do:
 
-- Focus ring: `outline: 2px solid theme.colors.primary.text[100]; outline-offset: 4px` (already used on the card link).
-- Touch target ≥ 40×40px on mobile.
-- `aria-label` on icon-only buttons, `aria-labelledby` on sectioned regions.
-- All `<a target="_blank">` includes `rel="noopener noreferrer"`.
-- Color is never the sole carrier of meaning. The money pills carry both an icon and a text label.
+- **Do** establish hierarchy through serif, sans, and mono roles before adding
+  color or extra containers.
+- **Do** build rhythm from the `4px` spacing unit and shift responsive
+  composition at the implemented `921px` and `1281px` breakpoints.
+- **Do** use blue signal for focus, selection, and active navigation states.
+- **Do** keep controls and mobile hit areas at least `40px` high or wide.
+- **Do** remove nonessential motion under `prefers-reduced-motion`.
 
-## Anti-patterns (project-specific)
+### Don't:
 
-In addition to the impeccable shared absolute bans:
-
-- **Do not use the brand accent colors (blue/pink/yellow/green) on partner pages** unless we have a stronger reason than "to add color".
-- **No skeuomorphic shadows on cards.** The hover shadow is `0 12px 32px -16px rgba(0,0,0,0.18)` — that's the ceiling.
-- **No gradients on anything.** Including text, borders, and backgrounds.
-- **No floating "Trusted by" logo bars** on partner pages.
+- **Don't** use bright accents as default page backgrounds or decorative wash.
+- **Don't** apply persistent card shadows; surfaces earn lift through intent.
+- **Don't** replace tapered primary actions with generic soft-pill buttons.
+- **Don't** use rounded, border-heavy containers to manufacture hierarchy that
+  typography and spacing should establish.

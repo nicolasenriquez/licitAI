@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 import {
+  extractV2CompraAgilCanonicalFields,
   extractV2CompraAgilListRecords,
   extractV2CompraAgilPagination,
   findV2CompraAgilRawRecord,
@@ -63,6 +64,49 @@ describe('extractV2CompraAgilListRecords', () => {
         organismo_comprador: 'Municipalidad de Ejemplo',
       },
       documentos: [{ id: 77, nombre: 'Bases técnicas.pdf' }],
+    });
+  });
+
+  it('should preserve known zero values and leave unsupported evidence unknown', () => {
+    const records = extractV2CompraAgilListRecords([
+      {
+        codigo: 'CA-KNOWN',
+        institucion: {
+          rut: ' 60.000.000-0 ',
+          nombre_region: ' Metropolitana ',
+          unidad_compra: ' Abastecimiento ',
+        },
+        montos: { monto_disponible_clp: 0 },
+        convocatoria: { descripcion: 'Primer llamado' },
+        documentos: [],
+        resumen: { total_ofertas_recibidas: 0 },
+      },
+      {
+        codigo: 'CA-UNKNOWN',
+        montos: { monto_disponible_clp: Number.NaN },
+        convocatoria: { descripcion: 'Etapa no reconocida' },
+        documentos: 'not-an-array',
+        resumen: { total_ofertas_recibidas: -1 },
+      },
+    ]);
+
+    expect(extractV2CompraAgilCanonicalFields(records[0]!)).toEqual({
+      buyerRut: '60.000.000-0',
+      purchaseUnitName: 'Abastecimiento',
+      regionName: 'Metropolitana',
+      amountAvailableClp: 0,
+      callStage: 'first_call',
+      documentCount: 0,
+      offersReceivedCount: 0,
+    });
+    expect(extractV2CompraAgilCanonicalFields(records[1]!)).toEqual({
+      buyerRut: null,
+      purchaseUnitName: null,
+      regionName: null,
+      amountAvailableClp: null,
+      callStage: null,
+      documentCount: null,
+      offersReceivedCount: null,
     });
   });
 

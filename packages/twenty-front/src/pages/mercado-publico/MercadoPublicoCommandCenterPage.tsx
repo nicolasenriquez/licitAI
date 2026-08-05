@@ -8,10 +8,16 @@ import { useLingui } from '@lingui/react/macro';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MercadoPublicoDetectedProcessType } from '~/generated/graphql';
-import { IconWorld } from 'twenty-ui/icon';
+import { TintedIconTile } from 'twenty-ui/data-display';
+import { IconBuildingSkyscraper } from 'twenty-ui/icon';
 
 import { MercadoPublicoBrowseTab } from '@/mercado-publico/components/MercadoPublicoBrowseTab';
+import { MercadoPublicoCompraAgilTab } from '@/mercado-publico/components/MercadoPublicoCompraAgilTab';
 import { MercadoPublicoControlCenterTab } from '@/mercado-publico/components/MercadoPublicoControlCenterTab';
+import {
+  MercadoPublicoAnalystWorkspacePrototype,
+  type MercadoPublicoPrototypeVariant,
+} from '@/mercado-publico/components/prototype/MercadoPublicoAnalystWorkspacePrototype';
 import {
   MERCADO_PUBLICO_TAB_IDS,
   parseMercadoPublicoTabHash,
@@ -42,6 +48,19 @@ const MercadoPublicoCommandCenterPageContent = () => {
   const navigate = useNavigate();
 
   const activeTabId = parseMercadoPublicoTabHash(location.hash);
+  const prototypeVariant = new URLSearchParams(location.search).get('variant');
+  const isLocalPrototypeHost =
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1';
+  const isPrototypeVariant =
+    (import.meta.env.DEV || isLocalPrototypeHost) &&
+    (prototypeVariant === 'A' ||
+      prototypeVariant === 'B' ||
+      prototypeVariant === 'C' ||
+      prototypeVariant === 'D' ||
+      prototypeVariant === 'E' ||
+      prototypeVariant === 'F' ||
+      prototypeVariant === 'G');
   const [mountedTabIds, setMountedTabIds] = useState([activeTabId]);
 
   useEffect(() => {
@@ -71,7 +90,10 @@ const MercadoPublicoCommandCenterPageContent = () => {
   return (
     <PageCardLayout
       header={
-        <PageCardHeader icon={<IconWorld />} title={t`Mercado Público`} />
+        <PageCardHeader
+          icon={<TintedIconTile Icon={IconBuildingSkyscraper} color="blue" />}
+          title={t`Mercado Público`}
+        />
       }
       secondaryBar={
         <StyledTabBarContainer>
@@ -86,9 +108,13 @@ const MercadoPublicoCommandCenterPageContent = () => {
       {mountedTabIds.includes(MERCADO_PUBLICO_TAB_IDS[0]) ||
       activeTabId === MERCADO_PUBLICO_TAB_IDS[0] ? (
         <div hidden={activeTabId !== MERCADO_PUBLICO_TAB_IDS[0]}>
-          <MercadoPublicoBrowseTab
-            processType={MercadoPublicoDetectedProcessType.compra_agil}
-          />
+          {isPrototypeVariant ? (
+            <MercadoPublicoAnalystWorkspacePrototype
+              variant={prototypeVariant as MercadoPublicoPrototypeVariant}
+            />
+          ) : (
+            <MercadoPublicoCompraAgilTab />
+          )}
         </div>
       ) : null}
       {mountedTabIds.includes(MERCADO_PUBLICO_TAB_IDS[1]) ||

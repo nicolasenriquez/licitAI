@@ -14,7 +14,19 @@ import { sidePanelPageState } from '@/side-panel/states/sidePanelPageState';
 import { SIDE_PANEL_CLOSE_EVENT_NAME } from '@/ui/layout/side-panel/utils/emitSidePanelCloseEvent';
 import { jotaiStore } from '@/ui/utilities/state/jotai/jotaiStore';
 import { SidePanelPages } from 'twenty-shared/types';
-import { GetMercadoPublicoDetectedProcessesDocument } from '~/generated/graphql';
+import {
+  GetMercadoPublicoCompraAgilAnalyticsDocument,
+  GetMercadoPublicoDetectedProcessesDocument,
+} from '~/generated/graphql';
+
+jest.mock(
+  '@/page-layout/widgets/graph/graph-widget-line-chart/components/GraphWidgetLineChart',
+  () => ({ GraphWidgetLineChart: () => <div /> }),
+);
+jest.mock(
+  '@/page-layout/widgets/graph/graph-widget-bar-chart/components/GraphWidgetBarChart',
+  () => ({ GraphWidgetBarChart: () => <div /> }),
+);
 
 const createWrapper = (
   mocks: MockedResponse[],
@@ -25,7 +37,51 @@ const createWrapper = (
     return (
       <MemoryRouter initialEntries={initialEntries}>
         <JotaiProvider store={jotaiStore}>
-          <MockedProvider mocks={mocks} cache={cache}>
+          <MockedProvider
+            mocks={[
+              ...mocks,
+              {
+                request: {
+                  query: GetMercadoPublicoCompraAgilAnalyticsDocument,
+                  variables: {},
+                },
+                result: {
+                  data: {
+                    mercadoPublicoCompraAgilAnalytics: {
+                      amountBands: [],
+                      callStages: [],
+                      closingByDay: [],
+                      documentAvailability: [],
+                      metadata: {
+                        calculatedAt: '2025-06-20T00:00:00.000Z',
+                        completePopulation: true,
+                        coverage: {
+                          amountAvailableClp: 0,
+                          buyerIdentity: 0,
+                          callStage: 0,
+                          closingAt: 0,
+                          documentCount: 0,
+                          offersReceivedCount: 0,
+                          regionName: 0,
+                        },
+                        filteredPopulation: 0,
+                        timezone: 'America/Santiago',
+                      },
+                      regions: [],
+                      summary: {
+                        closingNext24Hours: 0,
+                        knownAmountAvailableClp: null,
+                        positiveDocumentCount: 0,
+                        totalFound: 0,
+                      },
+                      topBuyers: [],
+                    },
+                  },
+                },
+              },
+            ]}
+            cache={cache}
+          >
             <I18nProvider i18n={i18n}>{children}</I18nProvider>
           </MockedProvider>
         </JotaiProvider>
@@ -35,6 +91,7 @@ const createWrapper = (
 
 const processItem = (code: string, state: string) => ({
   __typename: 'MercadoPublicoDetectedProcess',
+  amountAvailableClp: null,
   processType: 'compra_agil',
   processCode: code,
   title: `Proceso ${code}`,
@@ -43,7 +100,13 @@ const processItem = (code: string, state: string) => ({
   rawStateLabel: null,
   buyerCode: 'B001',
   buyerName: 'Organismo',
+  buyerRut: null,
+  callStage: null,
+  documentCount: null,
+  offersReceivedCount: null,
   publishedAt: '2025-06-01T00:00:00.000Z',
+  purchaseUnitName: null,
+  regionName: null,
   closingAt: '2025-08-01T00:00:00.000Z',
   sourcePriority: 'api-v2-compra-agil',
   reconciliationStatus: null,
@@ -77,15 +140,6 @@ const initialProcessVariables = {
 const licitacionesVariables = {
   ...initialProcessVariables,
   processTypes: ['licitacion'],
-};
-
-const closedCompraAgilVariables = {
-  ...initialProcessVariables,
-  states: ['cerrada'],
-};
-
-const clearedCompraAgilVariables = {
-  ...initialProcessVariables,
 };
 
 describe('MercadoPublicoCommandCenterPage', () => {
@@ -142,20 +196,6 @@ describe('MercadoPublicoCommandCenterPage', () => {
           processItem('CA-002', 'cerrada'),
         ]),
       },
-      {
-        request: {
-          query: GetMercadoPublicoDetectedProcessesDocument,
-          variables: closedCompraAgilVariables,
-        },
-        result: processesMock([processItem('CA-002', 'cerrada')]),
-      },
-      {
-        request: {
-          query: GetMercadoPublicoDetectedProcessesDocument,
-          variables: clearedCompraAgilVariables,
-        },
-        result: processesMock([processItem('CA-003', 'publicada')]),
-      },
     ];
 
     const { container, getByRole, getByText } = render(
@@ -169,18 +209,14 @@ describe('MercadoPublicoCommandCenterPage', () => {
       expect(getByText(/Proceso CA-001/i)).toBeInTheDocument();
     });
 
-    const compraAgilStateSelect = container.querySelector<HTMLSelectElement>(
-      '#mercado-publico-compra_agil-state',
+    const compraAgilRegionInput = container.querySelector<HTMLInputElement>(
+      '#compra-agil-region',
     );
 
-    expect(compraAgilStateSelect).not.toBeNull();
+    expect(compraAgilRegionInput).not.toBeNull();
 
-    fireEvent.change(compraAgilStateSelect!, {
-      target: { value: 'cerrada' },
-    });
-
-    await waitFor(() => {
-      expect(getByText(/Proceso CA-002/i)).toBeInTheDocument();
+    fireEvent.change(compraAgilRegionInput!, {
+      target: { value: 'Metropolitana de Santiago' },
     });
 
     const licitacionesTab = getByText(/licitaciones/i);
@@ -201,15 +237,15 @@ describe('MercadoPublicoCommandCenterPage', () => {
       ).not.toBeNull();
     });
 
-    expect(container.querySelector('#mercado-publico-compra_agil-state')).toBe(
-      compraAgilStateSelect,
+    expect(container.querySelector('#compra-agil-region')).toBe(
+      compraAgilRegionInput,
     );
-    expect(compraAgilStateSelect).toHaveValue('cerrada');
+    expect(compraAgilRegionInput).toHaveValue('Metropolitana de Santiago');
 
     fireEvent.click(getByRole('button', { name: /limpiar filtros/i }));
 
     await waitFor(() => {
-      expect(compraAgilStateSelect).toHaveValue('');
+      expect(compraAgilRegionInput).toHaveValue('');
     });
   });
 
@@ -239,22 +275,20 @@ describe('MercadoPublicoCommandCenterPage', () => {
     expect(
       getAllByRole('columnheader').map((header) => header.textContent),
     ).toEqual([
-      'Objeto',
-      'Organismo',
-      'Estado',
+      'Oportunidad',
+      'Institución/región',
+      'Monto',
       'Cierre',
-      'Publicada',
-      'Código',
+      'Antecedentes',
     ]);
 
-    const sortSelect = container.querySelector<HTMLSelectElement>(
-      '#mercado-publico-compra_agil-sort',
-    );
+    const sortSelect =
+      container.querySelector<HTMLSelectElement>('#compra-agil-sort');
     const row = getAllByRole('button', {
       name: /abrir detalle de Proceso CA-001/i,
     })[0];
 
-    expect(sortSelect?.options).toHaveLength(10);
+    expect(sortSelect?.options).toHaveLength(4);
     expect(row).not.toBeNull();
 
     act(() => {

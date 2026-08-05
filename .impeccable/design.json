@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-05T00:47:00.9696953-04:00",
+  "title": "Design System: Twenty Website",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#1c1c1c", "#333333", "#555555", "#777777", "#999999", "#bbbbbb", "#f4f4f4", "#ffffff"]
+      },
+      "ink": {
+        "role": "primary",
+        "displayName": "Editorial Ink",
+        "canonical": "#1c1c1c",
+        "tonalRamp": ["#1c1c1c", "#333333", "#555555", "#777777", "#999999", "#bbbbbb", "#dddddd", "#f4f4f4"]
+      },
+      "blue-signal": {
+        "role": "secondary",
+        "displayName": "Electric Blue Signal",
+        "canonical": "#4a38f5",
+        "tonalRamp": ["#171249", "#292088", "#3930bd", "#4a38f5", "#8174f8", "#aaa2fb", "#d2cefd", "#f1efff"]
+      },
+      "pink-signal": {
+        "role": "tertiary",
+        "displayName": "Pink Signal",
+        "canonical": "#ed87fc",
+        "tonalRamp": ["#4f1a59", "#7e2c8e", "#b94acc", "#ed87fc", "#f3abfd", "#f8c9fe", "#fbe0ff", "#fef4ff"]
+      },
+      "yellow-signal": {
+        "role": "tertiary",
+        "displayName": "Yellow Signal",
+        "canonical": "#feffb7",
+        "tonalRamp": ["#55551e", "#858532", "#bcbc54", "#e8e880", "#feffb7", "#ffffd0", "#ffffe6", "#fffff5"]
+      },
+      "green-signal": {
+        "role": "tertiary",
+        "displayName": "Green Signal",
+        "canonical": "#89fc9a",
+        "tonalRamp": ["#174c22", "#267937", "#3eae53", "#63d975", "#89fc9a", "#b0fdbe", "#d2ffda", "#effff1"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Editorial Display", "purpose": "Page-scale statements and high-conviction headlines." },
+      "headline": { "displayName": "Editorial Headline", "purpose": "Section titles and prominent stories." },
+      "title": { "displayName": "Editorial Title", "purpose": "Component and mid-scale content hierarchy." },
+      "body": { "displayName": "Explanatory Body", "purpose": "Long-form and supporting product explanation." },
+      "label": { "displayName": "Instrument Label", "purpose": "Navigation, metadata, and action labels." }
+    },
+    "shadows": [
+      { "name": "interactive-card-lift", "value": "0 12px 32px -16px rgba(0, 0, 0, 0.18)", "purpose": "Card hover only, paired with a -2px translateY." },
+      { "name": "navigation-settle", "value": "0 1px 3px 0 rgba(0, 0, 0, 0.06)", "purpose": "Sticky navigation after scroll establishes separation." },
+      { "name": "popup-stack", "value": "0 1px 1px rgba(0, 0, 0, 0.02), 0 8px 24px rgba(0, 0, 0, 0.06), 0 24px 64px rgba(0, 0, 0, 0.04)", "purpose": "Floating navigation content." }
+    ],
+    "motion": [
+      { "name": "standard-feedback", "value": "220ms ease", "purpose": "Label and icon color feedback." },
+      { "name": "directional-wipe", "value": "260ms cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Tapered button fill and directional interaction response." },
+      { "name": "card-enter", "value": "700ms cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Optional staggered card entrance; remove for reduced motion." }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "921px" },
+      { "name": "lg", "value": "1281px" },
+      { "name": "max-content", "value": "1440px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Ink Tapered Button",
+      "kind": "button",
+      "refersTo": "button-ink",
+      "description": "Primary mono action with an asymmetrical directional wipe.",
+      "html": "<button class=\"ds-btn-ink\">GET STARTED</button>",
+      "css": ".ds-btn-ink { background: var(--color-black-100, #1c1c1c); border: 0; border-radius: 4px; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% calc(100% - 12px), calc(100% - 18px) 100%, 0 100%); color: var(--color-white-100, #fff); cursor: pointer; font-family: var(--font-mono), monospace; font-size: 12px; font-weight: 500; height: 40px; letter-spacing: 0; padding: 0 24px 0 20px; position: relative; text-transform: uppercase; transition: background 260ms cubic-bezier(0.22, 1, 0.36, 1), color 220ms ease; } .ds-btn-ink:hover { background: var(--color-black-hover, #333); } .ds-btn-ink:focus-visible { outline: 1px solid var(--color-blue-100, #4a38f5); outline-offset: 2px; }"
+    },
+    {
+      "name": "Outlined Tapered Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary action that stays flat until its directional hover response.",
+      "html": "<button class=\"ds-btn-outline\">LOG IN</button>",
+      "css": ".ds-btn-outline { background: transparent; border: 1px solid var(--color-black-100, #1c1c1c); border-radius: 4px; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% calc(100% - 12px), calc(100% - 18px) 100%, 0 100%); color: var(--color-black-100, #1c1c1c); cursor: pointer; font-family: var(--font-mono), monospace; font-size: 12px; font-weight: 500; height: 40px; padding: 0 24px 0 20px; text-transform: uppercase; transition: background 260ms cubic-bezier(0.22, 1, 0.36, 1), color 220ms ease; } .ds-btn-outline:hover { background: rgba(28, 28, 28, 0.05); } .ds-btn-outline:focus-visible { outline: 1px solid var(--color-blue-100, #4a38f5); outline-offset: 2px; }"
+    },
+    {
+      "name": "Navigation Link",
+      "kind": "nav",
+      "refersTo": "navigation-link",
+      "description": "Mono uppercase navigation item with blue active and hover state.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link ds-nav-link-active\" href=\"#\">PRODUCT</a></nav>",
+      "css": ".ds-nav { display: inline-flex; padding: 12px; } .ds-nav-link { color: var(--color-black-100, #1c1c1c); font-family: var(--font-mono), monospace; font-size: 12px; font-weight: 500; position: relative; text-decoration: none; text-transform: uppercase; transition: color 0.2s cubic-bezier(0.16, 1, 0.3, 1); } .ds-nav-link:hover, .ds-nav-link-active { color: var(--color-blue-100, #4a38f5); } .ds-nav-link-active::after { background: currentColor; bottom: -6px; content: ''; height: 2px; left: 40%; position: absolute; width: 20%; } .ds-nav-link:focus-visible { outline: 1px solid var(--color-blue-100, #4a38f5); outline-offset: 2px; }"
+    },
+    {
+      "name": "Editorial Card",
+      "kind": "card",
+      "refersTo": "card-editorial",
+      "description": "Paper story container that earns its lift only on hover.",
+      "html": "<article class=\"ds-card\"><span class=\"ds-card-label\">CUSTOMER STORY</span><h3>Designed to reveal the important work.</h3><p>Editorial hierarchy and measured feedback do the structural work.</p></article>",
+      "css": ".ds-card { background: var(--color-white-100, #fff); border: 1px solid rgba(28, 28, 28, 0.1); border-radius: 4px; color: var(--color-black-100, #1c1c1c); padding: 20px 24px; transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease; } .ds-card:hover { border-color: rgba(28, 28, 28, 0.2); box-shadow: 0 12px 32px -16px rgba(0, 0, 0, 0.18); transform: translateY(-2px); } .ds-card-label { color: rgba(28, 28, 28, 0.6); display: block; font-family: var(--font-mono), monospace; font-size: 12px; font-weight: 500; letter-spacing: 0.08em; margin-bottom: 12px; text-transform: uppercase; } .ds-card h3 { font-family: var(--font-serif), serif; font-size: 24px; font-weight: 300; line-height: 1.25; margin: 0 0 12px; } .ds-card p { color: rgba(28, 28, 28, 0.6); font-family: var(--font-sans), sans-serif; font-size: 16px; line-height: 1.55; margin: 0; }"
+    },
+    {
+      "name": "Dark Select Field",
+      "kind": "input",
+      "refersTo": "field-dark",
+      "description": "Transparent select control for dark-form surfaces with blue focus treatment.",
+      "html": "<button class=\"ds-select\" type=\"button\"><span>SELECT A SPECIALTY</span><span aria-hidden=\"true\">⌄</span></button>",
+      "css": ".ds-select { align-items: center; background: transparent; border: 1px solid rgba(255, 255, 255, 0.33); border-radius: 4px; color: var(--color-white-100, #fff); cursor: pointer; display: flex; font-family: var(--font-sans), sans-serif; font-size: 16px; height: clamp(40px, 5.5vh, 56px); justify-content: space-between; padding: 0 8px 0 12px; text-align: left; width: 100%; } .ds-select:hover { border-color: rgba(255, 255, 255, 0.6); } .ds-select:focus-visible { border-color: var(--color-blue-100, #4a38f5); outline: 1px solid var(--color-blue-100, #4a38f5); outline-offset: 1px; }"
+    },
+    {
+      "name": "Active Tag",
+      "kind": "chip",
+      "refersTo": "chip-active",
+      "description": "Removable blue-tinted tag used to retain a selected value in a form field.",
+      "html": "<span class=\"ds-chip\">CRM <button class=\"ds-chip-remove\" type=\"button\" aria-label=\"Remove CRM\">×</button></span>",
+      "css": ".ds-chip { align-items: center; background: rgba(74, 56, 245, 0.18); border-radius: 16px; color: var(--color-white-100, #fff); display: inline-flex; font-family: var(--font-sans), sans-serif; font-size: 14px; gap: 4px; padding: 2px 8px; } .ds-chip-remove { background: transparent; border: 0; color: inherit; cursor: pointer; font: inherit; line-height: 1; padding: 0; } .ds-chip-remove:hover { color: var(--color-blue-70, #8174f8); } .ds-chip-remove:focus-visible { outline: 2px solid var(--color-blue-100, #4a38f5); outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Editorial Instrument",
+    "overview": "Twenty Website treats marketing as considered publishing with functional product mechanics. Paper and ink establish calm, readable hierarchy; a serif display face carries editorial conviction while a sans face explains and a mono face operates. The system is deliberately sparse, yet never passive: controls move with clear direction when a visitor expresses intent.\n\nSurfaces stay flat and legible at rest. Borders do quiet structural work, then hover, focus, opening, and selection introduce only enough movement or lift to clarify a change of state. Accent color is signal, not decoration. The result should feel precise and founder-led rather than generic SaaS or corporate enterprise.",
+    "keyCharacteristics": ["Editorial type contrast over decorative chrome.", "Ink, paper, and rare color signals.", "Asymmetrical details within restrained geometry.", "Flat-at-rest surfaces with directional interaction feedback."],
+    "rules": [
+      { "name": "The Rare Signal Rule", "body": "Ink and paper carry ordinary hierarchy. Use a bright signal to express focus, selection, or an intentional product moment, never as ambient decoration across a screen.", "section": "colors" },
+      { "name": "The Three-Voice Rule", "body": "Use serif for conviction, sans for explanation, and mono for operation. Do not use weight alone to replace these roles.", "section": "typography" },
+      { "name": "The Intent-Only Lift Rule", "body": "Never pre-elevate ordinary surfaces. Add shadow or movement only when state, hierarchy, or interaction needs explaining.", "section": "elevation" }
+    ],
+    "dos": ["Do establish hierarchy through serif, sans, and mono roles before adding color or extra containers.", "Do build rhythm from the 4px spacing unit and shift responsive composition at the implemented 921px and 1281px breakpoints.", "Do use blue signal for focus, selection, and active navigation states.", "Do keep controls and mobile hit areas at least 40px high or wide.", "Do remove nonessential motion under prefers-reduced-motion."],
+    "donts": ["Don't use bright accents as default page backgrounds or decorative wash.", "Don't apply persistent card shadows; surfaces earn lift through intent.", "Don't replace tapered primary actions with generic soft-pill buttons.", "Don't use rounded, border-heavy containers to manufacture hierarchy that typography and spacing should establish."]
+  }
+}

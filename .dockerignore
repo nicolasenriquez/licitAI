@@ -4,6 +4,8 @@
 **/node_modules
 .nx/cache
 .scratch/
+**/.impeccable/
+**/.impeccable-live/
 *.log
 coverage/
 test-results/
