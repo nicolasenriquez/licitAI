@@ -49,7 +49,7 @@ V1/CSV, generados/`generated/graphql.ts`, skills de agente, wayfinder anterior, 
 
 ## Bandera local (AC: alterna rutas completas)
 
-- `VITE_MERCADO_PUBLICO_V2_ENABLED=true` (frontend `.env.local`) → `AppRouter` registra la ruta completa `/mercado-publico-v2` (composición V2 entera, read-only).
+- `REACT_APP_MERCADO_PUBLICO_V2_ENABLED=true` (frontend `.env.local`) → `AppRouter` registra la ruta completa `/mercado-publico-v2` (composición V2 entera, read-only).
 - Sin la bandera (default) → la ruta no existe; cero mezcla de composiciones en la misma superficie.
 - Fuente: `packages/twenty-front/src/modules/app/components/AppRouter.tsx`, `useCreateAppRouter.tsx`, `AppPath.MercadoPublicoV2Baseline`.
 
@@ -63,7 +63,7 @@ V1/CSV, generados/`generated/graphql.ts`, skills de agente, wayfinder anterior, 
 
 ## Rollback explícito (AC: sin alterar datos existentes)
 
-1. Quitar `VITE_MERCADO_PUBLICO_V2_ENABLED` del `.env.local` (o poner `false`).
+1. Quitar `REACT_APP_MERCADO_PUBLICO_V2_ENABLED` del `.env.local` (o poner `false`).
 2. Reiniciar el frontend → la ruta `/mercado-publico-v2` desaparece; el estado previo de `main` queda intacto (ninguna ruta canónica tocada).
 3. La ruta V2 es read-only: no escribe en esquemas existentes; los fixtures viven solo en el volumen del Compose desechable.
 4. Verificación de rollback: re-correr `baseline.spec.ts` con bandera off → espera ruta ausente y evidencia guardada.
@@ -83,4 +83,28 @@ V1/CSV, generados/`generated/graphql.ts`, skills de agente, wayfinder anterior, 
 | nx typecheck | bloqueado por lockfile preexistente (`licitai` vs `twenty@workspace:.`); verificado con `tsgo --noEmit` directo |
 
 Deudas de entorno preexistentes registradas (fuera de alcance): lockfile workspace-name mismatch, 48 errores tsgo server, 6 warnings oxlint server, 60 archivos sin formato oxfmt, 5 errores tsgo frontend.
+
+## Smoke autenticado ejecutado (2026-08-06)
+
+| Chequeo | Resultado |
+| --- | --- |
+| Compose up (db/redis/server healthy) | ✅ 3/3 healthy; seed `workspace:seed:dev --light` ejecutado vía contenedor (nx/yarn bloqueado por lockfile) |
+| Frontend dev con bandera | ✅ vite directo (`npx vite --port 3001`, nx bloqueado por lockfile) |
+| `--flag on` → smoke (setup + test 1) | ✅ 2 passed, 1 skipped (test 2 es del build off) |
+| `--flag off` → smoke (setup + test 2) | ✅ 2 passed, 1 skipped (test 1 es del build on) |
+| Evidencia | ✅ screenshot `run_results/baseline-v2-route.png`, trace, network log (solo fonts CDN, cero llamadas al proveedor) |
+| Rollback | ✅ bandera off → ruta ausente, sin tocar datos (verificación `--flag off` arriba) |
+
+### Correcciones encontradas y aplicadas en el smoke (2026-08-06)
+
+| Bug | Fix |
+| --- | --- |
+| `provision-baseline.mjs` resolvía rutas relativas a cwd | anclado a `import.meta.dirname` (funciona desde cualquier cwd) |
+| `--flag on|off` escribía `=on/=off`; consumidores comparan `=== 'true'` | mapeo a `true`/`false` |
+| Bandera `VITE_` nunca llegaba a `import.meta.env` (vite usa `envPrefix: 'REACT_APP_'`) | renombrada a `REACT_APP_MERCADO_PUBLICO_V2_ENABLED` (código, provisioner, spec, .env.example, ledger) |
+| `login.setup.ts` exigía picker de workspace; dev-seed = 1 workspace por usuario | picker condicional (solo multi-workspace) |
+| Smoke exigía cero red externa; Twenty carga fonts de Google CDN | allow-list fonts.googleapis.com/.gstatic.com; cero llamadas al proveedor sigue verificado |
+| `.auth/user.json` obsoleto de sesión previa rompía el login | storage state regenerado por el setup en cada run (`.auth/` ignorado) |
+
+Nota operativa: `nx start`/`nx build` siguen bloqueados por el lockfile (`licitai` vs `twenty@workspace:.`); el smoke usa vite directo y comandos vía contenedor. Deuda ya registrada arriba.
 

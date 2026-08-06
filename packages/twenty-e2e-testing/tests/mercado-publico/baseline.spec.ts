@@ -1,17 +1,17 @@
 import { expect, test } from '@playwright/test';
 
 // Baseline smoke (issue 18): authenticated, flag-aware, evidence-preserving.
-// The flag is build-time (VITE_MERCADO_PUBLICO_V2_ENABLED); this spec asserts
+// The flag is build-time (REACT_APP_MERCADO_PUBLICO_V2_ENABLED); this spec asserts
 // the behavior of the running build and saves screenshots/trace via config.
 
 const V2_PATH = '/mercado-publico-v2';
-const v2FlagOn = process.env.VITE_MERCADO_PUBLICO_V2_ENABLED === 'true';
+const v2FlagOn = process.env.REACT_APP_MERCADO_PUBLICO_V2_ENABLED === 'true';
 
 test.describe('Mercado Publico V2 baseline', () => {
   test('flagged build exposes the full V2 route, read-only, local-only network', async ({
     page,
   }) => {
-    test.skip(!v2FlagOn, 'build has VITE_MERCADO_PUBLICO_V2_ENABLED=false');
+    test.skip(!v2FlagOn, 'build has REACT_APP_MERCADO_PUBLICO_V2_ENABLED=false');
 
     const externalRequests: string[] = [];
 
@@ -19,8 +19,11 @@ test.describe('Mercado Publico V2 baseline', () => {
       const url = new URL(request.url());
       const isLocal =
         url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+      const isFontCdn =
+        url.hostname === 'fonts.googleapis.com' ||
+        url.hostname.endsWith('.gstatic.com');
 
-      if (!isLocal) {
+      if (!isLocal && !isFontCdn) {
         externalRequests.push(request.url());
       }
     });
@@ -44,7 +47,7 @@ test.describe('Mercado Publico V2 baseline', () => {
   test('non-flagged build does not expose the V2 route (prior state intact)', async ({
     page,
   }) => {
-    test.skip(v2FlagOn, 'build has VITE_MERCADO_PUBLICO_V2_ENABLED=true');
+    test.skip(v2FlagOn, 'build has REACT_APP_MERCADO_PUBLICO_V2_ENABLED=true');
 
     await page.goto(V2_PATH);
 

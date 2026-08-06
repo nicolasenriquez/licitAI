@@ -4,7 +4,7 @@
 // Prereqs (operator-run):
 //   1. docker compose up -d (packages/twenty-docker)
 //   2. seed the disposable DB: nx run twenty-server:command workspace:seed:dev --args="--light"
-//   3. this script writes VITE_MERCADO_PUBLICO_V2_ENABLED to the frontend
+//   3. this script writes REACT_APP_MERCADO_PUBLICO_V2_ENABLED to the frontend
 //      .env.local AND the e2e .env (the Playwright spec reads it from
 //      process.env via the dotenv config in playwright.config.ts)
 
@@ -19,10 +19,12 @@ if (flagArg !== undefined && flagArg !== 'on' && flagArg !== 'off') {
   process.exit(1);
 }
 
-const frontendEnvLocal = resolve(process.cwd(), '../../twenty-front/.env.local');
-const e2eEnv = resolve(process.cwd(), '../../twenty-e2e-testing/.env');
-const flagKey = 'VITE_MERCADO_PUBLICO_V2_ENABLED=';
-const flagValue = flagArg ?? 'true';
+// Anchor to the script location so the script works from any cwd.
+const scriptDir = import.meta.dirname;
+const frontendEnvLocal = resolve(scriptDir, '../../twenty-front/.env.local');
+const e2eEnv = resolve(scriptDir, '../.env');
+const flagKey = 'REACT_APP_MERCADO_PUBLICO_V2_ENABLED=';
+const flagValue = flagArg === 'off' ? 'false' : 'true';
 
 const readLines = (path) => readFileSync(path, 'utf8').split(/\r?\n/);
 const writeLines = (path, lines) =>

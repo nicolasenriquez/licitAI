@@ -14,7 +14,7 @@ export const AppRouter = () => {
     false;
 
   const isMercadoPublicoV2Enabled =
-    import.meta.env.VITE_MERCADO_PUBLICO_V2_ENABLED === 'true';
+    import.meta.env.REACT_APP_MERCADO_PUBLICO_V2_ENABLED === 'true';
 
   return (
     <RouterProvider

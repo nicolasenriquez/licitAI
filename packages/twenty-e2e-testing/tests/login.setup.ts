@@ -27,10 +27,14 @@ test('Login test', async ({ loginPage, page }) => {
       await loginPage.clickSignInButton();
       await page.waitForLoadState('networkidle');
       await expect(page.getByText(/Welcome, .+/)).not.toBeVisible();
-      await expect(page.getByText('Choose a workspace')).toBeVisible();
-      await page.getByText('Apple', {exact: true}).click();
-      await page.waitForFunction(() => window.location.href.includes('verify'));
-      await page.waitForFunction(() => !window.location.href.includes('verify'));
+      // Workspace picker only shows for multi-workspace users; single-workspace
+      // sessions (e.g. dev-seed identities in the V2 baseline) go straight in.
+      const workspacePicker = page.getByText('Choose a workspace');
+      if (await workspacePicker.isVisible().catch(() => false)) {
+        await page.getByText('Apple', { exact: true }).click();
+        await page.waitForFunction(() => window.location.href.includes('verify'));
+        await page.waitForFunction(() => !window.location.href.includes('verify'));
+      }
       process.env.LINK = page.url();
     },
   );
