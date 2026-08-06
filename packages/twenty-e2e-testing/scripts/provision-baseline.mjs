@@ -4,7 +4,9 @@
 // Prereqs (operator-run):
 //   1. docker compose up -d (packages/twenty-docker)
 //   2. seed the disposable DB: nx run twenty-server:command workspace:seed:dev --args="--light"
-//   3. frontend .env.local: VITE_MERCADO_PUBLICO_V2_ENABLED=true (written here with --flag on)
+//   3. this script writes VITE_MERCADO_PUBLICO_V2_ENABLED to the frontend
+//      .env.local AND the e2e .env (the Playwright spec reads it from
+//      process.env via the dotenv config in playwright.config.ts)
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -18,6 +20,7 @@ if (flagArg !== undefined && flagArg !== 'on' && flagArg !== 'off') {
 }
 
 const frontendEnvLocal = resolve(process.cwd(), '../../twenty-front/.env.local');
+const e2eEnv = resolve(process.cwd(), '../../twenty-e2e-testing/.env');
 const flagKey = 'VITE_MERCADO_PUBLICO_V2_ENABLED=';
 const flagValue = flagArg ?? 'true';
 
@@ -39,12 +42,16 @@ const upsertLine = (path, key, value) => {
 };
 
 upsertLine(frontendEnvLocal, flagKey, flagValue);
+upsertLine(e2eEnv, flagKey, flagValue);
 
-console.log(`baseline flag ${flagValue === 'true' ? 'ON' : 'OFF'} (${frontendEnvLocal})`);
+console.log(`baseline flag ${flagValue === 'true' ? 'ON' : 'OFF'}`);
+console.log(`  frontend: ${frontendEnvLocal}`);
+console.log(`  e2e:      ${e2eEnv}`);
 console.log('');
-console.log('Identities (seeded by workspace:seed:dev, passwords via env, never committed):');
+console.log('Identities (seeded by workspace:seed:dev --light):');
 console.log('  analista -> jane.austen@apple.dev');
 console.log('  operador -> phil.schiler@apple.dev');
+console.log("  password -> tim@apple.dev (dev-seed bcrypt hash, local disposable env only)");
 console.log('');
 console.log('Next:');
 console.log('  nx start twenty-front   # rebuild with the flag');
