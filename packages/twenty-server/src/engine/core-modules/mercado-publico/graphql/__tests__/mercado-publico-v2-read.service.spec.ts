@@ -40,8 +40,8 @@ describe('MercadoPublicoV2ReadService', () => {
     expect(firstPage.endCursor).toBe(
       encodeMercadoPublicoV2OpportunityCursor(firstRow),
     );
-    expect(query.mock.calls[0][0]).toContain("canonical_state = 'publicada'");
-    expect(query.mock.calls[1][0]).toContain("canonical_state = 'publicada'");
+    expect(query.mock.calls[0][0]).toContain('FROM mp.v2_cohort');
+    expect(query.mock.calls[1][0]).toContain('FROM mp.v2_cohort');
 
     query
       .mockReset()
@@ -71,6 +71,21 @@ describe('MercadoPublicoV2ReadService', () => {
     } as unknown as DataSource);
 
     await expect(service.listOpportunities({}, 'invalid')).rejects.toThrow(
+      'cursor is invalid',
+    );
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid cursor timestamps before querying', async () => {
+    const query = jest.fn();
+    const service = new MercadoPublicoV2ReadService({
+      query,
+    } as unknown as DataSource);
+    const cursor = Buffer.from(
+      JSON.stringify({ closingAt: 'not-a-date', codigo: 'CA-1' }),
+    ).toString('base64url');
+
+    await expect(service.listOpportunities({}, cursor)).rejects.toThrow(
       'cursor is invalid',
     );
     expect(query).not.toHaveBeenCalled();

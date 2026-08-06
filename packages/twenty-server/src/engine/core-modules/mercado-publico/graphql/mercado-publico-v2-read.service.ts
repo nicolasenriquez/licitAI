@@ -63,7 +63,17 @@ const decodeCursor = (value: string): Cursor => {
       throw new Error('invalid cursor');
     }
 
-    return { closingAt: parsed.closingAt ?? null, codigo: parsed.codigo };
+    const closingAt =
+      parsed.closingAt === null ? null : new Date(parsed.closingAt);
+
+    if (closingAt !== null && Number.isNaN(closingAt.getTime())) {
+      throw new Error('invalid cursor timestamp');
+    }
+
+    return {
+      closingAt: closingAt?.toISOString() ?? null,
+      codigo: parsed.codigo,
+    };
   } catch {
     throw new BadRequestException('Mercado Publico V2 cursor is invalid');
   }
@@ -170,7 +180,13 @@ export class MercadoPublicoV2ReadService {
   ): { whereSql: string; params: unknown[] } {
     const clauses = [
       "process_type = 'compra_agil'",
-      "canonical_state = 'publicada'",
+      `process_code IN (
+        SELECT codigo
+        FROM mp.v2_cohort
+        WHERE source = 'api-v2-compra-agil'
+          AND scope = 'global'
+          AND status = 'active'
+      )`,
     ];
     const params: unknown[] = [];
 

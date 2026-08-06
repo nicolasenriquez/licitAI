@@ -1,6 +1,5 @@
 import fixture from 'src/engine/core-modules/mercado-publico/drivers/api/__tests__/fixtures/v2-compra-agil-list.json';
 import { MercadoPublicoApiV2CompraAgilClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
-import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 
@@ -48,9 +47,6 @@ describe('MercadoPublicoV2DurableSyncService', () => {
       }),
       finalizeJobRun: jest.fn(),
     } as unknown as jest.Mocked<MercadoPublicoPersistenceService>;
-    const canonicalRefreshService = {
-      refreshV2CompraAgilFromApiSnapshot: jest.fn().mockResolvedValue(1),
-    } as unknown as jest.Mocked<MercadoPublicoCanonicalRefreshService>;
     const transaction = jest.fn(
       async (
         callback: (manager: { query: typeof entityManagerQuery }) => unknown,
@@ -59,7 +55,6 @@ describe('MercadoPublicoV2DurableSyncService', () => {
     const service = new MercadoPublicoV2DurableSyncService(
       {} as unknown as MercadoPublicoApiV2CompraAgilClientService,
       persistenceService,
-      canonicalRefreshService,
       { query, transaction } as never,
     );
 
@@ -72,9 +67,6 @@ describe('MercadoPublicoV2DurableSyncService', () => {
     expect(persistenceService.persistV2CompraAgilSnapshot).toHaveBeenCalledWith(
       expect.objectContaining({ snapshotKind: 'list' }),
     );
-    expect(
-      canonicalRefreshService.refreshV2CompraAgilFromApiSnapshot,
-    ).toHaveBeenCalledWith('raw-payload-1');
     expect(entityManagerQuery).toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO mp.v2_observation'),
       expect.any(Array),

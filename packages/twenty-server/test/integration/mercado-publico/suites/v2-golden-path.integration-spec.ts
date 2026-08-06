@@ -14,8 +14,8 @@ import { MpStgJobRunFastInstanceCommand } from 'src/database/commands/upgrade-ve
 import { MpV2GoldenPathFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1784000000000-mp-v2-golden-path';
 import { RelaxMpV2CanonicalStateAndDocumentCountFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1784000000010-relax-mp-v2-canonical-state-and-document-count';
 import { MpV2DurableDiscoveryHydrationFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1785000000000-mp-v2-durable-discovery-hydration';
+import { MpV2CohortFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1786000000000-mp-v2-cohort';
 import { rawDataSource } from 'src/database/typeorm/raw/raw.datasource';
-import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoV2GoldenPathService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-golden-path.service';
 import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
@@ -43,6 +43,7 @@ const applyCommands = async (dataSource: DataSource): Promise<void> => {
     await new MpV2DurableDiscoveryHydrationFastInstanceCommand().up(
       queryRunner,
     );
+    await new MpV2CohortFastInstanceCommand().up(queryRunner);
 
     await queryRunner.commitTransaction();
   } catch (error) {
@@ -57,6 +58,7 @@ const truncateTables = async (dataSource: DataSource): Promise<void> => {
   await dataSource.query(`
     TRUNCATE TABLE
       mp.gold_detected_process,
+      mp.v2_cohort,
       mp.sync_run_item,
       mp.sync_run_page,
       mp.source_watermark,
@@ -87,13 +89,9 @@ describe('Mercado Publico V2 golden path (db-backed)', () => {
     await applyCommands(dataSource);
 
     const persistenceService = new MercadoPublicoPersistenceService(dataSource);
-    const canonicalRefreshService = new MercadoPublicoCanonicalRefreshService(
-      dataSource,
-    );
     const durableSyncService = new MercadoPublicoV2DurableSyncService(
       {} as never,
       persistenceService,
-      canonicalRefreshService,
       dataSource,
     );
 
@@ -175,6 +173,30 @@ describe('Mercado Publico V2 golden path (db-backed)', () => {
     expect(page.rows).toHaveLength(1);
     expect(page.rows[0]?.codigo).toBe('FIXTURE-CA-001');
     expect(connection.edges[0]?.node.codigo).toBe('FIXTURE-CA-001');
+  });
+
+  it('uses active cohort membership instead of canonical state for Activas', async () => {
+    await goldenPathService.runFixture(fixture);
+    await dataSource.query(`
+      UPDATE mp.gold_detected_process
+      SET canonical_state = 'cerrada'
+      WHERE process_type = 'compra_agil' AND process_code = 'FIXTURE-CA-001'
+    `);
+
+    const activePage = await readService.listOpportunities();
+
+    await dataSource.query(`
+      UPDATE mp.v2_cohort
+      SET status = 'terminal'
+      WHERE source = 'api-v2-compra-agil'
+        AND scope = 'global'
+        AND codigo = 'FIXTURE-CA-001'
+    `);
+    const terminalPage = await readService.listOpportunities();
+
+    expect(activePage.rows).toHaveLength(1);
+    expect(activePage.rows[0]?.canonical_state).toBe('cerrada');
+    expect(terminalPage.rows).toEqual([]);
   });
 
   it('rolls back the relaxed V2 schema when data is compatible', async () => {

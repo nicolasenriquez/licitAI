@@ -21,7 +21,6 @@ import {
   MERCADO_PUBLICO_API_V2_COMPRA_AGIL_LIST_ENDPOINT,
   MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
 } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
-import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { type CompraAgilListParams } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/validate-compra-agil-params.util';
 
@@ -97,7 +96,6 @@ export class MercadoPublicoV2DurableSyncService {
   constructor(
     private readonly mercadoPublicoApiV2CompraAgilClientService: MercadoPublicoApiV2CompraAgilClientService,
     private readonly mercadoPublicoPersistenceService: MercadoPublicoPersistenceService,
-    private readonly mercadoPublicoCanonicalRefreshService: MercadoPublicoCanonicalRefreshService,
     @InjectDataSource()
     private readonly coreDataSource: DataSource,
   ) {}
@@ -115,6 +113,7 @@ export class MercadoPublicoV2DurableSyncService {
 
     try {
       await this.updateSyncRunStatus(context.syncRunId, 'discovering');
+      await this.freezeActiveCohort(context);
       await this.discover(context, jobRunRecord.id);
       stage = 'hydrating';
       await this.updateSyncRunStatus(context.syncRunId, 'hydrating');
@@ -210,9 +209,6 @@ export class MercadoPublicoV2DurableSyncService {
       await this.checkpointPage(
         context,
         response,
-        persistenceResult.rawApiPayloadId,
-      );
-      await this.mercadoPublicoCanonicalRefreshService.refreshV2CompraAgilFromApiSnapshot(
         persistenceResult.rawApiPayloadId,
       );
       await this.projectPendingItems(
@@ -358,6 +354,27 @@ export class MercadoPublicoV2DurableSyncService {
     } as CompraAgilListParams;
   }
 
+  private async freezeActiveCohort(context: SyncRunContext): Promise<void> {
+    await this.coreDataSource.query(
+      `
+        INSERT INTO mp.sync_run_item (
+          sync_run_id, codigo, discovery_page, payload_checksum, status
+        )
+        SELECT $1, codigo, 0, 'cohort-freeze', 'pending'
+        FROM mp.v2_cohort
+        WHERE source = $2
+          AND scope = $3
+          AND status = 'active'
+        ON CONFLICT (sync_run_id, codigo) DO NOTHING
+      `,
+      [
+        context.syncRunId,
+        MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
+        context.scope,
+      ],
+    );
+  }
+
   private async discover(
     context: SyncRunContext,
     jobRunRecordId: string,
@@ -431,18 +448,7 @@ export class MercadoPublicoV2DurableSyncService {
     rawApiPayloadId: string,
   ): Promise<void> {
     const codes = response.compraAgil.map((record) => record.codigo);
-    const knownRows =
-      codes.length === 0
-        ? []
-        : await this.coreDataSource.query<{ codigo: string }[]>(
-            `
-              SELECT codigo
-              FROM mp.compra_agil
-              WHERE codigo = ANY($1::text[])
-            `,
-            [codes],
-          );
-    const knownCodes = new Set(knownRows.map((row) => row.codigo));
+    const knownCodes = await this.readActiveCohortCodes(context, codes);
     const pageNumber = response.pagination?.pageNumber ?? 1;
     const pageSize =
       response.pagination?.pageSize ?? response.compraAgil.length;
@@ -478,6 +484,24 @@ export class MercadoPublicoV2DurableSyncService {
           continue;
         }
 
+        if (classification.reason === 'new_published') {
+          await entityManager.query(
+            `
+              INSERT INTO mp.v2_cohort (
+                source, scope, codigo, status, admitted_sync_run_id
+              )
+              VALUES ($1, $2, $3, 'active', $4)
+              ON CONFLICT DO NOTHING
+            `,
+            [
+              MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
+              context.scope,
+              record.codigo,
+              context.syncRunId,
+            ],
+          );
+        }
+
         const normalized = normalizeV2CompraAgilRecord(record);
 
         await entityManager.query(
@@ -488,7 +512,10 @@ export class MercadoPublicoV2DurableSyncService {
               provider_changed_at_raw, provider_changed_at, status
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending')
-            ON CONFLICT (sync_run_id, codigo) DO NOTHING
+            ON CONFLICT (sync_run_id, codigo) DO UPDATE SET
+              discovery_page = EXCLUDED.discovery_page,
+              raw_api_payload_id = EXCLUDED.raw_api_payload_id,
+              payload_checksum = EXCLUDED.payload_checksum
           `,
           [
             context.syncRunId,
@@ -509,6 +536,29 @@ export class MercadoPublicoV2DurableSyncService {
     await this.updateSyncRunCounters(context.syncRunId);
   }
 
+  private async readActiveCohortCodes(
+    context: SyncRunContext,
+    codes: string[],
+  ): Promise<Set<string>> {
+    if (codes.length === 0) {
+      return new Set();
+    }
+
+    const rows = await this.coreDataSource.query<{ codigo: string }[]>(
+      `
+        SELECT codigo
+        FROM mp.v2_cohort
+        WHERE source = $1
+          AND scope = $2
+          AND status = 'active'
+          AND codigo = ANY($3::text[])
+      `,
+      [MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE, context.scope, codes],
+    );
+
+    return new Set(rows.map((row) => row.codigo));
+  }
+
   private async hydrate(
     context: SyncRunContext,
     jobRunRecordId: string,
@@ -522,6 +572,8 @@ export class MercadoPublicoV2DurableSyncService {
       `,
       [context.syncRunId],
     );
+    let successfulDetails = 0;
+    let retryableRequestFailures = 0;
 
     for (const item of items) {
       await this.coreDataSource.query(
@@ -541,9 +593,19 @@ export class MercadoPublicoV2DurableSyncService {
             item.codigo,
           );
       } catch (error) {
+        const failure = classifyFailure(error);
+
+        if (failure === 'hard_fail' || failure === 'param_error') {
+          throw error;
+        }
+
+        if (failure === 'retryable_failed') {
+          retryableRequestFailures += 1;
+        }
+
         await this.markItemPending(
           item.id,
-          `${classifyFailure(error)}: detail request failed`,
+          `${failure}: detail request failed`,
           'hydrating',
         );
 
@@ -557,6 +619,17 @@ export class MercadoPublicoV2DurableSyncService {
       ) {
         if (response.errorSummary !== undefined) {
           await this.persistApiFailure(jobRunRecordId, response);
+
+          if (
+            response.errorSummary === 'hard_fail' ||
+            response.errorSummary === 'param_error'
+          ) {
+            throw new Error('systemic detail configuration failure');
+          }
+
+          if (response.errorSummary === 'retryable_failed') {
+            retryableRequestFailures += 1;
+          }
         }
 
         await this.markItemPending(
@@ -577,12 +650,20 @@ export class MercadoPublicoV2DurableSyncService {
           },
         );
 
-      await this.mercadoPublicoCanonicalRefreshService.refreshV2CompraAgilFromApiSnapshot(
-        persistenceResult.rawApiPayloadId,
+      const detailRecord = response.compraAgil.find(
+        (record) => record.codigo === item.codigo,
       );
-      const detailRecord =
-        response.compraAgil.find((record) => record.codigo === item.codigo) ??
-        response.compraAgil[0];
+
+      if (detailRecord === undefined) {
+        await this.markItemPending(
+          item.id,
+          'detail_codigo_mismatch',
+          'hydrating',
+        );
+        await this.updateSyncRunCounters(context.syncRunId);
+        continue;
+      }
+
       const observationId = await this.recordObservationAndProjection(
         context.syncRunId,
         persistenceResult.rawApiPayloadId,
@@ -593,6 +674,7 @@ export class MercadoPublicoV2DurableSyncService {
         detailRecord,
         true,
       ).terminal;
+      successfulDetails += 1;
 
       await this.markItemSucceeded(
         item.id,
@@ -602,7 +684,19 @@ export class MercadoPublicoV2DurableSyncService {
         detailRecord,
       );
 
+      if (terminal) {
+        await this.markCohortTerminal(context, item.codigo);
+      }
+
       await this.updateSyncRunCounters(context.syncRunId);
+    }
+
+    if (
+      items.length > 0 &&
+      successfulDetails === 0 &&
+      retryableRequestFailures === items.length
+    ) {
+      throw new Error('all detail requests failed');
     }
   }
 
@@ -729,10 +823,22 @@ export class MercadoPublicoV2DurableSyncService {
               provider_schema_fingerprint = EXCLUDED.provider_schema_fingerprint,
               provider_changed_at_raw = EXCLUDED.provider_changed_at_raw,
               provider_changed_at = COALESCE(EXCLUDED.provider_changed_at, mp.compra_agil.provider_changed_at),
-              observed_at = GREATEST(COALESCE(mp.compra_agil.observed_at, EXCLUDED.observed_at), EXCLUDED.observed_at),
-              persisted_at = now(),
-              last_seen_at = GREATEST(mp.compra_agil.last_seen_at, EXCLUDED.last_seen_at),
-              updated_at = now()
+               observed_at = GREATEST(COALESCE(mp.compra_agil.observed_at, EXCLUDED.observed_at), EXCLUDED.observed_at),
+               persisted_at = now(),
+               last_seen_at = GREATEST(mp.compra_agil.last_seen_at, EXCLUDED.last_seen_at),
+               updated_at = now()
+             WHERE
+               (
+                 EXCLUDED.provider_changed_at IS NOT NULL
+                 AND mp.compra_agil.provider_changed_at IS NULL
+               )
+               OR EXCLUDED.provider_changed_at > mp.compra_agil.provider_changed_at
+               OR (
+                 EXCLUDED.provider_changed_at IS NOT DISTINCT FROM
+                   mp.compra_agil.provider_changed_at
+                 AND EXCLUDED.observed_at >
+                   COALESCE(mp.compra_agil.observed_at, '-infinity'::timestamptz)
+               )
           `,
           [
             record.codigo,
@@ -791,10 +897,22 @@ export class MercadoPublicoV2DurableSyncService {
               provider_schema_fingerprint = EXCLUDED.provider_schema_fingerprint,
               provider_changed_at_raw = EXCLUDED.provider_changed_at_raw,
               provider_changed_at = COALESCE(EXCLUDED.provider_changed_at, mp.gold_detected_process.provider_changed_at),
-              observed_at = GREATEST(COALESCE(mp.gold_detected_process.observed_at, EXCLUDED.observed_at), EXCLUDED.observed_at),
-              persisted_at = now(),
-              last_seen_at = GREATEST(mp.gold_detected_process.last_seen_at, EXCLUDED.last_seen_at),
-              updated_at = now()
+               observed_at = GREATEST(COALESCE(mp.gold_detected_process.observed_at, EXCLUDED.observed_at), EXCLUDED.observed_at),
+               persisted_at = now(),
+               last_seen_at = GREATEST(mp.gold_detected_process.last_seen_at, EXCLUDED.last_seen_at),
+               updated_at = now()
+             WHERE
+               (
+                 EXCLUDED.provider_changed_at IS NOT NULL
+                 AND mp.gold_detected_process.provider_changed_at IS NULL
+               )
+               OR EXCLUDED.provider_changed_at > mp.gold_detected_process.provider_changed_at
+               OR (
+                 EXCLUDED.provider_changed_at IS NOT DISTINCT FROM
+                   mp.gold_detected_process.provider_changed_at
+                 AND EXCLUDED.observed_at >
+                   COALESCE(mp.gold_detected_process.observed_at, '-infinity'::timestamptz)
+               )
           `,
           [
             record.codigo,
@@ -824,6 +942,31 @@ export class MercadoPublicoV2DurableSyncService {
     );
 
     return observationRows[0].id;
+  }
+
+  private async markCohortTerminal(
+    context: SyncRunContext,
+    codigo: string,
+  ): Promise<void> {
+    await this.coreDataSource.query(
+      `
+        UPDATE mp.v2_cohort
+        SET status = 'terminal',
+            terminal_sync_run_id = $1,
+            terminal_at = now(),
+            updated_at = now()
+        WHERE source = $2
+          AND scope = $3
+          AND codigo = $4
+          AND status = 'active'
+      `,
+      [
+        context.syncRunId,
+        MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
+        context.scope,
+        codigo,
+      ],
+    );
   }
 
   private async markItemSucceeded(
