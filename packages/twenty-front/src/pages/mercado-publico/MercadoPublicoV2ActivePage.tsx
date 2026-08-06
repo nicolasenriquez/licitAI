@@ -5,14 +5,16 @@ import { useLingui } from '@lingui/react/macro';
 import { useCallback } from 'react';
 
 import { useNavigateSidePanel } from '@/side-panel/hooks/useNavigateSidePanel';
+import { useSearchParams } from 'react-router-dom';
 import { SidePanelPages } from 'twenty-shared/types';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 import { IconDotsVertical } from 'twenty-ui/icon';
+import { Button } from 'twenty-ui/input';
 
 const MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY = gql`
-  query MercadoPublicoV2ActiveOpportunities {
+  query MercadoPublicoV2ActiveOpportunities($after: String) {
     mercadoPublicoV2 {
-      opportunities(first: 50) {
+      opportunities(first: 50, after: $after) {
         edges {
           cursor
           node {
@@ -49,7 +51,7 @@ type Opportunity = {
   closingAt: string | null;
   amount: string | null;
   currency: string | null;
-  documentCount: number;
+  documentCount: number | null;
   availability: string;
 };
 
@@ -61,6 +63,10 @@ type MercadoPublicoV2ActiveQuery = {
       totalCount: number;
     };
   };
+};
+
+type MercadoPublicoV2ActiveQueryVariables = {
+  after?: string;
 };
 
 const StyledPage = styled.div`
@@ -141,6 +147,11 @@ const StyledEmptyState = styled.p`
   padding: ${themeCssVariables.spacing[5]};
 `;
 
+const StyledPagination = styled.nav`
+  display: flex;
+  justify-content: flex-end;
+`;
+
 const formatDate = (value: string | null): string => {
   if (!value) return 'No disponible';
 
@@ -160,9 +171,12 @@ const formatAmount = (opportunity: Opportunity): string => {
 export const MercadoPublicoV2ActivePage = () => {
   const { t } = useLingui();
   const { navigateSidePanel } = useNavigateSidePanel();
-  const { data, error, loading } = useQuery<MercadoPublicoV2ActiveQuery>(
-    MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY,
-  );
+  const [searchParams, setSearchParams] = useSearchParams();
+  const after = searchParams.get('after') || undefined;
+  const { data, error, loading } = useQuery<
+    MercadoPublicoV2ActiveQuery,
+    MercadoPublicoV2ActiveQueryVariables
+  >(MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY, { variables: { after } });
 
   const openOpportunity = useCallback(
     (opportunity: Opportunity) => {
@@ -178,6 +192,19 @@ export const MercadoPublicoV2ActivePage = () => {
   );
 
   const opportunities = data?.mercadoPublicoV2.opportunities;
+
+  const goToNextPage = useCallback(() => {
+    if (
+      !opportunities?.pageInfo.hasNextPage ||
+      !opportunities.pageInfo.endCursor
+    ) {
+      return;
+    }
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.set('after', opportunities.pageInfo.endCursor);
+    setSearchParams(nextSearchParams);
+  }, [opportunities, searchParams, setSearchParams]);
 
   return (
     <StyledPage>
@@ -235,7 +262,9 @@ export const MercadoPublicoV2ActivePage = () => {
                     <StyledCell>{formatDate(node.closingAt)}</StyledCell>
                     <StyledCell>{formatAmount(node)}</StyledCell>
                     <StyledCell>
-                      {node.documentCount} {t`documentos`}
+                      {node.documentCount === null
+                        ? t`No disponible`
+                        : t`${node.documentCount} documentos`}
                       <StyledSecondaryText>{t`Ofertas: no disponible`}</StyledSecondaryText>
                     </StyledCell>
                   </tr>
@@ -244,6 +273,18 @@ export const MercadoPublicoV2ActivePage = () => {
             </StyledTable>
           </StyledTableContainer>
         )}
+      {!loading && !error && opportunities?.edges.length ? (
+        <StyledPagination aria-label={t`Paginación de oportunidades`}>
+          <Button
+            title={t`Siguiente`}
+            type="button"
+            size="small"
+            variant="secondary"
+            disabled={!opportunities.pageInfo.hasNextPage}
+            onClick={goToNextPage}
+          />
+        </StyledPagination>
+      ) : null}
     </StyledPage>
   );
 };

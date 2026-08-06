@@ -37,13 +37,13 @@ export class MercadoPublicoV2OpportunityDTO {
   @Field()
   codigo!: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   title!: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   state!: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   buyerName!: string | null;
 
   @Field(() => Int, { nullable: true })
@@ -55,22 +55,22 @@ export class MercadoPublicoV2OpportunityDTO {
   @Field(() => GraphQLISODateTime, { nullable: true })
   closingAt!: Date | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   amount!: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   currency!: string | null;
 
-  @Field(() => Int)
-  documentCount!: number;
+  @Field(() => Int, { nullable: true })
+  documentCount!: number | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   observationId!: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   normalizerVersion!: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   providerSchemaFingerprint!: string | null;
 
   @Field()
@@ -94,10 +94,10 @@ export class MercadoPublicoV2PageInfoDTO {
   @Field()
   hasPreviousPage!: boolean;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   startCursor!: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   endCursor!: string | null;
 }
 

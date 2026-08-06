@@ -40,7 +40,7 @@ type OpportunityDetail = {
   closingAt: string | null;
   amount: string | null;
   currency: string | null;
-  documentCount: number;
+  documentCount: number | null;
   observationId: string | null;
   normalizerVersion: string | null;
   providerSchemaFingerprint: string | null;
@@ -129,7 +129,9 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
             : t`No disponible`}
         </StyledValue>
         <StyledLabel>{t`Documentos`}</StyledLabel>
-        <StyledValue>{opportunity.documentCount}</StyledValue>
+        <StyledValue>
+          {opportunity.documentCount ?? t`No disponible`}
+        </StyledValue>
         <StyledLabel>{t`Disponibilidad`}</StyledLabel>
         <StyledValue>{opportunity.availability}</StyledValue>
         <StyledLabel>{t`Evidencia`}</StyledLabel>

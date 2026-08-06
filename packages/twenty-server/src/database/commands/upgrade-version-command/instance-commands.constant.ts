@@ -92,6 +92,8 @@ import { MpReconciliationEventFastInstanceCommand } from 'src/database/commands/
 import { MpGoldReadObjectsFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007910-mp-gold-read-objects';
 import { MpRawCsvFileDedupeModalityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007920-mp-raw-csv-file-dedupe-modality';
 import { DropRawCsvFileIngestionJobIdFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1783191615514-drop-raw-csv-file-ingestion-job-id';
+import { MpV2GoldenPathFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1784000000000-mp-v2-golden-path';
+import { RelaxMpV2CanonicalStateAndDocumentCountFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1784000000010-relax-mp-v2-canonical-state-and-document-count';
 import { MpStgJobRunRawCsvFileLinkSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1782340007930-mp-stg-job-run-raw-csv-file-link';
 import { DropRawCsvFileIngestionJobIdSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1783191615515-drop-raw-csv-file-ingestion-job-id';
 
@@ -188,6 +190,8 @@ export const INSTANCE_COMMANDS = [
   MpGoldReadObjectsFastInstanceCommand,
   MpRawCsvFileDedupeModalityFastInstanceCommand,
   DropRawCsvFileIngestionJobIdFastInstanceCommand,
+  MpV2GoldenPathFastInstanceCommand,
+  RelaxMpV2CanonicalStateAndDocumentCountFastInstanceCommand,
   MpStgJobRunRawCsvFileLinkSlowInstanceCommand,
   DropRawCsvFileIngestionJobIdSlowInstanceCommand,
 ];

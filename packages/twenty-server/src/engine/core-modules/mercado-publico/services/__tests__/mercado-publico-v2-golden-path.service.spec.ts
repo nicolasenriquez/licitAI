@@ -10,6 +10,9 @@ describe('MercadoPublicoV2GoldenPathService', () => {
         return Promise.resolve([{ id: 'sync-run-1' }]);
       }
 
+      return Promise.resolve([]);
+    });
+    const entityManagerQuery = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('INSERT INTO mp.v2_observation')) {
         return Promise.resolve([{ id: 'observation-1' }]);
       }
@@ -29,11 +32,16 @@ describe('MercadoPublicoV2GoldenPathService', () => {
     const canonicalRefreshService = {
       refreshV2CompraAgilFromApiSnapshot: jest.fn().mockResolvedValue(1),
     };
+    const entityManager = { query: entityManagerQuery };
+    const transaction = jest.fn(
+      async (callback: (manager: typeof entityManager) => unknown) =>
+        callback(entityManager),
+    );
     const service = new MercadoPublicoV2GoldenPathService(
       {} as never,
       persistenceService as never,
       canonicalRefreshService as never,
-      { query } as unknown as DataSource,
+      { query, transaction } as unknown as DataSource,
     );
 
     const result = await service.runFixture(fixture);
@@ -50,11 +58,11 @@ describe('MercadoPublicoV2GoldenPathService', () => {
       }),
     );
     expect(
-      query.mock.calls.some(([sql]) =>
+      entityManagerQuery.mock.calls.some(([sql]) =>
         sql.includes('INSERT INTO mp.v2_observation'),
       ),
     ).toBe(true);
-    const goldProjectionCall = query.mock.calls.find(([sql]) =>
+    const goldProjectionCall = entityManagerQuery.mock.calls.find(([sql]) =>
       sql.includes('INSERT INTO mp.gold_detected_process'),
     );
 
@@ -67,5 +75,15 @@ describe('MercadoPublicoV2GoldenPathService', () => {
     expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'success', recordsCanonicalized: 1 }),
     );
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(
+      query.mock.calls.some(
+        ([sql]) =>
+          typeof sql === 'string' &&
+          (sql.includes('INSERT INTO mp.v2_observation') ||
+            sql.includes('INSERT INTO mp.gold_detected_process') ||
+            sql.includes('UPDATE mp.compra_agil')),
+      ),
+    ).toBe(false);
   });
 });

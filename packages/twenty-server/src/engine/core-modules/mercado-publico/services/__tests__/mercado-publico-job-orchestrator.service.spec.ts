@@ -11,17 +11,16 @@ describe('MercadoPublicoJobOrchestratorService', () => {
       }),
     };
     const noopService = { run: jest.fn() };
+    const incrementalService = { run: jest.fn() };
     const stagingProjectionService = { run: jest.fn() };
     const canonicalRefreshService = {
-      refreshCanonicalFromCsvSnapshot: jest
-        .fn()
-        .mockResolvedValue({
-          licitacionItems: 1,
-          licitacionOfertas: 1,
-          licitacionAdjudicaciones: 1,
-          ordenCompraItems: 1,
-          total: 4,
-        }),
+      refreshCanonicalFromCsvSnapshot: jest.fn().mockResolvedValue({
+        licitacionItems: 1,
+        licitacionOfertas: 1,
+        licitacionAdjudicaciones: 1,
+        ordenCompraItems: 1,
+        total: 4,
+      }),
     };
     const reconciliationService = {
       refreshAllExactReconciliation: jest.fn().mockResolvedValue({
@@ -52,7 +51,7 @@ describe('MercadoPublicoJobOrchestratorService', () => {
         noopService as never,
         noopService as never,
         noopService as never,
-        noopService as never,
+        incrementalService as never,
         noopService as never,
         noopService as never,
         noopService as never,
@@ -63,6 +62,7 @@ describe('MercadoPublicoJobOrchestratorService', () => {
         canonicalRefreshService as never,
         reconciliationService as never,
       ),
+      incrementalService,
     };
   };
 
@@ -72,6 +72,18 @@ describe('MercadoPublicoJobOrchestratorService', () => {
     await service.run('csv-staging-projection', payload);
 
     expect(stagingProjectionService.run).toHaveBeenCalledWith(payload);
+  });
+
+  it('keeps production V2 incremental jobs on durable incremental ingestion', async () => {
+    const { service, incrementalService } = createService();
+    const incrementalPayload = {
+      ttl_cambio_ms: 1,
+      cambio_desde: '2026-06-01T00:00:00.000Z',
+    };
+
+    await service.run('api-v2-compra-agil-incremental', incrementalPayload);
+
+    expect(incrementalService.run).toHaveBeenCalledWith(incrementalPayload);
   });
 
   it('routes csv-canonical-refresh to canonical rerun and logs counts', async () => {
@@ -87,9 +99,7 @@ describe('MercadoPublicoJobOrchestratorService', () => {
   it('rejects csv-canonical-refresh without raw_csv_file_id', async () => {
     const { service, canonicalRefreshService } = createService();
 
-    await expect(
-      service.run('csv-canonical-refresh', {}),
-    ).rejects.toThrow(
+    await expect(service.run('csv-canonical-refresh', {})).rejects.toThrow(
       'Mercado Publico csv-canonical-refresh payload requires a non-empty "raw_csv_file_id" string',
     );
 

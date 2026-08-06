@@ -40,6 +40,8 @@ describe('MercadoPublicoV2ReadService', () => {
     expect(firstPage.endCursor).toBe(
       encodeMercadoPublicoV2OpportunityCursor(firstRow),
     );
+    expect(query.mock.calls[0][0]).toContain("canonical_state = 'publicada'");
+    expect(query.mock.calls[1][0]).toContain("canonical_state = 'publicada'");
 
     query
       .mockReset()

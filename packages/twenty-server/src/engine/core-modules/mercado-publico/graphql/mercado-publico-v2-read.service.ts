@@ -19,7 +19,7 @@ export type MercadoPublicoV2OpportunityRow = {
   closing_at: Date | null;
   amount: string | null;
   currency_source: string | null;
-  document_count: number;
+  document_count: number | null;
   observation_id: string | null;
   normalizer_version: string | null;
   provider_schema_fingerprint: string | null;
@@ -84,9 +84,8 @@ export class MercadoPublicoV2ReadService {
     const requestedFirst = first ?? 50;
     const limit = Math.min(Math.max(Math.floor(requestedFirst), 1), 100);
     const { whereSql, params } = this.buildWhere(filter, after);
-    const { whereSql: countWhereSql, params: countParams } = this.buildWhere(
-      filter,
-    );
+    const { whereSql: countWhereSql, params: countParams } =
+      this.buildWhere(filter);
     const countRows = await this.coreDataSource.query<{ total: string }[]>(
       `SELECT count(*)::bigint AS total FROM mp.gold_detected_process${countWhereSql}`,
       countParams,
@@ -169,7 +168,10 @@ export class MercadoPublicoV2ReadService {
     filter: MercadoPublicoV2OpportunityFilter,
     after?: string,
   ): { whereSql: string; params: unknown[] } {
-    const clauses = ["process_type = 'compra_agil'"];
+    const clauses = [
+      "process_type = 'compra_agil'",
+      "canonical_state = 'publicada'",
+    ];
     const params: unknown[] = [];
 
     if (filter.search?.trim()) {

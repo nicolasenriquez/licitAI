@@ -60,7 +60,7 @@ test.describe('Mercado Publico V2 baseline', () => {
     ).not.toBeVisible();
   });
 
-  test('flagged Activas opens a detail panel without losing the table context', async ({
+  test('mocked UI Activas opens a detail panel without losing table context', async ({
     page,
   }) => {
     test.skip(
@@ -140,6 +140,93 @@ test.describe('Mercado Publico V2 baseline', () => {
       page.getByRole('button', {
         name: 'Abrir Servicio de mantención preventiva',
       }),
+    ).toBeVisible();
+  });
+
+  test('flagged Activas advances through URL-backed keyset pages', async ({
+    page,
+  }) => {
+    test.skip(
+      !v2FlagOn,
+      'build has REACT_APP_MERCADO_PUBLICO_V2_ENABLED=false',
+    );
+
+    const pageOneOpportunity = {
+      codigo: 'FIXTURE-CA-001',
+      title: 'Primera oportunidad',
+      state: 'publicada',
+      buyerName: 'Municipalidad de Ejemplo',
+      region: 13,
+      publishedAt: '2026-06-01T09:30:00.000Z',
+      closingAt: '2026-06-30T16:00:00.000Z',
+      amount: '1500000',
+      currency: 'CLP',
+      documentCount: 1,
+      observationId: 'observation-1',
+      normalizerVersion: 'mercado-publico-v2-golden-path-1',
+      providerSchemaFingerprint: 'schema-1',
+      availability: 'available',
+    };
+    const pageTwoOpportunity = {
+      ...pageOneOpportunity,
+      codigo: 'FIXTURE-CA-002',
+      title: 'Segunda oportunidad',
+    };
+
+    await page.route('**/graphql', async (route) => {
+      const requestBody = route.request().postDataJSON() as {
+        operationName?: string;
+        variables?: { after?: string };
+      };
+
+      if (requestBody.operationName !== 'MercadoPublicoV2ActiveOpportunities') {
+        await route.continue();
+        return;
+      }
+
+      const isNextPage = requestBody.variables?.after === 'cursor-1';
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            mercadoPublicoV2: {
+              opportunities: {
+                edges: [
+                  {
+                    cursor: isNextPage ? 'cursor-2' : 'cursor-1',
+                    node: isNextPage ? pageTwoOpportunity : pageOneOpportunity,
+                  },
+                ],
+                pageInfo: {
+                  hasNextPage: !isNextPage,
+                  endCursor: isNextPage ? 'cursor-2' : 'cursor-1',
+                },
+                totalCount: 2,
+              },
+            },
+          },
+        }),
+      });
+    });
+
+    await page.goto(ACTIVE_PATH);
+    await expect(
+      page.getByRole('button', { name: 'Abrir Primera oportunidad' }),
+    ).toBeVisible();
+
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+    await expect(page).toHaveURL(/\/mercado-publico\?after=cursor-1$/);
+    await expect(
+      page.getByRole('button', { name: 'Abrir Segunda oportunidad' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Siguiente' }),
+    ).toBeDisabled();
+
+    await page.goBack();
+    await expect(page).toHaveURL(/\/mercado-publico$/);
+    await expect(
+      page.getByRole('button', { name: 'Abrir Primera oportunidad' }),
     ).toBeVisible();
   });
 });

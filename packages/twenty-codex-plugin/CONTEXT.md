@@ -36,10 +36,9 @@ Use `packages/twenty-codex-plugin` for:
 
 This surface is not the durable home for:
 
-- repo-local `.codex` commands and skills
+- repo-local `.agents` skills and workflow assets
 - root repository docs under `docs/`
 - OpenSpec change artifacts
 - general package selection work in `packages/`
 
 If the prompt is about those topics, go back to `../../index.md` and reroute.
-

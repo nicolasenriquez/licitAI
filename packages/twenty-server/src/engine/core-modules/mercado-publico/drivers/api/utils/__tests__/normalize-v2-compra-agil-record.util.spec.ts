@@ -44,7 +44,14 @@ describe('normalizeV2CompraAgilRecord', () => {
       closingAt: null,
       amount: null,
       currency: null,
-      documentCount: 0,
+      documentCount: null,
     });
+  });
+
+  it('distinguishes unavailable documents from an empty document list', () => {
+    expect(
+      normalizeV2CompraAgilRecord({ codigo: 'CA-1', documentos: [] })
+        .documentCount,
+    ).toBe(0);
   });
 });

@@ -13,7 +13,7 @@ export type NormalizedV2CompraAgilRecord = {
   closingAt: Date | null;
   amount: string | null;
   currency: string | null;
-  documentCount: number;
+  documentCount: number | null;
 };
 
 const toDecimalString = (value: unknown): string | null => {
@@ -61,6 +61,6 @@ export const normalizeV2CompraAgilRecord = (
     currency: coerceToNullableString(record.montos?.moneda),
     documentCount: Array.isArray(record.documentos)
       ? record.documentos.length
-      : 0,
+      : null,
   };
 };
