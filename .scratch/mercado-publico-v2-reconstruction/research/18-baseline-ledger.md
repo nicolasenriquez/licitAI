@@ -1,6 +1,6 @@
 ﻿# Ledger del baseline reproducible — Issue 18
 
-Status: ready-for-human
+Status: done
 Branch: `feat/mercado-publico-v2-baseline`
 Base: `origin/main` @ `7fd1601f83` (merge PR #1, ingestion backbone)
 Provenance: `git log --oneline --first-parent` desde la rama; ningún merge/rebase/cherry-pick masivo desde `feat/mercado-publico-ingestion-backbone` (congelada como evidencia).
