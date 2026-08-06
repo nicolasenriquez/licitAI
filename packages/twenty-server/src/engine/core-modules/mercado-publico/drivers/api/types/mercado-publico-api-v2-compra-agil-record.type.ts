@@ -1,7 +1,26 @@
 export type MercadoPublicoApiV2CompraAgilRecord = {
   codigo: string;
-  estado?: string;
+  nombre?: string;
+  estado?: string | { codigo?: string; glosa?: string };
   region?: number;
+  institucion?: {
+    rut?: string;
+    region?: number;
+    nombre_region?: string;
+    unidad_compra?: string;
+    organismo_comprador?: string;
+  };
+  fechas?: {
+    fecha_publicacion?: string;
+    fecha_cierre?: string;
+    fecha_ultimo_cambio?: string;
+  };
+  montos?: {
+    moneda?: string;
+    monto_disponible?: number | string;
+    monto_disponible_clp?: number | string;
+  };
+  documentos?: Array<{ id?: number | string; nombre?: string }>;
   publicado_desde?: string;
   publicado_hasta?: string;
   cambio_desde?: string;

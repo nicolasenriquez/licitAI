@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   NotImplementedException,
+  Optional,
 } from '@nestjs/common';
 
 import {
@@ -17,6 +18,7 @@ import { MercadoPublicoApiV1OcByDateService } from 'src/engine/core-modules/merc
 import { MercadoPublicoApiV1OcByStateService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-v1-oc-by-state.service';
 import { MercadoPublicoApiV1OcDetailByCodigoService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-v1-oc-detail-by-codigo.service';
 import { MercadoPublicoApiV2CompraAgilIncrementalService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-v2-compra-agil-incremental.service';
+import { MercadoPublicoV2GoldenPathService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-golden-path.service';
 import { MercadoPublicoApiV2CompraAgilPublicationWindowService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-v2-compra-agil-publication-window.service';
 import { MercadoPublicoApiV2CompraAgilDetailByCodigoService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-v2-compra-agil-detail-by-codigo.service';
 import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
@@ -52,6 +54,8 @@ export class MercadoPublicoJobOrchestratorService {
     private readonly mercadoPublicoCsvStagingProjectionService: MercadoPublicoCsvStagingProjectionService,
     private readonly mercadoPublicoCanonicalRefreshService: MercadoPublicoCanonicalRefreshService,
     private readonly mercadoPublicoReconciliationService: MercadoPublicoReconciliationService,
+    @Optional()
+    private readonly mercadoPublicoV2GoldenPathService?: MercadoPublicoV2GoldenPathService,
   ) {}
 
   async run(
@@ -109,6 +113,12 @@ export class MercadoPublicoJobOrchestratorService {
     }
 
     if (jobName === 'api-v2-compra-agil-incremental') {
+      if (this.mercadoPublicoV2GoldenPathService) {
+        await this.mercadoPublicoV2GoldenPathService.runProduction(payload);
+
+        return;
+      }
+
       await this.mercadoPublicoApiV2CompraAgilIncrementalService.run(payload);
 
       return;

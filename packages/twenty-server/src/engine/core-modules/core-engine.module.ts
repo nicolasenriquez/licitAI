@@ -49,6 +49,7 @@ import { TimelineMessagingModule } from 'src/engine/core-modules/messaging/timel
 import { MessagingWebhooksModule } from 'src/modules/messaging-webhooks/messaging-webhooks.module';
 import { MetricsModule } from 'src/engine/core-modules/metrics/metrics.module';
 import { MetricsService } from 'src/engine/core-modules/metrics/metrics.service';
+import { MercadoPublicoModule } from 'src/engine/core-modules/mercado-publico/mercado-publico.module';
 import { OpenApiModule } from 'src/engine/core-modules/open-api/open-api.module';
 import { PublicDomainModule } from 'src/engine/core-modules/public-domain/public-domain.module';
 import { RedisClientModule } from 'src/engine/core-modules/redis-client/redis-client.module';
@@ -162,6 +163,7 @@ import { FileModule } from './file/file.module';
     EventLogsViewerModule,
     PreInstalledAppsModule,
     AppBillingModule,
+    MercadoPublicoModule,
   ],
   providers: [
     {

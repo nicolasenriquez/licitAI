@@ -9,6 +9,7 @@ import { type MercadoPublicoApiV1LicitacionesByDateResponse } from 'src/engine/c
 import { type MercadoPublicoApiV1OcByDateResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-ordenes-de-compra-client.service';
 import { type MercadoPublicoApiV2CompraAgilListResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { coerceToNullableString } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/coerce-to-nullable-string.util';
+import { normalizeV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/normalize-v2-compra-agil-record.util';
 import {
   type MercadoPublicoJobName,
   type MercadoPublicoJobRunStatus,
@@ -726,7 +727,16 @@ export class MercadoPublicoPersistenceService {
             publicado_hasta,
             cambio_desde,
             cambio_hasta,
-            fetched_at
+            fetched_at,
+            title,
+            buyer_code,
+            buyer_name,
+            region,
+            published_at,
+            closing_at,
+            amount,
+            currency_source,
+            document_count
           )
           VALUES ${placeholders.join(', ')}
         `,
@@ -741,15 +751,16 @@ export class MercadoPublicoPersistenceService {
     for (const compraAgilItem of apiResponse.compraAgil) {
       const ordenCompra = compraAgilItem.orden_compra;
 
+      const normalized = normalizeV2CompraAgilRecord(compraAgilItem);
       placeholders.push(
-        `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12})`,
+        `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12}, $${paramIndex + 13}, $${paramIndex + 14}, $${paramIndex + 15}, $${paramIndex + 16}, $${paramIndex + 17}, $${paramIndex + 18}, $${paramIndex + 19}, $${paramIndex + 20}, $${paramIndex + 21})`,
       );
       params.push(
         rawApiPayloadId,
         apiResponse.source,
         snapshotKind,
         coerceToNullableString(compraAgilItem.codigo),
-        coerceToNullableString(compraAgilItem.estado),
+        normalized.stateCode,
         coerceToNullableString(ordenCompra?.id_orden_compra),
         coerceToNullableString(ordenCompra?.id_oc),
         coerceToNullableString(ordenCompra?.codigo_orden_compra),
@@ -758,8 +769,17 @@ export class MercadoPublicoPersistenceService {
         coerceToNullableString(compraAgilItem.cambio_desde),
         coerceToNullableString(compraAgilItem.cambio_hasta),
         apiResponse.fetchedAt,
+        normalized.title,
+        normalized.buyerCode,
+        normalized.buyerName,
+        normalized.region,
+        normalized.publishedAt,
+        normalized.closingAt,
+        normalized.amount,
+        normalized.currency,
+        normalized.documentCount,
       );
-      paramIndex += 13;
+      paramIndex += 22;
 
       if (placeholders.length >= STAGING_INSERT_BATCH_SIZE) {
         await flushBatch();

@@ -26,6 +26,7 @@ export enum AppPath {
   PageLayoutPage = '/page/:pageLayoutId',
 
   MercadoPublicoV2Baseline = '/mercado-publico-v2',
+  MercadoPublico = '/mercado-publico',
 
   Settings = `settings`,
   SettingsCatchAll = `/${Settings}/*`,

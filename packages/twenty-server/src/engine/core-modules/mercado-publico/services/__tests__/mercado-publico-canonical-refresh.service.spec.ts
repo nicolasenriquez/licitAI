@@ -164,6 +164,14 @@ describe('MercadoPublicoCanonicalRefreshService', () => {
         null,
         null,
         null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        0,
         new Date('2026-06-16T12:00:00.000Z'),
       ]);
     });
