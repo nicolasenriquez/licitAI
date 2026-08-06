@@ -42,6 +42,9 @@ describe('normalizeV2CompraAgilRecord', () => {
       region: null,
       publishedAt: null,
       closingAt: null,
+      providerChangedAt: null,
+      providerChangedAtRaw: null,
+      stateId: null,
       amount: null,
       currency: null,
       documentCount: null,
@@ -53,5 +56,19 @@ describe('normalizeV2CompraAgilRecord', () => {
       normalizeV2CompraAgilRecord({ codigo: 'CA-1', documentos: [] })
         .documentCount,
     ).toBe(0);
+  });
+
+  it('preserves valid and invalid provider change timestamps separately', () => {
+    expect(
+      normalizeV2CompraAgilRecord({
+        codigo: 'CA-1',
+        estado: { id_estado: 2, codigo: 'publicada', glosa: 'Publicada' },
+        fechas: { fecha_ultimo_cambio: '2026-06-01T12:00:00Z' },
+      }),
+    ).toMatchObject({
+      stateId: '2',
+      providerChangedAtRaw: '2026-06-01T12:00:00Z',
+      providerChangedAt: new Date('2026-06-01T12:00:00.000Z'),
+    });
   });
 });

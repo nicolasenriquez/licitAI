@@ -11,6 +11,9 @@ export type NormalizedV2CompraAgilRecord = {
   region: number | null;
   publishedAt: Date | null;
   closingAt: Date | null;
+  providerChangedAt: Date | null;
+  providerChangedAtRaw: string | null;
+  stateId: string | null;
   amount: string | null;
   currency: string | null;
   documentCount: number | null;
@@ -30,12 +33,17 @@ export const normalizeV2CompraAgilRecord = (
   const state = record.estado;
   const stateCode =
     typeof state === 'string' ? state : coerceToNullableString(state?.codigo);
+  const stateId =
+    typeof state === 'object' ? coerceToNullableString(state?.id_estado) : null;
   const stateLabel =
     typeof state === 'object'
       ? coerceToNullableString(state?.glosa)
       : stateCode;
   const institution = record.institucion;
   const dates = record.fechas;
+  const providerChangedAt = normalizeV2CompraAgilDate(
+    dates?.fecha_ultimo_cambio,
+  );
   const amount =
     record.montos?.monto_disponible ?? record.montos?.monto_disponible_clp;
 
@@ -57,6 +65,9 @@ export const normalizeV2CompraAgilRecord = (
     closingAt: normalizeV2CompraAgilDate(
       dates?.fecha_cierre ?? record.publicado_hasta,
     ).value,
+    providerChangedAt: providerChangedAt.value,
+    providerChangedAtRaw: providerChangedAt.raw,
+    stateId,
     amount: toDecimalString(amount),
     currency: coerceToNullableString(record.montos?.moneda),
     documentCount: Array.isArray(record.documentos)

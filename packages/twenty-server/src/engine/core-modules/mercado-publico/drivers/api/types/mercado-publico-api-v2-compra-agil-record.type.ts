@@ -1,7 +1,13 @@
 export type MercadoPublicoApiV2CompraAgilRecord = {
   codigo: string;
   nombre?: string;
-  estado?: string | { codigo?: string; glosa?: string };
+  estado?:
+    | string
+    | {
+        id_estado?: number | string;
+        codigo?: string;
+        glosa?: string;
+      };
   region?: number;
   institucion?: {
     rut?: string;
@@ -15,6 +21,12 @@ export type MercadoPublicoApiV2CompraAgilRecord = {
     fecha_cierre?: string;
     fecha_ultimo_cambio?: string;
   };
+  convocatoria?: {
+    numero?: number | string;
+    estado_convocatoria?: number | string;
+  };
+  numero_convocatoria?: number | string;
+  llamado?: number | string;
   montos?: {
     moneda?: string;
     monto_disponible?: number | string;

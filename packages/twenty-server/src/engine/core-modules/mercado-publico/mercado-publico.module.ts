@@ -39,6 +39,7 @@ import { MercadoPublicoCsvStagingProjectionService } from 'src/engine/core-modul
 import { MercadoPublicoReconciliationService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-reconciliation.service';
 import { MercadoPublicoQuotaTrackerService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-quota-tracker.service';
 import { MercadoPublicoV2GoldenPathService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-golden-path.service';
+import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
 
 @Module({
   imports: [SecureHttpClientModule],
@@ -56,6 +57,7 @@ import { MercadoPublicoV2GoldenPathService } from 'src/engine/core-modules/merca
     MercadoPublicoReconciliationService,
     MercadoPublicoQuotaTrackerService,
     MercadoPublicoV2GoldenPathService,
+    MercadoPublicoV2DurableSyncService,
     MercadoPublicoV2ReadService,
     MercadoPublicoV2NamespaceResolver,
     MercadoPublicoV2Resolver,
@@ -89,6 +91,7 @@ import { MercadoPublicoV2GoldenPathService } from 'src/engine/core-modules/merca
     MercadoPublicoPipelineHealthReadService,
     MercadoPublicoProcessDetailReadService,
     MercadoPublicoV2GoldenPathService,
+    MercadoPublicoV2DurableSyncService,
   ],
 })
 export class MercadoPublicoModule {}

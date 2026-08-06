@@ -9,6 +9,10 @@ import {
 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/create-json-sha256.util';
 import { extractV2CompraAgilListRecords } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
 import {
+  extractV2CompraAgilPagination,
+  type MercadoPublicoApiV2CompraAgilPagination,
+} from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-pagination.util';
+import {
   CompraAgilListParams,
   validateCompraAgilListParams,
 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/validate-compra-agil-params.util';
@@ -36,6 +40,7 @@ export type MercadoPublicoApiV2CompraAgilListResponse = {
   fetchedAt: Date;
   rawPayload: unknown;
   compraAgil: MercadoPublicoApiV2CompraAgilRecord[];
+  pagination?: MercadoPublicoApiV2CompraAgilPagination;
   errorSummary?: MercadoPublicoErrorSummary;
   errorMessage?: string;
   errorCode?: string;
@@ -152,6 +157,12 @@ export class MercadoPublicoApiV2CompraAgilClientService {
 
     const rawPayload = response.data;
     const compraAgil = extractV2CompraAgilListRecords(rawPayload);
+    const pagination = extractV2CompraAgilPagination(
+      rawPayload,
+      appliedParams.numero_pagina ?? 1,
+      appliedParams.tamano_pagina ?? 15,
+      compraAgil.length,
+    );
     const bodyError = parseMercadoPublicoBodyError(rawPayload);
     const httpStatusErrorSummary = classifyMercadoPublicoHttpStatus(
       response.status,
@@ -169,6 +180,7 @@ export class MercadoPublicoApiV2CompraAgilClientService {
       fetchedAt,
       rawPayload,
       compraAgil,
+      pagination,
       errorSummary: bodyError?.errorSummary ?? httpStatusErrorSummary,
       errorMessage: bodyError?.message,
       errorCode: bodyError?.code ?? undefined,
