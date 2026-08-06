@@ -157,6 +157,7 @@ const formatDate = (value: string | null): string => {
 
   return new Intl.DateTimeFormat('es-CL', {
     dateStyle: 'medium',
+    timeZone: 'America/Santiago',
   }).format(new Date(value));
 };
 
