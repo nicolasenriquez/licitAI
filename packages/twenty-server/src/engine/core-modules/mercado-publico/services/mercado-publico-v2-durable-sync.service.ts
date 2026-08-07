@@ -17,6 +17,7 @@ import { normalizeV2CompraAgilRecord } from 'src/engine/core-modules/mercado-pub
 import {
   MERCADO_PUBLICO_API_V2_COMPRA_AGIL_LIST_ENDPOINT,
   MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
+  type MercadoPublicoJobName,
 } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoV2ProjectionService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-projection.service';
@@ -64,6 +65,7 @@ type SyncRunRow = {
   scope: string;
   request_params: Record<string, unknown>;
   watermark_before: Date | null;
+  error_stage: string | null;
 };
 
 const getNonEmptyString = (value: unknown): string | undefined => {
@@ -101,12 +103,11 @@ export class MercadoPublicoV2DurableSyncService {
   async start(
     payload: Record<string, unknown>,
     intent: MercadoPublicoV2SyncIntent = 'scheduled',
+    jobName: MercadoPublicoJobName = 'api-v2-compra-agil-incremental',
   ): Promise<MercadoPublicoV2DurableSyncResult> {
     const context = await this.createSyncRun(intent, payload);
     const jobRunRecord =
-      await this.mercadoPublicoPersistenceService.createJobRun(
-        'api-v2-compra-agil-incremental',
-      );
+      await this.mercadoPublicoPersistenceService.createJobRun(jobName);
     let stage: 'discovering' | 'hydrating' = 'discovering';
 
     try {
@@ -127,6 +128,13 @@ export class MercadoPublicoV2DurableSyncService {
 
   async resume(syncRunId: string): Promise<MercadoPublicoV2DurableSyncResult> {
     const context = await this.loadSyncRun(syncRunId);
+
+    if (context.error_stage === 'discovering') {
+      throw new Error(
+        `Mercado Publico V2 sync run ${syncRunId} failed during discovery and must be rediscovered`,
+      );
+    }
+
     const jobRunRecord =
       await this.mercadoPublicoPersistenceService.createJobRun(
         'api-v2-compra-agil-incremental',
@@ -318,7 +326,7 @@ export class MercadoPublicoV2DurableSyncService {
   ): Promise<SyncRunContext & SyncRunRow> {
     const rows = await this.coreDataSource.query<SyncRunRow[]>(
       `
-        SELECT id, intent, scope, request_params, watermark_before
+        SELECT id, intent, scope, request_params, watermark_before, error_stage
         FROM mp.sync_run
         WHERE id = $1
       `,

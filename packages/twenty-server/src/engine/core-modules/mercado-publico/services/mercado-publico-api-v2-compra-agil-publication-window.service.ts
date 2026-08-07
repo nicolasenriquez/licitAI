@@ -26,6 +26,7 @@ export class MercadoPublicoApiV2CompraAgilPublicationWindowService {
     await this.mercadoPublicoV2DurableSyncService.start(
       parsedPayload,
       'manual',
+      'api-v2-compra-agil-by-publication-window',
     );
   }
 

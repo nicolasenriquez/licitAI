@@ -33,6 +33,11 @@ export type MercadoPublicoV2ProjectionResult = {
   skipped: boolean;
 };
 
+export type MercadoPublicoV2Reprojection = {
+  observationId: string;
+  context: MercadoPublicoV2ProjectionContext;
+};
+
 type SemanticPayload = {
   codigo: string;
   estado: string | null;
@@ -179,6 +184,65 @@ export class MercadoPublicoV2ProjectionService {
     );
   }
 
+  async rebuild(
+    reprojections: MercadoPublicoV2Reprojection[],
+  ): Promise<MercadoPublicoV2ProjectionResult[]> {
+    if (reprojections.length === 0) {
+      return [];
+    }
+
+    const codigo = reprojections[0].context.record.codigo;
+
+    return this.coreDataSource.transaction(async (entityManager) => {
+      await entityManager.query(
+        `
+          UPDATE mp.compra_agil
+          SET observation_id = NULL,
+              semantic_fingerprint = NULL,
+              provider_changed_at_raw = NULL,
+              provider_changed_at = NULL,
+              observed_at = NULL
+          WHERE codigo = $1
+        `,
+        [codigo],
+      );
+      await entityManager.query(
+        `
+          UPDATE mp.gold_detected_process
+          SET observation_id = NULL,
+              semantic_fingerprint = NULL,
+              provider_changed_at_raw = NULL,
+              provider_changed_at = NULL,
+              observed_at = NULL
+          WHERE process_type = 'compra_agil' AND process_code = $1
+        `,
+        [codigo],
+      );
+
+      const results: MercadoPublicoV2ProjectionResult[] = [];
+
+      for (const { observationId, context } of reprojections) {
+        const normalized = normalizeV2CompraAgilRecord(context.record);
+        const semanticPayload = buildSemanticPayload(
+          context.record.codigo,
+          normalized,
+        );
+
+        results.push(
+          await this.project(
+            entityManager,
+            observationId,
+            context,
+            semanticPayload,
+            createJsonSha256(semanticPayload),
+          ),
+        );
+      }
+
+      return results;
+    });
+  }
+
   private async project(
     entityManager: EntityManager,
     observationId: string,
@@ -214,10 +278,7 @@ export class MercadoPublicoV2ProjectionService {
     );
     const previous = currentRows[0];
 
-    if (
-      previous !== undefined &&
-      previous.observation_id === observationId
-    ) {
+    if (previous !== undefined && previous.observation_id === observationId) {
       return {
         observationId,
         created: false,
@@ -357,11 +418,7 @@ export class MercadoPublicoV2ProjectionService {
         observationId,
         semanticFingerprint,
       );
-      await this.projectChildren(
-        entityManager,
-        observationId,
-        context.record,
-      );
+      await this.projectChildren(entityManager, observationId, context.record);
       await entityManager.query(
         `
           UPDATE mp.stg_api_v2_compra_agil
@@ -370,11 +427,7 @@ export class MercadoPublicoV2ProjectionService {
             AND codigo = $3
             AND observation_id IS NULL
         `,
-        [
-          observationId,
-          context.rawApiPayloadId,
-          context.record.codigo,
-        ],
+        [observationId, context.rawApiPayloadId, context.record.codigo],
       );
     }
 

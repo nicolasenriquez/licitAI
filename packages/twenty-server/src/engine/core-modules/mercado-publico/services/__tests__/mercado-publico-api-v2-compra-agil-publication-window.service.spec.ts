@@ -35,6 +35,7 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
         publicado_hasta: '2026-06-30T23:59:59Z',
       }),
       'manual',
+      'api-v2-compra-agil-by-publication-window',
     );
   });
 });

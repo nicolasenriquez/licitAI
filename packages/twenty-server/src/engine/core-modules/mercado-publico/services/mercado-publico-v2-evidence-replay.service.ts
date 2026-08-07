@@ -66,6 +66,8 @@ type ReplayCounters = {
 
 const LATEST_OBSERVATION_ORDER =
   'o.provider_changed_at DESC NULLS LAST, o.observed_at DESC, o.id DESC';
+const OLDEST_OBSERVATION_ORDER =
+  'o.provider_changed_at ASC NULLS FIRST, o.observed_at ASC, o.id ASC';
 
 @Injectable()
 export class MercadoPublicoV2EvidenceReplayService {
@@ -85,10 +87,7 @@ export class MercadoPublicoV2EvidenceReplayService {
   ): Promise<MercadoPublicoV2EvidenceReplayResult> {
     const sourceRunRows = await this.coreDataSource.query<
       { intent: string; scope: string }[]
-    >(
-      `SELECT intent, scope FROM mp.sync_run WHERE id = $1`,
-      [syncRunId],
-    );
+    >(`SELECT intent, scope FROM mp.sync_run WHERE id = $1`, [syncRunId]);
     const sourceRun = sourceRunRows[0];
 
     if (sourceRun === undefined) {
@@ -264,54 +263,59 @@ export class MercadoPublicoV2EvidenceReplayService {
     item: ReplayRunItem,
     counters: ReplayCounters,
   ): Promise<void> {
-    const observation = await this.loadLatestObservation(
-      context,
-      item.codigo,
-    );
+    const observations = await this.loadObservations(item.codigo);
 
-    if (observation === undefined) {
+    if (observations.length === 0) {
       throw new Error(`replay evidence missing for ${item.codigo}`);
     }
 
-    const record = extractV2CompraAgilListRecords(
-      observation.raw_payload,
-    ).find((candidate) => candidate.codigo === item.codigo);
+    const reprojections = observations.map((observation) => {
+      const record = extractV2CompraAgilListRecords(
+        observation.raw_payload,
+      ).find((candidate) => candidate.codigo === item.codigo);
 
-    if (record === undefined) {
-      throw new Error(`replay evidence record missing for ${item.codigo}`);
+      if (record === undefined) {
+        throw new Error(`replay evidence record missing for ${item.codigo}`);
+      }
+
+      return {
+        observationId: observation.id,
+        context: {
+          syncRunId: context.syncRunId,
+          rawApiPayloadId: observation.raw_api_payload_id,
+          response: this.buildResponseFromObservation(observation, record),
+          record,
+          snapshotKind: observation.snapshot_kind ?? 'detail',
+        },
+      };
+    });
+    const results =
+      await this.mercadoPublicoV2ProjectionService.rebuild(reprojections);
+
+    for (const result of results) {
+      if (result.created) {
+        counters.recordsCreated += 1;
+      } else if (result.applied) {
+        counters.recordsUpdated += 1;
+      } else if (result.skipped) {
+        counters.recordsSkipped += 1;
+      }
+
+      if (result.semanticChanged) {
+        counters.historyWritten += 1;
+      }
     }
 
-    const result = await this.mercadoPublicoV2ProjectionService.reproject(
-      observation.id,
-      {
-        syncRunId: context.syncRunId,
-        rawApiPayloadId: observation.raw_api_payload_id,
-        response: this.buildResponseFromObservation(observation, record),
-        record,
-        snapshotKind: observation.snapshot_kind ?? 'detail',
-      },
-    );
+    const latestObservation = observations[observations.length - 1];
+    const latestRecord = reprojections[reprojections.length - 1].context.record;
 
-    if (result.created) {
-      counters.recordsCreated += 1;
-    } else if (result.applied) {
-      counters.recordsUpdated += 1;
-    } else if (result.skipped) {
-      counters.recordsSkipped += 1;
-    }
-
-    if (result.semanticChanged) {
-      counters.historyWritten += 1;
-    }
-
-    await this.markItemSucceeded(item.id, observation.id, record);
+    await this.markItemSucceeded(item.id, latestObservation.id, latestRecord);
   }
 
-  private async loadLatestObservation(
-    context: ReplayRunContext,
+  private async loadObservations(
     codigo: string,
-  ): Promise<EvidenceObservationRow | undefined> {
-    const rows = await this.coreDataSource.query<EvidenceObservationRow[]>(
+  ): Promise<EvidenceObservationRow[]> {
+    return this.coreDataSource.query<EvidenceObservationRow[]>(
       `
         SELECT
           o.id,
@@ -330,16 +334,10 @@ export class MercadoPublicoV2EvidenceReplayService {
         FROM mp.v2_observation o
         JOIN mp.raw_api_payload p ON p.id = o.raw_api_payload_id
         WHERE o.codigo = $1
-          ${context.sourceSyncRunId === null ? '' : 'AND o.sync_run_id = $2'}
-        ORDER BY ${LATEST_OBSERVATION_ORDER}
-        LIMIT 1
+        ORDER BY ${OLDEST_OBSERVATION_ORDER}
       `,
-      context.sourceSyncRunId === null
-        ? [codigo]
-        : [codigo, context.sourceSyncRunId],
+      [codigo],
     );
-
-    return rows[0];
   }
 
   private buildResponseFromObservation(
@@ -348,8 +346,10 @@ export class MercadoPublicoV2EvidenceReplayService {
   ): MercadoPublicoApiV2CompraAgilListResponse {
     return {
       endpoint:
-        observation.endpoint ?? MERCADO_PUBLICO_API_V2_COMPRA_AGIL_LIST_ENDPOINT,
-      source: observation.source as MercadoPublicoApiV2CompraAgilListResponse['source'],
+        observation.endpoint ??
+        MERCADO_PUBLICO_API_V2_COMPRA_AGIL_LIST_ENDPOINT,
+      source:
+        observation.source as MercadoPublicoApiV2CompraAgilListResponse['source'],
       requestParams: {},
       requestFingerprint: observation.request_fingerprint ?? 'evidence-replay',
       payloadChecksum: observation.payload_checksum,
@@ -416,8 +416,7 @@ export class MercadoPublicoV2EvidenceReplayService {
     jobRunRecordId: string,
     counters: ReplayCounters,
   ): Promise<MercadoPublicoV2EvidenceReplayResult> {
-    const status =
-      counters.recordsFailed > 0 ? 'partial_failed' : 'succeeded';
+    const status = counters.recordsFailed > 0 ? 'partial_failed' : 'succeeded';
 
     await this.coreDataSource.query(
       `

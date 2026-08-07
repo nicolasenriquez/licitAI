@@ -74,4 +74,31 @@ describe('MercadoPublicoV2DurableSyncService', () => {
       expect.any(Array),
     );
   });
+
+  it('requires rediscovery after a discovery failure', async () => {
+    const query = jest.fn().mockResolvedValue([
+      {
+        id: 'sync-run-1',
+        intent: 'scheduled',
+        scope: 'global',
+        request_params: {},
+        watermark_before: null,
+        error_stage: 'discovering',
+      },
+    ]);
+    const persistenceService = {
+      createJobRun: jest.fn(),
+    } as unknown as jest.Mocked<MercadoPublicoPersistenceService>;
+    const service = new MercadoPublicoV2DurableSyncService(
+      {} as unknown as MercadoPublicoApiV2CompraAgilClientService,
+      persistenceService,
+      { query } as never,
+      {} as MercadoPublicoV2ProjectionService,
+    );
+
+    await expect(service.resume('sync-run-1')).rejects.toThrow(
+      'failed during discovery and must be rediscovered',
+    );
+    expect(persistenceService.createJobRun).not.toHaveBeenCalled();
+  });
 });
