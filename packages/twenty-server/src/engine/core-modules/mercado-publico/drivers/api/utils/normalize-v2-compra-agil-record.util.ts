@@ -19,9 +19,25 @@ export type NormalizedV2CompraAgilRecord = {
   documentCount: number | null;
 };
 
+const coerceToText = (value: unknown): string | null => {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (typeof value === 'number' || typeof value === 'bigint') {
+    return value.toString();
+  }
+
+  return null;
+};
+
 const toDecimalString = (value: unknown): string | null => {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value.toString();
+  }
+
+  if (typeof value === 'string') {
+    return value;
   }
 
   return coerceToNullableString(value);
@@ -32,13 +48,11 @@ export const normalizeV2CompraAgilRecord = (
 ): NormalizedV2CompraAgilRecord => {
   const state = record.estado;
   const stateCode =
-    typeof state === 'string' ? state : coerceToNullableString(state?.codigo);
+    typeof state === 'string' ? state : coerceToText(state?.codigo);
   const stateId =
-    typeof state === 'object' ? coerceToNullableString(state?.id_estado) : null;
+    typeof state === 'object' ? coerceToText(state?.id_estado) : null;
   const stateLabel =
-    typeof state === 'object'
-      ? coerceToNullableString(state?.glosa)
-      : stateCode;
+    typeof state === 'object' ? coerceToText(state?.glosa) : stateCode;
   const institution = record.institucion;
   const dates = record.fechas;
   const providerChangedAt = normalizeV2CompraAgilDate(
@@ -48,11 +62,11 @@ export const normalizeV2CompraAgilRecord = (
     record.montos?.monto_disponible ?? record.montos?.monto_disponible_clp;
 
   return {
-    title: coerceToNullableString(record.nombre),
+    title: coerceToText(record.nombre),
     stateCode,
     stateLabel,
-    buyerCode: coerceToNullableString(institution?.rut),
-    buyerName: coerceToNullableString(institution?.organismo_comprador),
+    buyerCode: coerceToText(institution?.rut),
+    buyerName: coerceToText(institution?.organismo_comprador),
     region:
       typeof institution?.region === 'number'
         ? institution.region
@@ -69,7 +83,7 @@ export const normalizeV2CompraAgilRecord = (
     providerChangedAtRaw: providerChangedAt.raw,
     stateId,
     amount: toDecimalString(amount),
-    currency: coerceToNullableString(record.montos?.moneda),
+    currency: coerceToText(record.montos?.moneda),
     documentCount: Array.isArray(record.documentos)
       ? record.documentos.length
       : null,

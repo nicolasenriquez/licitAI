@@ -741,6 +741,7 @@ export class MercadoPublicoPersistenceService {
             published_at,
             closing_at,
             amount,
+            amount_raw,
             currency_source,
             document_count
           )
@@ -759,7 +760,7 @@ export class MercadoPublicoPersistenceService {
 
       const normalized = normalizeV2CompraAgilRecord(compraAgilItem);
       placeholders.push(
-        `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12}, $${paramIndex + 13}, $${paramIndex + 14}, $${paramIndex + 15}, $${paramIndex + 16}, $${paramIndex + 17}, $${paramIndex + 18}, $${paramIndex + 19}, $${paramIndex + 20}, $${paramIndex + 21}, $${paramIndex + 22}, $${paramIndex + 23}, $${paramIndex + 24}, $${paramIndex + 25}, $${paramIndex + 26}, $${paramIndex + 27})`,
+        `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12}, $${paramIndex + 13}, $${paramIndex + 14}, $${paramIndex + 15}, $${paramIndex + 16}, $${paramIndex + 17}, $${paramIndex + 18}, $${paramIndex + 19}, $${paramIndex + 20}, $${paramIndex + 21}, $${paramIndex + 22}, $${paramIndex + 23}, $${paramIndex + 24}, $${paramIndex + 25}, $${paramIndex + 26}, $${paramIndex + 27}, $${paramIndex + 28})`,
       );
       params.push(
         rawApiPayloadId,
@@ -788,10 +789,11 @@ export class MercadoPublicoPersistenceService {
         normalized.publishedAt,
         normalized.closingAt,
         normalized.amount,
+        normalized.amount,
         normalized.currency,
         normalized.documentCount,
       );
-      paramIndex += 28;
+      paramIndex += 29;
 
       if (placeholders.length >= STAGING_INSERT_BATCH_SIZE) {
         await flushBatch();

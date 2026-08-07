@@ -9,10 +9,7 @@ import {
 } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { type MercadoPublicoApiV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/types/mercado-publico-api-v2-compra-agil-record.type';
 import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
-import {
-  classifyV2CompraAgilLifecycle,
-  getV2CompraAgilProviderOrderId,
-} from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
+import { classifyV2CompraAgilLifecycle } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
 import { createJsonSha256 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/create-json-sha256.util';
 import { extractV2CompraAgilListRecords } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
 import { extractV2CompraAgilPagination } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-pagination.util';
@@ -22,11 +19,11 @@ import {
   MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
 } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
+import { MercadoPublicoV2ProjectionService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-projection.service';
 import { type CompraAgilListParams } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/validate-compra-agil-params.util';
 
 const WATERMARK_OVERLAP_MS = 5 * 60 * 1000;
 const DEFAULT_PAGE_SIZE = 50;
-const NORMALIZER_VERSION = 'mercado-publico-v2-durable-1';
 
 export type MercadoPublicoV2SyncIntent =
   | 'scheduled'
@@ -98,6 +95,7 @@ export class MercadoPublicoV2DurableSyncService {
     private readonly mercadoPublicoPersistenceService: MercadoPublicoPersistenceService,
     @InjectDataSource()
     private readonly coreDataSource: DataSource,
+    private readonly mercadoPublicoV2ProjectionService: MercadoPublicoV2ProjectionService,
   ) {}
 
   async start(
@@ -669,6 +667,7 @@ export class MercadoPublicoV2DurableSyncService {
         persistenceResult.rawApiPayloadId,
         response,
         detailRecord,
+        'detail',
       );
       const terminal = classifyV2CompraAgilLifecycle(
         detailRecord,
@@ -746,6 +745,7 @@ export class MercadoPublicoV2DurableSyncService {
           compraAgil: [record],
         },
         record,
+        'list',
       );
 
       await this.markItemSucceeded(
@@ -763,185 +763,17 @@ export class MercadoPublicoV2DurableSyncService {
     rawApiPayloadId: string,
     response: MercadoPublicoApiV2CompraAgilListResponse,
     record: MercadoPublicoApiV2CompraAgilRecord,
+    snapshotKind: 'list' | 'detail',
   ): Promise<string> {
-    const normalized = normalizeV2CompraAgilRecord(record);
-    const observedAt = response.fetchedAt;
-    const observationRows = await this.coreDataSource.transaction(
-      async (entityManager) => {
-        const rows = await entityManager.query<{ id: string }[]>(
-          `
-            INSERT INTO mp.v2_observation (
-              sync_run_id, raw_api_payload_id, codigo, payload_checksum,
-              provider_schema_fingerprint, normalizer_version, observed_at
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (sync_run_id, codigo, payload_checksum)
-            DO UPDATE SET observed_at = EXCLUDED.observed_at
-            RETURNING id
-          `,
-          [
-            syncRunId,
-            rawApiPayloadId,
-            record.codigo,
-            createJsonSha256(record),
-            response.schemaFingerprint,
-            NORMALIZER_VERSION,
-            observedAt,
-          ],
-        );
-        const observationId = rows[0].id;
-        const providerOrderId = getV2CompraAgilProviderOrderId(record);
+    const result = await this.mercadoPublicoV2ProjectionService.ingest({
+      syncRunId,
+      rawApiPayloadId,
+      response,
+      record,
+      snapshotKind,
+    });
 
-        await entityManager.query(
-          `
-            INSERT INTO mp.compra_agil (
-              codigo, estado, state_id, state_label, id_orden_compra, region, title,
-              buyer_code, buyer_name, published_at, closing_at, amount,
-              currency_source, document_count, observation_id,
-              normalizer_version, provider_schema_fingerprint,
-              provider_changed_at_raw, provider_changed_at, observed_at,
-              persisted_at, last_seen_at, updated_at
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-              $13, $14, $15, $16, $17, $18, $19, $20, now(), $20, now())
-            ON CONFLICT (codigo) DO UPDATE SET
-              estado = COALESCE(EXCLUDED.estado, mp.compra_agil.estado),
-              state_id = COALESCE(EXCLUDED.state_id, mp.compra_agil.state_id),
-              state_label = COALESCE(EXCLUDED.state_label, mp.compra_agil.state_label),
-              id_orden_compra = COALESCE(EXCLUDED.id_orden_compra, mp.compra_agil.id_orden_compra),
-              region = COALESCE(EXCLUDED.region, mp.compra_agil.region),
-              title = COALESCE(EXCLUDED.title, mp.compra_agil.title),
-              buyer_code = COALESCE(EXCLUDED.buyer_code, mp.compra_agil.buyer_code),
-              buyer_name = COALESCE(EXCLUDED.buyer_name, mp.compra_agil.buyer_name),
-              published_at = COALESCE(EXCLUDED.published_at, mp.compra_agil.published_at),
-              closing_at = COALESCE(EXCLUDED.closing_at, mp.compra_agil.closing_at),
-              amount = COALESCE(EXCLUDED.amount, mp.compra_agil.amount),
-              currency_source = COALESCE(EXCLUDED.currency_source, mp.compra_agil.currency_source),
-              document_count = EXCLUDED.document_count,
-              observation_id = EXCLUDED.observation_id,
-              normalizer_version = EXCLUDED.normalizer_version,
-              provider_schema_fingerprint = EXCLUDED.provider_schema_fingerprint,
-              provider_changed_at_raw = EXCLUDED.provider_changed_at_raw,
-              provider_changed_at = COALESCE(EXCLUDED.provider_changed_at, mp.compra_agil.provider_changed_at),
-               observed_at = GREATEST(COALESCE(mp.compra_agil.observed_at, EXCLUDED.observed_at), EXCLUDED.observed_at),
-               persisted_at = now(),
-               last_seen_at = GREATEST(mp.compra_agil.last_seen_at, EXCLUDED.last_seen_at),
-               updated_at = now()
-             WHERE
-               (
-                 EXCLUDED.provider_changed_at IS NOT NULL
-                 AND mp.compra_agil.provider_changed_at IS NULL
-               )
-               OR EXCLUDED.provider_changed_at > mp.compra_agil.provider_changed_at
-               OR (
-                 EXCLUDED.provider_changed_at IS NOT DISTINCT FROM
-                   mp.compra_agil.provider_changed_at
-                 AND EXCLUDED.observed_at >
-                   COALESCE(mp.compra_agil.observed_at, '-infinity'::timestamptz)
-               )
-          `,
-          [
-            record.codigo,
-            normalized.stateCode,
-            normalized.stateId,
-            normalized.stateLabel,
-            providerOrderId,
-            normalized.region,
-            normalized.title,
-            normalized.buyerCode,
-            normalized.buyerName,
-            normalized.publishedAt,
-            normalized.closingAt,
-            normalized.amount,
-            normalized.currency,
-            normalized.documentCount,
-            observationId,
-            NORMALIZER_VERSION,
-            response.schemaFingerprint,
-            normalized.providerChangedAtRaw,
-            normalized.providerChangedAt,
-            observedAt,
-          ],
-        );
-
-        await entityManager.query(
-          `
-            INSERT INTO mp.gold_detected_process (
-              process_type, process_code, title, canonical_state, raw_state_code,
-              raw_state_id, raw_state_label, buyer_code, buyer_name, region, published_at,
-              closing_at, amount, currency_source, document_count,
-              observation_id, normalizer_version, provider_schema_fingerprint,
-              availability, source_priority, provider_changed_at_raw,
-              provider_changed_at, observed_at, persisted_at, last_seen_at,
-              created_at, updated_at
-            )
-            VALUES ('compra_agil', $1, $2, $3, $3, $4, $5, $6, $7, $8, $9,
-              $10, $11, $12, $13, $14, $15, $16, 'available', 'api-v2', $17,
-              $18, $19, now(), $19, now(), now())
-            ON CONFLICT (process_type, process_code) DO UPDATE SET
-              title = COALESCE(EXCLUDED.title, mp.gold_detected_process.title),
-              canonical_state = COALESCE(EXCLUDED.canonical_state, mp.gold_detected_process.canonical_state),
-              raw_state_code = EXCLUDED.raw_state_code,
-              raw_state_id = EXCLUDED.raw_state_id,
-              raw_state_label = COALESCE(EXCLUDED.raw_state_label, mp.gold_detected_process.raw_state_label),
-              buyer_code = COALESCE(EXCLUDED.buyer_code, mp.gold_detected_process.buyer_code),
-              buyer_name = COALESCE(EXCLUDED.buyer_name, mp.gold_detected_process.buyer_name),
-              region = COALESCE(EXCLUDED.region, mp.gold_detected_process.region),
-              published_at = COALESCE(EXCLUDED.published_at, mp.gold_detected_process.published_at),
-              closing_at = COALESCE(EXCLUDED.closing_at, mp.gold_detected_process.closing_at),
-              amount = COALESCE(EXCLUDED.amount, mp.gold_detected_process.amount),
-              currency_source = COALESCE(EXCLUDED.currency_source, mp.gold_detected_process.currency_source),
-              document_count = EXCLUDED.document_count,
-              observation_id = EXCLUDED.observation_id,
-              normalizer_version = EXCLUDED.normalizer_version,
-              provider_schema_fingerprint = EXCLUDED.provider_schema_fingerprint,
-              provider_changed_at_raw = EXCLUDED.provider_changed_at_raw,
-              provider_changed_at = COALESCE(EXCLUDED.provider_changed_at, mp.gold_detected_process.provider_changed_at),
-               observed_at = GREATEST(COALESCE(mp.gold_detected_process.observed_at, EXCLUDED.observed_at), EXCLUDED.observed_at),
-               persisted_at = now(),
-               last_seen_at = GREATEST(mp.gold_detected_process.last_seen_at, EXCLUDED.last_seen_at),
-               updated_at = now()
-             WHERE
-               (
-                 EXCLUDED.provider_changed_at IS NOT NULL
-                 AND mp.gold_detected_process.provider_changed_at IS NULL
-               )
-               OR EXCLUDED.provider_changed_at > mp.gold_detected_process.provider_changed_at
-               OR (
-                 EXCLUDED.provider_changed_at IS NOT DISTINCT FROM
-                   mp.gold_detected_process.provider_changed_at
-                 AND EXCLUDED.observed_at >
-                   COALESCE(mp.gold_detected_process.observed_at, '-infinity'::timestamptz)
-               )
-          `,
-          [
-            record.codigo,
-            normalized.title,
-            normalized.stateCode,
-            normalized.stateId,
-            normalized.stateLabel,
-            normalized.buyerCode,
-            normalized.buyerName,
-            normalized.region,
-            normalized.publishedAt,
-            normalized.closingAt,
-            normalized.amount,
-            normalized.currency,
-            normalized.documentCount,
-            observationId,
-            NORMALIZER_VERSION,
-            response.schemaFingerprint,
-            normalized.providerChangedAtRaw,
-            normalized.providerChangedAt,
-            observedAt,
-          ],
-        );
-
-        return rows;
-      },
-    );
-
-    return observationRows[0].id;
+    return result.observationId;
   }
 
   private async markCohortTerminal(

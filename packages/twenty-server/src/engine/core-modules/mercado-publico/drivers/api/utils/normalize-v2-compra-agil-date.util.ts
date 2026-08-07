@@ -15,7 +15,7 @@ export type NormalizedV2CompraAgilDate = {
 export const normalizeV2CompraAgilDate = (
   input: unknown,
 ): NormalizedV2CompraAgilDate => {
-  const raw = coerceToNullableString(input);
+  const raw = typeof input === 'string' ? input : coerceToNullableString(input);
 
   if (raw === null) {
     return { raw: null, value: null };

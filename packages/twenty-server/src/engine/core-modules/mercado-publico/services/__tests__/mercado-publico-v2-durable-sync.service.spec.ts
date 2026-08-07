@@ -2,6 +2,7 @@ import fixture from 'src/engine/core-modules/mercado-publico/drivers/api/__tests
 import { MercadoPublicoApiV2CompraAgilClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
+import { MercadoPublicoV2ProjectionService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-projection.service';
 
 describe('MercadoPublicoV2DurableSyncService', () => {
   it('runs the fixture through frozen page and item checkpoints', async () => {
@@ -56,6 +57,7 @@ describe('MercadoPublicoV2DurableSyncService', () => {
       {} as unknown as MercadoPublicoApiV2CompraAgilClientService,
       persistenceService,
       { query, transaction } as never,
+      new MercadoPublicoV2ProjectionService({ transaction } as never),
     );
 
     await expect(service.runFixture(fixture)).resolves.toMatchObject({
