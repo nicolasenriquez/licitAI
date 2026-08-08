@@ -2,19 +2,35 @@ import { gql } from '@apollo/client';
 import { useQuery } from '@apollo/client/react';
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
-import { useCallback } from 'react';
-
-import { useNavigateSidePanel } from '@/side-panel/hooks/useNavigateSidePanel';
+import { useAtomValue } from 'jotai';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SidePanelPages } from 'twenty-shared/types';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 import { IconDotsVertical } from 'twenty-ui/icon';
 import { Button } from 'twenty-ui/input';
 
+import {
+  MercadoPublicoV2FilterBar,
+  type MercadoPublicoV2FilterBarProps,
+} from '@/mercado-publico/components/MercadoPublicoV2FilterBar';
+import {
+  useMercadoPublicoV2UrlState,
+  type MercadoPublicoV2Filters,
+  type MercadoPublicoV2Sort,
+} from '@/mercado-publico/hooks/useMercadoPublicoV2UrlState';
+import { useNavigateSidePanel } from '@/side-panel/hooks/useNavigateSidePanel';
+import { useSidePanelMenu } from '@/side-panel/hooks/useSidePanelMenu';
+import { isSidePanelOpenedState } from '@/side-panel/states/isSidePanelOpenedState';
+
 const MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY = gql`
-  query MercadoPublicoV2ActiveOpportunities($after: String) {
+  query MercadoPublicoV2ActiveOpportunities(
+    $filter: MercadoPublicoV2OpportunityFilterInput
+    $after: String
+    $sort: MercadoPublicoV2OpportunitySort
+  ) {
     mercadoPublicoV2 {
-      opportunities(first: 50, after: $after) {
+      opportunities(first: 100, filter: $filter, after: $after, sort: $sort) {
         edges {
           cursor
           node {
@@ -28,6 +44,7 @@ const MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY = gql`
             amount
             currency
             documentCount
+            llamado
             availability
           }
         }
@@ -52,6 +69,7 @@ type Opportunity = {
   amount: string | null;
   currency: string | null;
   documentCount: number | null;
+  llamado: number | null;
   availability: string;
 };
 
@@ -66,7 +84,9 @@ type MercadoPublicoV2ActiveQuery = {
 };
 
 type MercadoPublicoV2ActiveQueryVariables = {
-  after?: string;
+  filter?: MercadoPublicoV2Filters | null;
+  after?: string | null;
+  sort?: MercadoPublicoV2Sort;
 };
 
 const StyledPage = styled.div`
@@ -152,6 +172,63 @@ const StyledPagination = styled.nav`
   justify-content: flex-end;
 `;
 
+const FILTER_NOTICE_ID = 'mercado-publico-v2-filter-notice';
+
+const toDateTime = (
+  value: string | null,
+  endOfDay: boolean,
+): string | undefined => {
+  if (value === null) {
+    return undefined;
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+
+  return `${value}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}Z`;
+};
+
+const toQueryFilter = (
+  filters: MercadoPublicoV2Filters,
+): MercadoPublicoV2Filters | null => {
+  const hasAnyFilter =
+    filters.search.trim() !== '' ||
+    filters.cohortStatus !== null ||
+    filters.states.length > 0 ||
+    filters.buyer.trim() !== '' ||
+    filters.region !== null ||
+    filters.closingAtFrom !== null ||
+    filters.closingAtTo !== null ||
+    filters.documentCountMin !== null ||
+    filters.documentCountMax !== null ||
+    filters.llamado !== null ||
+    filters.amountMin !== null ||
+    filters.amountMax !== null ||
+    filters.currencies.length > 0;
+
+  if (!hasAnyFilter) {
+    return null;
+  }
+
+  return {
+    ...filters,
+    search: filters.search.trim() === '' ? undefined : filters.search.trim(),
+    cohortStatus: filters.cohortStatus ?? undefined,
+    states: filters.states.length > 0 ? filters.states : undefined,
+    buyer: filters.buyer.trim() === '' ? undefined : filters.buyer.trim(),
+    region: filters.region ?? undefined,
+    closingAtFrom: toDateTime(filters.closingAtFrom, false),
+    closingAtTo: toDateTime(filters.closingAtTo, true),
+    documentCountMin: filters.documentCountMin ?? undefined,
+    documentCountMax: filters.documentCountMax ?? undefined,
+    llamado: filters.llamado ?? undefined,
+    amountMin: filters.amountMin ?? undefined,
+    amountMax: filters.amountMax ?? undefined,
+    currencies: filters.currencies.length > 0 ? filters.currencies : undefined,
+  } as MercadoPublicoV2Filters;
+};
+
 const formatDate = (value: string | null): string => {
   if (!value) return 'No disponible';
 
@@ -172,15 +249,104 @@ const formatAmount = (opportunity: Opportunity): string => {
 export const MercadoPublicoV2ActivePage = () => {
   const { t } = useLingui();
   const { navigateSidePanel } = useNavigateSidePanel();
+  const { closeSidePanelMenu } = useSidePanelMenu();
+  const isSidePanelOpened = useAtomValue(isSidePanelOpenedState.atom);
   const [searchParams, setSearchParams] = useSearchParams();
-  const after = searchParams.get('after') || undefined;
+  const {
+    state,
+    setSearchInput,
+    applyFilters,
+    clearFilters,
+    setSort,
+    setAfter,
+  } = useMercadoPublicoV2UrlState();
+  const [notice, setNotice] = useState<string | null>(null);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  const queryFilter = useMemo(() => toQueryFilter(state), [state]);
+
   const { data, error, loading } = useQuery<
     MercadoPublicoV2ActiveQuery,
     MercadoPublicoV2ActiveQueryVariables
-  >(MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY, { variables: { after } });
+  >(MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY, {
+    variables: {
+      filter: queryFilter,
+      after: state.after,
+      sort: state.sort,
+    },
+  });
+
+  useEffect(() => {
+    if (error === undefined) {
+      return;
+    }
+
+    if (error.message.includes('Mercado Publico V2 cursor is invalid')) {
+      setNotice(t`Cursor inválido; se volvió a la primera página.`);
+      setAfter(null);
+
+      return;
+    }
+
+    if (error.message.includes('Mercado Publico V2 filter:')) {
+      setNotice(
+        t`Los filtros ingresados no son válidos; revisa los rangos (desde/hasta o mínimo/máximo).`,
+      );
+
+      return;
+    }
+
+    setNotice(t`No fue posible cargar las oportunidades.`);
+  }, [error, setAfter, t]);
+
+  useEffect(() => {
+    if (state.proceso !== null && !isSidePanelOpened) {
+      navigateSidePanel({
+        page: SidePanelPages.MercadoPublicoV2Opportunity,
+        pageId: state.proceso,
+        pageTitle: t`Detalle de oportunidad`,
+        pageIcon: IconDotsVertical,
+        resetNavigationStack: true,
+      });
+    }
+  }, [isSidePanelOpened, navigateSidePanel, state.proceso, t]);
+
+  useEffect(() => {
+    if (!isSidePanelOpened || state.proceso !== null) {
+      return;
+    }
+
+    closeSidePanelMenu();
+  }, [closeSidePanelMenu, isSidePanelOpened, state.proceso]);
+
+  useEffect(() => {
+    if (!hasMounted || isSidePanelOpened || state.proceso === null) {
+      return;
+    }
+
+    const next = new URLSearchParams(searchParams);
+
+    next.delete('proceso');
+    setSearchParams(next, { replace: true });
+  }, [
+    hasMounted,
+    isSidePanelOpened,
+    searchParams,
+    setSearchParams,
+    state.proceso,
+  ]);
 
   const openOpportunity = useCallback(
     (opportunity: Opportunity) => {
+      const next = new URLSearchParams(searchParams);
+
+      next.set('proceso', opportunity.codigo);
+      setSearchParams(next);
+
       navigateSidePanel({
         page: SidePanelPages.MercadoPublicoV2Opportunity,
         pageId: opportunity.codigo,
@@ -189,7 +355,29 @@ export const MercadoPublicoV2ActivePage = () => {
         resetNavigationStack: true,
       });
     },
-    [navigateSidePanel, t],
+    [navigateSidePanel, searchParams, setSearchParams, t],
+  );
+
+  const handleApplyFilters: MercadoPublicoV2FilterBarProps['onApply'] =
+    useCallback(
+      (filters) => {
+        setNotice(null);
+        applyFilters(filters);
+      },
+      [applyFilters],
+    );
+
+  const handleClearFilters = useCallback(() => {
+    setNotice(null);
+    clearFilters();
+  }, [clearFilters]);
+
+  const handleSortChange = useCallback(
+    (sort: MercadoPublicoV2Sort) => {
+      setNotice(null);
+      setSort(sort);
+    },
+    [setSort],
   );
 
   const opportunities = data?.mercadoPublicoV2.opportunities;
@@ -202,10 +390,8 @@ export const MercadoPublicoV2ActivePage = () => {
       return;
     }
 
-    const nextSearchParams = new URLSearchParams(searchParams);
-    nextSearchParams.set('after', opportunities.pageInfo.endCursor);
-    setSearchParams(nextSearchParams);
-  }, [opportunities, searchParams, setSearchParams]);
+    setAfter(opportunities.pageInfo.endCursor);
+  }, [opportunities, setAfter]);
 
   return (
     <StyledPage>
@@ -216,10 +402,21 @@ export const MercadoPublicoV2ActivePage = () => {
         )}
       </StyledHeader>
 
+      <MercadoPublicoV2FilterBar
+        filters={state}
+        sort={state.sort}
+        notice={notice}
+        noticeId={FILTER_NOTICE_ID}
+        onSearchChange={setSearchInput}
+        onApply={handleApplyFilters}
+        onClear={handleClearFilters}
+        onSortChange={handleSortChange}
+      />
+
       {loading && (
         <StyledEmptyState>{t`Cargando oportunidades…`}</StyledEmptyState>
       )}
-      {error && (
+      {!loading && error && (
         <StyledEmptyState>{t`No fue posible cargar las oportunidades.`}</StyledEmptyState>
       )}
       {!loading && !error && opportunities?.edges.length === 0 && (

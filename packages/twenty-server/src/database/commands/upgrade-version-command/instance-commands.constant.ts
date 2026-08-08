@@ -98,6 +98,7 @@ import { MpV2DurableDiscoveryHydrationFastInstanceCommand } from 'src/database/c
 import { MpV2CohortFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1786000000000-mp-v2-cohort';
 import { MpV2EvidenceHistoryReplayFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1787000000000-mp-v2-evidence-history-replay';
 import { MpV2EvidenceRollbackCompatibilityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1788000000000-mp-v2-evidence-rollback-compatibility';
+import { MpV2ActivasFiltersFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1789000000000-mp-v2-activas-filters';
 import { MpStgJobRunRawCsvFileLinkSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1782340007930-mp-stg-job-run-raw-csv-file-link';
 import { DropRawCsvFileIngestionJobIdSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1783191615515-drop-raw-csv-file-ingestion-job-id';
 
@@ -200,6 +201,7 @@ export const INSTANCE_COMMANDS = [
   MpV2CohortFastInstanceCommand,
   MpV2EvidenceHistoryReplayFastInstanceCommand,
   MpV2EvidenceRollbackCompatibilityFastInstanceCommand,
+  MpV2ActivasFiltersFastInstanceCommand,
   MpStgJobRunRawCsvFileLinkSlowInstanceCommand,
   DropRawCsvFileIngestionJobIdSlowInstanceCommand,
 ];
