@@ -27,7 +27,7 @@ const getStateCode = (
   );
 };
 
-const getCallNumber = (
+export const getV2CompraAgilCallNumber = (
   record: MercadoPublicoApiV2CompraAgilRecord,
 ): number | null => {
   const candidates = [
@@ -84,8 +84,8 @@ export const classifyV2CompraAgilLifecycle = (
 
   if (
     stateCode === 'desierta' &&
-    getCallNumber(record) !== null &&
-    (getCallNumber(record) as number) >= 2
+    getV2CompraAgilCallNumber(record) !== null &&
+    (getV2CompraAgilCallNumber(record) as number) >= 2
   ) {
     return {
       includeInCohort: knownCohort,

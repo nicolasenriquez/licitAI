@@ -19,6 +19,7 @@ import { RelaxMpV2CanonicalStateAndDocumentCountFastInstanceCommand } from 'src/
 import { MpV2DurableDiscoveryHydrationFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1785000000000-mp-v2-durable-discovery-hydration';
 import { MpV2CohortFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1786000000000-mp-v2-cohort';
 import { MpV2EvidenceHistoryReplayFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1787000000000-mp-v2-evidence-history-replay';
+import { MpV2ActivasFiltersFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1789000000000-mp-v2-activas-filters';
 import { rawDataSource } from 'src/database/typeorm/raw/raw.datasource';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
@@ -50,6 +51,7 @@ const applyCommands = async (dataSource: DataSource): Promise<void> => {
     );
     await new MpV2CohortFastInstanceCommand().up(queryRunner);
     await new MpV2EvidenceHistoryReplayFastInstanceCommand().up(queryRunner);
+    await new MpV2ActivasFiltersFastInstanceCommand().up(queryRunner);
     await queryRunner.commitTransaction();
   } catch (error) {
     await queryRunner.rollbackTransaction();
@@ -85,9 +87,7 @@ const createResponse = (
   totalPages = 1,
   fetchedAt = new Date('2026-08-05T12:00:00.000Z'),
 ): MercadoPublicoApiV2CompraAgilListResponse => {
-  const contentFingerprint = records
-    .map((record) => record.codigo)
-    .join('-');
+  const contentFingerprint = records.map((record) => record.codigo).join('-');
 
   return {
     endpoint: 'list',
@@ -195,9 +195,7 @@ describe('Mercado Publico V2 evidence, history and replay (db-backed)', () => {
     const observationCount = await dataSource.query<{ count: string }[]>(
       `SELECT COUNT(*)::text AS count FROM mp.v2_observation`,
     );
-    const distinctBlobReferences = await dataSource.query<
-      { count: string }[]
-    >(
+    const distinctBlobReferences = await dataSource.query<{ count: string }[]>(
       `SELECT COUNT(DISTINCT raw_api_payload_id)::text AS count FROM mp.v2_observation`,
     );
 
@@ -368,11 +366,7 @@ describe('Mercado Publico V2 evidence, history and replay (db-backed)', () => {
     );
     await durableSyncService.start({ cambio_desde: '2026-08-01T00:00:00Z' });
 
-    const fourth = createRecord(
-      'CA-DEFECTIVE',
-      { nombre: 'Fourth' },
-      null,
-    );
+    const fourth = createRecord('CA-DEFECTIVE', { nombre: 'Fourth' }, null);
     clientService.getList.mockResolvedValueOnce(createResponse([fourth]));
     clientService.getByCodigo.mockResolvedValueOnce(
       createResponse([fourth], 1, 1, new Date('2026-08-08T12:00:00.000Z')),
@@ -384,7 +378,9 @@ describe('Mercado Publico V2 evidence, history and replay (db-backed)', () => {
     );
     const canonical = await dataSource.query<
       { title: string | null; provider_changed_at_raw: string | null }[]
-    >(`SELECT title, provider_changed_at_raw FROM mp.compra_agil WHERE codigo = 'CA-DEFECTIVE'`);
+    >(
+      `SELECT title, provider_changed_at_raw FROM mp.compra_agil WHERE codigo = 'CA-DEFECTIVE'`,
+    );
     const history = await dataSource.query<{ count: string }[]>(
       `SELECT COUNT(*)::text AS count FROM mp.v2_history WHERE codigo = 'CA-DEFECTIVE'`,
     );
@@ -404,7 +400,11 @@ describe('Mercado Publico V2 evidence, history and replay (db-backed)', () => {
     );
     clientService.getByCodigo.mockImplementation(async (codigo) =>
       createResponse(
-        codigo === 'CA-REPLAY-1' ? [first] : codigo === 'CA-REPLAY-2' ? [second] : [],
+        codigo === 'CA-REPLAY-1'
+          ? [first]
+          : codigo === 'CA-REPLAY-2'
+            ? [second]
+            : [],
       ),
     );
     const sourceRun = await durableSyncService.start({
@@ -481,7 +481,9 @@ describe('Mercado Publico V2 evidence, history and replay (db-backed)', () => {
       recordsCreated: 1,
       recordsFailed: 0,
     });
-    expect(canonical).toEqual([{ codigo: 'CA-BACKFILL', title: 'Backfill me' }]);
+    expect(canonical).toEqual([
+      { codigo: 'CA-BACKFILL', title: 'Backfill me' },
+    ]);
   });
 
   it('preserves null, empty, zero, decimal, currency and the three time classes', async () => {

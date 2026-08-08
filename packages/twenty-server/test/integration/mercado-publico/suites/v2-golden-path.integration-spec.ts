@@ -16,6 +16,7 @@ import { RelaxMpV2CanonicalStateAndDocumentCountFastInstanceCommand } from 'src/
 import { MpV2DurableDiscoveryHydrationFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1785000000000-mp-v2-durable-discovery-hydration';
 import { MpV2CohortFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1786000000000-mp-v2-cohort';
 import { MpV2EvidenceHistoryReplayFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1787000000000-mp-v2-evidence-history-replay';
+import { MpV2ActivasFiltersFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1789000000000-mp-v2-activas-filters';
 import { rawDataSource } from 'src/database/typeorm/raw/raw.datasource';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoV2GoldenPathService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-golden-path.service';
@@ -47,6 +48,7 @@ const applyCommands = async (dataSource: DataSource): Promise<void> => {
     );
     await new MpV2CohortFastInstanceCommand().up(queryRunner);
     await new MpV2EvidenceHistoryReplayFastInstanceCommand().up(queryRunner);
+    await new MpV2ActivasFiltersFastInstanceCommand().up(queryRunner);
 
     await queryRunner.commitTransaction();
   } catch (error) {

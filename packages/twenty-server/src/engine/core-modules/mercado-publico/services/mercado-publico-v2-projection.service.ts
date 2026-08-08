@@ -5,7 +5,10 @@ import { DataSource, type EntityManager } from 'typeorm';
 
 import { type MercadoPublicoApiV2CompraAgilListResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { type MercadoPublicoApiV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/types/mercado-publico-api-v2-compra-agil-record.type';
-import { getV2CompraAgilProviderOrderId } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
+import {
+  getV2CompraAgilCallNumber,
+  getV2CompraAgilProviderOrderId,
+} from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
 import { createJsonSha256 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/create-json-sha256.util';
 import {
   type NormalizedV2CompraAgilRecord,
@@ -456,15 +459,15 @@ export class MercadoPublicoV2ProjectionService {
           process_type, process_code, title, canonical_state, raw_state_code,
           raw_state_id, raw_state_label, buyer_code, buyer_name, region,
           published_at, closing_at, amount, amount_raw, currency_source,
-          document_count, observation_id, normalizer_version,
+          document_count, llamado, observation_id, normalizer_version,
           provider_schema_fingerprint, availability, source_priority,
           provider_changed_at_raw, provider_changed_at, observed_at,
           last_seen_at, semantic_fingerprint, persisted_at, created_at,
           updated_at
         )
         VALUES ('compra_agil', $1, $2, $3, $3, $4, $5, $6, $7, $8, $9,
-          $10, $11, $12, $13, $14, $15, $16, $17, 'available', 'api-v2',
-          $18, $19, $20, $20, $21, now(), now(), now())
+          $10, $11, $12, $13, $14, $15, $16, $17, $18, 'available', 'api-v2',
+          $19, $20, $21, $21, $22, now(), now(), now())
         ON CONFLICT (process_type, process_code) DO UPDATE SET
           title = EXCLUDED.title,
           canonical_state = EXCLUDED.canonical_state,
@@ -480,6 +483,7 @@ export class MercadoPublicoV2ProjectionService {
           amount_raw = EXCLUDED.amount_raw,
           currency_source = EXCLUDED.currency_source,
           document_count = EXCLUDED.document_count,
+          llamado = EXCLUDED.llamado,
           observation_id = EXCLUDED.observation_id,
           normalizer_version = EXCLUDED.normalizer_version,
           provider_schema_fingerprint = EXCLUDED.provider_schema_fingerprint,
@@ -518,6 +522,7 @@ export class MercadoPublicoV2ProjectionService {
         normalized.amount,
         normalized.currency,
         normalized.documentCount,
+        getV2CompraAgilCallNumber(context.record),
         observationId,
         MERCADO_PUBLICO_V2_NORMALIZER_VERSION,
         schemaFingerprint,
