@@ -315,6 +315,31 @@ describe('Mercado Publico V2 Activas filters and keyset (db-backed)', () => {
     ]);
   });
 
+  it('keeps analytics population aligned with filtered totalCount across pages and sorts', async () => {
+    const filter = { region: 13, states: ['publicada'] };
+    const analytics = await readService.getAnalytics(filter);
+    const closingPage = await readService.listOpportunities(
+      filter,
+      undefined,
+      1,
+      'closing_at_desc',
+    );
+    const amountPage = await readService.listOpportunities(
+      filter,
+      undefined,
+      1,
+      'amount_asc',
+    );
+
+    expect(analytics.population).toBe(3);
+    expect(analytics.population).toBe(closingPage.totalCount);
+    expect(analytics.population).toBe(amountPage.totalCount);
+    expect(analytics.stateBuckets).toEqual([{ key: 'publicada', count: 3 }]);
+    expect(analytics.regionBuckets).toEqual([{ key: '13', count: 3 }]);
+    expect(analytics.completeness).toBe('complete');
+    expect(analytics.availability).toBe('available');
+  });
+
   it('returns an empty page with zero rows as a normal result', async () => {
     const page = await readService.listOpportunities({ buyer: 'noexiste' });
 
@@ -459,5 +484,13 @@ describe('Mercado Publico V2 Activas filters and keyset (db-backed)', () => {
     ]);
     expect(connection.edges[0]?.node.llamado).toBe(2);
     expect(connection.pageInfo.hasPreviousPage).toBe(false);
+
+    const analytics = await resolver.analytics({
+      region: 13,
+      llamado: 2,
+    } as MercadoPublicoV2OpportunityFilterInput);
+
+    expect(analytics.population).toBe(connection.totalCount);
+    expect(analytics.availability).toBe('available');
   });
 });

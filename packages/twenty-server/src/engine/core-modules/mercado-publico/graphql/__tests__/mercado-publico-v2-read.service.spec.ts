@@ -297,4 +297,71 @@ describe('MercadoPublicoV2ReadService', () => {
     ).rejects.toThrow('cursor is invalid');
     expect(query).not.toHaveBeenCalled();
   });
+
+  it('calculates full-population analytics with the shared filter contract', async () => {
+    const query = jest.fn().mockResolvedValueOnce([
+      {
+        population: '2',
+        calculated_at: new Date('2026-08-08T12:00:00.000Z'),
+        as_of: new Date('2026-08-08T11:00:00.000Z'),
+        freshness: 'healthy',
+        completeness: 'partial',
+        availability: 'available',
+        known_closing_at: '2',
+        known_state: '2',
+        known_region: '1',
+        known_buyer: '2',
+        known_amount: '1',
+        known_currency: '1',
+        known_document_count: '2',
+        known_llamado: '1',
+        state_buckets: [{ key: 'publicada', count: 2 }],
+        region_buckets: [
+          { key: '13', count: 1 },
+          { key: null, count: 1 },
+        ],
+        currency_buckets: [
+          { key: 'CLP', count: 1 },
+          { key: null, count: 1 },
+        ],
+        closing_date_buckets: [{ key: '2026-08-08', count: 2 }],
+        document_buckets: [
+          { key: 'positive', count: 1 },
+          { key: 'zero', count: 1 },
+        ],
+        llamado_buckets: [
+          { key: '1', count: 1 },
+          { key: null, count: 1 },
+        ],
+      },
+    ]);
+    const service = new MercadoPublicoV2ReadService({
+      query,
+    } as unknown as DataSource);
+
+    const analytics = await service.getAnalytics({
+      region: 13,
+      states: ['publicada'],
+    });
+
+    expect(analytics.population).toBe(2);
+    expect(analytics.coverage).toEqual({
+      closingAt: 2,
+      state: 2,
+      region: 1,
+      buyer: 2,
+      amount: 1,
+      currency: 1,
+      documentCount: 2,
+      llamado: 1,
+    });
+    expect(analytics.stateBuckets).toEqual([{ key: 'publicada', count: 2 }]);
+    expect(query.mock.calls[0][0]).toContain('WITH filtered AS');
+    expect(query.mock.calls[0][0]).toContain('FROM mp.v2_cohort');
+    expect(query.mock.calls[0][0]).not.toContain(
+      'ORDER BY mp.gold_detected_process',
+    );
+    expect(query.mock.calls[0][0]).not.toContain('LIMIT');
+    expect(query.mock.calls[0][1]).toEqual([['publicada'], 13]);
+  });
 });

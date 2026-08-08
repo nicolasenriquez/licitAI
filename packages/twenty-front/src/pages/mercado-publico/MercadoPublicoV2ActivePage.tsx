@@ -58,6 +58,57 @@ const MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY = gql`
   }
 `;
 
+const MERCADO_PUBLICO_V2_ANALYTICS_QUERY = gql`
+  query MercadoPublicoV2Analytics(
+    $filter: MercadoPublicoV2OpportunityFilterInput
+  ) {
+    mercadoPublicoV2 {
+      analytics(filter: $filter) {
+        population
+        calculatedAt
+        asOf
+        freshness
+        completeness
+        availability
+        coverage {
+          closingAt
+          state
+          region
+          buyer
+          amount
+          currency
+          documentCount
+          llamado
+        }
+        stateBuckets {
+          key
+          count
+        }
+        regionBuckets {
+          key
+          count
+        }
+        currencyBuckets {
+          key
+          count
+        }
+        closingDateBuckets {
+          key
+          count
+        }
+        documentBuckets {
+          key
+          count
+        }
+        llamadoBuckets {
+          key
+          count
+        }
+      }
+    }
+  }
+`;
+
 type Opportunity = {
   codigo: string;
   title: string | null;
@@ -87,6 +138,42 @@ type MercadoPublicoV2ActiveQueryVariables = {
   filter?: MercadoPublicoV2Filters | null;
   after?: string | null;
   sort?: MercadoPublicoV2Sort;
+};
+
+type AnalyticsBucket = {
+  key: string | null;
+  count: number;
+};
+
+type MercadoPublicoV2Analytics = {
+  population: number;
+  calculatedAt: string;
+  asOf: string | null;
+  freshness: string;
+  completeness: string;
+  availability: string;
+  coverage: {
+    closingAt: number;
+    state: number;
+    region: number;
+    buyer: number;
+    amount: number;
+    currency: number;
+    documentCount: number;
+    llamado: number;
+  };
+  stateBuckets: AnalyticsBucket[];
+  regionBuckets: AnalyticsBucket[];
+  currencyBuckets: AnalyticsBucket[];
+  closingDateBuckets: AnalyticsBucket[];
+  documentBuckets: AnalyticsBucket[];
+  llamadoBuckets: AnalyticsBucket[];
+};
+
+type MercadoPublicoV2AnalyticsQuery = {
+  mercadoPublicoV2: {
+    analytics: MercadoPublicoV2Analytics;
+  };
 };
 
 const StyledPage = styled.div`
@@ -159,6 +246,56 @@ const StyledSecondaryText = styled.div`
   color: ${themeCssVariables.font.color.tertiary};
   font-size: ${themeCssVariables.font.size.xs};
   margin-top: ${themeCssVariables.spacing[1]};
+`;
+
+const StyledAnalytics = styled.section`
+  border: 1px solid ${themeCssVariables.border.color.light};
+  border-radius: ${themeCssVariables.border.radius.md};
+  display: flex;
+  flex-direction: column;
+  gap: ${themeCssVariables.spacing[3]};
+  padding: ${themeCssVariables.spacing[4]};
+`;
+
+const StyledAnalyticsStatus = styled.p`
+  color: ${themeCssVariables.font.color.tertiary};
+  font-size: ${themeCssVariables.font.size.sm};
+  margin: 0;
+`;
+
+const StyledAnalyticsHeading = styled.h2`
+  color: ${themeCssVariables.font.color.primary};
+  font-size: ${themeCssVariables.font.size.lg};
+  margin: 0;
+`;
+
+const StyledAnalyticsSection = styled.details`
+  border-top: 1px solid ${themeCssVariables.border.color.light};
+  padding-top: ${themeCssVariables.spacing[3]};
+
+  summary {
+    color: ${themeCssVariables.font.color.primary};
+    cursor: pointer;
+    font-size: ${themeCssVariables.font.size.sm};
+    font-weight: ${themeCssVariables.font.weight.medium};
+  }
+`;
+
+const StyledBucketList = styled.ul`
+  display: grid;
+  gap: ${themeCssVariables.spacing[2]};
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  list-style: none;
+  margin: ${themeCssVariables.spacing[3]} 0 0;
+  padding: 0;
+`;
+
+const StyledBucket = styled.li`
+  background: ${themeCssVariables.background.secondary};
+  border-radius: ${themeCssVariables.border.radius.sm};
+  color: ${themeCssVariables.font.color.primary};
+  font-size: ${themeCssVariables.font.size.sm};
+  padding: ${themeCssVariables.spacing[2]};
 `;
 
 const StyledEmptyState = styled.p`
@@ -246,6 +383,35 @@ const formatAmount = (opportunity: Opportunity): string => {
     : opportunity.amount;
 };
 
+const formatAnalyticsDate = (value: string | null): string => {
+  if (!value) return 'No disponible';
+
+  return new Intl.DateTimeFormat('es-CL', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'America/Santiago',
+  }).format(new Date(value));
+};
+
+const AnalyticsBuckets = ({
+  label,
+  buckets,
+}: {
+  label: string;
+  buckets: AnalyticsBucket[];
+}) => (
+  <StyledAnalyticsSection>
+    <summary>{label}</summary>
+    <StyledBucketList>
+      {buckets.map((bucket) => (
+        <StyledBucket key={`${label}-${bucket.key ?? 'unknown'}`}>
+          {bucket.key ?? 'No informado'}: {bucket.count}
+        </StyledBucket>
+      ))}
+    </StyledBucketList>
+  </StyledAnalyticsSection>
+);
+
 export const MercadoPublicoV2ActivePage = () => {
   const { t } = useLingui();
   const { navigateSidePanel } = useNavigateSidePanel();
@@ -278,6 +444,16 @@ export const MercadoPublicoV2ActivePage = () => {
       after: state.after,
       sort: state.sort,
     },
+  });
+  const {
+    data: analyticsData,
+    error: analyticsError,
+    loading: analyticsLoading,
+  } = useQuery<
+    MercadoPublicoV2AnalyticsQuery,
+    Pick<MercadoPublicoV2ActiveQueryVariables, 'filter'>
+  >(MERCADO_PUBLICO_V2_ANALYTICS_QUERY, {
+    variables: { filter: queryFilter },
   });
 
   useEffect(() => {
@@ -381,6 +557,7 @@ export const MercadoPublicoV2ActivePage = () => {
   );
 
   const opportunities = data?.mercadoPublicoV2.opportunities;
+  const analytics = analyticsData?.mercadoPublicoV2.analytics;
 
   const goToNextPage = useCallback(() => {
     if (
@@ -412,6 +589,74 @@ export const MercadoPublicoV2ActivePage = () => {
         onClear={handleClearFilters}
         onSortChange={handleSortChange}
       />
+
+      <StyledAnalytics aria-labelledby="mercado-publico-v2-analytics-heading">
+        <StyledAnalyticsHeading id="mercado-publico-v2-analytics-heading">
+          {t`Resumen del universo filtrado`}
+        </StyledAnalyticsHeading>
+        {analyticsLoading && (
+          <StyledAnalyticsStatus role="status">
+            {t`Calculando analítica del universo completo…`}
+          </StyledAnalyticsStatus>
+        )}
+        {!analyticsLoading && analyticsError && (
+          <StyledAnalyticsStatus role="status">
+            {t`Analítica no disponible. No se calcularon cifras desde la página visible.`}
+          </StyledAnalyticsStatus>
+        )}
+        {!analyticsLoading && !analyticsError && analytics && (
+          <>
+            <StyledAnalyticsStatus role="status">
+              {analytics.availability === 'available'
+                ? t`Resultados disponibles`
+                : analytics.availability === 'partial'
+                  ? t`Resultados parciales`
+                  : t`Resultados no disponibles`}
+              {` · ${analytics.population} oportunidades · `}
+              {analytics.completeness === 'complete'
+                ? t`completitud completa`
+                : analytics.completeness === 'partial'
+                  ? t`completitud parcial`
+                  : t`sin datos completos`}
+              {` · ${t`Frescura`}: ${analytics.freshness}`}
+              {` · ${t`Calculado`}: ${formatAnalyticsDate(analytics.calculatedAt)}`}
+              {` · ${t`Actualizado`}: ${formatAnalyticsDate(analytics.asOf)}`}
+            </StyledAnalyticsStatus>
+            <StyledAnalyticsStatus>
+              {t`Cobertura conocida`}:{' '}
+              {t`cierre ${analytics.coverage.closingAt}/${analytics.population}`}
+              , {t`estado ${analytics.coverage.state}/${analytics.population}`},{' '}
+              {t`región ${analytics.coverage.region}/${analytics.population}`},{' '}
+              {t`monto ${analytics.coverage.amount}/${analytics.population}`},{' '}
+              {t`documentos ${analytics.coverage.documentCount}/${analytics.population}`}
+            </StyledAnalyticsStatus>
+            <AnalyticsBuckets
+              label={t`Estados`}
+              buckets={analytics.stateBuckets}
+            />
+            <AnalyticsBuckets
+              label={t`Regiones`}
+              buckets={analytics.regionBuckets}
+            />
+            <AnalyticsBuckets
+              label={t`Fechas de cierre`}
+              buckets={analytics.closingDateBuckets}
+            />
+            <AnalyticsBuckets
+              label={t`Monedas`}
+              buckets={analytics.currencyBuckets}
+            />
+            <AnalyticsBuckets
+              label={t`Documentos`}
+              buckets={analytics.documentBuckets}
+            />
+            <AnalyticsBuckets
+              label={t`Llamados`}
+              buckets={analytics.llamadoBuckets}
+            />
+          </>
+        )}
+      </StyledAnalytics>
 
       {loading && (
         <StyledEmptyState>{t`Cargando oportunidades…`}</StyledEmptyState>

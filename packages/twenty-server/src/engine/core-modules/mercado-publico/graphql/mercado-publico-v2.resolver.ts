@@ -15,6 +15,8 @@ import {
 import {
   encodeMercadoPublicoV2OpportunityCursor,
   MercadoPublicoV2ReadService,
+  type MercadoPublicoV2Analytics,
+  type MercadoPublicoV2AnalyticsBucket,
   type MercadoPublicoV2OpportunityFilter,
   type MercadoPublicoV2OpportunityRow,
   type MercadoPublicoV2OpportunitySort,
@@ -162,6 +164,84 @@ export class MercadoPublicoV2OpportunityConnectionDTO {
 }
 
 @ObjectType()
+export class MercadoPublicoV2AnalyticsBucketDTO {
+  @Field(() => String, { nullable: true })
+  key!: string | null;
+
+  @Field(() => Int)
+  count!: number;
+}
+
+@ObjectType()
+export class MercadoPublicoV2AnalyticsCoverageDTO {
+  @Field(() => Int)
+  closingAt!: number;
+
+  @Field(() => Int)
+  state!: number;
+
+  @Field(() => Int)
+  region!: number;
+
+  @Field(() => Int)
+  buyer!: number;
+
+  @Field(() => Int)
+  amount!: number;
+
+  @Field(() => Int)
+  currency!: number;
+
+  @Field(() => Int)
+  documentCount!: number;
+
+  @Field(() => Int)
+  llamado!: number;
+}
+
+@ObjectType()
+export class MercadoPublicoV2AnalyticsDTO {
+  @Field(() => Int)
+  population!: number;
+
+  @Field(() => GraphQLISODateTime)
+  calculatedAt!: Date;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  asOf!: Date | null;
+
+  @Field()
+  freshness!: string;
+
+  @Field()
+  completeness!: string;
+
+  @Field()
+  availability!: string;
+
+  @Field(() => MercadoPublicoV2AnalyticsCoverageDTO)
+  coverage!: MercadoPublicoV2AnalyticsCoverageDTO;
+
+  @Field(() => [MercadoPublicoV2AnalyticsBucketDTO])
+  stateBuckets!: MercadoPublicoV2AnalyticsBucketDTO[];
+
+  @Field(() => [MercadoPublicoV2AnalyticsBucketDTO])
+  regionBuckets!: MercadoPublicoV2AnalyticsBucketDTO[];
+
+  @Field(() => [MercadoPublicoV2AnalyticsBucketDTO])
+  currencyBuckets!: MercadoPublicoV2AnalyticsBucketDTO[];
+
+  @Field(() => [MercadoPublicoV2AnalyticsBucketDTO])
+  closingDateBuckets!: MercadoPublicoV2AnalyticsBucketDTO[];
+
+  @Field(() => [MercadoPublicoV2AnalyticsBucketDTO])
+  documentBuckets!: MercadoPublicoV2AnalyticsBucketDTO[];
+
+  @Field(() => [MercadoPublicoV2AnalyticsBucketDTO])
+  llamadoBuckets!: MercadoPublicoV2AnalyticsBucketDTO[];
+}
+
+@ObjectType()
 export class MercadoPublicoV2NamespaceDTO {}
 
 const toOpportunityDTO = (
@@ -182,6 +262,31 @@ const toOpportunityDTO = (
   normalizerVersion: row.normalizer_version,
   providerSchemaFingerprint: row.provider_schema_fingerprint,
   availability: row.availability,
+});
+
+const toAnalyticsBucketDTO = (
+  bucket: MercadoPublicoV2AnalyticsBucket,
+): MercadoPublicoV2AnalyticsBucketDTO => ({
+  key: bucket.key,
+  count: bucket.count,
+});
+
+const toAnalyticsDTO = (
+  analytics: MercadoPublicoV2Analytics,
+): MercadoPublicoV2AnalyticsDTO => ({
+  population: analytics.population,
+  calculatedAt: analytics.calculatedAt,
+  asOf: analytics.asOf,
+  freshness: analytics.freshness,
+  completeness: analytics.completeness,
+  availability: analytics.availability,
+  coverage: analytics.coverage,
+  stateBuckets: analytics.stateBuckets.map(toAnalyticsBucketDTO),
+  regionBuckets: analytics.regionBuckets.map(toAnalyticsBucketDTO),
+  currencyBuckets: analytics.currencyBuckets.map(toAnalyticsBucketDTO),
+  closingDateBuckets: analytics.closingDateBuckets.map(toAnalyticsBucketDTO),
+  documentBuckets: analytics.documentBuckets.map(toAnalyticsBucketDTO),
+  llamadoBuckets: analytics.llamadoBuckets.map(toAnalyticsBucketDTO),
 });
 
 @UseGuards(WorkspaceAuthGuard, NoPermissionGuard)
@@ -244,6 +349,21 @@ export class MercadoPublicoV2NamespaceResolver {
       },
       totalCount: result.totalCount,
     };
+  }
+
+  @ResolveField(() => MercadoPublicoV2AnalyticsDTO)
+  async analytics(
+    @Args('filter', {
+      type: () => MercadoPublicoV2OpportunityFilterInput,
+      nullable: true,
+    })
+    filter?: MercadoPublicoV2OpportunityFilterInput,
+  ): Promise<MercadoPublicoV2AnalyticsDTO> {
+    const result = await this.mercadoPublicoV2ReadService.getAnalytics(
+      filter as MercadoPublicoV2OpportunityFilter,
+    );
+
+    return toAnalyticsDTO(result);
   }
 
   @ResolveField(() => MercadoPublicoV2OpportunityDTO, { nullable: true })

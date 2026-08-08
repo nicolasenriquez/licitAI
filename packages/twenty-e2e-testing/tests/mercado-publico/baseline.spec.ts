@@ -109,6 +109,44 @@ test.describe('Mercado Publico V2 baseline', () => {
         return;
       }
 
+      if (requestBody.operationName === 'MercadoPublicoV2Analytics') {
+        await route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: {
+              mercadoPublicoV2: {
+                analytics: {
+                  population: 1,
+                  calculatedAt: '2026-08-08T12:00:00.000Z',
+                  asOf: '2026-08-08T11:00:00.000Z',
+                  freshness: 'healthy',
+                  completeness: 'complete',
+                  availability: 'available',
+                  coverage: {
+                    closingAt: 1,
+                    state: 1,
+                    region: 1,
+                    buyer: 1,
+                    amount: 1,
+                    currency: 1,
+                    documentCount: 1,
+                    llamado: 1,
+                  },
+                  stateBuckets: [{ key: 'publicada', count: 1 }],
+                  regionBuckets: [{ key: '13', count: 1 }],
+                  currencyBuckets: [{ key: 'CLP', count: 1 }],
+                  closingDateBuckets: [{ key: '2026-08-08', count: 1 }],
+                  documentBuckets: [{ key: 'positive', count: 1 }],
+                  llamadoBuckets: [{ key: '1', count: 1 }],
+                },
+              },
+            },
+          }),
+        });
+
+        return;
+      }
+
       if (requestBody.operationName === 'MercadoPublicoV2Opportunity') {
         await route.fulfill({
           contentType: 'application/json',
@@ -125,6 +163,12 @@ test.describe('Mercado Publico V2 baseline', () => {
 
     await page.goto(ACTIVE_PATH);
     await expect(page.getByRole('heading', { name: 'Activas' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Resumen del universo filtrado' }),
+    ).toBeVisible();
+    await expect(page.getByRole('status')).toContainText(
+      'Resultados disponibles',
+    );
     await expect(page.getByRole('columnheader')).toHaveCount(5);
 
     await page

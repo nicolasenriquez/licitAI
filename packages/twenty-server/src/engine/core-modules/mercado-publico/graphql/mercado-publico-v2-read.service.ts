@@ -53,6 +53,36 @@ export type MercadoPublicoV2OpportunityConnection = {
   endCursor: string | null;
 };
 
+export type MercadoPublicoV2AnalyticsBucket = {
+  key: string | null;
+  count: number;
+};
+
+export type MercadoPublicoV2Analytics = {
+  population: number;
+  calculatedAt: Date;
+  asOf: Date | null;
+  freshness: string;
+  completeness: 'complete' | 'partial' | 'unavailable';
+  availability: 'available' | 'partial' | 'unavailable';
+  coverage: {
+    closingAt: number;
+    state: number;
+    region: number;
+    buyer: number;
+    amount: number;
+    currency: number;
+    documentCount: number;
+    llamado: number;
+  };
+  stateBuckets: MercadoPublicoV2AnalyticsBucket[];
+  regionBuckets: MercadoPublicoV2AnalyticsBucket[];
+  currencyBuckets: MercadoPublicoV2AnalyticsBucket[];
+  closingDateBuckets: MercadoPublicoV2AnalyticsBucket[];
+  documentBuckets: MercadoPublicoV2AnalyticsBucket[];
+  llamadoBuckets: MercadoPublicoV2AnalyticsBucket[];
+};
+
 type Cursor = {
   sort: MercadoPublicoV2OpportunitySort;
   value: string | null;
@@ -305,6 +335,204 @@ export class MercadoPublicoV2ReadService {
     };
   }
 
+  async getAnalytics(
+    filter: MercadoPublicoV2OpportunityFilter = {},
+  ): Promise<MercadoPublicoV2Analytics> {
+    validateFilterRanges(filter);
+    const { whereSql, params } = this.buildWhere(filter);
+    const rows = await this.coreDataSource.query<
+      MercadoPublicoV2AnalyticsRow[]
+    >(
+      `
+        WITH filtered AS (
+          SELECT
+            canonical_state,
+            region,
+            buyer_name,
+            amount,
+            currency_source,
+            document_count,
+            llamado,
+            closing_at,
+            availability,
+            COALESCE(observed_at, persisted_at, last_seen_at) AS as_of
+          FROM mp.gold_detected_process
+          ${whereSql}
+        )
+        SELECT
+          (SELECT count(*)::text FROM filtered) AS population,
+          statement_timestamp() AS calculated_at,
+          (SELECT MAX(as_of) FROM filtered) AS as_of,
+          (
+            SELECT CASE
+              WHEN count(*) FILTER (WHERE freshness = 'stale') > 0 THEN 'stale'
+              WHEN count(*) FILTER (WHERE freshness = 'degraded') > 0 THEN 'degraded'
+              WHEN count(*) FILTER (WHERE freshness = 'healthy') > 0 THEN 'healthy'
+              ELSE 'unknown'
+            END
+            FROM mp.gold_pipeline_health
+            WHERE job_name ILIKE '%compra-agil%'
+          ) AS freshness,
+          CASE
+            WHEN (SELECT count(*) FROM filtered) = 0 THEN 'complete'
+            WHEN (
+              SELECT count(*) FILTER (
+                WHERE availability = 'available'
+                  AND closing_at IS NOT NULL
+                  AND canonical_state IS NOT NULL
+                  AND region IS NOT NULL
+                  AND buyer_name IS NOT NULL
+                  AND amount IS NOT NULL
+                  AND currency_source IS NOT NULL
+                  AND document_count IS NOT NULL
+                  AND llamado IS NOT NULL
+              )
+              FROM filtered
+            ) = (SELECT count(*) FROM filtered) THEN 'complete'
+            WHEN (
+              SELECT count(*) FILTER (
+                WHERE availability IN ('unavailable', 'not_applicable')
+              )
+              FROM filtered
+            ) = (SELECT count(*) FROM filtered) THEN 'unavailable'
+            ELSE 'partial'
+          END AS completeness,
+          CASE
+            WHEN (SELECT count(*) FROM filtered) = 0 THEN 'available'
+            WHEN (
+              SELECT count(*) FILTER (
+                WHERE availability IN ('unavailable', 'not_applicable')
+              )
+              FROM filtered
+            ) = (SELECT count(*) FROM filtered) THEN 'unavailable'
+            WHEN (
+              SELECT count(*) FILTER (WHERE availability <> 'available')
+              FROM filtered
+            ) > 0 THEN 'partial'
+            ELSE 'available'
+          END AS availability,
+          (SELECT (count(*) FILTER (WHERE closing_at IS NOT NULL))::text FROM filtered) AS known_closing_at,
+          (SELECT (count(*) FILTER (WHERE canonical_state IS NOT NULL))::text FROM filtered) AS known_state,
+          (SELECT (count(*) FILTER (WHERE region IS NOT NULL))::text FROM filtered) AS known_region,
+          (SELECT (count(*) FILTER (WHERE buyer_name IS NOT NULL))::text FROM filtered) AS known_buyer,
+          (SELECT (count(*) FILTER (WHERE amount IS NOT NULL))::text FROM filtered) AS known_amount,
+          (SELECT (count(*) FILTER (WHERE currency_source IS NOT NULL))::text FROM filtered) AS known_currency,
+          (SELECT (count(*) FILTER (WHERE document_count IS NOT NULL))::text FROM filtered) AS known_document_count,
+          (SELECT (count(*) FILTER (WHERE llamado IS NOT NULL))::text FROM filtered) AS known_llamado,
+          (
+            SELECT COALESCE(
+              jsonb_agg(jsonb_build_object('key', key, 'count', count) ORDER BY count DESC, key ASC NULLS LAST),
+              '[]'::jsonb
+            )
+            FROM (
+              SELECT canonical_state AS key, count(*)::integer AS count
+              FROM filtered
+              GROUP BY canonical_state
+            ) buckets
+          ) AS state_buckets,
+          (
+            SELECT COALESCE(
+              jsonb_agg(jsonb_build_object('key', key, 'count', count) ORDER BY count DESC, key ASC NULLS LAST),
+              '[]'::jsonb
+            )
+            FROM (
+              SELECT region::text AS key, count(*)::integer AS count
+              FROM filtered
+              GROUP BY region
+            ) buckets
+          ) AS region_buckets,
+          (
+            SELECT COALESCE(
+              jsonb_agg(jsonb_build_object('key', key, 'count', count) ORDER BY count DESC, key ASC NULLS LAST),
+              '[]'::jsonb
+            )
+            FROM (
+              SELECT currency_source AS key, count(*)::integer AS count
+              FROM filtered
+              GROUP BY currency_source
+            ) buckets
+          ) AS currency_buckets,
+          (
+            SELECT COALESCE(
+              jsonb_agg(jsonb_build_object('key', key, 'count', count) ORDER BY key ASC NULLS LAST),
+              '[]'::jsonb
+            )
+            FROM (
+              SELECT
+                to_char(closing_at AT TIME ZONE 'America/Santiago', 'YYYY-MM-DD') AS key,
+                count(*)::integer AS count
+              FROM filtered
+              GROUP BY to_char(closing_at AT TIME ZONE 'America/Santiago', 'YYYY-MM-DD')
+            ) buckets
+          ) AS closing_date_buckets,
+          (
+            SELECT COALESCE(
+              jsonb_agg(jsonb_build_object('key', key, 'count', count) ORDER BY key ASC NULLS LAST),
+              '[]'::jsonb
+            )
+            FROM (
+              SELECT
+                CASE
+                  WHEN document_count IS NULL THEN NULL
+                  WHEN document_count = 0 THEN 'zero'
+                  ELSE 'positive'
+                END AS key,
+                count(*)::integer AS count
+              FROM filtered
+              GROUP BY
+                CASE
+                  WHEN document_count IS NULL THEN NULL
+                  WHEN document_count = 0 THEN 'zero'
+                  ELSE 'positive'
+                END
+            ) buckets
+          ) AS document_buckets,
+          (
+            SELECT COALESCE(
+              jsonb_agg(jsonb_build_object('key', key, 'count', count) ORDER BY key ASC NULLS LAST),
+              '[]'::jsonb
+            )
+            FROM (
+              SELECT llamado::text AS key, count(*)::integer AS count
+              FROM filtered
+              GROUP BY llamado
+            ) buckets
+          ) AS llamado_buckets
+      `,
+      params,
+    );
+    const row = rows[0];
+
+    if (!row) {
+      throw new Error('Mercado Publico V2 analytics returned no result');
+    }
+
+    return {
+      population: Number(row.population),
+      calculatedAt: row.calculated_at,
+      asOf: row.as_of,
+      freshness: row.freshness ?? 'unknown',
+      completeness: row.completeness,
+      availability: row.availability,
+      coverage: {
+        closingAt: Number(row.known_closing_at),
+        state: Number(row.known_state),
+        region: Number(row.known_region),
+        buyer: Number(row.known_buyer),
+        amount: Number(row.known_amount),
+        currency: Number(row.known_currency),
+        documentCount: Number(row.known_document_count),
+        llamado: Number(row.known_llamado),
+      },
+      stateBuckets: row.state_buckets,
+      regionBuckets: row.region_buckets,
+      currencyBuckets: row.currency_buckets,
+      closingDateBuckets: row.closing_date_buckets,
+      documentBuckets: row.document_buckets,
+      llamadoBuckets: row.llamado_buckets,
+    };
+  }
+
   async getOpportunity(
     codigo: string,
   ): Promise<MercadoPublicoV2OpportunityRow | null> {
@@ -464,3 +692,26 @@ export class MercadoPublicoV2ReadService {
     };
   }
 }
+
+type MercadoPublicoV2AnalyticsRow = {
+  population: string;
+  calculated_at: Date;
+  as_of: Date | null;
+  freshness: string | null;
+  completeness: 'complete' | 'partial' | 'unavailable';
+  availability: 'available' | 'partial' | 'unavailable';
+  known_closing_at: string;
+  known_state: string;
+  known_region: string;
+  known_buyer: string;
+  known_amount: string;
+  known_currency: string;
+  known_document_count: string;
+  known_llamado: string;
+  state_buckets: MercadoPublicoV2AnalyticsBucket[];
+  region_buckets: MercadoPublicoV2AnalyticsBucket[];
+  currency_buckets: MercadoPublicoV2AnalyticsBucket[];
+  closing_date_buckets: MercadoPublicoV2AnalyticsBucket[];
+  document_buckets: MercadoPublicoV2AnalyticsBucket[];
+  llamado_buckets: MercadoPublicoV2AnalyticsBucket[];
+};

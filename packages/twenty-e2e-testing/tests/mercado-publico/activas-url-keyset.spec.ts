@@ -25,6 +25,31 @@ const buildOpportunity = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+const buildAnalytics = (population: number) => ({
+  population,
+  calculatedAt: '2026-08-08T12:00:00.000Z',
+  asOf: '2026-08-08T11:00:00.000Z',
+  freshness: 'healthy',
+  completeness: 'complete',
+  availability: 'available',
+  coverage: {
+    closingAt: population,
+    state: population,
+    region: population,
+    buyer: population,
+    amount: population,
+    currency: population,
+    documentCount: population,
+    llamado: population,
+  },
+  stateBuckets: [{ key: 'publicada', count: population }],
+  regionBuckets: [{ key: '13', count: population }],
+  currencyBuckets: [{ key: 'CLP', count: population }],
+  closingDateBuckets: [{ key: '2026-08-08', count: population }],
+  documentBuckets: [{ key: 'positive', count: population }],
+  llamadoBuckets: [{ key: '1', count: population }],
+});
+
 const mockGraphql = async (
   page: Page,
   opportunities: ReturnType<typeof buildOpportunity>[],
@@ -48,9 +73,7 @@ const mockGraphql = async (
         await route.fulfill({
           contentType: 'application/json',
           body: JSON.stringify({
-            errors: [
-              { message: 'Mercado Publico V2 cursor is invalid' },
-            ],
+            errors: [{ message: 'Mercado Publico V2 cursor is invalid' }],
           }),
         });
 
@@ -73,6 +96,21 @@ const mockGraphql = async (
                 },
                 totalCount: opportunities.length,
               },
+            },
+          },
+        }),
+      });
+
+      return;
+    }
+
+    if (requestBody.operationName === 'MercadoPublicoV2Analytics') {
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            mercadoPublicoV2: {
+              analytics: buildAnalytics(opportunities.length),
             },
           },
         }),
@@ -117,7 +155,10 @@ test.describe('Mercado Publico V2 Activas URL and keyset navigation', () => {
 
     await page.goto(ACTIVE_PATH);
 
-    await page.getByLabel('Filtrar por estados').getByLabel('publicada').check();
+    await page
+      .getByLabel('Filtrar por estados')
+      .getByLabel('publicada')
+      .check();
     await page.getByLabel('Filtrar por región').selectOption('13');
     await page.getByRole('button', { name: 'Aplicar filtros' }).click();
 
@@ -128,7 +169,9 @@ test.describe('Mercado Publico V2 Activas URL and keyset navigation', () => {
     await expect(page).toHaveURL(/estado=publicada/);
     await expect(page).toHaveURL(/region=13/);
     await expect(page.getByLabel('Filtrar por región')).toHaveValue('13');
-    await expect(page.getByLabel('Filtrar por estados').getByLabel('publicada')).toBeChecked();
+    await expect(
+      page.getByLabel('Filtrar por estados').getByLabel('publicada'),
+    ).toBeChecked();
 
     await page.goBack();
     await expect(page).toHaveURL(/\/mercado-publico$/);
@@ -195,12 +238,12 @@ test.describe('Mercado Publico V2 Activas URL and keyset navigation', () => {
 
     await page.goto(`${ACTIVE_PATH}?after=expired-cursor`);
 
-    await expect(page.getByRole('status')).toContainText(
-      'Cursor inválido',
-    );
+    await expect(page.getByRole('status')).toContainText('Cursor inválido');
     await expect(page).toHaveURL(/\/mercado-publico$/);
     await expect(
-      page.getByRole('button', { name: 'Abrir Servicio de mantención preventiva' }),
+      page.getByRole('button', {
+        name: 'Abrir Servicio de mantención preventiva',
+      }),
     ).toBeVisible();
   });
 });
