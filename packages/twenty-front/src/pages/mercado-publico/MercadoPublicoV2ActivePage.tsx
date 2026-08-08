@@ -3,10 +3,16 @@ import { useQuery } from '@apollo/client/react';
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
 import { useAtomValue } from 'jotai';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SidePanelPages } from 'twenty-shared/types';
-import { themeCssVariables } from 'twenty-ui/theme-constants';
+import { MOBILE_VIEWPORT, themeCssVariables } from 'twenty-ui/theme-constants';
 import { IconDotsVertical } from 'twenty-ui/icon';
 import { Button } from 'twenty-ui/input';
 
@@ -124,6 +130,13 @@ type Opportunity = {
   availability: string;
 };
 
+type DataValueState =
+  | 'known'
+  | 'zero'
+  | 'null'
+  | 'unavailable'
+  | 'not_applicable';
+
 type MercadoPublicoV2ActiveQuery = {
   mercadoPublicoV2: {
     opportunities: {
@@ -177,15 +190,23 @@ type MercadoPublicoV2AnalyticsQuery = {
 };
 
 const StyledPage = styled.div`
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: ${themeCssVariables.spacing[4]};
+  min-width: 0;
   padding: ${themeCssVariables.spacing[6]};
+  width: 100%;
+
+  @media (max-width: ${MOBILE_VIEWPORT}px) {
+    padding: ${themeCssVariables.spacing[4]};
+  }
 `;
 
 const StyledHeader = styled.header`
   align-items: baseline;
   display: flex;
+  flex-wrap: wrap;
   gap: ${themeCssVariables.spacing[3]};
   justify-content: space-between;
 `;
@@ -204,13 +225,91 @@ const StyledCount = styled.span`
 const StyledTableContainer = styled.div`
   border: 1px solid ${themeCssVariables.border.color.light};
   border-radius: ${themeCssVariables.border.radius.md};
+  max-width: 100%;
   overflow-x: auto;
+
+  &:focus-visible {
+    outline: 2px solid ${themeCssVariables.border.color.blue};
+    outline-offset: 2px;
+  }
 `;
 
 const StyledTable = styled.table`
   border-collapse: collapse;
-  min-width: 760px;
+  min-width: 860px;
   width: 100%;
+
+  tbody tr:focus-within {
+    background: ${themeCssVariables.background.transparent.light};
+  }
+
+  @media (max-width: 600px) {
+    display: block;
+    min-width: 0;
+
+    thead {
+      height: 1px;
+      overflow: hidden;
+      position: absolute;
+      width: 1px;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
+    tbody {
+      display: grid;
+      gap: ${themeCssVariables.spacing[2]};
+      padding: ${themeCssVariables.spacing[2]};
+    }
+
+    tbody tr {
+      border: 1px solid ${themeCssVariables.border.color.light};
+      border-radius: ${themeCssVariables.border.radius.sm};
+      display: grid;
+      gap: ${themeCssVariables.spacing[3]};
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      padding: ${themeCssVariables.spacing[3]};
+    }
+
+    tbody td {
+      border-top: 0;
+      display: flex;
+      flex-direction: column;
+      gap: ${themeCssVariables.spacing[1]};
+      min-width: 0;
+      padding: 0;
+    }
+
+    tbody td::before {
+      color: ${themeCssVariables.font.color.tertiary};
+      content: attr(data-label);
+      font-size: ${themeCssVariables.font.size.xs};
+      font-weight: ${themeCssVariables.font.weight.medium};
+    }
+
+    tbody td:nth-child(1) {
+      grid-column: 1 / -1;
+      order: 1;
+    }
+
+    tbody td:nth-child(3) {
+      order: 2;
+    }
+
+    tbody td:nth-child(4) {
+      order: 3;
+    }
+
+    tbody td:nth-child(2) {
+      grid-column: 1 / -1;
+      order: 4;
+    }
+
+    tbody td:nth-child(5) {
+      grid-column: 1 / -1;
+      order: 5;
+    }
+  }
 `;
 
 const StyledHeaderCell = styled.th`
@@ -220,6 +319,15 @@ const StyledHeaderCell = styled.th`
   font-weight: ${themeCssVariables.font.weight.medium};
   padding: ${themeCssVariables.spacing[3]};
   text-align: left;
+`;
+
+const StyledTableCaption = styled.caption`
+  clip: rect(0 0 0 0);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 `;
 
 const StyledCell = styled.td`
@@ -236,16 +344,53 @@ const StyledOpportunityButton = styled.button`
   color: ${themeCssVariables.font.color.primary};
   cursor: pointer;
   font: inherit;
+  overflow-wrap: anywhere;
   padding: 0;
   text-align: left;
   text-decoration: underline;
   text-underline-offset: 2px;
+
+  &:focus-visible {
+    outline: 2px solid ${themeCssVariables.border.color.blue};
+    outline-offset: 2px;
+  }
+`;
+
+const StyledOpportunityMeta = styled.div`
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${themeCssVariables.spacing[2]};
+  margin-top: ${themeCssVariables.spacing[1]};
+`;
+
+const StyledAvailability = styled.span`
+  color: ${themeCssVariables.font.color.tertiary};
+  font-size: ${themeCssVariables.font.size.xs};
 `;
 
 const StyledSecondaryText = styled.div`
   color: ${themeCssVariables.font.color.tertiary};
   font-size: ${themeCssVariables.font.size.xs};
   margin-top: ${themeCssVariables.spacing[1]};
+  overflow-wrap: anywhere;
+`;
+
+const StyledDataValue = styled.span`
+  overflow-wrap: anywhere;
+
+  &[data-value-state='zero'] {
+    font-variant-numeric: tabular-nums;
+  }
+`;
+
+const StyledDateValue = styled.time`
+  display: inline-block;
+
+  &:focus-visible {
+    outline: 2px solid ${themeCssVariables.border.color.blue};
+    outline-offset: 2px;
+  }
 `;
 
 const StyledAnalytics = styled.section`
@@ -261,6 +406,18 @@ const StyledAnalyticsStatus = styled.p`
   color: ${themeCssVariables.font.color.tertiary};
   font-size: ${themeCssVariables.font.size.sm};
   margin: 0;
+  overflow-wrap: anywhere;
+`;
+
+const StyledStateMessage = styled.div`
+  align-items: center;
+  color: ${themeCssVariables.font.color.tertiary};
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${themeCssVariables.spacing[3]};
+  justify-content: space-between;
+  margin: 0;
+  padding: ${themeCssVariables.spacing[5]};
 `;
 
 const StyledAnalyticsHeading = styled.h2`
@@ -278,6 +435,11 @@ const StyledAnalyticsSection = styled.details`
     cursor: pointer;
     font-size: ${themeCssVariables.font.size.sm};
     font-weight: ${themeCssVariables.font.weight.medium};
+
+    &:focus-visible {
+      outline: 2px solid ${themeCssVariables.border.color.blue};
+      outline-offset: 2px;
+    }
   }
 `;
 
@@ -296,12 +458,6 @@ const StyledBucket = styled.li`
   color: ${themeCssVariables.font.color.primary};
   font-size: ${themeCssVariables.font.size.sm};
   padding: ${themeCssVariables.spacing[2]};
-`;
-
-const StyledEmptyState = styled.p`
-  color: ${themeCssVariables.font.color.tertiary};
-  margin: 0;
-  padding: ${themeCssVariables.spacing[5]};
 `;
 
 const StyledPagination = styled.nav`
@@ -366,31 +522,123 @@ const toQueryFilter = (
   } as MercadoPublicoV2Filters;
 };
 
+const getDataValueState = (
+  value: string | number | null | undefined,
+  availability: string,
+): DataValueState => {
+  if (value === 0 || value === '0') {
+    return 'zero';
+  }
+
+  if (value !== null && value !== undefined) {
+    return 'known';
+  }
+
+  if (availability === 'unavailable') {
+    return 'unavailable';
+  }
+
+  if (availability === 'not_applicable') {
+    return 'not_applicable';
+  }
+
+  return 'null';
+};
+
+type DataValueProps = {
+  value: string | number | null | undefined;
+  availability: string;
+  children?: ReactNode;
+};
+
+const DataValue = ({ value, availability, children }: DataValueProps) => {
+  const { t } = useLingui();
+  const state = getDataValueState(value, availability);
+  const fallback =
+    state === 'unavailable'
+      ? t`Aún no disponible`
+      : state === 'not_applicable'
+        ? t`No aplica`
+        : t`No informado por fuente`;
+
+  return (
+    <StyledDataValue data-value-state={state}>
+      {value === null || value === undefined ? fallback : children}
+    </StyledDataValue>
+  );
+};
+
 const formatDate = (value: string | null): string => {
-  if (!value) return 'No disponible';
+  if (!value) return 'No informado por fuente';
 
-  return new Intl.DateTimeFormat('es-CL', {
-    dateStyle: 'medium',
-    timeZone: 'America/Santiago',
-  }).format(new Date(value));
-};
+  const date = new Date(value);
 
-const formatAmount = (opportunity: Opportunity): string => {
-  if (!opportunity.amount) return 'No disponible';
-
-  return opportunity.currency
-    ? `${opportunity.currency} ${opportunity.amount}`
-    : opportunity.amount;
-};
-
-const formatAnalyticsDate = (value: string | null): string => {
-  if (!value) return 'No disponible';
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
 
   return new Intl.DateTimeFormat('es-CL', {
     dateStyle: 'medium',
     timeStyle: 'short',
     timeZone: 'America/Santiago',
-  }).format(new Date(value));
+  }).format(date);
+};
+
+const formatAnalyticsDate = (value: string | null): string => {
+  if (!value) return 'No informado por fuente';
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat('es-CL', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'America/Santiago',
+  }).format(date);
+};
+
+type DateValueProps = {
+  value: string | null;
+  availability: string;
+};
+
+const DateValue = ({ value, availability }: DateValueProps) => {
+  const { t } = useLingui();
+
+  if (value === null) {
+    return <DataValue value={value} availability={availability} />;
+  }
+
+  const formatted = formatDate(value);
+
+  return (
+    <StyledDateValue
+      aria-label={t`${formatted}; hora de Santiago; ISO ${value}`}
+      dateTime={value}
+      tabIndex={0}
+      title={t`Hora de Santiago. ISO: ${value}`}
+    >
+      {formatted}
+    </StyledDateValue>
+  );
+};
+
+const formatAvailability = (
+  availability: string,
+  t: ReturnType<typeof useLingui>['t'],
+): string => {
+  if (availability === 'unavailable') {
+    return t`Aún no disponible`;
+  }
+
+  if (availability === 'not_applicable') {
+    return t`No aplica`;
+  }
+
+  return t`Disponible`;
 };
 
 const AnalyticsBuckets = ({
@@ -405,7 +653,10 @@ const AnalyticsBuckets = ({
     <StyledBucketList>
       {buckets.map((bucket) => (
         <StyledBucket key={`${label}-${bucket.key ?? 'unknown'}`}>
-          {bucket.key ?? 'No informado'}: {bucket.count}
+          <DataValue value={bucket.key} availability="available">
+            {bucket.key}
+          </DataValue>
+          : {bucket.count}
         </StyledBucket>
       ))}
     </StyledBucketList>
@@ -435,7 +686,12 @@ export const MercadoPublicoV2ActivePage = () => {
 
   const queryFilter = useMemo(() => toQueryFilter(state), [state]);
 
-  const { data, error, loading } = useQuery<
+  const {
+    data,
+    error,
+    loading,
+    refetch: refetchOpportunities,
+  } = useQuery<
     MercadoPublicoV2ActiveQuery,
     MercadoPublicoV2ActiveQueryVariables
   >(MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY, {
@@ -449,6 +705,7 @@ export const MercadoPublicoV2ActivePage = () => {
     data: analyticsData,
     error: analyticsError,
     loading: analyticsLoading,
+    refetch: refetchAnalytics,
   } = useQuery<
     MercadoPublicoV2AnalyticsQuery,
     Pick<MercadoPublicoV2ActiveQueryVariables, 'filter'>
@@ -590,7 +847,10 @@ export const MercadoPublicoV2ActivePage = () => {
         onSortChange={handleSortChange}
       />
 
-      <StyledAnalytics aria-labelledby="mercado-publico-v2-analytics-heading">
+      <StyledAnalytics
+        aria-busy={analyticsLoading}
+        aria-labelledby="mercado-publico-v2-analytics-heading"
+      >
         <StyledAnalyticsHeading id="mercado-publico-v2-analytics-heading">
           {t`Resumen del universo filtrado`}
         </StyledAnalyticsHeading>
@@ -600,9 +860,18 @@ export const MercadoPublicoV2ActivePage = () => {
           </StyledAnalyticsStatus>
         )}
         {!analyticsLoading && analyticsError && (
-          <StyledAnalyticsStatus role="status">
-            {t`Analítica no disponible. No se calcularon cifras desde la página visible.`}
-          </StyledAnalyticsStatus>
+          <StyledStateMessage role="alert">
+            <span>
+              {t`Analítica no disponible. No se calcularon cifras desde la página visible.`}
+            </span>
+            <Button
+              title={t`Reintentar analítica`}
+              type="button"
+              size="small"
+              variant="secondary"
+              onClick={() => void refetchAnalytics()}
+            />
+          </StyledStateMessage>
         )}
         {!analyticsLoading && !analyticsError && analytics && (
           <>
@@ -622,93 +891,194 @@ export const MercadoPublicoV2ActivePage = () => {
               {` · ${t`Calculado`}: ${formatAnalyticsDate(analytics.calculatedAt)}`}
               {` · ${t`Actualizado`}: ${formatAnalyticsDate(analytics.asOf)}`}
             </StyledAnalyticsStatus>
-            <StyledAnalyticsStatus>
-              {t`Cobertura conocida`}:{' '}
-              {t`cierre ${analytics.coverage.closingAt}/${analytics.population}`}
-              , {t`estado ${analytics.coverage.state}/${analytics.population}`},{' '}
-              {t`región ${analytics.coverage.region}/${analytics.population}`},{' '}
-              {t`monto ${analytics.coverage.amount}/${analytics.population}`},{' '}
-              {t`documentos ${analytics.coverage.documentCount}/${analytics.population}`}
-            </StyledAnalyticsStatus>
-            <AnalyticsBuckets
-              label={t`Estados`}
-              buckets={analytics.stateBuckets}
-            />
-            <AnalyticsBuckets
-              label={t`Regiones`}
-              buckets={analytics.regionBuckets}
-            />
-            <AnalyticsBuckets
-              label={t`Fechas de cierre`}
-              buckets={analytics.closingDateBuckets}
-            />
-            <AnalyticsBuckets
-              label={t`Monedas`}
-              buckets={analytics.currencyBuckets}
-            />
-            <AnalyticsBuckets
-              label={t`Documentos`}
-              buckets={analytics.documentBuckets}
-            />
-            <AnalyticsBuckets
-              label={t`Llamados`}
-              buckets={analytics.llamadoBuckets}
-            />
+            {analytics.availability !== 'unavailable' && (
+              <>
+                <StyledAnalyticsStatus>
+                  {t`Cobertura conocida`}:{' '}
+                  {t`cierre ${analytics.coverage.closingAt}/${analytics.population}`}
+                  ,{' '}
+                  {t`estado ${analytics.coverage.state}/${analytics.population}`}
+                  ,{' '}
+                  {t`región ${analytics.coverage.region}/${analytics.population}`}
+                  ,{' '}
+                  {t`monto ${analytics.coverage.amount}/${analytics.population}`}
+                  ,{' '}
+                  {t`documentos ${analytics.coverage.documentCount}/${analytics.population}`}
+                </StyledAnalyticsStatus>
+                <AnalyticsBuckets
+                  label={t`Estados`}
+                  buckets={analytics.stateBuckets}
+                />
+                <AnalyticsBuckets
+                  label={t`Regiones`}
+                  buckets={analytics.regionBuckets}
+                />
+                <AnalyticsBuckets
+                  label={t`Fechas de cierre`}
+                  buckets={analytics.closingDateBuckets}
+                />
+                <AnalyticsBuckets
+                  label={t`Monedas`}
+                  buckets={analytics.currencyBuckets}
+                />
+                <AnalyticsBuckets
+                  label={t`Documentos`}
+                  buckets={analytics.documentBuckets}
+                />
+                <AnalyticsBuckets
+                  label={t`Llamados`}
+                  buckets={analytics.llamadoBuckets}
+                />
+              </>
+            )}
           </>
         )}
       </StyledAnalytics>
 
       {loading && (
-        <StyledEmptyState>{t`Cargando oportunidades…`}</StyledEmptyState>
+        <StyledStateMessage role="status" aria-live="polite">
+          {t`Cargando oportunidades…`}
+        </StyledStateMessage>
       )}
       {!loading && error && (
-        <StyledEmptyState>{t`No fue posible cargar las oportunidades.`}</StyledEmptyState>
+        <StyledStateMessage role="alert">
+          <span>{t`No fue posible cargar las oportunidades.`}</span>
+          <Button
+            title={t`Reintentar oportunidades`}
+            type="button"
+            size="small"
+            variant="secondary"
+            onClick={() => void refetchOpportunities()}
+          />
+        </StyledStateMessage>
       )}
       {!loading && !error && opportunities?.edges.length === 0 && (
-        <StyledEmptyState>{t`No hay oportunidades disponibles.`}</StyledEmptyState>
+        <StyledStateMessage>
+          <span>{t`No hay oportunidades disponibles.`}</span>
+        </StyledStateMessage>
       )}
       {!loading &&
         !error &&
         opportunities &&
         opportunities.edges.length > 0 && (
-          <StyledTableContainer>
+          <StyledTableContainer
+            aria-label={t`Oportunidades activas`}
+            role="region"
+            tabIndex={0}
+          >
             <StyledTable>
+              <StyledTableCaption>
+                {t`Oportunidades activas. Cinco columnas en escritorio; cada fila se apila en móvil.`}
+              </StyledTableCaption>
               <thead>
                 <tr>
-                  <StyledHeaderCell>{t`Oportunidad`}</StyledHeaderCell>
-                  <StyledHeaderCell>{t`Comprador / región`}</StyledHeaderCell>
-                  <StyledHeaderCell>{t`Cierre`}</StyledHeaderCell>
-                  <StyledHeaderCell>{t`Monto`}</StyledHeaderCell>
-                  <StyledHeaderCell>{t`Documentos / ofertas`}</StyledHeaderCell>
+                  <StyledHeaderCell scope="col">
+                    {t`Oportunidad`}
+                  </StyledHeaderCell>
+                  <StyledHeaderCell scope="col">
+                    {t`Comprador / región`}
+                  </StyledHeaderCell>
+                  <StyledHeaderCell scope="col">{t`Cierre`}</StyledHeaderCell>
+                  <StyledHeaderCell scope="col">{t`Monto`}</StyledHeaderCell>
+                  <StyledHeaderCell scope="col">
+                    {t`Documentos / ofertas`}
+                  </StyledHeaderCell>
                 </tr>
               </thead>
               <tbody>
                 {opportunities.edges.map(({ node }) => (
                   <tr key={node.codigo}>
-                    <StyledCell>
+                    <StyledCell data-label={t`Oportunidad`}>
                       <StyledOpportunityButton
                         aria-label={t`Abrir ${node.title ?? node.codigo}`}
                         onClick={() => openOpportunity(node)}
+                        title={node.title ?? node.codigo}
                       >
                         {node.title ?? node.codigo}
                       </StyledOpportunityButton>
                       <StyledSecondaryText>{node.codigo}</StyledSecondaryText>
+                      <StyledOpportunityMeta>
+                        <DataValue
+                          value={node.state}
+                          availability={node.availability}
+                        >
+                          {node.state}
+                        </DataValue>
+                        <DataValue
+                          value={node.llamado}
+                          availability={node.availability}
+                        >
+                          {node.llamado === null
+                            ? null
+                            : t`Llamado ${node.llamado}`}
+                        </DataValue>
+                        <StyledAvailability>
+                          {formatAvailability(node.availability, t)}
+                        </StyledAvailability>
+                      </StyledOpportunityMeta>
+                      {node.title === null && (
+                        <StyledSecondaryText>
+                          <DataValue
+                            value={node.title}
+                            availability={node.availability}
+                          >
+                            {node.title}
+                          </DataValue>
+                        </StyledSecondaryText>
+                      )}
                     </StyledCell>
-                    <StyledCell>
-                      {node.buyerName ?? 'No disponible'}
+                    <StyledCell data-label={t`Comprador / región`}>
+                      <DataValue
+                        value={node.buyerName}
+                        availability={node.availability}
+                      >
+                        {node.buyerName}
+                      </DataValue>
                       <StyledSecondaryText>
-                        {node.region === null
-                          ? t`Región no disponible`
-                          : t`Región ${node.region}`}
+                        <DataValue
+                          value={node.region}
+                          availability={node.availability}
+                        >
+                          {node.region === null
+                            ? null
+                            : t`Región ${node.region}`}
+                        </DataValue>
                       </StyledSecondaryText>
                     </StyledCell>
-                    <StyledCell>{formatDate(node.closingAt)}</StyledCell>
-                    <StyledCell>{formatAmount(node)}</StyledCell>
-                    <StyledCell>
-                      {node.documentCount === null
-                        ? t`No disponible`
-                        : t`${node.documentCount} documentos`}
-                      <StyledSecondaryText>{t`Ofertas: no disponible`}</StyledSecondaryText>
+                    <StyledCell data-label={t`Cierre`}>
+                      <DateValue
+                        value={node.closingAt}
+                        availability={node.availability}
+                      />
+                    </StyledCell>
+                    <StyledCell data-label={t`Monto`}>
+                      <DataValue
+                        value={node.amount}
+                        availability={node.availability}
+                      >
+                        {node.currency
+                          ? `${node.currency} ${node.amount}`
+                          : node.amount}
+                      </DataValue>
+                    </StyledCell>
+                    <StyledCell data-label={t`Documentos / ofertas`}>
+                      <div>
+                        {t`Documentos`}:{' '}
+                        <DataValue
+                          value={node.documentCount}
+                          availability={node.availability}
+                        >
+                          {node.documentCount === null
+                            ? null
+                            : t`${node.documentCount}`}
+                        </DataValue>
+                      </div>
+                      <StyledSecondaryText>
+                        {t`Ofertas`}:{' '}
+                        <DataValue value={null} availability="not_applicable">
+                          {null}
+                        </DataValue>
+                      </StyledSecondaryText>
                     </StyledCell>
                   </tr>
                 ))}

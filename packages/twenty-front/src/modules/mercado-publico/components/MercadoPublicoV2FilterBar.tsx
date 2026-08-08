@@ -45,25 +45,25 @@ export const MERCADO_PUBLICO_V2_SORTS: Array<{
   { value: 'amount_asc', label: 'Monto menor a mayor' },
 ];
 
-const StyledBar = styled.div`
+const StyledForm = styled.form`
   display: flex;
   flex-direction: column;
   gap: ${themeCssVariables.spacing[3]};
 `;
 
 const StyledRow = styled.div`
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: ${themeCssVariables.spacing[3]};
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
 `;
 
 const StyledField = styled.label`
-  align-items: center;
+  align-items: stretch;
   display: flex;
   flex-direction: column;
   font-size: ${themeCssVariables.font.size.xs};
   gap: ${themeCssVariables.spacing[1]};
+  min-width: 0;
 `;
 
 const StyledFieldLabel = styled.span`
@@ -80,6 +80,11 @@ const StyledInput = styled.input`
   font-size: ${themeCssVariables.font.size.sm};
   min-height: ${themeCssVariables.spacing[6]};
   padding: ${themeCssVariables.spacing[2]};
+
+  &:focus-visible {
+    outline: 2px solid ${themeCssVariables.border.color.blue};
+    outline-offset: 2px;
+  }
 `;
 
 const StyledSelect = styled.select`
@@ -92,6 +97,11 @@ const StyledSelect = styled.select`
   font-size: ${themeCssVariables.font.size.sm};
   min-height: ${themeCssVariables.spacing[6]};
   padding: ${themeCssVariables.spacing[2]};
+
+  &:focus-visible {
+    outline: 2px solid ${themeCssVariables.border.color.blue};
+    outline-offset: 2px;
+  }
 `;
 
 const StyledCheckboxGroup = styled.div`
@@ -106,10 +116,16 @@ const StyledCheckbox = styled.label`
   display: inline-flex;
   font-size: ${themeCssVariables.font.size.xs};
   gap: ${themeCssVariables.spacing[1]};
+
+  input:focus-visible {
+    outline: 2px solid ${themeCssVariables.border.color.blue};
+    outline-offset: 2px;
+  }
 `;
 
 const StyledActions = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: ${themeCssVariables.spacing[2]};
 `;
 
@@ -152,7 +168,12 @@ export const MercadoPublicoV2FilterBar = ({
   };
 
   return (
-    <StyledBar>
+    <StyledForm
+      onSubmit={(event) => {
+        event.preventDefault();
+        onApply(draft);
+      }}
+    >
       <StyledRow>
         <StyledField>
           <StyledFieldLabel>{t`Cohorte`}</StyledFieldLabel>
@@ -391,10 +412,9 @@ export const MercadoPublicoV2FilterBar = ({
       <StyledActions>
         <Button
           title={t`Aplicar filtros`}
-          type="button"
+          type="submit"
           size="small"
           variant="primary"
-          onClick={() => onApply(draft)}
         />
         <Button
           title={t`Limpiar filtros`}
@@ -406,10 +426,10 @@ export const MercadoPublicoV2FilterBar = ({
       </StyledActions>
 
       {notice && (
-        <StyledNotice id={noticeId} role="status">
+        <StyledNotice id={noticeId} role="alert" aria-live="assertive">
           {notice}
         </StyledNotice>
       )}
-    </StyledBar>
+    </StyledForm>
   );
 };
