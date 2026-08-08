@@ -4,8 +4,8 @@ import { MercadoPublicoV2ReadService } from 'src/engine/core-modules/mercado-pub
 import {
   MercadoPublicoV2NamespaceResolver,
   MercadoPublicoV2OpportunitySortEnum,
+  type MercadoPublicoV2OpportunityFilterInput,
 } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2.resolver';
-import type { MercadoPublicoV2OpportunityFilterInput } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2.resolver';
 import { MpCanonicalCompraAgilFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007880-mp-canonical-compra-agil';
 import { MpGoldReadObjectsFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007910-mp-gold-read-objects';
 import { MpRawApiPayloadFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007517-mp-raw-api-payload';
