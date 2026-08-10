@@ -91,9 +91,6 @@ const sanitizeParams = (
   if (isNonEmptyString(params.ordenar_por)) {
     entries.ordenar_por = params.ordenar_por as string;
   }
-  if (isNonEmptyString(params.orden)) {
-    entries.orden = params.orden as string;
-  }
 
   return entries;
 };

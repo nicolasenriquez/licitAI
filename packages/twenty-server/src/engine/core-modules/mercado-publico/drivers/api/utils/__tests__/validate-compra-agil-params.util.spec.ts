@@ -122,6 +122,12 @@ describe('validateCompraAgilListParams', () => {
     );
   });
 
+  it('should reject the undocumented orden parameter', () => {
+    expect(validateCompraAgilListParams({ orden: 'asc' } as never)).toEqual([
+      { field: 'orden', code: 'unsupported_parameter' },
+    ]);
+  });
+
   it('should return error when both id and q are provided', () => {
     const errors = validateCompraAgilListParams({
       id: 'ABC123',

@@ -14,7 +14,6 @@ type MercadoPublicoApiV2CompraAgilIncrementalPayload = {
   estado?: string;
   region?: number;
   ordenar_por?: string;
-  orden?: string;
 };
 
 @Injectable()
@@ -37,6 +36,13 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
   ): MercadoPublicoApiV2CompraAgilIncrementalPayload {
     const ttlCambioMs = payload.ttl_cambio_ms;
     const cambioDesde = payload.cambio_desde;
+    const cambioHasta = payload.cambio_hasta;
+
+    if (payload.orden !== undefined) {
+      throw new BadRequestException(
+        'Mercado Publico V2 Compra Agil incremental payload does not support "orden"',
+      );
+    }
 
     if (ttlCambioMs === undefined && !isNonEmptyString(cambioDesde)) {
       throw new BadRequestException(
@@ -50,13 +56,19 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
       );
     }
 
+    if (isNonEmptyString(cambioDesde) !== isNonEmptyString(cambioHasta)) {
+      throw new BadRequestException(
+        'Mercado Publico V2 Compra Agil incremental payload requires both "cambio_desde" and "cambio_hasta" when either is provided',
+      );
+    }
+
     return {
       ttl_cambio_ms: typeof ttlCambioMs === 'number' ? ttlCambioMs : undefined,
       cambio_desde: isNonEmptyString(cambioDesde)
         ? (cambioDesde as string)
         : undefined,
-      cambio_hasta: isNonEmptyString(payload.cambio_hasta)
-        ? (payload.cambio_hasta as string)
+      cambio_hasta: isNonEmptyString(cambioHasta)
+        ? (cambioHasta as string)
         : undefined,
       tamano_pagina:
         typeof payload.tamano_pagina === 'number'
@@ -70,9 +82,6 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
       region: typeof payload.region === 'number' ? payload.region : undefined,
       ordenar_por: isNonEmptyString(payload.ordenar_por)
         ? (payload.ordenar_por as string)
-        : undefined,
-      orden: isNonEmptyString(payload.orden)
-        ? (payload.orden as string)
         : undefined,
     };
   }

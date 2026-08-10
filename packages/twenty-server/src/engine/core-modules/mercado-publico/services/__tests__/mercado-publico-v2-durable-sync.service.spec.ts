@@ -101,4 +101,67 @@ describe('MercadoPublicoV2DurableSyncService', () => {
     );
     expect(persistenceService.createJobRun).not.toHaveBeenCalled();
   });
+
+  it('builds a complete UTC change window from a watermark', async () => {
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('SELECT watermark_at')) {
+        return Promise.resolve([
+          { watermark_at: new Date('2026-06-01T12:00:00Z') },
+        ]);
+      }
+      if (sql.includes('INSERT INTO mp.sync_run')) {
+        return Promise.resolve([{ id: 'sync-run-1' }]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const service = new MercadoPublicoV2DurableSyncService(
+      {} as MercadoPublicoApiV2CompraAgilClientService,
+      {} as MercadoPublicoPersistenceService,
+      { query } as never,
+      {} as MercadoPublicoV2ProjectionService,
+    );
+
+    await expect(
+      (
+        service as unknown as {
+          createSyncRun: (
+            intent: 'scheduled',
+            payload: Record<string, unknown>,
+          ) => Promise<unknown>;
+        }
+      ).createSyncRun('scheduled', { ttl_cambio_ms: 60000 }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        requestParams: expect.objectContaining({
+          cambio_desde: '2026-06-01T11:55:00.000Z',
+          cambio_hasta: expect.stringMatching(/Z$/),
+          ttl_cambio_ms: undefined,
+        }),
+      }),
+    );
+  });
+
+  it('rejects incomplete explicit ranges before creating a sync run', async () => {
+    const query = jest.fn().mockResolvedValue([]);
+    const service = new MercadoPublicoV2DurableSyncService(
+      {} as MercadoPublicoApiV2CompraAgilClientService,
+      {} as MercadoPublicoPersistenceService,
+      { query } as never,
+      {} as MercadoPublicoV2ProjectionService,
+    );
+
+    await expect(
+      (
+        service as unknown as {
+          createSyncRun: (
+            intent: 'scheduled',
+            payload: Record<string, unknown>,
+          ) => Promise<unknown>;
+        }
+      ).createSyncRun('scheduled', {
+        cambio_desde: '2026-06-01T00:00:00Z',
+      }),
+    ).rejects.toThrow('requires both cambio_desde and cambio_hasta');
+  });
 });

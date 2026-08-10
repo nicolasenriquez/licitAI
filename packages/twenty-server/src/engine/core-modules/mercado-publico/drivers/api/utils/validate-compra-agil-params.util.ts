@@ -25,7 +25,6 @@ export type CompraAgilListParams = {
   estado?: string;
   region?: number;
   ordenar_por?: string;
-  orden?: string;
 };
 
 export type CompraAgilValidationError = {
@@ -37,6 +36,11 @@ export const validateCompraAgilListParams = (
   params: CompraAgilListParams,
 ): CompraAgilValidationError[] => {
   const errors: CompraAgilValidationError[] = [];
+  const suppliedParams = params as Record<string, unknown>;
+
+  if (suppliedParams.orden !== undefined) {
+    errors.push({ field: 'orden', code: 'unsupported_parameter' });
+  }
 
   const validateDateRange = (
     from: string | undefined,

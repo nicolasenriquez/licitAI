@@ -268,6 +268,35 @@ export class MercadoPublicoV2DurableSyncService {
     watermarkBefore: Date | null,
   ): CompraAgilListParams {
     const explicitChangeStart = getNonEmptyString(payload.cambio_desde);
+    const explicitChangeEnd = getNonEmptyString(payload.cambio_hasta);
+    const explicitPublicationStart = getNonEmptyString(payload.publicado_desde);
+    const explicitPublicationEnd = getNonEmptyString(payload.publicado_hasta);
+
+    if (payload.orden !== undefined) {
+      throw new Error(
+        'Mercado Publico V2 durable sync does not support "orden"',
+      );
+    }
+
+    if (
+      (explicitChangeStart === undefined) !==
+      (explicitChangeEnd === undefined)
+    ) {
+      throw new Error(
+        'Mercado Publico V2 durable sync requires both cambio_desde and cambio_hasta when either is provided',
+      );
+    }
+
+    if (
+      (explicitPublicationStart === undefined) !==
+      (explicitPublicationEnd === undefined)
+    ) {
+      throw new Error(
+        'Mercado Publico V2 durable sync requires both publicado_desde and publicado_hasta when either is provided',
+      );
+    }
+
+    const executionStartedAt = new Date().toISOString();
     const derivedChangeStart =
       explicitChangeStart ??
       (watermarkBefore === null
@@ -286,21 +315,25 @@ export class MercadoPublicoV2DurableSyncService {
       );
     }
 
+    const usesWatermarkWindow =
+      explicitChangeStart === undefined && watermarkBefore !== null;
+
     return {
       cambio_desde: derivedChangeStart,
-      cambio_hasta: getNonEmptyString(payload.cambio_hasta),
+      cambio_hasta:
+        explicitChangeEnd ??
+        (usesWatermarkWindow ? executionStartedAt : undefined),
       ttl_cambio_ms:
-        typeof payload.ttl_cambio_ms === 'number'
+        !usesWatermarkWindow && typeof payload.ttl_cambio_ms === 'number'
           ? payload.ttl_cambio_ms
           : undefined,
-      publicado_desde: getNonEmptyString(payload.publicado_desde),
-      publicado_hasta: getNonEmptyString(payload.publicado_hasta),
+      publicado_desde: explicitPublicationStart,
+      publicado_hasta: explicitPublicationEnd,
       estado: getNonEmptyString(payload.estado),
       region: typeof payload.region === 'number' ? payload.region : undefined,
       id: getNonEmptyString(payload.id),
       q: getNonEmptyString(payload.q),
       ordenar_por: getNonEmptyString(payload.ordenar_por),
-      orden: getNonEmptyString(payload.orden),
       tamano_pagina: pageSize,
       numero_pagina: 1,
     };

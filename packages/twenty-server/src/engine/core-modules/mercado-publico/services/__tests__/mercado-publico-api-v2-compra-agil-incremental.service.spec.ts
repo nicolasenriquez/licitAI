@@ -24,6 +24,22 @@ describe('MercadoPublicoApiV2CompraAgilIncrementalService', () => {
     await expect(service.run({ cambio_desde: '' })).rejects.toThrow(
       BadRequestException,
     );
+    await expect(
+      service.run({ cambio_desde: '2026-06-01T00:00:00Z' }),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.run({ cambio_hasta: '2026-06-30T00:00:00Z' }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects the undocumented orden parameter', async () => {
+    await expect(
+      service.run({
+        cambio_desde: '2026-06-01T00:00:00Z',
+        cambio_hasta: '2026-06-30T00:00:00Z',
+        orden: 'asc',
+      }),
+    ).rejects.toThrow('does not support "orden"');
   });
 
   it('delegates the validated request to the durable pipeline', async () => {

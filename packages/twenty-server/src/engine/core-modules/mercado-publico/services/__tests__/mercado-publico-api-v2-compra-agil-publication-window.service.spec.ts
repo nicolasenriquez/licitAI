@@ -16,10 +16,16 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
     );
   });
 
-  it('requires a publication window bound', async () => {
+  it('requires a complete publication window', async () => {
     await expect(service.run({})).rejects.toThrow(BadRequestException);
     await expect(
       service.run({ publicado_desde: '', publicado_hasta: '' }),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.run({ publicado_desde: '2026-06-01T00:00:00Z' }),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.run({ publicado_hasta: '2026-06-30T23:59:59Z' }),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -27,15 +33,27 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
     await service.run({
       publicado_desde: '2026-06-01T00:00:00Z',
       publicado_hasta: '2026-06-30T23:59:59Z',
+      ordenar_por: 'FechaPublicacion',
     });
 
     expect(durableSyncService.start).toHaveBeenCalledWith(
       expect.objectContaining({
         publicado_desde: '2026-06-01T00:00:00Z',
         publicado_hasta: '2026-06-30T23:59:59Z',
+        ordenar_por: 'FechaPublicacion',
       }),
       'manual',
       'api-v2-compra-agil-by-publication-window',
     );
+  });
+
+  it('rejects the undocumented orden parameter', async () => {
+    await expect(
+      service.run({
+        publicado_desde: '2026-06-01T00:00:00Z',
+        publicado_hasta: '2026-06-30T23:59:59Z',
+        orden: 'asc',
+      }),
+    ).rejects.toThrow('does not support "orden"');
   });
 });

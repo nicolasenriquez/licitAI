@@ -12,6 +12,7 @@ type MercadoPublicoApiV2CompraAgilPublicationWindowPayload = {
   q?: string;
   estado?: string;
   region?: number;
+  ordenar_por?: string;
 };
 
 @Injectable()
@@ -36,12 +37,18 @@ export class MercadoPublicoApiV2CompraAgilPublicationWindowService {
     const publicadoDesde = payload.publicado_desde;
     const publicadoHasta = payload.publicado_hasta;
 
+    if (payload.orden !== undefined) {
+      throw new BadRequestException(
+        'Mercado Publico V2 Compra Agil publication-window payload does not support "orden"',
+      );
+    }
+
     if (
-      !isNonEmptyString(publicadoDesde) &&
+      !isNonEmptyString(publicadoDesde) ||
       !isNonEmptyString(publicadoHasta)
     ) {
       throw new BadRequestException(
-        'Mercado Publico V2 Compra Agil publication-window payload requires a non-empty "publicado_desde" or "publicado_hasta" string',
+        'Mercado Publico V2 Compra Agil publication-window payload requires both "publicado_desde" and "publicado_hasta" strings',
       );
     }
 
@@ -62,6 +69,9 @@ export class MercadoPublicoApiV2CompraAgilPublicationWindowService {
         ? (payload.estado as string)
         : undefined,
       region: typeof payload.region === 'number' ? payload.region : undefined,
+      ordenar_por: isNonEmptyString(payload.ordenar_por)
+        ? (payload.ordenar_por as string)
+        : undefined,
     };
   }
 }
