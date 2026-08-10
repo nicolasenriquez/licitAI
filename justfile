@@ -4,6 +4,7 @@
 # Sections: DEV (app runtime) | CI (GitHub Actions mirror) | DOCKER helpers
 #
 # Daily use:
+#   just runtime-check       verify existing full app stack (read-only)
 #   just dev-up              start full app stack (cached image, auto-migrates)
 #   just dev-up-build        start full app stack (rebuild image first)
 #   just dev-down            stop app stack
@@ -13,9 +14,9 @@
 #   just ci-infra-up         start PostgreSQL + Redis + ClickHouse for CI
 #   just ci-infra-down       stop CI infrastructure
 #
-# Two modes, mutually exclusive (both use host port 5432):
-#   DEV mode: docker-compose.yml   — use the app (server occupies :3000)
-#   CI mode:  docker-compose.dev.yml — run tests/validation (ports free)
+# Routine runtime: docker-compose.yml — existing app (server occupies :3000).
+# Legacy CI infrastructure uses docker-compose.dev.yml plus ClickHouse, creates
+# a second stack, and is blocked unless explicitly authorized.
 #
 # Docs: docs/operations/ci.md
 # =============================================================================
@@ -63,6 +64,18 @@ dev-logs:
 dev-status:
     docker compose --env-file {{ENV_FILE}} -f {{COMPOSE_APP}} ps
 
+# Verify the already-running full app stack without changing Docker state.
+# This is the first runtime command for agents and routine diagnostics.
+runtime-check: _ensure-env-file
+    docker compose --env-file {{ENV_FILE}} -f {{COMPOSE_APP}} config --quiet
+    docker compose --env-file {{ENV_FILE}} -f {{COMPOSE_APP}} ps
+    npx wait-on http://localhost:3000/healthz --timeout 5000
+    @echo === Existing full Compose runtime is healthy; no containers were changed. ===
+
+# Verify the Docker-first command/documentation contract without Docker access.
+docs-runtime-check:
+    powershell -NoProfile -File scripts/check-docker-first-docs.ps1
+
 # ═════════════════════════════════════════════════════════════════════════════
 # CI — META-COMMANDS
 # ═════════════════════════════════════════════════════════════════════════════
@@ -73,7 +86,7 @@ ci-prepush: ci-gate ci-check ci-build ci-test
 # Standard local CI pipeline (commit-build: no server needed)
 ci: ci-check ci-build ci-test
 
-# Full CI including validate + security + integration (requires: ci-infra-up + server in terminal 2)
+# Full CI including validate + security + integration (integration infra is gated)
 ci-full: ci ci-validate ci-security ci-integration
 
 # All static checks across packages
@@ -117,8 +130,9 @@ ci-server-test: _ensure-installed
     npx nx test twenty-server
 
 # Mirrors job: server-validation.
-# Requires: ci-infra-up running AND a dev server started in a SECOND terminal.
-#   Terminal 1: just ci-infra-up && npx nx start:ci twenty-server
+# Requires: an explicitly authorized CI infrastructure stack AND a dev server
+# started in a SECOND terminal.
+#   Terminal 1: set ALLOW_EXTRA_CONTAINERS=1 && just ci-infra-up && npx nx start:ci twenty-server
 #   Terminal 2: just ci-server-validate
 ci-server-validate: _ensure-pg _ensure-redis _ensure-server-healthy
     @echo === Checking pending migrations ===
@@ -222,7 +236,7 @@ ci-emails: _ensure-installed
 #   IMPORTANT: the server must be npx nx start:ci twenty-server, NOT the
 #   dev-up Docker image (which runs stale code). This recipe introspects
 #   the running server's GraphQL schema.
-#   Terminal 1: just ci-infra-up && npx nx start:ci twenty-server
+#   Terminal 1: set ALLOW_EXTRA_CONTAINERS=1 && just ci-infra-up && npx nx start:ci twenty-server
 #   Terminal 2: just ci-validate
 ci-validate: _ensure-installed _ensure-server-healthy
     npx nx run twenty-front:graphql:generate
@@ -254,8 +268,10 @@ ci-integration: ci-server-integration
 # ═════════════════════════════════════════════════════════════════════════════
 
 # Start CI infrastructure: PostgreSQL 16 + Redis 7 (host-exposed) + ClickHouse.
-# Idempotent: safe to run when already up.
-ci-infra-up: _docker-network
+# This creates a second stack and is blocked unless explicitly opted in.
+ci-infra-up:
+    @(if not defined ALLOW_EXTRA_CONTAINERS (echo ERROR: ci-infra-up creates an alternate Compose/ClickHouse stack. Use 'just runtime-check' for the existing full Compose runtime. Set ALLOW_EXTRA_CONTAINERS=1 only with explicit human authorization. & exit 1))
+    @-docker network create {{DOCKER_NETWORK}}
     docker compose -f {{COMPOSE_DEV}} up -d
     @echo === Waiting for PostgreSQL and Redis ===
     npx wait-on tcp:5432 tcp:6379 --timeout 60000
@@ -285,7 +301,7 @@ _ensure-env PKG:
 
 [private]
 _ensure-env-file:
-    @(if not exist "{{ENV_FILE}}" (echo ERROR: {{ENV_FILE}} not found. Copy .env.example to .env first. & exit 1) else (echo ok >nul))
+    @powershell -NoProfile -Command "if (-not (Test-Path -LiteralPath '{{justfile_directory()}}\{{ENV_FILE}}')) { Write-Error '{{ENV_FILE}} not found. Copy .env.example to .env first.'; exit 1 }"
 
 [private]
 _ensure-pg:

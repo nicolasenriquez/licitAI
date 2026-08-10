@@ -13,7 +13,10 @@ Define the local-development contract for the Twenty CRM monorepo. This document
 Engineers and AI agents setting up or extending the repository locally.
 
 ## Executive Summary
-Twenty provides a one-command setup via `setup-dev-env.sh` that auto-detects Docker vs local services, starts PostgreSQL 16 and Redis 7, creates databases, copies `.env` files, and initializes the database schema. Development services are defined in `docker-compose.dev.yml`. The application stack (NestJS backend + React frontend + BullMQ worker) runs from source using Nx targets.
+The existing full Docker Compose project is the local runtime contract. Agents and
+routine diagnostics begin with the read-only `just runtime-check` preflight. The
+repository must not silently fall back to host services, `docker-compose.dev.yml`,
+or a newly-created container stack.
 
 ## Defined Stack
 
@@ -27,14 +30,14 @@ Twenty provides a one-command setup via `setup-dev-env.sh` that auto-detects Doc
 | Worker | BullMQ | — | Background job processor |
 | Database | PostgreSQL | 16 | Port 5432 |
 | Cache / Queue | Redis | 7 | Port 6379 |
-| Containerization | Docker + Docker Compose | — | Infrastructure services |
+| Containerization | Docker + Docker Compose | — | Full application runtime |
 
 ## Default Local Runtime
 
 | Runtime Path | Position | Details |
 | --- | --- | --- |
-| Docker (infrastructure) | Canonical path | PostgreSQL 16 + Redis 7 run in Docker Compose. Application runs from source on the host. |
-| Host-local services | Fallback path | If PostgreSQL/Redis are already running natively, `setup-dev-env.sh` detects them and skips Docker. |
+| Full Docker Compose | Canonical path | Server, worker, PostgreSQL, and Redis run in the existing Compose project. |
+| Host-source / infrastructure-only | Explicit exception | Only when a human authorizes a source-runtime or CI reproduction that the existing stack cannot provide. |
 
 Rationale:
 - Docker ensures reproducible infrastructure services across machines.
@@ -42,46 +45,48 @@ Rationale:
 
 ## Setup Script
 
-All dev environments use one idempotent script:
+The compatibility script is now a read-only health check:
 
 ```bash
 bash packages/twenty-utils/setup-dev-env.sh
 ```
 
-This script handles:
-1. Starts PostgreSQL + Redis (auto-detects local services vs Docker)
-2. Creates required databases
-3. Copies `.env` files from `.env.example` templates
-4. Initializes the database schema (runs migrations) on a fresh database
+It validates the full Compose configuration, confirms the four existing services
+are already running, checks PostgreSQL/Redis readiness, and probes `/healthz`.
+It never starts, stops, removes, rebuilds, or creates a container, and it never
+creates `.env` files. For a state-changing startup, use `just dev-up` only after
+explicit human authorization.
 
-Flags:
-- `--docker` — Force Docker mode (uses `packages/twenty-docker/docker-compose.dev.yml`)
-- `--down` — Stop services
-- `--reset` — Wipe data and restart fresh
-
-**Important**: The script is idempotent — safe to run multiple times. Skip the setup script for tasks that only read code (architecture questions, code review, documentation).
+**Important**: The script is intentionally safe to run repeatedly. Skip it for
+tasks that only read code (architecture questions, code review, documentation).
 
 **CI note**: GitHub Actions workflows manage services via Actions service containers and run setup steps individually. They do not use this script.
 
 ## Docker Compose Baseline
 
-Development infrastructure services from `packages/twenty-docker/docker-compose.dev.yml`:
+The canonical local runtime is `packages/twenty-docker/docker-compose.yml`:
 
 ```bash
-# Start infrastructure services
-docker compose -f packages/twenty-docker/docker-compose.dev.yml up -d
+# Inspect the existing full runtime (read-only)
+just runtime-check
 
-# Stop services
-docker compose -f packages/twenty-docker/docker-compose.dev.yml down
+# Follow application logs
+docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml logs -f server worker
 
-# Stop services and wipe data
-docker compose -f packages/twenty-docker/docker-compose.dev.yml down -v
+# Explicitly start the existing project only when authorized
+just dev-up
 ```
 
 | Service | Image | Port | Health Check | Notes |
 | --- | --- | --- | --- | --- |
-| `db` | `postgres:16` | 5432 | `pg_isready -U postgres -h localhost -d postgres` | Volume: `dev-db-data`. User/password: `postgres/postgres`. Default DB: `default`. |
-| `redis` | `redis:7` | 6379 | `redis-cli ping` | Memory policy: `noeviction`. Restart: `unless-stopped`. |
+| `server` | `twentycrm/twenty:mp-local` | 3000 | `/healthz` | Compiled API and frontend runtime. |
+| `worker` | `twentycrm/twenty:mp-local` | — | Compose running state | BullMQ worker using the same image. |
+| `db` | `postgres:16` | internal | `pg_isready` | Managed by the existing Compose project. |
+| `redis` | `redis:7` | internal | `redis-cli ping` | Managed by the existing Compose project. |
+
+`docker-compose.dev.yml` is not a routine development path. It is an alternate
+infrastructure-only stack and is blocked by the command surface unless a human
+explicitly authorizes `ALLOW_EXTRA_CONTAINERS=1` for a CI reproduction.
 
 Container-internal database host is service DNS (`db`), not `localhost`. When running the application from the host, connect to `localhost:5432`.
 
@@ -113,17 +118,17 @@ Environment variables are defined in `packages/twenty-docker/.env.example`. Secr
 ### Full stack (recommended)
 
 ```bash
-yarn start
+just runtime-check
 ```
 
-Runs concurrently:
-1. `npx nx start twenty-server` (NestJS, port 3000)
-2. `npx nx start twenty-front` (Vite, port 3001)
-3. Waits for `tcp:3000`, then starts `npx nx run twenty-server:worker` (BullMQ)
+This checks the already-running full Compose stack. It does not start or create
+containers. If the check fails, inspect `just dev-status` and `just dev-logs`;
+use `just dev-up` only as an explicitly authorized recovery action.
 
-### Individual services
+### Individual services (advanced host-source exception)
 
 ```bash
+# Run just runtime-check first. These commands do not replace the Compose runtime.
 npx nx start twenty-server          # Backend only, port 3000
 npx nx start twenty-front           # Frontend only, port 3001
 npx nx run twenty-server:worker     # Worker only
@@ -132,7 +137,8 @@ npx nx run twenty-server:worker     # Worker only
 ### Infrastructure only
 
 ```bash
-docker compose -f packages/twenty-docker/docker-compose.dev.yml up -d
+# Not a default path. Use the existing full Compose runtime instead.
+just runtime-check
 ```
 
 ## Local Persistence Baseline
@@ -164,18 +170,17 @@ docker compose -f packages/twenty-docker/docker-compose.dev.yml up -d
 
 Before starting development work:
 
-1. Run `bash packages/twenty-utils/setup-dev-env.sh` to ensure infrastructure is running and databases are initialized.
-2. Verify PostgreSQL: `docker compose -f packages/twenty-docker/docker-compose.dev.yml ps` shows `healthy`.
-3. Verify Redis: `redis-cli ping` returns `PONG`.
-4. Run `npx nx database:reset twenty-server` if you need a fresh database with seed data.
-5. Run `yarn start` to verify the full stack starts without errors.
+1. Run `just runtime-check` (or the read-only `setup-dev-env.sh --check`).
+2. Verify the existing Compose services and `/healthz` are healthy.
+3. Run `npx nx database:reset twenty-server` only when a destructive reset is explicitly required.
+4. Use host Nx/Yarn commands for source-only lint, typecheck, and unit tests; they do not replace the runtime preflight.
 
 ## Current Assumptions
 
-- Docker for infrastructure services is the canonical local runtime.
-- Full Docker Compose (`docker compose -f docker-compose.yml up --build -d`) is a valid and supported development path for running all services (server, worker, frontend, PostgreSQL, Redis) in containers.
-- Application code can also run from source on the host for faster hot-reload iteration. Both paths are supported.
-- The `setup-dev-env.sh` script remains the single entry point for environment setup.
+- Full Docker Compose is the canonical local runtime for all services (server, worker, frontend, PostgreSQL, Redis).
+- Application source checks may run on the host when the runtime image does not contain Nx/Jest/tsgo; this does not authorize a second runtime stack.
+- The `setup-dev-env.sh` script is a read-only compatibility check, not an environment provisioner.
+- `docker-compose.dev.yml`, host-local services, and ad hoc `docker run` containers are explicit exceptions only.
 - Local development uses `localhost` for service connections; container DNS (`db`, `redis`) for Docker-internal.
 - Environment separation stays minimal: development and production are the only required environments.
 - Seed data is minimal bootstrap (1 workspace, 1 admin user). Additional data is populated manually.
@@ -184,7 +189,7 @@ Before starting development work:
 
 | Decision | Resolution |
 | --- | --- |
-| Fully-containerized development | Full Docker Compose is a supported path. Application code can also run from source on the host for faster iteration. Both are valid. |
+| Docker-first development | The existing full Docker Compose project is the default and must be checked first. Source-only tooling is a separate, non-runtime lane. |
 | Seed data availability | Minimal bootstrap data (1 workspace, 1 admin user). Data population is manual beyond the bootstrap. |
 | Frontend proxy to backend | No. Separate ports (:3000 backend, :3001 frontend) for clear debugging. |
 

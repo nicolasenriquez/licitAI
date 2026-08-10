@@ -13,7 +13,7 @@ Define the public developer command surface for the licitai/Twenty monorepo. Eve
 Engineers, AI agents, and reviewers working on the Twenty codebase.
 
 ## Executive Summary
-The repository exposes a structured command surface through Docker Compose, Nx targets, and Yarn scripts. Docker Compose is the canonical local runtime; Nx/Yarn remain the package-level and advanced host-source surfaces. The command surface is organized into development, testing, code quality, build, database, GraphQL code generation, and documentation operations.
+The repository exposes a structured command surface through Docker Compose, Nx targets, and Yarn scripts. The existing full Docker Compose project is the canonical local runtime; Nx/Yarn remain package-level source tooling and explicitly advanced host-source surfaces. The command surface is organized into development, testing, code quality, build, database, GraphQL code generation, and documentation operations.
 
 ## Public Command Contract
 
@@ -21,19 +21,21 @@ The repository exposes a structured command surface through Docker Compose, Nx t
 
 | Command | Purpose | Details |
 | --- | --- | --- |
-| `just dev-up` | Resume full local runtime | Canonical daily path. Reuses the existing `twentycrm/twenty:mp-local` image and runs server/API, compiled frontend, worker, PostgreSQL, and Redis in containers. |
-| `just dev-up-build` | Rebuild and start full local runtime | Use after cloning or changing application code. Rebuilds the local image once, then starts the same stack. |
-| `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml up -d` | Start full local runtime directly | Starts the stack from its selected existing image; use `just dev-up-build` when a local rebuild is required. |
+| `just runtime-check` | Verify the existing full local runtime | **First runtime command. Read-only:** validates Compose config, prints current service state, and checks `/healthz` without starting or creating containers. |
+| `just dev-up` | Explicitly start the full local runtime | Human-authorized recovery path when the existing Compose project is not already running. Uses the existing `twentycrm/twenty:mp-local` image. |
+| `just dev-up-build` | Explicitly rebuild and start full local runtime | Human-authorized only after a changed image is required. This is not a routine fallback. |
+| `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml up -d` | Explicitly start full local runtime directly | Same canonical Compose project; use only when a human has requested a state-changing startup. |
 | `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml ps` | Inspect local runtime | Shows service state and health. |
 | `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml logs -f server worker` | Follow application logs | Use for startup and ingestion diagnosis. |
 | `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml down` | Stop local runtime | Stops the Compose project without deleting named volumes. |
 | `yarn start` | Advanced host-source runtime | Legacy host-local Nx path; not the default local runtime. Use only when explicitly required. |
-| `docker compose -f packages/twenty-docker/docker-compose.dev.yml up -d` | Advanced infrastructure-only mode | Starts PostgreSQL and Redis only for intentional host-source or infrastructure debugging. |
+| `just ci-infra-up` | Legacy alternate CI infrastructure | Blocked by default because it creates a second Compose/ClickHouse stack. Requires `ALLOW_EXTRA_CONTAINERS=1` and explicit human authorization. |
 
-`just dev-up` does not request a Docker build. If the working tree changed in a
-way that affects the image, use `just dev-up-build` deliberately. `TAG` is an
-optional override for a published image; without it, Compose selects the local
-`mp-local` tag.
+Run `just runtime-check` before any runtime, API, or integration diagnosis. If it
+fails, report the existing stack's state; do not silently switch to host-local
+services, `docker-compose.dev.yml`, `docker run`, or a new Compose project.
+`TAG` is an optional override for a published image; without it, Compose selects
+the local `mp-local` tag.
 
 ### Testing Commands
 
@@ -150,7 +152,8 @@ above. Access policy and credentials remain environment-specific.
 ## Current Assumptions
 
 - Nx remains the command orchestration layer; commands are invoked through `npx nx <target> <package>`.
-- Docker Compose remains the primary full-stack entry point. `yarn start` is an advanced host-source path.
+- The existing full Docker Compose project is the primary runtime. `just runtime-check` is the mandatory read-only preflight; `yarn start` is an advanced host-source path.
+- Runtime diagnostics never create a second stack. `docker-compose.dev.yml`, `docker run`, and alternate local services are opt-in only through an explicit human authorization.
 - `lint:diff-with-main` is the preferred lint strategy for PRs and local development.
 - Instance commands remain the authoritative migration mechanism.
 - GraphQL codegen remains a manual step after schema changes.

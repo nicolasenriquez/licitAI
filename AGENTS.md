@@ -71,6 +71,7 @@ in normal prose when the file is inside this repository.
 
 ### Development
 ```bash
+just runtime-check                              # read-only preflight of existing full Compose
 yarn start                                       # server + front + worker, concurrent
 npx nx start twenty-front                        # frontend dev server
 npx nx start twenty-server                       # backend dev server
@@ -214,16 +215,17 @@ packages/
 ## Dev Environment Setup
 
 ```bash
-bash packages/twenty-utils/setup-dev-env.sh        # idempotent
+bash packages/twenty-utils/setup-dev-env.sh        # read-only existing-stack check
 # flags:
-#   --docker   force Docker (uses packages/twenty-docker/docker-compose.dev.yml)
-#   --down     stop services
-#   --reset    wipe data and restart fresh
+#   --check    explicit read-only check (same as no flag)
 ```
 
-Starts Postgres + Redis (auto-detects local services vs Docker), creates
-databases, copies `.env` files, runs migrations. **Skip this for tasks that
-only read code** (architecture review, doc edits, code review).
+The full application Compose project is the only routine local runtime. The
+script validates that existing server, worker, PostgreSQL, and Redis services
+are already healthy; it never starts, stops, removes, rebuilds, or creates a
+container, and it never falls back to host-local services. Use `just dev-up`
+only for an explicitly authorized state-changing startup. **Skip this for
+tasks that only read code** (architecture review, doc edits, code review).
 
 CI (`.github/workflows/`) uses Actions service containers and runs setup
 steps individually — it does not call this script.

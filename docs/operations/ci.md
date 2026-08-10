@@ -196,47 +196,34 @@ All workflows are under `.github/workflows/`. A full inventory with exact
 job graphs and service configurations is maintained in
 `docs/operations/ci-workflows-reference.md`.
 
-## 4. Local CI: Two Mutually Exclusive Modes
+## 4. Local CI and the Existing Runtime
 
-The repository uses Docker Compose for two different purposes. Since both attach
-to host port 5432 (PostgreSQL), they cannot run simultaneously.
+The existing full Docker Compose project is the first and routine local runtime.
+It is checked read-only with `just runtime-check`; that command never starts or
+creates containers. Source-only lint, typecheck, and unit-test commands can run
+on the host because the production-shaped runtime image does not contain Nx or
+Jest.
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                     TWO LOCAL MODES                               │
+│                 CANONICAL LOCAL RUNTIME                            │
 │                                                                  │
-│   MODE 1: DEV (use the app)                                      │
-│   ═══════════════════════════                                    │
+│   just runtime-check                                               │
+│     existing full Compose: server + worker + db + redis            │
+│     read-only config/status/health check                            │
 │                                                                  │
-│     just dev-up                                                  │
-│       docker compose up        server + worker + db + redis      │
-│                                server on :3000                   │
-│                                db on :5432                       │
-│                                redis INTERNAL (not exposed!)     │
+│   If it fails: inspect status/logs and report the existing stack. │
+│   `just dev-up` is an explicitly authorized recovery action.      │
 │                                                                  │
-│     Migrations: AUTO on server boot ✓                            │
-│                                                                  │
-│                                                                  │
-│   MODE 2: CI (run tests locally)                                  │
-│   ═════════════════════════════                                  │
-│                                                                  │
-│     just ci-infra-up                                             │
-│       docker compose -f compose.dev.yml   db on :5432            │
-│                                           redis on :6379         │
-│       + ClickHouse container              clickhouse on :8123    │
-│                                                                  │
-│     Port :3000 FREE — start dev server with Nx if needed         │
-│                                                                  │
-│   ═══════════════════════════════════════════════════════════    │
-│   IMPORTANT: just dev-down   before   just ci-infra-up          │
-│              just ci-infra-down before just dev-up              │
-│   ═══════════════════════════════════════════════════════════    │
+│   Alternate CI infrastructure (`docker-compose.dev.yml` +         │
+│   ClickHouse) is blocked by default. It requires                    │
+│   ALLOW_EXTRA_CONTAINERS=1 and explicit human authorization.       │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-**Why two modes?** The full application compose does not expose Redis to the
-host machine. Integration tests need `redis://localhost:6379`. The dev compose
-exposes both PostgreSQL and Redis on host ports.
+The full runtime is deliberately preferred even when a source-only test lane is
+used. A separate infrastructure stack is an exceptional compatibility path,
+not an automatic fallback.
 
 ### Which command should I run?
 
@@ -250,17 +237,18 @@ I changed both front and backend ──────► just ci
 I am about to push ────────────────────► just ci-prepush
 
 I want full pre-PR verification ───────► just ci-full
-  (needs: just ci-infra-up first)
+  (integration infrastructure is an explicit exception)
 
 CI failed in GitHub Actions
-and I want to reproduce locally ───────► just ci-infra-up
-                                          then run the failing command
+and I want to reproduce locally ───────► just runtime-check first
+                                          then request alternate infra if needed
 
 I just cloned the repo or
-changed application code ──────────────► just dev-up-build
+changed application code ──────────────► just runtime-check first
+                                          then request dev-up-build if needed
 
 Application is already built,
-I just want to run it ─────────────────► just dev-up
+I just want to run it ─────────────────► just runtime-check
 ```
 
 ## 5. justfile Command Surface
@@ -289,7 +277,7 @@ command dependency tree:
                     ci + ci-validate + ci-security + ci-integration
                          │             │                  │
                     (see above)   _ensure-           ci-server-integration
-                                  server-healthy     (needs ci-infra-up)
+                                   server-healthy     (needs gated alternate infra)
                                   codegen only
                                   (no migration check)
 ```
@@ -354,16 +342,16 @@ docker compose exec server yarn database:migrate:prod
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `Port 3000 in use` | App compose is up (Mode 1). CI needs port free (Mode 2). | `just dev-down` then `just ci-infra-up` |
-| `Redis not reachable on :6379` | App compose Redis not exposed. Only dev compose exposes it. | `just ci-infra-up` (starts dev compose) |
+| `Port 3000 in use` | The canonical app Compose is already running. | Run `just runtime-check`; do not tear it down for a different local stack. |
+| `Redis not reachable on :6379` | The canonical Redis is internal to the app Compose network. | Use runtime/API checks through the server; request alternate CI infrastructure only if the test genuinely requires host Redis. |
 | `node_modules not found` | `yarn install` never run or `git clean` was used. | `yarn install` |
 | `lint:diff-with-main` fails with "unknown revision" | Local `main` branch stale. | `git fetch origin main` |
 | `Uncommitted generated changes` | GraphQL schema changed but `graphql:generate` not run. | Run the three generate commands and commit. |
 | `Playwright browsers missing` | `ci-front-sb-test` needs Chromium. | `npx playwright install chromium` (auto-installed by `ci-front-sb-test`) |
 | `commitlint: no config found, skipping` | Expected. The repo does not use commitlint yet. | No action needed. Add `commitlint.config.mjs` if desired. |
-| `PostgreSQL not reachable on :5432` | No PostgreSQL container running. | `just ci-infra-up` |
+| `PostgreSQL not reachable on :5432` | The canonical stack is not healthy or is not exposing that port. | Run `just runtime-check` and inspect `just dev-logs`; do not create another database container. |
 | `Server did not become healthy` | Compose failed to start or migrations failed. | `just dev-logs` to inspect. |
-| CI integration tests fail locally but pass in GHA | Environment differences (postgres version, seed data). | Check exact image tags match. `ci-infra-up` uses `postgres:16` (dev compose); GHA uses `postgres:18`. |
+| CI integration tests fail locally but pass in GHA | The local runtime and GHA service topology differ. | Keep local diagnostics on the canonical Compose; use the gated alternate CI infrastructure only with explicit authorization. |
 | `graphql:generate` fails with "No schema found" | Codegen introspects the running server. Requires CURRENT SOURCE server, not the `dev-up` Docker image (stale code). | Start source server in a second terminal: `npx nx start:ci twenty-server` |
 | `ci-gate` fails with YN0028 or YN0028 | `yarn.lock` is stale (e.g., after switching branches or rebasing). | Run `yarn install` to regenerate the lockfile. |
 
