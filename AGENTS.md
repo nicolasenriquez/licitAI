@@ -39,6 +39,10 @@ During this routing rollout, use the contract below before acting:
 - Do not invent folder-local routing rules for unmapped leaf surfaces during rollout. If the task is outside the mapped surfaces, stay on the root contract, state explicitly that the surface is unmapped, and do not wander.
 - Only when required, declare consulted routing/context files briefly using relative paths. Include only the files actually needed for the task, then state the selected surface.
 
+## Communication
+
+- Write user-facing messages and agent-authored operational docs in ASD-STE100 style: use short sentences, active voice, common words, and explicit actions. Avoid idioms, vague language, and unnecessary qualifiers.
+
 ## Repository Path Style
 
 - In user-facing responses, refer to files inside this repository using repository-relative paths by default.
@@ -241,6 +245,12 @@ A read-only Postgres MCP server is configured in `.mcp.json`. Use it to:
 - Inspect metadata tables when debugging GraphQL schema generation.
 
 Read-only. For writes (reset, migrate, sync), use the Nx targets above.
+
+## Change Authorization
+
+- Do not create commits, pushes, tags, releases, or external messages unless the user explicitly requests them.
+- A skill, ticket, or local workflow does not override this rule.
+- Preserve pre-existing staged and unstaged changes. Stage only files within the requested scope after authorization.
 
 ## Development Workflow
 
