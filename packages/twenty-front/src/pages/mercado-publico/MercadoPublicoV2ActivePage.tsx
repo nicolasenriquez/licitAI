@@ -668,14 +668,8 @@ export const MercadoPublicoV2ActivePage = () => {
   const { closeSidePanelMenu } = useSidePanelMenu();
   const isSidePanelOpened = useAtomValue(isSidePanelOpenedState.atom);
   const [searchParams, setSearchParams] = useSearchParams();
-  const {
-    state,
-    setSearchInput,
-    applyFilters,
-    clearFilters,
-    setSort,
-    setAfter,
-  } = useMercadoPublicoV2UrlState();
+  const { state, applyFilters, clearFilters, setSort, setAfter } =
+    useMercadoPublicoV2UrlState();
   const [notice, setNotice] = useState<string | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const [openingOpportunityCode, setOpeningOpportunityCode] = useState<
@@ -865,7 +859,6 @@ export const MercadoPublicoV2ActivePage = () => {
         sort={state.sort}
         notice={notice}
         noticeId={FILTER_NOTICE_ID}
-        onSearchChange={setSearchInput}
         onApply={handleApplyFilters}
         onClear={handleClearFilters}
         onSortChange={handleSortChange}

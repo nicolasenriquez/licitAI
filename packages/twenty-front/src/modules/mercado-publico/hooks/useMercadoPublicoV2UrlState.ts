@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 export type MercadoPublicoV2Sort =
@@ -167,34 +167,6 @@ export const useMercadoPublicoV2UrlState = () => {
     [searchParams],
   );
 
-  const [searchInput, setSearchInput] = useState(state.search);
-
-  useEffect(() => {
-    setSearchInput(state.search);
-  }, [state.search]);
-
-  useEffect(() => {
-    if (searchInput === state.search) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      const next = toSearchParams(searchParams);
-
-      if (searchInput !== '') {
-        next.set('q', searchInput);
-      } else {
-        next.delete('q');
-      }
-
-      next.delete('after');
-
-      setSearchParams(next, { replace: true });
-    }, 300);
-
-    return () => window.clearTimeout(timeout);
-  }, [searchInput, state.search, searchParams, setSearchParams]);
-
   const applyFilters = (filters: Partial<MercadoPublicoV2Filters>): void => {
     const merged = { ...EMPTY_FILTERS, ...state, ...filters };
     const next = serializeMercadoPublicoV2Filters(merged);
@@ -249,8 +221,6 @@ export const useMercadoPublicoV2UrlState = () => {
 
   return {
     state,
-    searchInput,
-    setSearchInput,
     applyFilters,
     clearFilters,
     setSort,

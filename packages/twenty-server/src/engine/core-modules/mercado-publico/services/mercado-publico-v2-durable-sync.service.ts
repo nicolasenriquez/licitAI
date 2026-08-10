@@ -9,7 +9,10 @@ import {
 } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { type MercadoPublicoApiV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/types/mercado-publico-api-v2-compra-agil-record.type';
 import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
-import { classifyV2CompraAgilLifecycle } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
+import {
+  type MercadoPublicoV2LifecycleClassification,
+  classifyV2CompraAgilLifecycle,
+} from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
 import { createJsonSha256 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/create-json-sha256.util';
 import { extractV2CompraAgilListRecords } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
 import { extractV2CompraAgilPagination } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-pagination.util';
@@ -710,10 +713,8 @@ export class MercadoPublicoV2DurableSyncService {
         detailRecord,
         'detail',
       );
-      const terminal = classifyV2CompraAgilLifecycle(
-        detailRecord,
-        true,
-      ).terminal;
+      const lifecycle = classifyV2CompraAgilLifecycle(detailRecord, true);
+      const terminal = lifecycle.terminal;
       successfulDetails += 1;
 
       await this.markItemSucceeded(
@@ -725,7 +726,11 @@ export class MercadoPublicoV2DurableSyncService {
       );
 
       if (terminal) {
-        await this.markCohortTerminal(context, item.codigo);
+        await this.markCohortTerminal(
+          context,
+          item.codigo,
+          lifecycle.reason,
+        );
       }
 
       await this.updateSyncRunCounters(context.syncRunId);
@@ -820,6 +825,7 @@ export class MercadoPublicoV2DurableSyncService {
   private async markCohortTerminal(
     context: SyncRunContext,
     codigo: string,
+    lifecycleReason: MercadoPublicoV2LifecycleClassification['reason'],
   ): Promise<void> {
     await this.coreDataSource.query(
       `
@@ -827,6 +833,7 @@ export class MercadoPublicoV2DurableSyncService {
         SET status = 'terminal',
             terminal_sync_run_id = $1,
             terminal_at = now(),
+            lifecycle_reason = $5,
             updated_at = now()
         WHERE source = $2
           AND scope = $3
@@ -838,6 +845,7 @@ export class MercadoPublicoV2DurableSyncService {
         MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
         context.scope,
         codigo,
+        lifecycleReason,
       ],
     );
   }

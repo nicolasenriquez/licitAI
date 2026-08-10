@@ -75,6 +75,41 @@ describe('MercadoPublicoV2DurableSyncService', () => {
     );
   });
 
+  it('marks a terminal cohort with its lifecycle reason', async () => {
+    const query = jest.fn().mockResolvedValue([]);
+    const service = new MercadoPublicoV2DurableSyncService(
+      {} as MercadoPublicoApiV2CompraAgilClientService,
+      {} as MercadoPublicoPersistenceService,
+      { query } as never,
+      {} as MercadoPublicoV2ProjectionService,
+    );
+
+    await (
+      service as unknown as {
+        markCohortTerminal: (
+          context: { syncRunId: string; scope: string },
+          codigo: string,
+          lifecycleReason: string,
+        ) => Promise<void>;
+      }
+    ).markCohortTerminal(
+      { syncRunId: 'sync-run-1', scope: 'global' },
+      'CA-TERMINAL-001',
+      'terminal_cancelled',
+    );
+
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('lifecycle_reason = $5'),
+      [
+        'sync-run-1',
+        'api-v2-compra-agil',
+        'global',
+        'CA-TERMINAL-001',
+        'terminal_cancelled',
+      ],
+    );
+  });
+
   it('requires rediscovery after a discovery failure', async () => {
     const query = jest.fn().mockResolvedValue([
       {

@@ -80,6 +80,45 @@ export class MercadoPublicoV2OpportunityFilterInput {
 }
 
 @ObjectType()
+export class MercadoPublicoV2DetailFreshnessDTO {
+  @Field()
+  status!: string;
+
+  @Field(() => String, { nullable: true })
+  lastError!: string | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  asOf!: Date | null;
+}
+
+@ObjectType()
+export class MercadoPublicoV2DetailProvenanceDTO {
+  @Field(() => String, { nullable: true })
+  observationId!: string | null;
+
+  @Field(() => String, { nullable: true })
+  normalizerVersion!: string | null;
+
+  @Field(() => String, { nullable: true })
+  providerSchemaFingerprint!: string | null;
+
+  @Field(() => String, { nullable: true })
+  snapshotKind!: string | null;
+
+  @Field(() => String, { nullable: true })
+  source!: string | null;
+
+  @Field(() => String, { nullable: true })
+  endpoint!: string | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  observedAt!: Date | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  providerChangedAt!: Date | null;
+}
+
+@ObjectType()
 export class MercadoPublicoV2OpportunityDTO {
   @Field()
   codigo!: string;
@@ -125,6 +164,63 @@ export class MercadoPublicoV2OpportunityDTO {
 
   @Field()
   availability!: string;
+
+  @Field(() => String, { nullable: true })
+  description!: string | null;
+
+  @Field(() => String, { nullable: true })
+  deliveryAddress!: string | null;
+
+  @Field(() => Int, { nullable: true })
+  deliveryDays!: number | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  cancellationAt!: Date | null;
+
+  @Field(() => String, { nullable: true })
+  callDescription!: string | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  callFirstClosingAt!: Date | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  callSecondClosingAt!: Date | null;
+
+  @Field(() => String, { nullable: true })
+  budgetType!: string | null;
+
+  @Field(() => String, { nullable: true })
+  budgetEstimate!: string | null;
+
+  @Field(() => String, { nullable: true })
+  budgetCurrency!: string | null;
+
+  @Field(() => String, { nullable: true })
+  cancelMotive!: string | null;
+
+  @Field(() => String, { nullable: true })
+  desertedMotive!: string | null;
+
+  @Field(() => String, { nullable: true })
+  selectionMotive!: string | null;
+
+  @Field(() => Int, { nullable: true })
+  totalOffers!: number | null;
+
+  @Field(() => Int, { nullable: true })
+  totalDemands!: number | null;
+
+  @Field(() => String, { nullable: true })
+  finePenalty!: string | null;
+
+  @Field(() => String, { nullable: true })
+  lifecycleReason!: string | null;
+
+  @Field(() => MercadoPublicoV2DetailFreshnessDTO, { nullable: true })
+  detailFreshness!: MercadoPublicoV2DetailFreshnessDTO | null;
+
+  @Field(() => MercadoPublicoV2DetailProvenanceDTO, { nullable: true })
+  provenance!: MercadoPublicoV2DetailProvenanceDTO | null;
 }
 
 @ObjectType()
@@ -262,6 +358,25 @@ const toOpportunityDTO = (
   normalizerVersion: row.normalizer_version,
   providerSchemaFingerprint: row.provider_schema_fingerprint,
   availability: row.availability,
+  description: null,
+  deliveryAddress: null,
+  deliveryDays: null,
+  cancellationAt: null,
+  callDescription: null,
+  callFirstClosingAt: null,
+  callSecondClosingAt: null,
+  budgetType: null,
+  budgetEstimate: null,
+  budgetCurrency: null,
+  cancelMotive: null,
+  desertedMotive: null,
+  selectionMotive: null,
+  totalOffers: null,
+  totalDemands: null,
+  finePenalty: null,
+  lifecycleReason: null,
+  detailFreshness: null,
+  provenance: null,
 });
 
 const toAnalyticsBucketDTO = (
@@ -364,14 +479,5 @@ export class MercadoPublicoV2NamespaceResolver {
     );
 
     return toAnalyticsDTO(result);
-  }
-
-  @ResolveField(() => MercadoPublicoV2OpportunityDTO, { nullable: true })
-  async opportunity(
-    @Args('codigo') codigo: string,
-  ): Promise<MercadoPublicoV2OpportunityDTO | null> {
-    const row = await this.mercadoPublicoV2ReadService.getOpportunity(codigo);
-
-    return row ? toOpportunityDTO(row) : null;
   }
 }

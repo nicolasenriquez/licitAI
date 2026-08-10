@@ -36,6 +36,7 @@ export type MercadoPublicoV2OpportunityRow = {
   published_at: Date | null;
   closing_at: Date | null;
   amount: string | null;
+  amount_sort_key: string | null;
   currency_source: string | null;
   document_count: number | null;
   llamado: number | null;
@@ -119,7 +120,7 @@ const getSortKeyValue = (
   sort: MercadoPublicoV2OpportunitySort,
 ): string | null => {
   if (sort === 'amount_desc' || sort === 'amount_asc') {
-    return row.amount;
+    return row.amount_sort_key;
   }
 
   const date = sort.startsWith('closing_at')
@@ -304,6 +305,7 @@ export class MercadoPublicoV2ReadService {
           published_at,
           closing_at,
           COALESCE(amount_raw, amount::text) AS amount,
+          amount::text AS amount_sort_key,
           currency_source,
           document_count,
           llamado,
@@ -549,6 +551,7 @@ export class MercadoPublicoV2ReadService {
           published_at,
           closing_at,
           COALESCE(amount_raw, amount::text) AS amount,
+          amount::text AS amount_sort_key,
           currency_source,
           document_count,
           llamado,

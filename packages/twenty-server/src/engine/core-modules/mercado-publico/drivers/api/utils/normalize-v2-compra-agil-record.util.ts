@@ -17,6 +17,22 @@ export type NormalizedV2CompraAgilRecord = {
   amount: string | null;
   currency: string | null;
   documentCount: number | null;
+  description: string | null;
+  deliveryAddress: string | null;
+  deliveryDays: number | null;
+  cancellationAt: Date | null;
+  callDescription: string | null;
+  callFirstClosingAt: Date | null;
+  callSecondClosingAt: Date | null;
+  budgetType: string | null;
+  budgetEstimate: string | null;
+  budgetCurrency: string | null;
+  cancelMotive: string | null;
+  desertedMotive: string | null;
+  selectionMotive: string | null;
+  totalOffers: number | null;
+  totalDemands: number | null;
+  finePenalty: string | null;
 };
 
 const coerceToText = (value: unknown): string | null => {
@@ -43,6 +59,20 @@ const toDecimalString = (value: unknown): string | null => {
   return coerceToNullableString(value);
 };
 
+const toIntegerOrNull = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isInteger(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+
+    return Number.isInteger(parsed) ? parsed : null;
+  }
+
+  return null;
+};
+
 export const normalizeV2CompraAgilRecord = (
   record: MercadoPublicoApiV2CompraAgilRecord,
 ): NormalizedV2CompraAgilRecord => {
@@ -63,6 +93,11 @@ export const normalizeV2CompraAgilRecord = (
     record.presupuesto?.monto_disponible_clp ??
     record.montos?.monto_disponible ??
     record.montos?.monto_disponible_clp;
+  const delivery = record.entrega;
+  const call = record.convocatoria;
+  const budget = record.presupuesto;
+  const motives = record.motivos;
+  const summary = record.resumen;
 
   return {
     title: coerceToText(record.nombre),
@@ -88,9 +123,29 @@ export const normalizeV2CompraAgilRecord = (
     providerChangedAtRaw: providerChangedAt.raw,
     stateId,
     amount: toDecimalString(amount),
-    currency: coerceToText(record.presupuesto?.moneda ?? record.montos?.moneda),
+    currency: coerceToText(budget?.moneda ?? record.montos?.moneda),
     documentCount: Array.isArray(record.documentos)
       ? record.documentos.length
       : null,
+    description: coerceToText(record.descripcion),
+    deliveryAddress: coerceToText(delivery?.direccion_entrega),
+    deliveryDays: toIntegerOrNull(delivery?.plazo_entrega_dias),
+    cancellationAt: normalizeV2CompraAgilDate(dates?.fecha_cancelacion).value,
+    callDescription: coerceToText(call?.descripcion),
+    callFirstClosingAt: normalizeV2CompraAgilDate(
+      call?.fecha_cierre_primer_llamado,
+    ).value,
+    callSecondClosingAt: normalizeV2CompraAgilDate(
+      call?.fecha_cierre_segundo_llamado,
+    ).value,
+    budgetType: coerceToText(budget?.tipo_presupuesto),
+    budgetEstimate: toDecimalString(budget?.presupuesto_estimado),
+    budgetCurrency: coerceToText(budget?.moneda),
+    cancelMotive: coerceToText(motives?.motivo_cancelacion),
+    desertedMotive: coerceToText(motives?.motivo_desierta),
+    selectionMotive: coerceToText(motives?.motivo_seleccion),
+    totalOffers: toIntegerOrNull(summary?.total_ofertas_recibidas),
+    totalDemands: toIntegerOrNull(summary?.total_demandas),
+    finePenalty: toDecimalString(summary?.multa_sancion),
   };
 };

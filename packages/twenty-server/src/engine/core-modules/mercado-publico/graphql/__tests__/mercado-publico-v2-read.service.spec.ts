@@ -17,6 +17,7 @@ const buildRow = (
   published_at: null,
   closing_at: new Date('2026-06-30T12:00:00.000Z'),
   amount: '1000',
+  amount_sort_key: '1000.00',
   currency_source: 'CLP',
   document_count: 1,
   llamado: null,
@@ -234,13 +235,18 @@ describe('MercadoPublicoV2ReadService', () => {
     const query = jest
       .fn()
       .mockResolvedValueOnce([{ total: '2' }])
-      .mockResolvedValueOnce([buildRow({ amount: '1000' })]);
+      .mockResolvedValueOnce([
+        buildRow({ amount: '1000.005', amount_sort_key: '1000.01' }),
+      ]);
     const service = new MercadoPublicoV2ReadService({
       query,
     } as unknown as DataSource);
-    const cursor = encodeCursor(buildRow({ amount: '1000' }), 'amount_desc');
+    const cursor = encodeCursor(
+      buildRow({ amount: '1000.005', amount_sort_key: '1000.01' }),
+      'amount_desc',
+    );
 
-    await service.listOpportunities({}, cursor, 10, 'amount_desc');
+    const page = await service.listOpportunities({}, cursor, 10, 'amount_desc');
 
     expect(query.mock.calls[1][0]).toContain(
       'ORDER BY mp.gold_detected_process.amount DESC NULLS LAST, mp.gold_detected_process.process_code ASC',
@@ -248,7 +254,8 @@ describe('MercadoPublicoV2ReadService', () => {
     expect(query.mock.calls[1][0]).toContain(
       '(amount < $1::numeric OR amount IS NULL OR (amount = $1::numeric AND process_code > $2))',
     );
-    expect(query.mock.calls[1][1]).toEqual(['1000', 'CA-1', 11]);
+    expect(query.mock.calls[1][1]).toEqual(['1000.01', 'CA-1', 11]);
+    expect(page.rows[0].amount).toBe('1000.005');
   });
 
   it('rejects cursors whose sort does not match the requested sort', async () => {

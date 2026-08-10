@@ -140,7 +140,6 @@ export type MercadoPublicoV2FilterBarProps = {
   sort: MercadoPublicoV2Sort;
   notice: string | null;
   noticeId: string;
-  onSearchChange: (value: string) => void;
   onApply: (filters: Partial<MercadoPublicoV2Filters>) => void;
   onClear: () => void;
   onSortChange: (sort: MercadoPublicoV2Sort) => void;
@@ -151,7 +150,6 @@ export const MercadoPublicoV2FilterBar = ({
   sort,
   notice,
   noticeId,
-  onSearchChange,
   onApply,
   onClear,
   onSortChange,
@@ -213,10 +211,7 @@ export const MercadoPublicoV2FilterBar = ({
             aria-label={t`Buscar por código, título o comprador`}
             type="search"
             value={draft.search}
-            onChange={(event) => {
-              updateDraft({ search: event.target.value });
-              onSearchChange(event.target.value);
-            }}
+            onChange={(event) => updateDraft({ search: event.target.value })}
           />
         </StyledField>
 

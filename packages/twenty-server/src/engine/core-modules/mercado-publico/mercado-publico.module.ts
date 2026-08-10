@@ -8,6 +8,8 @@ import {
   MercadoPublicoV2NamespaceResolver,
   MercadoPublicoV2Resolver,
 } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2.resolver';
+import { MercadoPublicoV2DetailResolver } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-detail.resolver';
+import { MercadoPublicoV2DetailReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-detail-read.service';
 import { MercadoPublicoV2ReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-read.service';
 import { MercadoPublicoJob } from 'src/engine/core-modules/mercado-publico/jobs/mercado-publico.job';
 import { SecureHttpClientModule } from 'src/engine/core-modules/secure-http-client/secure-http-client.module';
@@ -63,8 +65,10 @@ import { MercadoPublicoV2EvidenceReplayService } from 'src/engine/core-modules/m
     MercadoPublicoV2ProjectionService,
     MercadoPublicoV2EvidenceReplayService,
     MercadoPublicoV2ReadService,
+    MercadoPublicoV2DetailReadService,
     MercadoPublicoV2NamespaceResolver,
     MercadoPublicoV2Resolver,
+    MercadoPublicoV2DetailResolver,
     MercadoPublicoCanonicalRefreshService,
     MercadoPublicoApiQuotaUsageReadService,
     MercadoPublicoCsvFileHealthReadService,

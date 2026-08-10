@@ -9,7 +9,7 @@ const readServerSource = (...segments: string[]) => {
 
 describe('MercadoPublico runtime exposure', () => {
   it('exposes MercadoPublicoModule in the app and worker composition roots', () => {
-    expect(TWENTY_CURRENT_VERSION).toBe('2.15.0');
+    expect(TWENTY_CURRENT_VERSION).toBe('2.16.0');
 
     const coreEngineModuleSource = readServerSource(
       'engine',
