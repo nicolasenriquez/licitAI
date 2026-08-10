@@ -22,3 +22,6 @@ Inspeccionar evidencia autorizada del endpoint real de detalle V2 y convertirla 
 - 24 — Completar presentación accesible y responsive.
 - External gate — evidencia real autorizada del endpoint V2 de detalle.
 
+## Progress
+
+- 2026-08-10 — Inicio de ejecución: se verificó el ticket. El acceso explícitamente autorizado, el propósito, el alcance de códigos/volumen y las reglas de sanitización siguen sin estar registrados; no se consultó el endpoint ni se infirió el contrato desde mocks o fixtures. Ticket permanece bloqueado.
