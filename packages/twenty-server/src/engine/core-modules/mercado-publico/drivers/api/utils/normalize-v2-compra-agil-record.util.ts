@@ -56,10 +56,13 @@ export const normalizeV2CompraAgilRecord = (
   const institution = record.institucion;
   const dates = record.fechas;
   const providerChangedAt = normalizeV2CompraAgilDate(
-    dates?.fecha_ultimo_cambio,
+    dates?.fecha_ultimo_cambio ?? record.fecha_ultimo_cambio,
   );
   const amount =
-    record.montos?.monto_disponible ?? record.montos?.monto_disponible_clp;
+    record.presupuesto?.monto_disponible ??
+    record.presupuesto?.monto_disponible_clp ??
+    record.montos?.monto_disponible ??
+    record.montos?.monto_disponible_clp;
 
   return {
     title: coerceToText(record.nombre),
@@ -74,16 +77,18 @@ export const normalizeV2CompraAgilRecord = (
           ? record.region
           : null,
     publishedAt: normalizeV2CompraAgilDate(
-      dates?.fecha_publicacion ?? record.publicado_desde,
+      dates?.fecha_publicacion ??
+        record.fecha_publicacion ??
+        record.publicado_desde,
     ).value,
     closingAt: normalizeV2CompraAgilDate(
-      dates?.fecha_cierre ?? record.publicado_hasta,
+      dates?.fecha_cierre ?? record.fecha_cierre ?? record.publicado_hasta,
     ).value,
     providerChangedAt: providerChangedAt.value,
     providerChangedAtRaw: providerChangedAt.raw,
     stateId,
     amount: toDecimalString(amount),
-    currency: coerceToText(record.montos?.moneda),
+    currency: coerceToText(record.presupuesto?.moneda ?? record.montos?.moneda),
     documentCount: Array.isArray(record.documentos)
       ? record.documentos.length
       : null,

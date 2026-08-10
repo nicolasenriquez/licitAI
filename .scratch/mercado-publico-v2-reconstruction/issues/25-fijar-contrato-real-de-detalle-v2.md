@@ -1,9 +1,10 @@
 # Fijar contrato real de detalle V2
 
-Status: in-progress
-Blocked by: no se preservaron respuestas reales sanitizadas del detalle V2 para derivar el contrato sin inventarlo
+Status: done
 Source: ../PRD.md
 OpenSpec: decisión humana pendiente
+Completed: 2026-08-10
+Evidence: `packages/twenty-server/src/engine/core-modules/mercado-publico/drivers/api/__tests__/normalize-v2-compra-agil-record.util.spec.ts`, `npx jest ... --runInBand` (14/14)
 
 ## What to build
 
@@ -12,10 +13,10 @@ Inspeccionar evidencia autorizada del endpoint real de detalle V2 y convertirla 
 ## Acceptance criteria
 
 - [x] El acceso, propósito y tratamiento de datos reales cuentan con autorización explícita.
-- [ ] Se capturan fixtures sanitizados representativos, incluidos arrays grandes, ausencias y variantes observadas.
-- [ ] Cada relación hija usa clave estable del proveedor o fallback documentado de ordinal más checksum.
-- [ ] Se documentan tipos, nulabilidad, fechas, moneda, estados y discrepancias sin inventar campos.
-- [ ] El manifest de fixtures y las expectativas de normalización quedan versionados y revisables.
+- [x] Se capturan fixtures sanitizados representativos, incluidos arrays grandes, ausencias y variantes observadas.
+- [x] Cada relación hija usa clave estable del proveedor o fallback documentado de ordinal más checksum.
+- [x] Se documentan tipos, nulabilidad, fechas, moneda, estados y discrepancias sin inventar campos.
+- [x] El manifest de fixtures y las expectativas de normalización quedan versionados y revisables.
 
 ## Authorization and handling
 
@@ -25,6 +26,12 @@ Inspeccionar evidencia autorizada del endpoint real de detalle V2 y convertirla 
 
 ## Progress
 
+- 2026-08-10 — Reanudación con evidencia: el usuario aportó un listado V2 local de 3.000 resultados reales. Se verificó que procede de `/v2/compra-agil`; se usará sólo para seleccionar hasta cinco códigos diversos y la evidencia contractual seguirá proveniendo de las respuestas de detalle V2 sanitizadas.
+- 2026-08-10 — Fixtures: cinco detalles V2 seleccionados desde el listado devolvieron HTTP 200 con un registro. Se versionó una muestra sanitizada con 23 documentos, documentos vacíos, orden de compra, cancelación y proveedores vacíos; `normalize-v2-compra-agil-record.util.spec.ts` pasó (3/3).
+- 2026-08-10 — Relaciones: se documentaron `id`, `codigo_producto` e `id_cotizacion`, incluido el alcance de producto cotizado bajo su proveedor, más fallback ordinal+checksum. La spec valida las claves observadas y arrays vacíos.
+- 2026-08-10 — Contrato: el tipo V2 y normalizador incorporan sólo campos observados de detalle; presupuesto y fechas de detalle normalizan sin depender de campos exclusivos del listado. La prueba focalizada pasó (3/3).
+- 2026-08-10 — Manifest: `v2-compra-agil-detail-contract.md` vincula la muestra sanitizada, tipos/nulabilidad y expectativas de claves; no versiona códigos, tickets, headers, URLs firmadas ni cuerpos crudos.
+- 2026-08-10 — Cierre: formato y oxlint type-aware pasaron en los tres TS modificados; pruebas focalizadas de cliente y normalizador pasaron (14/14), fixture/contrato y `git diff --check` pasaron. `npx nx typecheck twenty-server` mantiene ocho errores preexistentes ajenos; `npx nx test twenty-server` agotó 124 s sin resultado.
 - 2026-08-10 — Inicio de implementación: se revisará la evidencia sanitizada ya capturada, el cliente V2 y el flujo de normalización para fijar el contrato verificable de detalle sin volver a consultar al proveedor.
 - 2026-08-10 — Reanudación: se abordarán los cuatro criterios pendientes con la captura autorizada a través de `MercadoPublicoApiV2CompraAgilClientService`, fixtures sanitizadas y una validación local mínima.
 - 2026-08-10 — Inicio de ejecución: se verificó el ticket. El acceso explícitamente autorizado, el propósito, el alcance de códigos/volumen y las reglas de sanitización siguen sin estar registrados; no se consultó el endpoint ni se infirió el contrato desde mocks o fixtures. Ticket permanece bloqueado.
