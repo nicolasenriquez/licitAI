@@ -1,7 +1,7 @@
 # Fijar contrato real de detalle V2
 
-Status: needs-info
-Blocked by: runtime configuration of COMPRA_AGIL_API_TICKET
+Status: in-progress
+Blocked by: none
 Source: ../PRD.md
 OpenSpec: decisión humana pendiente
 
@@ -29,3 +29,4 @@ Inspeccionar evidencia autorizada del endpoint real de detalle V2 y convertirla 
 - 2026-08-10 — Inicio autorizado: se cerró la dependencia 24 y se registraron autorización, propósito, límite de cinco códigos y reglas de sanitización. Se iniciará la captura sólo mediante MercadoPublicoApiV2CompraAgilClientService.
 - 2026-08-10 — Bloqueo de captura: MercadoPublicoApiV2CompraAgilClientService rechazó la llamada antes de red porque COMPRA_AGIL_API_TICKET no está configurado con un valor utilizable. No se inspeccionaron ni se intentaron reconstruir credenciales; no se generaron fixtures, manifest ni contrato.
 - 2026-08-10 — Validación: `npx jest src/engine/core-modules/mercado-publico/drivers/api/__tests__/mercado-publico-api-v2-compra-agil-client.service.spec.ts --runInBand` pasó (11/11). La validación de fixtures y la integración de Mercado Público quedan pendientes de una captura real.
+- 2026-08-10 — Configuración Docker validada: el Compose completo no reenviaba las variables V2 a `server` ni `worker`. Se declararon explícitamente, se recrearon sólo esos servicios sin borrar volúmenes y `server` quedó healthy con las tres variables presentes. Captura real pendiente.
