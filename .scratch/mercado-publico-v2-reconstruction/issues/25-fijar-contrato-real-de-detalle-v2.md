@@ -1,7 +1,7 @@
 # Fijar contrato real de detalle V2
 
 Status: in-progress
-Blocked by: proveedor V2 responde HTTP 400 al listado autorizado; no entregó códigos de compra válidos para capturar detalles
+Blocked by: no se preservaron respuestas reales sanitizadas del detalle V2 para derivar el contrato sin inventarlo
 Source: ../PRD.md
 OpenSpec: decisión humana pendiente
 
@@ -25,6 +25,7 @@ Inspeccionar evidencia autorizada del endpoint real de detalle V2 y convertirla 
 
 ## Progress
 
+- 2026-08-10 — Inicio de implementación: se revisará la evidencia sanitizada ya capturada, el cliente V2 y el flujo de normalización para fijar el contrato verificable de detalle sin volver a consultar al proveedor.
 - 2026-08-10 — Reanudación: se abordarán los cuatro criterios pendientes con la captura autorizada a través de `MercadoPublicoApiV2CompraAgilClientService`, fixtures sanitizadas y una validación local mínima.
 - 2026-08-10 — Inicio de ejecución: se verificó el ticket. El acceso explícitamente autorizado, el propósito, el alcance de códigos/volumen y las reglas de sanitización siguen sin estar registrados; no se consultó el endpoint ni se infirió el contrato desde mocks o fixtures. Ticket permanece bloqueado.
 - 2026-08-10 — Inicio autorizado: se cerró la dependencia 24 y se registraron autorización, propósito, límite de cinco códigos y reglas de sanitización. Se iniciará la captura sólo mediante MercadoPublicoApiV2CompraAgilClientService.
@@ -35,3 +36,4 @@ Inspeccionar evidencia autorizada del endpoint real de detalle V2 y convertirla 
 - 2026-08-10 — Reintento autorizado: se probará el listado V2 acotado al 2026-08-08, último día hábil indicado por el usuario, antes de mantener el bloqueo.
 - 2026-08-10 — Receta verificada: la llamada usa el header `ticket`, `publicado_desde=2026-08-08T00:00:00Z`, `publicado_hasta=2026-08-08T23:59:59Z`, `tamano_pagina=50` y `ordenar_por=FechaPublicacion`.
 - 2026-08-10 — Reintento controlado: el listado devolvió HTTP 200 con 50 registros y sin error del proveedor. Se consultaron cinco detalles autorizados; cada uno devolvió HTTP 200 con un registro y sin error. No se persistieron tickets, URLs, códigos ni cuerpos crudos.
+- 2026-08-10 — Bloqueo de implementación: la única evidencia versionada de detalle (`v2-compra-agil-detail-production-envelope.json`) es una fixture sintética y el probe autorizado sólo conservó conteos HTTP. No existen respuestas reales sanitizadas desde las que fijar campos, hijos, nulabilidad o variaciones sin inventarlas. No se repitieron llamadas al proveedor ni se alteró el contrato/producto; se requiere una nueva captura autorizada que guarde fixtures sanitizadas y su manifest.
