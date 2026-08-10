@@ -11,6 +11,7 @@ import {
   useState,
 } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Temporal } from 'temporal-polyfill';
 import { SidePanelPages } from 'twenty-shared/types';
 import { MOBILE_VIEWPORT, themeCssVariables } from 'twenty-ui/theme-constants';
 import { IconDotsVertical } from 'twenty-ui/icon';
@@ -189,7 +190,7 @@ type MercadoPublicoV2AnalyticsQuery = {
   };
 };
 
-const StyledPage = styled.div`
+const StyledPage = styled.main`
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -218,7 +219,7 @@ const StyledHeading = styled.h1`
 `;
 
 const StyledCount = styled.span`
-  color: ${themeCssVariables.font.color.tertiary};
+  color: ${themeCssVariables.font.color.secondary};
   font-size: ${themeCssVariables.font.size.sm};
 `;
 
@@ -281,7 +282,7 @@ const StyledTable = styled.table`
     }
 
     tbody td::before {
-      color: ${themeCssVariables.font.color.tertiary};
+      color: ${themeCssVariables.font.color.secondary};
       content: attr(data-label);
       font-size: ${themeCssVariables.font.size.xs};
       font-weight: ${themeCssVariables.font.weight.medium};
@@ -314,7 +315,7 @@ const StyledTable = styled.table`
 
 const StyledHeaderCell = styled.th`
   background: ${themeCssVariables.background.secondary};
-  color: ${themeCssVariables.font.color.tertiary};
+  color: ${themeCssVariables.font.color.secondary};
   font-size: ${themeCssVariables.font.size.sm};
   font-weight: ${themeCssVariables.font.weight.medium};
   padding: ${themeCssVariables.spacing[3]};
@@ -365,12 +366,12 @@ const StyledOpportunityMeta = styled.div`
 `;
 
 const StyledAvailability = styled.span`
-  color: ${themeCssVariables.font.color.tertiary};
+  color: ${themeCssVariables.font.color.secondary};
   font-size: ${themeCssVariables.font.size.xs};
 `;
 
 const StyledSecondaryText = styled.div`
-  color: ${themeCssVariables.font.color.tertiary};
+  color: ${themeCssVariables.font.color.secondary};
   font-size: ${themeCssVariables.font.size.xs};
   margin-top: ${themeCssVariables.spacing[1]};
   overflow-wrap: anywhere;
@@ -403,7 +404,7 @@ const StyledAnalytics = styled.section`
 `;
 
 const StyledAnalyticsStatus = styled.p`
-  color: ${themeCssVariables.font.color.tertiary};
+  color: ${themeCssVariables.font.color.secondary};
   font-size: ${themeCssVariables.font.size.sm};
   margin: 0;
   overflow-wrap: anywhere;
@@ -411,7 +412,7 @@ const StyledAnalyticsStatus = styled.p`
 
 const StyledStateMessage = styled.div`
   align-items: center;
-  color: ${themeCssVariables.font.color.tertiary};
+  color: ${themeCssVariables.font.color.secondary};
   display: flex;
   flex-wrap: wrap;
   gap: ${themeCssVariables.spacing[3]};
@@ -466,6 +467,7 @@ const StyledPagination = styled.nav`
 `;
 
 const FILTER_NOTICE_ID = 'mercado-publico-v2-filter-notice';
+const SANTIAGO_TIME_ZONE = 'America/Santiago';
 
 const toDateTime = (
   value: string | null,
@@ -479,7 +481,20 @@ const toDateTime = (
     return value;
   }
 
-  return `${value}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}Z`;
+  try {
+    const boundaryDate = Temporal.PlainDate.from(value).add({
+      days: endOfDay ? 1 : 0,
+    });
+    const boundaryInstant = boundaryDate
+      .toZonedDateTime(SANTIAGO_TIME_ZONE)
+      .toInstant();
+
+    return (
+      endOfDay ? boundaryInstant.subtract({ milliseconds: 1 }) : boundaryInstant
+    ).toString();
+  } catch {
+    return value;
+  }
 };
 
 const toQueryFilter = (
@@ -584,22 +599,6 @@ const formatDate = (value: string | null): string => {
   }).format(date);
 };
 
-const formatAnalyticsDate = (value: string | null): string => {
-  if (!value) return 'No informado por fuente';
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat('es-CL', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'America/Santiago',
-  }).format(date);
-};
-
 type DateValueProps = {
   value: string | null;
   availability: string;
@@ -679,6 +678,9 @@ export const MercadoPublicoV2ActivePage = () => {
   } = useMercadoPublicoV2UrlState();
   const [notice, setNotice] = useState<string | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
+  const [openingOpportunityCode, setOpeningOpportunityCode] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     setHasMounted(true);
@@ -749,15 +751,35 @@ export const MercadoPublicoV2ActivePage = () => {
   }, [isSidePanelOpened, navigateSidePanel, state.proceso, t]);
 
   useEffect(() => {
-    if (!isSidePanelOpened || state.proceso !== null) {
+    if (
+      !isSidePanelOpened ||
+      state.proceso !== null ||
+      openingOpportunityCode !== null
+    ) {
       return;
     }
 
     closeSidePanelMenu();
-  }, [closeSidePanelMenu, isSidePanelOpened, state.proceso]);
+  }, [
+    closeSidePanelMenu,
+    isSidePanelOpened,
+    openingOpportunityCode,
+    state.proceso,
+  ]);
 
   useEffect(() => {
-    if (!hasMounted || isSidePanelOpened || state.proceso === null) {
+    if (isSidePanelOpened && openingOpportunityCode === state.proceso) {
+      setOpeningOpportunityCode(null);
+    }
+  }, [isSidePanelOpened, openingOpportunityCode, state.proceso]);
+
+  useEffect(() => {
+    if (
+      !hasMounted ||
+      isSidePanelOpened ||
+      state.proceso === null ||
+      openingOpportunityCode === state.proceso
+    ) {
       return;
     }
 
@@ -770,6 +792,7 @@ export const MercadoPublicoV2ActivePage = () => {
     isSidePanelOpened,
     searchParams,
     setSearchParams,
+    openingOpportunityCode,
     state.proceso,
   ]);
 
@@ -777,6 +800,7 @@ export const MercadoPublicoV2ActivePage = () => {
     (opportunity: Opportunity) => {
       const next = new URLSearchParams(searchParams);
 
+      setOpeningOpportunityCode(opportunity.codigo);
       next.set('proceso', opportunity.codigo);
       setSearchParams(next);
 
@@ -888,8 +912,8 @@ export const MercadoPublicoV2ActivePage = () => {
                   ? t`completitud parcial`
                   : t`sin datos completos`}
               {` · ${t`Frescura`}: ${analytics.freshness}`}
-              {` · ${t`Calculado`}: ${formatAnalyticsDate(analytics.calculatedAt)}`}
-              {` · ${t`Actualizado`}: ${formatAnalyticsDate(analytics.asOf)}`}
+              {` · ${t`Calculado`}: ${formatDate(analytics.calculatedAt)}`}
+              {` · ${t`Actualizado`}: ${formatDate(analytics.asOf)}`}
             </StyledAnalyticsStatus>
             {analytics.availability !== 'unavailable' && (
               <>
@@ -953,7 +977,7 @@ export const MercadoPublicoV2ActivePage = () => {
         </StyledStateMessage>
       )}
       {!loading && !error && opportunities?.edges.length === 0 && (
-        <StyledStateMessage>
+        <StyledStateMessage role="status" aria-live="polite">
           <span>{t`No hay oportunidades disponibles.`}</span>
         </StyledStateMessage>
       )}
@@ -992,6 +1016,12 @@ export const MercadoPublicoV2ActivePage = () => {
                       <StyledOpportunityButton
                         aria-label={t`Abrir ${node.title ?? node.codigo}`}
                         onClick={() => openOpportunity(node)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            openOpportunity(node);
+                          }
+                        }}
                         title={node.title ?? node.codigo}
                       >
                         {node.title ?? node.codigo}
@@ -1075,7 +1105,7 @@ export const MercadoPublicoV2ActivePage = () => {
                       </div>
                       <StyledSecondaryText>
                         {t`Ofertas`}:{' '}
-                        <DataValue value={null} availability="not_applicable">
+                        <DataValue value={null} availability="unavailable">
                           {null}
                         </DataValue>
                       </StyledSecondaryText>

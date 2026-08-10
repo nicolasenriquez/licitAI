@@ -37,8 +37,8 @@ export const MERCADO_PUBLICO_V2_SORTS: Array<{
   value: MercadoPublicoV2Sort;
   label: string;
 }> = [
-  { value: 'closing_at_desc', label: 'Cierre más próximo' },
-  { value: 'closing_at_asc', label: 'Cierre más lejano' },
+  { value: 'closing_at_desc', label: 'Cierre más lejano' },
+  { value: 'closing_at_asc', label: 'Cierre más próximo' },
   { value: 'published_at_desc', label: 'Publicación reciente' },
   { value: 'published_at_asc', label: 'Publicación antigua' },
   { value: 'amount_desc', label: 'Monto mayor a menor' },
@@ -67,7 +67,7 @@ const StyledField = styled.label`
 `;
 
 const StyledFieldLabel = styled.span`
-  color: ${themeCssVariables.font.color.tertiary};
+  color: ${themeCssVariables.font.color.secondary};
 `;
 
 const StyledInput = styled.input`
@@ -157,6 +157,17 @@ export const MercadoPublicoV2FilterBar = ({
   onSortChange,
 }: MercadoPublicoV2FilterBarProps) => {
   const { t } = useLingui();
+  const stateLabels: Record<
+    (typeof MERCADO_PUBLICO_V2_STATES)[number],
+    string
+  > = {
+    publicada: t`Publicada`,
+    cerrada: t`Cerrada`,
+    desierta: t`Desierta`,
+    cancelada: t`Cancelada`,
+    proveedor_seleccionado: t`Proveedor seleccionado`,
+    oc_emitida: t`Orden de compra emitida`,
+  };
   const [draft, setDraft] = useState<MercadoPublicoV2Filters>(filters);
 
   useEffect(() => {
@@ -380,7 +391,7 @@ export const MercadoPublicoV2FilterBar = ({
                     updateDraft({ states });
                   }}
                 />
-                {state}
+                {stateLabels[state]}
               </StyledCheckbox>
             ))}
           </StyledCheckboxGroup>

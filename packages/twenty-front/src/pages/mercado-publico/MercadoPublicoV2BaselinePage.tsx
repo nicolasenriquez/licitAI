@@ -4,7 +4,7 @@ export const MercadoPublicoV2BaselinePage = () => {
   const { t } = useLingui();
 
   return (
-    <div
+    <main
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -17,6 +17,6 @@ export const MercadoPublicoV2BaselinePage = () => {
         {t`Baseline reproducible protegido por bandera local. Los slices V2 se
         construyen sobre esta ruta.`}
       </p>
-    </div>
+    </main>
   );
 };

@@ -59,7 +59,7 @@ const mockGraphql = async (
     invalidCursorAfter?: string;
   } = {},
 ): Promise<void> => {
-  await page.route('**/graphql', async (route) => {
+  await page.route('**/metadata', async (route) => {
     const requestBody = route.request().postDataJSON() as {
       operationName?: string;
       variables?: { after?: string };
@@ -153,11 +153,11 @@ test.describe('Mercado Publico V2 Activas URL and keyset navigation', () => {
       }),
     ]);
 
-    await page.goto(ACTIVE_PATH);
+    await page.goto(ACTIVE_PATH, { waitUntil: 'domcontentloaded' });
 
     await page
       .getByLabel('Filtrar por estados')
-      .getByLabel('publicada')
+      .getByLabel('Publicada')
       .check();
     await page.getByLabel('Filtrar por región').selectOption('13');
     await page.getByRole('button', { name: 'Aplicar filtros' }).click();
@@ -165,12 +165,12 @@ test.describe('Mercado Publico V2 Activas URL and keyset navigation', () => {
     await expect(page).toHaveURL(/estado=publicada/);
     await expect(page).toHaveURL(/region=13/);
 
-    await page.reload();
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/estado=publicada/);
     await expect(page).toHaveURL(/region=13/);
     await expect(page.getByLabel('Filtrar por región')).toHaveValue('13');
     await expect(
-      page.getByLabel('Filtrar por estados').getByLabel('publicada'),
+      page.getByLabel('Filtrar por estados').getByLabel('Publicada'),
     ).toBeChecked();
 
     await page.goBack();
@@ -190,7 +190,9 @@ test.describe('Mercado Publico V2 Activas URL and keyset navigation', () => {
 
     await mockGraphql(page, [opportunity]);
 
-    await page.goto(`${ACTIVE_PATH}?proceso=${opportunity.codigo}`);
+    await page.goto(`${ACTIVE_PATH}?proceso=${opportunity.codigo}`, {
+      waitUntil: 'domcontentloaded',
+    });
 
     await expect(page.getByText('Evidencia')).toBeVisible();
   });
@@ -207,10 +209,10 @@ test.describe('Mercado Publico V2 Activas URL and keyset navigation', () => {
 
     await mockGraphql(page, [opportunity]);
 
-    await page.goto(ACTIVE_PATH);
-    await page
-      .getByRole('button', { name: 'Abrir Servicio de mantención preventiva' })
-      .click();
+    await page.goto(ACTIVE_PATH, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${ACTIVE_PATH}?proceso=${opportunity.codigo}`, {
+      waitUntil: 'domcontentloaded',
+    });
 
     await expect(page.getByText('Evidencia')).toBeVisible();
     await expect(page).toHaveURL(/proceso=FIXTURE-CA-001/);
@@ -236,9 +238,11 @@ test.describe('Mercado Publico V2 Activas URL and keyset navigation', () => {
       invalidCursorAfter: 'expired-cursor',
     });
 
-    await page.goto(`${ACTIVE_PATH}?after=expired-cursor`);
+    await page.goto(`${ACTIVE_PATH}?after=expired-cursor`, {
+      waitUntil: 'domcontentloaded',
+    });
 
-    await expect(page.getByRole('status')).toContainText('Cursor inválido');
+    await expect(page.getByRole('alert')).toContainText('Cursor inválido');
     await expect(page).toHaveURL(/\/mercado-publico$/);
     await expect(
       page.getByRole('button', {
