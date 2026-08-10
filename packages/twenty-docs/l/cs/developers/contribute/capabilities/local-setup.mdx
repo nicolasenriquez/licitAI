@@ -112,7 +112,7 @@ Všechny příkazy v následujících krocích byste měli provádět z kořene 
 
     **Možnost 2:** Pokud máte nainstalován docker:
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
   <Tab title="Mac OS">
@@ -167,7 +167,7 @@ Všechny příkazy v následujících krocích byste měli provádět z kořene 
 
     **Možnost 2:** Pokud máte nainstalován docker:
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
   <Tab title="Windows (WSL)">
@@ -184,7 +184,7 @@ Všechny příkazy v následujících krocích byste měli provádět z kořene 
     Používání Dockeru na WSL přidává další vrstvu složitosti.
     Použijte tuto možnost pouze pokud si jste jisti extra kroky včetně zapnutí [Docker Desktop WSL2](https://docs.docker.com/desktop/wsl).
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
 </Tabs>
@@ -204,7 +204,7 @@ Twenty vyžaduje ke svému provozu Redis cache pro zajištění nejlepšího vý
 
     **Možnost 2:** Pokud máte nainstalován docker:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
   <Tab title="Mac OS">
@@ -219,7 +219,7 @@ Twenty vyžaduje ke svému provozu Redis cache pro zajištění nejlepšího vý
 
     **Možnost 2:** Pokud máte nainstalován docker:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
   <Tab title="Windows (WSL)">
@@ -228,7 +228,7 @@ Twenty vyžaduje ke svému provozu Redis cache pro zajištění nejlepšího vý
 
     **Možnost 2:** Pokud máte nainstalován docker:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
 </Tabs>

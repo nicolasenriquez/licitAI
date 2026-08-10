@@ -112,7 +112,7 @@ Dovresti eseguire tutti i comandi nei passaggi successivi dalla radice del proge
 
     **Opzione 2:** Se hai Docker installato:
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
   <Tab title="Mac OS">
@@ -168,7 +168,7 @@ Dovresti eseguire tutti i comandi nei passaggi successivi dalla radice del proge
 
     **Opzione 2:** Se hai Docker installato:
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
   <Tab title="Windows (WSL)">
@@ -185,7 +185,7 @@ Dovresti eseguire tutti i comandi nei passaggi successivi dalla radice del proge
     Eseguire Docker su WSL aggiunge un livello extra di complessità.
     Usa questa opzione solo se ti senti a tuo agio con i passaggi extra coinvolti, incluso l'attivazione di [Docker Desktop WSL2](https://docs.docker.com/desktop/wsl).
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
 </Tabs>
@@ -205,7 +205,7 @@ Twenty richiede una cache Redis per offrire le migliori prestazioni.
 
     **Opzione 2:** Se hai Docker installato:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
   <Tab title="Mac OS">
@@ -220,7 +220,7 @@ Twenty richiede una cache Redis per offrire le migliori prestazioni.
 
     **Opzione 2:** Se hai Docker installato:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
   <Tab title="Windows (WSL)">
@@ -229,7 +229,7 @@ Twenty richiede una cache Redis per offrire le migliori prestazioni.
 
     **Opzione 2:** Se hai Docker installato:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
 </Tabs>

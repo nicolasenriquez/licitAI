@@ -112,7 +112,7 @@ cd twenty
 
     **Опция 2:** Если у вас установлен docker:
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
   <Tab title="Mac OS">
@@ -168,7 +168,7 @@ cd twenty
 
     **Опция 2:** Если у вас установлен docker:
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
   <Tab title="Windows (WSL)">
@@ -185,7 +185,7 @@ cd twenty
     Запуск Docker на WSL добавляет дополнительный уровень сложности.
     Используйте эту опцию только если вы комфортно себя чувствуете с дополнительными шагами, включая включение [Docker Desktop WSL2](https://docs.docker.com/desktop/wsl).
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
 </Tabs>
@@ -205,7 +205,7 @@ Twenty требует кэша Redis для обеспечения наилуч�
 
     **Опция 2:** Если у вас установлен docker:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
   <Tab title="Mac OS">
@@ -220,7 +220,7 @@ Twenty требует кэша Redis для обеспечения наилуч�
 
     **Опция 2:** Если у вас установлен docker:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
   <Tab title="Windows (WSL)">
@@ -229,7 +229,7 @@ Twenty требует кэша Redis для обеспечения наилуч�
 
     **Опция 2:** Если у вас установлен docker:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
 </Tabs>
