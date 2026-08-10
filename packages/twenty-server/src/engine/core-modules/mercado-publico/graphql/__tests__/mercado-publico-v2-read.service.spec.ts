@@ -61,6 +61,9 @@ describe('MercadoPublicoV2ReadService', () => {
     expect(query.mock.calls[1][0]).toContain(
       'ORDER BY mp.gold_detected_process.closing_at DESC NULLS LAST, mp.gold_detected_process.process_code ASC',
     );
+    expect(query.mock.calls[1][0]).toContain(
+      'COALESCE(amount_raw, amount::text) AS amount',
+    );
 
     query
       .mockReset()

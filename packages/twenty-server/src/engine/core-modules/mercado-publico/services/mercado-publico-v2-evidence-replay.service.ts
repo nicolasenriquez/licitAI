@@ -203,7 +203,6 @@ export class MercadoPublicoV2EvidenceReplayService {
         ) o ON true
         WHERE c.source = $2
           AND c.scope = $3
-          AND c.status = 'active'
         ON CONFLICT (sync_run_id, codigo) DO NOTHING
       `,
       [

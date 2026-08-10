@@ -541,17 +541,13 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
 
     expect(projections).toHaveLength(1);
     expect(projections[0]).toMatchObject({
-      canonical_title: 'Equal timestamp observation',
-      canonical_state: 'cerrada',
-      gold_title: 'Equal timestamp observation',
-      gold_state: 'cerrada',
+      canonical_title: 'Unknown timestamp observation',
+      canonical_state: 'publicada',
+      gold_title: 'Unknown timestamp observation',
+      gold_state: 'publicada',
     });
-    expect(projections[0]?.canonical_provider_changed_at).toEqual(
-      new Date('2026-08-05T10:00:00.000Z'),
-    );
-    expect(projections[0]?.gold_provider_changed_at).toEqual(
-      new Date('2026-08-05T10:00:00.000Z'),
-    );
+    expect(projections[0]?.canonical_provider_changed_at).toBeNull();
+    expect(projections[0]?.gold_provider_changed_at).toBeNull();
   });
 
   it('keeps the previous projection when detail returns another codigo', async () => {

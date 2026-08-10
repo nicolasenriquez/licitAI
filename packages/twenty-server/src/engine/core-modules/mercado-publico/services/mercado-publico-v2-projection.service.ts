@@ -333,18 +333,33 @@ export class MercadoPublicoV2ProjectionService {
           last_seen_at = GREATEST(mp.compra_agil.last_seen_at, EXCLUDED.last_seen_at),
           semantic_fingerprint = EXCLUDED.semantic_fingerprint,
           updated_at = now()
-        WHERE
-          (
-            EXCLUDED.provider_changed_at IS NOT NULL
+        WHERE CASE
+          WHEN EXCLUDED.provider_changed_at IS NOT NULL
             AND mp.compra_agil.provider_changed_at IS NULL
+          THEN TRUE
+          WHEN EXCLUDED.provider_changed_at IS NOT NULL
+            AND mp.compra_agil.provider_changed_at IS NOT NULL
+          THEN (
+            EXCLUDED.provider_changed_at > mp.compra_agil.provider_changed_at
+            OR (
+              EXCLUDED.provider_changed_at = mp.compra_agil.provider_changed_at
+              AND ROW(
+                EXCLUDED.observed_at,
+                COALESCE(EXCLUDED.semantic_fingerprint, '')
+              ) > ROW(
+                COALESCE(mp.compra_agil.observed_at, '-infinity'::timestamptz),
+                COALESCE(mp.compra_agil.semantic_fingerprint, '')
+              )
+            )
           )
-          OR EXCLUDED.provider_changed_at > mp.compra_agil.provider_changed_at
-          OR (
-            EXCLUDED.provider_changed_at IS NOT DISTINCT FROM
-              mp.compra_agil.provider_changed_at
-            AND EXCLUDED.observed_at >
-              COALESCE(mp.compra_agil.observed_at, '-infinity'::timestamptz)
+          ELSE ROW(
+            EXCLUDED.observed_at,
+            COALESCE(EXCLUDED.semantic_fingerprint, '')
+          ) > ROW(
+            COALESCE(mp.compra_agil.observed_at, '-infinity'::timestamptz),
+            COALESCE(mp.compra_agil.semantic_fingerprint, '')
           )
+        END
         RETURNING id
       `,
       [
@@ -494,18 +509,6 @@ export class MercadoPublicoV2ProjectionService {
           last_seen_at = GREATEST(mp.gold_detected_process.last_seen_at, EXCLUDED.last_seen_at),
           semantic_fingerprint = EXCLUDED.semantic_fingerprint,
           updated_at = now()
-        WHERE
-          (
-            EXCLUDED.provider_changed_at IS NOT NULL
-            AND mp.gold_detected_process.provider_changed_at IS NULL
-          )
-          OR EXCLUDED.provider_changed_at > mp.gold_detected_process.provider_changed_at
-          OR (
-            EXCLUDED.provider_changed_at IS NOT DISTINCT FROM
-              mp.gold_detected_process.provider_changed_at
-            AND EXCLUDED.observed_at >
-              COALESCE(mp.gold_detected_process.observed_at, '-infinity'::timestamptz)
-          )
       `,
       [
         context.record.codigo,

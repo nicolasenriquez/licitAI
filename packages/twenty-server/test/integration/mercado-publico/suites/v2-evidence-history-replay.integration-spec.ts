@@ -461,13 +461,24 @@ describe('Mercado Publico V2 evidence, history and replay (db-backed)', () => {
     expect(historyCount[0]?.count).toBe('0');
   });
 
-  it('backfills missing current rows for active cohort members with retained evidence', async () => {
+  it('backfills missing current rows for terminal cohort members with retained evidence', async () => {
     const record = createRecord('CA-BACKFILL', { nombre: 'Backfill me' });
     clientService.getList.mockResolvedValueOnce(createResponse([record]));
     clientService.getByCodigo.mockResolvedValueOnce(createResponse([record]));
     await durableSyncService.start({ cambio_desde: '2026-08-01T00:00:00Z' });
     await dataSource.query(
+      `
+        UPDATE mp.v2_cohort
+        SET status = 'terminal'
+        WHERE codigo = 'CA-BACKFILL'
+      `,
+    );
+    await dataSource.query(
       `DELETE FROM mp.compra_agil WHERE codigo = 'CA-BACKFILL'`,
+    );
+    await dataSource.query(
+      `DELETE FROM mp.gold_detected_process
+       WHERE process_type = 'compra_agil' AND process_code = 'CA-BACKFILL'`,
     );
 
     const backfilled = await replayService.backfill('global');
