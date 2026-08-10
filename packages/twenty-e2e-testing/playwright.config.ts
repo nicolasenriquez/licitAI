@@ -24,6 +24,13 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: 1, // 1 worker = 1 test at the time, tests can't be parallelized
   timeout: 30 * 1000, // timeout can be changed
+  webServer: {
+    command: 'npx nx run twenty-front:preview --watch=false --open=false',
+    cwd: path.resolve(__dirname, '../..'),
+    url: 'http://localhost:3001',
+    timeout: 300 * 1000,
+    reuseExistingServer: false,
+  },
   use: {
     baseURL: process.env.FRONTEND_BASE_URL || 'http://localhost:3001',
     trace: 'retain-on-failure', // trace takes EVERYTHING from page source, records every single step, should be used only when normal debugging won't work

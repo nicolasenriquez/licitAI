@@ -64,3 +64,4 @@ screenshots/
 # graphify: cache + outputs (regenerated locally by `graphify update .`)
 graphify-out/
 .graphify-src/
+.impeccable/

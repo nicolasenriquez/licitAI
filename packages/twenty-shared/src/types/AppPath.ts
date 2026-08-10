@@ -25,6 +25,9 @@ export enum AppPath {
   RecordShowPage = '/object/:objectNameSingular/:objectRecordId',
   PageLayoutPage = '/page/:pageLayoutId',
 
+  MercadoPublicoV2Baseline = '/mercado-publico-v2',
+  MercadoPublico = '/mercado-publico',
+
   Settings = `settings`,
   SettingsCatchAll = `/${Settings}/*`,
   Developers = `developers`,

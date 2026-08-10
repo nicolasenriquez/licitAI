@@ -21,7 +21,12 @@ const removeDeclarationArtifactsRecursively = async (directoryPath) => {
   try {
     directoryEntries = await readdir(directoryPath, { withFileTypes: true });
   } catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      error.code === 'ENOENT'
+    ) {
       return;
     }
 

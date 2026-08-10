@@ -173,13 +173,14 @@ Endpoints:
 | `tamano_pagina` | integer | Default 15, maximum 50. |
 | `numero_pagina` | integer | Starts at 1. |
 | `ordenar_por` | string | Sort field. |
-| `orden` | string | Sort direction. |
 
 Parameter rules:
 
 - `id` and `q` are mutually exclusive.
 - `tamano_pagina` must not exceed 50.
 - `numero_pagina` starts at 1.
+- When a change or publication range is supplied, both bounds are required.
+- `orden` is not part of the supported V2 request contract and is rejected.
 - There is no documented `codigo_organismo` filter for this API.
 
 Documented states:

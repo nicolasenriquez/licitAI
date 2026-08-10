@@ -55,6 +55,15 @@ type MercadoPublicoApiV2CompraAgilStagingRow = {
   publicado_hasta: string | null;
   cambio_desde: string | null;
   cambio_hasta: string | null;
+  title: string | null;
+  buyer_code: string | null;
+  buyer_name: string | null;
+  region: number | null;
+  published_at: Date | null;
+  closing_at: Date | null;
+  amount: string | null;
+  currency_source: string | null;
+  document_count: number | null;
   fetched_at: Date;
   created_at: Date;
 };
@@ -287,11 +296,10 @@ export class MercadoPublicoCanonicalRefreshService {
     rawApiPayloadId: string,
   ): Promise<number> {
     return this.coreDataSource.transaction(async (entityManager) => {
-      const stagingRows =
-        await this.selectLatestV1OrdenesDeCompraStagingRows(
-          entityManager,
-          rawApiPayloadId,
-        );
+      const stagingRows = await this.selectLatestV1OrdenesDeCompraStagingRows(
+        entityManager,
+        rawApiPayloadId,
+      );
 
       for (const stagingRow of stagingRows) {
         await this.upsertCanonicalOrdenDeCompra(entityManager, stagingRow);
@@ -305,11 +313,10 @@ export class MercadoPublicoCanonicalRefreshService {
     rawApiPayloadId: string,
   ): Promise<number> {
     return this.coreDataSource.transaction(async (entityManager) => {
-      const stagingRows =
-        await this.selectLatestV2CompraAgilStagingRows(
-          entityManager,
-          rawApiPayloadId,
-        );
+      const stagingRows = await this.selectLatestV2CompraAgilStagingRows(
+        entityManager,
+        rawApiPayloadId,
+      );
 
       for (const stagingRow of stagingRows) {
         await this.upsertCanonicalCompraAgil(entityManager, stagingRow);
@@ -338,6 +345,15 @@ export class MercadoPublicoCanonicalRefreshService {
           publicado_hasta,
           cambio_desde,
           cambio_hasta,
+          title,
+          buyer_code,
+          buyer_name,
+          region,
+          published_at,
+          closing_at,
+          amount,
+          currency_source,
+          document_count,
           fetched_at,
           created_at
         FROM mp.stg_api_v2_compra_agil
@@ -363,6 +379,14 @@ export class MercadoPublicoCanonicalRefreshService {
           id_oc,
           codigo_orden_compra,
           region,
+          title,
+          buyer_code,
+          buyer_name,
+          published_at,
+          closing_at,
+          amount,
+          currency_source,
+          document_count,
           last_seen_at,
           updated_at
         )
@@ -374,6 +398,14 @@ export class MercadoPublicoCanonicalRefreshService {
           $5,
           $6,
           $7,
+          $8,
+          $9,
+          $10,
+          $11,
+          $12,
+          $13,
+          $14,
+          $15,
           now()
         )
         ON CONFLICT (codigo) DO UPDATE
@@ -383,7 +415,15 @@ export class MercadoPublicoCanonicalRefreshService {
           id_oc = COALESCE($4, mp.compra_agil.id_oc),
           codigo_orden_compra = COALESCE($5, mp.compra_agil.codigo_orden_compra),
           region = COALESCE($6, mp.compra_agil.region),
-          last_seen_at = GREATEST(mp.compra_agil.last_seen_at, $7),
+          title = COALESCE($7, mp.compra_agil.title),
+          buyer_code = COALESCE($8, mp.compra_agil.buyer_code),
+          buyer_name = COALESCE($9, mp.compra_agil.buyer_name),
+          published_at = COALESCE($10, mp.compra_agil.published_at),
+          closing_at = COALESCE($11, mp.compra_agil.closing_at),
+          amount = COALESCE($12, mp.compra_agil.amount),
+          currency_source = COALESCE($13, mp.compra_agil.currency_source),
+          document_count = $14,
+          last_seen_at = GREATEST(mp.compra_agil.last_seen_at, $15),
           updated_at = now()
       `,
       [
@@ -392,7 +432,15 @@ export class MercadoPublicoCanonicalRefreshService {
         stagingRow.id_orden_compra,
         stagingRow.id_oc,
         stagingRow.codigo_orden_compra,
-        null,
+        stagingRow.region ?? null,
+        stagingRow.title ?? null,
+        stagingRow.buyer_code ?? null,
+        stagingRow.buyer_name ?? null,
+        stagingRow.published_at ?? null,
+        stagingRow.closing_at ?? null,
+        stagingRow.amount ?? null,
+        stagingRow.currency_source ?? null,
+        stagingRow.document_count ?? null,
         stagingRow.fetched_at,
       ],
     );
@@ -432,9 +480,7 @@ export class MercadoPublicoCanonicalRefreshService {
     entityManager: EntityManager,
     stagingRow: MercadoPublicoApiV1OrdenDeCompraStagingRow,
   ): Promise<void> {
-    const parsedFechaEnvio = parseMercadoPublicoDate(
-      stagingRow.fecha_envio,
-    );
+    const parsedFechaEnvio = parseMercadoPublicoDate(stagingRow.fecha_envio);
     const normalizedOcState = normalizeOcState(
       stagingRow.codigo_estado,
       stagingRow.estado,
@@ -523,11 +569,10 @@ export class MercadoPublicoCanonicalRefreshService {
     rawCsvFileId: string,
   ): Promise<number> {
     return this.coreDataSource.transaction(async (entityManager) => {
-      const stagingRows =
-        await this.selectLatestLicitacionItemStagingRows(
-          entityManager,
-          rawCsvFileId,
-        );
+      const stagingRows = await this.selectLatestLicitacionItemStagingRows(
+        entityManager,
+        rawCsvFileId,
+      );
 
       for (const stagingRow of stagingRows) {
         await this.upsertCanonicalLicitacionItem(entityManager, stagingRow);
@@ -541,11 +586,10 @@ export class MercadoPublicoCanonicalRefreshService {
     rawCsvFileId: string,
   ): Promise<number> {
     return this.coreDataSource.transaction(async (entityManager) => {
-      const stagingRows =
-        await this.selectLatestLicitacionOfertaStagingRows(
-          entityManager,
-          rawCsvFileId,
-        );
+      const stagingRows = await this.selectLatestLicitacionOfertaStagingRows(
+        entityManager,
+        rawCsvFileId,
+      );
 
       for (const stagingRow of stagingRows) {
         await this.upsertCanonicalLicitacionOferta(entityManager, stagingRow);
@@ -784,11 +828,10 @@ export class MercadoPublicoCanonicalRefreshService {
     rawCsvFileId: string,
   ): Promise<number> {
     return this.coreDataSource.transaction(async (entityManager) => {
-      const stagingRows =
-        await this.selectLatestOrdenCompraItemStagingRows(
-          entityManager,
-          rawCsvFileId,
-        );
+      const stagingRows = await this.selectLatestOrdenCompraItemStagingRows(
+        entityManager,
+        rawCsvFileId,
+      );
 
       for (const stagingRow of stagingRows) {
         await this.upsertCanonicalOrdenCompraItem(entityManager, stagingRow);
@@ -834,9 +877,7 @@ export class MercadoPublicoCanonicalRefreshService {
     entityManager: EntityManager,
     rawCsvFileId: string,
   ): Promise<MercadoPublicoApiV1OrdenCompraItemStagingRow[]> {
-    return entityManager.query<
-      MercadoPublicoApiV1OrdenCompraItemStagingRow[]
-    >(
+    return entityManager.query<MercadoPublicoApiV1OrdenCompraItemStagingRow[]>(
       `
         SELECT DISTINCT ON (iditem)
           stg.id,

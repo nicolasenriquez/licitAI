@@ -19,6 +19,7 @@ describe('MercadoPublicoApiV1LicitacionesClientService', () => {
       httpRetryBackoffMs: 1_000,
       quotaTimezone: 'America/Santiago',
       csvDownloadEnabled: false,
+      apiDailyLimit: 10_000,
     }),
   } as unknown as jest.Mocked<MercadoPublicoConfigService>;
 
@@ -144,6 +145,7 @@ describe('MercadoPublicoApiV1LicitacionesClientService', () => {
       httpRetryBackoffMs: 1_000,
       quotaTimezone: 'America/Santiago',
       csvDownloadEnabled: false,
+      apiDailyLimit: 10_000,
     });
 
     await service.getByDate(new Date(Date.UTC(2026, 5, 15)));
@@ -169,6 +171,7 @@ describe('MercadoPublicoApiV1LicitacionesClientService', () => {
         httpRetryBackoffMs: 1_000,
         quotaTimezone: 'America/Santiago',
         csvDownloadEnabled: false,
+        apiDailyLimit: 10_000,
       })
       .mockImplementationOnce(() => {
         throw new Error('settings unavailable');

@@ -854,7 +854,7 @@ describe('Mercado Publico reconciliation refresh (db-backed)', () => {
 
     const orphanRow = unmatchedRows.find((r) => r.entity_a_key === 'ORPHAN-1');
     expect(orphanRow).toBeDefined();
-    expect(orphanRow.entity_a_type).toBe('licitacion');
+    expect(orphanRow?.entity_a_type).toBe('licitacion');
 
     // Verify gold_detected_process was updated
     const goldRows = await dataSource.query<

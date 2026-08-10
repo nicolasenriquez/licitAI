@@ -25,7 +25,7 @@ Before substantive work in this surface, read:
 
 ## Bounce Back To Root When
 
-- The prompt is really about repo-local `.codex` assets.
+- The prompt is really about repo-local `.agents` assets.
 - The prompt is about durable repository docs under root `docs/`.
 - The prompt is about active OpenSpec change work.
 
@@ -35,7 +35,7 @@ When that happens, return to `../../index.md` first and reroute from there. Do n
 
 - Declare the routing/context files consulted before responding or editing.
 - State that the selected surface is `packages/twenty-codex-plugin`.
-- Preserve the distinction between the published plugin package and repo-local `.codex` assets, root `docs/`, or OpenSpec change work.
+- Preserve the distinction between the published plugin package and repo-local `.agents` assets, root `docs/`, or OpenSpec change work.
 
 This file is the canonical entry point for any agent (Codex, ChatGPT Developer Mode, or compatible) running with the Twenty plugin loaded. It encodes the boundaries, conventions, and operating rules that apply across all five bundled skills.
 
@@ -108,4 +108,3 @@ Run `yarn workspace twenty-codex-plugin validate` after any change to this plugi
 ## Boundaries
 
 This file is for *agents using the plugin*. If you are *editing the plugin itself*, see `CONTRIBUTING.md`.
-

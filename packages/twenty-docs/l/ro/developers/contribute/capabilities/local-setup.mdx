@@ -112,7 +112,7 @@ Trebuie să rulați toate comenzile în pașii următori de la rădăcina proiec
 
     **Opțiunea 2:** Dacă aveți docker instalat:
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
   <Tab title="Mac OS">
@@ -168,7 +168,7 @@ Trebuie să rulați toate comenzile în pașii următori de la rădăcina proiec
 
     **Opțiunea 2:** Dacă aveți docker instalat:
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
   <Tab title="Windows (WSL)">
@@ -185,7 +185,7 @@ Trebuie să rulați toate comenzile în pașii următori de la rădăcina proiec
     Rularea Docker pe WSL adaugă un strat suplimentar de complexitate.
     Folosiți această opțiune doar dacă sunteți confortabil cu pașii suplimentari implicați, inclusiv activarea [Docker Desktop WSL2](https://docs.docker.com/desktop/wsl).
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
 </Tabs>
@@ -205,7 +205,7 @@ Twenty necesită un cache Redis pentru a oferi cea mai bună performanță.
 
     **Opțiunea 2:** Dacă aveți docker instalat:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
   <Tab title="Mac OS">
@@ -220,7 +220,7 @@ Twenty necesită un cache Redis pentru a oferi cea mai bună performanță.
 
     **Opțiunea 2:** Dacă aveți docker instalat:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
   <Tab title="Windows (WSL)">
@@ -229,7 +229,7 @@ Twenty necesită un cache Redis pentru a oferi cea mai bună performanță.
 
     **Opțiunea 2:** Dacă aveți docker instalat:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
 </Tabs>

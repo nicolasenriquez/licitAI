@@ -31,15 +31,17 @@ During this routing rollout, use the contract below before acting:
 - Route into `openspec/` for active OpenSpec changes, proposal/design/tasks/spec artifacts, change review, implementation, and archive/sync work.
 - Route into `docs/` for repository architecture, business context, governance, operations, standards, and ADR reading or editing.
 - Route into `packages/` for package-scoped work and for selecting the right package surface before leaf-package work.
-- Route into `.codex/` for repo-local Codex commands, repo-local Codex skills, and local Codex workflow assets.
-- Route into `.opencode/` for repo-local OpenCode commands, repo-local OpenCode skills, and local OpenCode workflow assets.
+- Route into `.agents/` for repo-local skills and shared workflow assets.
 - If a task starts in `docs/` but is really about an active OpenSpec change, return to the root map and reroute into `openspec/`.
 - If a task starts in `openspec/` but is really about architecture, governance, or other repo docs, return to the root map and reroute into `docs/`.
 - If a task starts in `packages/` but is really about root docs or OpenSpec change work, return to the root map and reroute.
-- If a task starts in `.codex/` but is really about the published plugin package or another mapped surface, return to the root map and reroute.
-- If a task starts in `.opencode/` but is really about repo-local Codex assets, published plugin work, or another mapped surface, return to the root map and reroute.
+- If a task starts in `.agents/` but is really about the published plugin package or another mapped surface, return to the root map and reroute.
 - Do not invent folder-local routing rules for unmapped leaf surfaces during rollout. If the task is outside the mapped surfaces, stay on the root contract, state explicitly that the surface is unmapped, and do not wander.
 - Only when required, declare consulted routing/context files briefly using relative paths. Include only the files actually needed for the task, then state the selected surface.
+
+## Communication
+
+- Write user-facing messages and agent-authored operational docs in ASD-STE100 style: use short sentences, active voice, common words, and explicit actions. Avoid idioms, vague language, and unnecessary qualifiers.
 
 ## Repository Path Style
 
@@ -73,6 +75,7 @@ in normal prose when the file is inside this repository.
 
 ### Development
 ```bash
+just runtime-check                              # read-only preflight of existing full Compose
 yarn start                                       # server + front + worker, concurrent
 npx nx start twenty-front                        # frontend dev server
 npx nx start twenty-server                       # backend dev server
@@ -216,16 +219,17 @@ packages/
 ## Dev Environment Setup
 
 ```bash
-bash packages/twenty-utils/setup-dev-env.sh        # idempotent
+bash packages/twenty-utils/setup-dev-env.sh        # read-only existing-stack check
 # flags:
-#   --docker   force Docker (uses packages/twenty-docker/docker-compose.dev.yml)
-#   --down     stop services
-#   --reset    wipe data and restart fresh
+#   --check    explicit read-only check (same as no flag)
 ```
 
-Starts Postgres + Redis (auto-detects local services vs Docker), creates
-databases, copies `.env` files, runs migrations. **Skip this for tasks that
-only read code** (architecture review, doc edits, code review).
+The full application Compose project is the only routine local runtime. The
+script validates that existing server, worker, PostgreSQL, and Redis services
+are already healthy; it never starts, stops, removes, rebuilds, or creates a
+container, and it never falls back to host-local services. Use `just dev-up`
+only for an explicitly authorized state-changing startup. **Skip this for
+tasks that only read code** (architecture review, doc edits, code review).
 
 CI (`.github/workflows/`) uses Actions service containers and runs setup
 steps individually — it does not call this script.
@@ -241,6 +245,12 @@ A read-only Postgres MCP server is configured in `.mcp.json`. Use it to:
 - Inspect metadata tables when debugging GraphQL schema generation.
 
 Read-only. For writes (reset, migrate, sync), use the Nx targets above.
+
+## Change Authorization
+
+- Do not create commits, pushes, tags, releases, or external messages unless the user explicitly requests them.
+- A skill, ticket, or local workflow does not override this rule.
+- Preserve pre-existing staged and unstaged changes. Stage only files within the requested scope after authorization.
 
 ## Development Workflow
 

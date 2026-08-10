@@ -286,6 +286,39 @@ Table-by-table authority is `schema-catalog.md`. This blast-radius map stays foc
 
 ## 0.5 Minimal Surgical Implementation Plan
 
+## 0.6 Compra Agil V2 Contract Repair (2026-08-10)
+
+### Diagnosis
+
+- **Implemented defect**: the two command entrypoints accepted one-sided
+  publication/change windows, while the list validator already required pairs.
+- **Implemented defect**: a durable sync with a watermark derived only
+  `cambio_desde`, allowing an incomplete request window.
+- **Implemented defect**: `orden` was still typed and serialized although it is
+  outside the supported V2 request contract.
+
+### Corrected Behavior and Evidence Boundary
+
+- Both entrypoints now require complete explicit date pairs and propagate
+  `ordenar_por`.
+- A watermark produces a five-minute-overlap `cambio_desde` plus a single UTC
+  `cambio_hasta` captured at sync start; `ttl_cambio_ms` is not combined with
+  that derived range.
+- `orden` is rejected before dispatch and cannot be serialized by the client.
+- The minimal telemetry option is retained: existing checkpoints/raw audit
+  records remain authoritative; `Retry-After` parsing is documented without a
+  migration, duplicate manifest, raw header capture, or secret-bearing JSON.
+- The operator guide records official, implemented, policy, and unknown claims.
+  No raw body, ticket, or complete request header is included in this change.
+
+### Verification Cases
+
+- unilateral publication and change windows reject before a request is made;
+- a watermark produces one complete UTC range;
+- `orden` rejects and `ordenar_por` reaches both entrypoints; and
+- the lightweight documentation check pins the official-link and critical
+  safety claims.
+
 ### Frozen Decisions (per task 0.5 footnote)
 
 | Decision | Frozen value | Source |

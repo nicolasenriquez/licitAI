@@ -40,8 +40,7 @@ Current major indexes:
 - `docs/index.md`
 - `openspec/index.md`
 - `packages/index.md`
-- `.codex/index.md`
-- `.opencode/index.md`
+- `.agents/index.md`
 
 ## Surface Model
 
@@ -51,8 +50,7 @@ Current major indexes:
 | `docs/` | Durable repository documentation | Architecture, business, governance, operations, standards, decisions |
 | `openspec/` | Active change definitions | Proposal, design, tasks, specs, validation artifacts |
 | `packages/` | Package-selection layer | Mapped package surfaces and package-local durable docs |
-| `.codex/` | Repo-local Codex workflow docs | Commands, skills, references |
-| `.opencode/` | Repo-local OpenCode workflow docs | Commands, skills, references |
+| `.agents/` | Repo-local shared workflow docs | Skills, references, scripts |
 
 ## Taxonomy Use
 

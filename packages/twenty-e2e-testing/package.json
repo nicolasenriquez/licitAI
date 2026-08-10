@@ -5,7 +5,9 @@
   "private": true,
   "license": "AGPL-3.0",
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.60.0",
-    "playwright": "^1.60.0"
+    "playwright": "^1.60.0",
+    "playwright-core": "1.60.0"
   }
 }

@@ -108,9 +108,26 @@ const NotFound = lazy(() =>
   })),
 );
 
+const MercadoPublicoV2BaselinePage = lazy(() =>
+  import('~/pages/mercado-publico/MercadoPublicoV2BaselinePage').then(
+    (module) => ({
+      default: module.MercadoPublicoV2BaselinePage,
+    }),
+  ),
+);
+
+const MercadoPublicoV2ActivePage = lazy(() =>
+  import('~/pages/mercado-publico/MercadoPublicoV2ActivePage').then(
+    (module) => ({
+      default: module.MercadoPublicoV2ActivePage,
+    }),
+  ),
+);
+
 export const useCreateAppRouter = (
   isFunctionSettingsEnabled?: boolean,
   isAdminPageEnabled?: boolean,
+  isMercadoPublicoV2Enabled?: boolean,
 ) =>
   createBrowserRouter(
     createRoutesFromElements(
@@ -237,6 +254,26 @@ export const useCreateAppRouter = (
                 </LazyRoute>
               }
             />
+            {isMercadoPublicoV2Enabled && (
+              <>
+                <Route
+                  path={AppPath.MercadoPublico}
+                  element={
+                    <LazyRoute>
+                      <MercadoPublicoV2ActivePage />
+                    </LazyRoute>
+                  }
+                />
+                <Route
+                  path={AppPath.MercadoPublicoV2Baseline}
+                  element={
+                    <LazyRoute>
+                      <MercadoPublicoV2BaselinePage />
+                    </LazyRoute>
+                  }
+                />
+              </>
+            )}
             <Route
               path={AppPath.SettingsCatchAll}
               element={

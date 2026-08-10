@@ -8,7 +8,7 @@ const readServerSource = (...segments: string[]) => {
 };
 
 describe('MercadoPublico runtime exposure', () => {
-  it('keeps MercadoPublicoModule out of the 2.15.0 app and worker composition roots', () => {
+  it('exposes MercadoPublicoModule in the app and worker composition roots', () => {
     expect(TWENTY_CURRENT_VERSION).toBe('2.15.0');
 
     const coreEngineModuleSource = readServerSource(
@@ -29,8 +29,8 @@ describe('MercadoPublico runtime exposure', () => {
       'mercado-publico.module.ts',
     );
 
-    expect(coreEngineModuleSource).not.toContain('MercadoPublicoModule');
-    expect(jobsModuleSource).not.toContain('MercadoPublicoModule');
+    expect(coreEngineModuleSource).toContain('MercadoPublicoModule');
+    expect(jobsModuleSource).toContain('MercadoPublicoModule');
     expect(mercadoPublicoModuleSource).toContain('MercadoPublicoRunCommand');
   });
 });

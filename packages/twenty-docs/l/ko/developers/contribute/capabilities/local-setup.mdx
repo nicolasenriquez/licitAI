@@ -112,7 +112,7 @@ cd twenty
 
     **옵션 2:** 도커가 설치된 경우:
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
   <Tab title="맥 OS">
@@ -169,7 +169,7 @@ cd twenty
 
     **옵션 2:** 도커가 설치된 경우:
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
   <Tab title="윈도우 (WSL)">
@@ -186,7 +186,7 @@ cd twenty
     WSL에서 Docker를 실행하면 추가적인 복잡성이 발생합니다.
     이 옵션은 [Docker Desktop WSL2](https://docs.docker.com/desktop/wsl)를 켠 상태에서의 추가 설정 단계를 수반할 수 있다는 점에서 편안할 때만 사용하십시오.
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
 </Tabs>
@@ -206,7 +206,7 @@ Twenty는 최상의 성능을 제공하기 위해 Redis 캐시가 필요합니�
 
     **옵션 2:** 도커가 설치된 경우:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
   <Tab title="맥 OS">
@@ -221,7 +221,7 @@ Twenty는 최상의 성능을 제공하기 위해 Redis 캐시가 필요합니�
 
     **옵션 2:** 도커가 설치된 경우:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
   <Tab title="윈도우 (WSL)">
@@ -230,7 +230,7 @@ Twenty는 최상의 성능을 제공하기 위해 Redis 캐시가 필요합니�
 
     **옵션 2:** 도커가 설치된 경우:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
 </Tabs>

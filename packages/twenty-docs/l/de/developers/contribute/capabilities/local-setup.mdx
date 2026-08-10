@@ -112,7 +112,7 @@ Alle folgenden Befehle innerhalb des Projekts sind vom Stammverzeichnis aus ausz
 
     **Option 2:** Wenn Sie Docker installiert haben:
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
   <Tab title="Mac OS">
@@ -168,7 +168,7 @@ Alle folgenden Befehle innerhalb des Projekts sind vom Stammverzeichnis aus ausz
 
     **Option 2:** Wenn Sie Docker installiert haben:
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
   <Tab title="Windows (WSL)">
@@ -185,7 +185,7 @@ Alle folgenden Befehle innerhalb des Projekts sind vom Stammverzeichnis aus ausz
     Die Ausführung von Docker auf WSL fügt eine zusätzliche Komplexitätsschicht hinzu.
     Verwenden Sie diese Option nur, wenn Sie mit den zusätzlichen Schritten vertraut sind, einschließlich der Aktivierung von [Docker Desktop WSL2](https://docs.docker.com/desktop/wsl).
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
 </Tabs>
@@ -205,7 +205,7 @@ Twenty benötigt einen Redis-Cache, um die beste Leistung zu bieten.
 
     **Option 2:** Wenn Sie Docker installiert haben:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
   <Tab title="Mac OS">
@@ -220,7 +220,7 @@ Twenty benötigt einen Redis-Cache, um die beste Leistung zu bieten.
 
     **Option 2:** Wenn Sie Docker installiert haben:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
   <Tab title="Windows (WSL)">
@@ -229,7 +229,7 @@ Twenty benötigt einen Redis-Cache, um die beste Leistung zu bieten.
 
     **Option 2:** Wenn Sie Docker installiert haben:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
 </Tabs>

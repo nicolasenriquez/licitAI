@@ -9,6 +9,8 @@ import { type MercadoPublicoApiV1LicitacionesByDateResponse } from 'src/engine/c
 import { type MercadoPublicoApiV1OcByDateResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-ordenes-de-compra-client.service';
 import { type MercadoPublicoApiV2CompraAgilListResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { coerceToNullableString } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/coerce-to-nullable-string.util';
+import { getV2CompraAgilOrderReferences } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
+import { normalizeV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/normalize-v2-compra-agil-record.util';
 import {
   type MercadoPublicoJobName,
   type MercadoPublicoJobRunStatus,
@@ -98,7 +100,7 @@ type PersistMercadoPublicoCsvDownloadInput = {
   sourceUrl: string;
   sourceFileName: string;
   sourcePeriod: string;
-  sourceModality?: string;
+  sourceModality?: string | null;
   fileChecksum: string;
   fileSizeBytes: number;
   compressionType: string | null;
@@ -719,6 +721,8 @@ export class MercadoPublicoPersistenceService {
             snapshot_kind,
             codigo,
             estado,
+            estado_id,
+            estado_glosa,
             id_orden_compra,
             id_oc,
             codigo_orden_compra,
@@ -726,7 +730,21 @@ export class MercadoPublicoPersistenceService {
             publicado_hasta,
             cambio_desde,
             cambio_hasta,
-            fetched_at
+            fetched_at,
+            provider_changed_at_raw,
+            provider_changed_at,
+            observed_at,
+            persisted_at,
+            title,
+            buyer_code,
+            buyer_name,
+            region,
+            published_at,
+            closing_at,
+            amount,
+            amount_raw,
+            currency_source,
+            document_count
           )
           VALUES ${placeholders.join(', ')}
         `,
@@ -739,27 +757,44 @@ export class MercadoPublicoPersistenceService {
     };
 
     for (const compraAgilItem of apiResponse.compraAgil) {
-      const ordenCompra = compraAgilItem.orden_compra;
+      const orderReferences = getV2CompraAgilOrderReferences(compraAgilItem);
 
+      const normalized = normalizeV2CompraAgilRecord(compraAgilItem);
       placeholders.push(
-        `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12})`,
+        `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12}, $${paramIndex + 13}, $${paramIndex + 14}, $${paramIndex + 15}, $${paramIndex + 16}, $${paramIndex + 17}, $${paramIndex + 18}, $${paramIndex + 19}, $${paramIndex + 20}, $${paramIndex + 21}, $${paramIndex + 22}, $${paramIndex + 23}, $${paramIndex + 24}, $${paramIndex + 25}, $${paramIndex + 26}, $${paramIndex + 27}, $${paramIndex + 28})`,
       );
       params.push(
         rawApiPayloadId,
         apiResponse.source,
         snapshotKind,
         coerceToNullableString(compraAgilItem.codigo),
-        coerceToNullableString(compraAgilItem.estado),
-        coerceToNullableString(ordenCompra?.id_orden_compra),
-        coerceToNullableString(ordenCompra?.id_oc),
-        coerceToNullableString(ordenCompra?.codigo_orden_compra),
+        normalized.stateCode,
+        normalized.stateId,
+        normalized.stateLabel,
+        orderReferences.idOrdenCompra,
+        orderReferences.idOc,
+        orderReferences.codigoOrdenCompra,
         coerceToNullableString(compraAgilItem.publicado_desde),
         coerceToNullableString(compraAgilItem.publicado_hasta),
         coerceToNullableString(compraAgilItem.cambio_desde),
         coerceToNullableString(compraAgilItem.cambio_hasta),
         apiResponse.fetchedAt,
+        normalized.providerChangedAtRaw,
+        normalized.providerChangedAt,
+        apiResponse.fetchedAt,
+        new Date(),
+        normalized.title,
+        normalized.buyerCode,
+        normalized.buyerName,
+        normalized.region,
+        normalized.publishedAt,
+        normalized.closingAt,
+        normalized.amount,
+        normalized.amount,
+        normalized.currency,
+        normalized.documentCount,
       );
-      paramIndex += 13;
+      paramIndex += 29;
 
       if (placeholders.length >= STAGING_INSERT_BATCH_SIZE) {
         await flushBatch();

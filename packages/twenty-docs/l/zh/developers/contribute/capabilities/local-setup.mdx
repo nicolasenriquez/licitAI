@@ -112,7 +112,7 @@ cd twenty
 
     \*\*选项 2：\*\*如果您已安装 docker：
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
   <Tab title="Mac OS">
@@ -167,7 +167,7 @@ cd twenty
 
     \*\*选项 2：\*\*如果您已安装 docker：
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
   <Tab title="Windows (WSL)">
@@ -184,7 +184,7 @@ cd twenty
     在 WSL 上运行 Docker 增加了额外的复杂性。
     仅在您对涉及的额外步骤感到舒适时使用此选项，包括开启 [Docker Desktop WSL2](https://docs.docker.com/desktop/wsl)。
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
 </Tabs>
@@ -204,7 +204,7 @@ Twenty 需要 Redis 缓存来提供最佳性能。
 
     \*\*选项 2：\*\*如果您已安装 docker：
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
   <Tab title="Mac OS">
@@ -219,7 +219,7 @@ Twenty 需要 Redis 缓存来提供最佳性能。
 
     \*\*选项 2：\*\*如果您已安装 docker：
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
   <Tab title="Windows (WSL)">
@@ -228,7 +228,7 @@ Twenty 需要 Redis 缓存来提供最佳性能。
 
     \*\*选项 2：\*\*如果您已安装 docker：
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
 </Tabs>

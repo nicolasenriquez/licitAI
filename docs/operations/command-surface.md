@@ -7,13 +7,13 @@ okf_version: "0.1"
 # Command Surface
 
 ## Purpose
-Define the public developer command surface for the Twenty CRM monorepo. Every command that an engineer or AI agent should use during development, testing, and operations is documented here.
+Define the public developer command surface for the licitai/Twenty monorepo. Every command that an engineer or AI agent should use during development, testing, and operations is documented here.
 
 ## Primary Audience
 Engineers, AI agents, and reviewers working on the Twenty codebase.
 
 ## Executive Summary
-Twenty exposes a structured command surface through Nx targets and Yarn scripts. There is one root-level entry point (`yarn start`) for the full stack, plus per-package Nx targets for granular workflows. The command surface is organized into six categories: development, testing, code quality, build, database, and GraphQL code generation.
+The repository exposes a structured command surface through Docker Compose, Nx targets, and Yarn scripts. The existing full Docker Compose project is the canonical local runtime; Nx/Yarn remain package-level source tooling and explicitly advanced host-source surfaces. The command surface is organized into development, testing, code quality, build, database, GraphQL code generation, and documentation operations.
 
 ## Public Command Contract
 
@@ -21,11 +21,21 @@ Twenty exposes a structured command surface through Nx targets and Yarn scripts.
 
 | Command | Purpose | Details |
 | --- | --- | --- |
-| `yarn start` | Start full development stack | Starts `twenty-server` (port 3000) + `twenty-front` (port 3001) concurrently, then starts the BullMQ worker once the server is ready. Uses `concurrently` + `wait-on`. |
-| `npx nx start twenty-server` | Start backend only | NestJS API server on port 3000. Hot-reload enabled. |
-| `npx nx start twenty-front` | Start frontend only | Vite dev server. Serves the React SPA. |
-| `npx nx run twenty-server:worker` | Start background worker | BullMQ queue worker process. Requires Redis and PostgreSQL running. |
-| `docker compose -f packages/twenty-docker/docker-compose.dev.yml up -d` | Start infrastructure services | PostgreSQL 16 + Redis 7 only. For development against source code. |
+| `just runtime-check` | Verify the existing full local runtime | **First runtime command. Read-only:** validates Compose config, prints current service state, and checks `/healthz` without starting or creating containers. |
+| `just dev-up` | Explicitly start the full local runtime | Human-authorized recovery path when the existing Compose project is not already running. Uses the existing `twentycrm/twenty:mp-local` image. |
+| `just dev-up-build` | Explicitly rebuild and start full local runtime | Human-authorized only after a changed image is required. This is not a routine fallback. |
+| `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml up -d` | Explicitly start full local runtime directly | Same canonical Compose project; use only when a human has requested a state-changing startup. |
+| `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml ps` | Inspect local runtime | Shows service state and health. |
+| `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml logs -f server worker` | Follow application logs | Use for startup and ingestion diagnosis. |
+| `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml down` | Stop local runtime | Stops the Compose project without deleting named volumes. |
+| `yarn start` | Advanced host-source runtime | Legacy host-local Nx path; not the default local runtime. Use only when explicitly required. |
+| `just ci-infra-up` | Legacy alternate CI infrastructure | Blocked by default because it creates a second Compose/ClickHouse stack. Requires `ALLOW_EXTRA_CONTAINERS=1` and explicit human authorization. |
+
+Run `just runtime-check` before any runtime, API, or integration diagnosis. If it
+fails, report the existing stack's state; do not silently switch to host-local
+services, `docker-compose.dev.yml`, `docker run`, or a new Compose project.
+`TAG` is an optional override for a published image; without it, Compose selects
+the local `mp-local` tag.
 
 ### Testing Commands
 
@@ -104,11 +114,15 @@ Twenty exposes a structured command surface through Nx targets and Yarn scripts.
 
 ## CI Contract
 
-The CI pipeline in `.github/workflows/` enforces the following stage order across 40+ workflow files:
+The CI surface in `.github/workflows/` currently contains 22 workflow files.
+Deployment and promotion CD workflows are not part of this repository contract;
+each workflow owns its applicable checks.
 
-1. **Secret scan** — Gitleaks detects secrets before any code runs.
-2. **Per-package CI** — Each package runs independently: `lint` (oxlint + oxfmt), `typecheck` (tsgo), `test` (Jest/Vitest), `build`.
-3. **Integration & E2E** — Integration tests (`test:integration:with-db-reset`) and Playwright E2E tests run against the full stack.
+Common CI checks include:
+
+1. **Per-package validation** — `lint` (oxlint + oxfmt), `typecheck` (tsgo), `test` (Jest/Vitest), and `build` where the package workflow requires them.
+2. **Integration and E2E** — Server integration, Playwright E2E, SDK, app, and Docker Compose checks where their workflow scope requires them.
+3. **Documentation and change routing** — Documentation validation and changed-file routing for workflows that opt into those checks.
 
 Key CI characteristics:
 - CI uses GitHub Actions service containers for PostgreSQL/Redis, not the `setup-dev-env.sh` script.
@@ -116,20 +130,30 @@ Key CI characteristics:
 - Build caching via Nx speeds up repeated runs.
 - Per-package concurrency where dependency graph permits.
 
-## Database Inspection (Postgres MCP)
+For pipeline theory, stage ordering rationale, the justfile CI command
+surface, and local DEV/CI mode guidance, see `docs/operations/ci.md`.
+The local CI decision is recorded in `docs/decisions/0007-local-ci-surface-via-justfile.md`.
 
-A read-only PostgreSQL MCP server is configured in `.mcp.json`. Use it during development to:
+## Database Inspection (Developer Postgres MCP)
+
+`.mcp.json` configures a developer-local PostgreSQL MCP client. It is separate
+from the application's authenticated runtime endpoint at `/mcp`; do not use
+this file to infer the runtime endpoint's authorization or tool capabilities.
+
+Use the developer client for read-only inspection during development to:
 - Inspect workspace data, metadata, and object definitions.
 - Verify migration results (columns, types, constraints).
 - Explore the multi-tenant schema structure (core, metadata, workspace-specific schemas).
 - Debug issues by querying raw data to confirm whether a bug is frontend, backend, or data-level.
 
-This server is read-only. For write operations (reset, migrations, sync), use the CLI database commands above.
+For write operations (reset, migrations, sync), use the CLI database commands
+above. Access policy and credentials remain environment-specific.
 
 ## Current Assumptions
 
 - Nx remains the command orchestration layer; commands are invoked through `npx nx <target> <package>`.
-- The `yarn start` convenience command remains the primary full-stack entry point.
+- The existing full Docker Compose project is the primary runtime. `just runtime-check` is the mandatory read-only preflight; `yarn start` is an advanced host-source path.
+- Runtime diagnostics never create a second stack. `docker-compose.dev.yml`, `docker run`, and alternate local services are opt-in only through an explicit human authorization.
 - `lint:diff-with-main` is the preferred lint strategy for PRs and local development.
 - Instance commands remain the authoritative migration mechanism.
 - GraphQL codegen remains a manual step after schema changes.
@@ -144,10 +168,10 @@ This server is read-only. For write operations (reset, migrations, sync), use th
 
 | Decision | Resolution |
 | --- | --- |
-| `justfile` or `Makefile` wrapper | No wrapper. `npx nx` is the standard command surface. No additional indirection layer. |
+| `justfile` wrapper | The root `justfile` now provides a CI command surface (`just ci`, `just ci-full`, `just ci-prepush`) mirroring GitHub Actions workflows, plus DEV mode helpers (`just dev-up`, `just dev-down`). Docker service helpers preserved. |
 | GraphQL codegen in CI | CI verifies generated types are up to date (fails if not). Codegen remains a manual step executed by the developer after schema changes. |
 | `lint:diff-with-main` as default | No. Both `lint:diff-with-main` (fast, preferred for PRs) and `lint` (full, for thorough checks) remain explicit. |
 
 ## Open Decisions
 
-- Should there be a single `yarn ci` command that runs the full CI pipeline locally?
+- Resolved. `just ci`, `just ci-full`, and `just ci-prepush` provide the unified local CI surface. See `docs/operations/ci.md` and `docs/decisions/0007-local-ci-surface-via-justfile.md`.

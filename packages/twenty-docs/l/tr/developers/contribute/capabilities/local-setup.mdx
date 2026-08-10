@@ -112,7 +112,7 @@ Sonraki adımlardaki tüm komutları projenin kök dizininden çalıştırmalıs
 
     **Seçenek 2:** Eğer docker yüklüyse:
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
   <Tab title="Mac OS">
@@ -167,7 +167,7 @@ Sonraki adımlardaki tüm komutları projenin kök dizininden çalıştırmalıs
 
     **Seçenek 2:** Eğer docker yüklüyse:
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
   <Tab title="Windows (WSL)">
@@ -184,7 +184,7 @@ Sonraki adımlardaki tüm komutları projenin kök dizininden çalıştırmalıs
     WSL üzerinde Docker çalıştırmak ek bir karmaşıklık katmanı ekler.
     Yalnızca ek adımlar dahil olmak üzere extra karmaşıklık adımlarına aşinaysanız kullanın. [Docker Desktop WSL2](https://docs.docker.com/desktop/wsl) etkinleştirmenizi içeren.
     ```bash
-      make -C packages/twenty-docker postgres-on-docker
+      just postgres-on-docker
     ```
   </Tab>
 </Tabs>
@@ -204,7 +204,7 @@ Twenty, en iyi performansı sağlamak için bir Redis önbelleği gerektirir.
 
     **Seçenek 2:** Eğer docker yüklüyse:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
   <Tab title="Mac OS">
@@ -219,7 +219,7 @@ Twenty, en iyi performansı sağlamak için bir Redis önbelleği gerektirir.
 
     **Seçenek 2:** Eğer docker yüklüyse:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
   <Tab title="Windows (WSL)">
@@ -228,7 +228,7 @@ Twenty, en iyi performansı sağlamak için bir Redis önbelleği gerektirir.
 
     **Seçenek 2:** Eğer docker yüklüyse:
     ```bash
-      make -C packages/twenty-docker redis-on-docker
+      just redis-on-docker
     ```
   </Tab>
 </Tabs>
