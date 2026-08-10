@@ -63,6 +63,29 @@ describe('classifyV2CompraAgilLifecycle', () => {
     ).toBe(true);
   });
 
+  it('accepts the observed root and provider order references', () => {
+    expect(
+      classifyV2CompraAgilLifecycle(
+        {
+          codigo: 'CA-1',
+          estado: 'proveedor_seleccionado',
+          id_orden_compra: 123,
+        },
+        true,
+      ).terminal,
+    ).toBe(true);
+    expect(
+      classifyV2CompraAgilLifecycle(
+        {
+          codigo: 'CA-2',
+          estado: 'oc_emitida',
+          proveedores_cotizando: [{ id_oc: 'OC-2' }],
+        },
+        true,
+      ).terminal,
+    ).toBe(true);
+  });
+
   it('keeps unknown and discordant states observable without discovery', () => {
     expect(
       classifyV2CompraAgilLifecycle(

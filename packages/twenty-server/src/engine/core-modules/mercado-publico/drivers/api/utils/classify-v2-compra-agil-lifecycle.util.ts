@@ -27,6 +27,32 @@ const getStateCode = (
   );
 };
 
+export type MercadoPublicoV2CompraAgilOrderReferences = {
+  idOrdenCompra: string | null;
+  idOc: string | null;
+  codigoOrdenCompra: string | null;
+};
+
+export const getV2CompraAgilOrderReferences = (
+  record: MercadoPublicoApiV2CompraAgilRecord,
+): MercadoPublicoV2CompraAgilOrderReferences => {
+  const providerWithOrder = record.proveedores_cotizando?.find(
+    (provider) => coerceToNullableString(provider.id_oc) !== null,
+  );
+
+  return {
+    idOrdenCompra:
+      coerceToNullableString(record.id_orden_compra) ??
+      coerceToNullableString(record.orden_compra?.id_orden_compra),
+    idOc:
+      coerceToNullableString(record.orden_compra?.id_oc) ??
+      coerceToNullableString(providerWithOrder?.id_oc),
+    codigoOrdenCompra: coerceToNullableString(
+      record.orden_compra?.codigo_orden_compra,
+    ),
+  };
+};
+
 export const getV2CompraAgilCallNumber = (
   record: MercadoPublicoApiV2CompraAgilRecord,
 ): number | null => {
@@ -62,10 +88,11 @@ export const getV2CompraAgilCallNumber = (
 const hasVerifiedPurchaseOrder = (
   record: MercadoPublicoApiV2CompraAgilRecord,
 ): boolean => {
-  return [
-    record.orden_compra?.id_orden_compra,
-    record.orden_compra?.id_oc,
-  ].some((value) => normalizeCode(value) !== null);
+  const orderReferences = getV2CompraAgilOrderReferences(record);
+
+  return (
+    orderReferences.idOrdenCompra !== null || orderReferences.idOc !== null
+  );
 };
 
 export const classifyV2CompraAgilLifecycle = (
@@ -143,8 +170,7 @@ export const getV2CompraAgilStateLabel = (
 export const getV2CompraAgilProviderOrderId = (
   record: MercadoPublicoApiV2CompraAgilRecord,
 ): string | null => {
-  return (
-    coerceToNullableString(record.orden_compra?.id_orden_compra) ??
-    coerceToNullableString(record.orden_compra?.id_oc)
-  );
+  const orderReferences = getV2CompraAgilOrderReferences(record);
+
+  return orderReferences.idOrdenCompra ?? orderReferences.idOc;
 };

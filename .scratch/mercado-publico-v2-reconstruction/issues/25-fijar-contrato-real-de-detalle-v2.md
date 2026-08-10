@@ -4,7 +4,7 @@ Status: done
 Source: ../PRD.md
 OpenSpec: decisión humana pendiente
 Completed: 2026-08-10
-Evidence: `packages/twenty-server/src/engine/core-modules/mercado-publico/drivers/api/__tests__/normalize-v2-compra-agil-record.util.spec.ts`, `npx jest ... --runInBand` (14/14)
+Evidence: `packages/twenty-server/src/engine/core-modules/mercado-publico/drivers/api/__tests__/normalize-v2-compra-agil-record.util.spec.ts`, `packages/twenty-server/src/engine/core-modules/mercado-publico/services/__tests__/mercado-publico-v2-projection.service.spec.ts`, `npx jest ... --runInBand` (54/54 focalizados), `npx tsgo --noEmit -p packages/twenty-server/tsconfig.json`
 
 ## What to build
 
@@ -26,6 +26,11 @@ Inspeccionar evidencia autorizada del endpoint real de detalle V2 y convertirla 
 
 ## Progress
 
+- 2026-08-10 — Inicio de implementación segura: se aplicará el parche mínimo downstream sobre el contrato ya fijado: referencias de orden V2, proyección de arrays hijos mediante `mp.v2_child_evidence` y correcciones acotadas del gate de typecheck. No se añadirán migraciones, UI ni captura de red.
+- 2026-08-10 — Orden V2: lifecycle, staging y proyección ahora comparten referencias raíz/anidadas (`id_orden_compra`, `id_oc`, `codigo_orden_compra`), incluyendo `id_oc` observado dentro de `proveedores_cotizando`; la regresión unitaria pasó (5/5).
+- 2026-08-10 — Hijos V2: `documentos`, `productos_solicitados`, `proveedores_cotizando` y `productos_cotizados` se proyectan en `mp.v2_child_evidence` con claves estables y fallback ordinal/checksum; la prueba unitaria de parámetros pasó (1/1) y se añadió cobertura DB-backed pendiente de PostgreSQL.
+- 2026-08-10 — Gate de calidad: `npx tsgo --noEmit -p packages/twenty-server/tsconfig.json` pasó sin errores; suites focalizadas pasaron (54 tests). `oxlint --type-aware` pasó sin errores en los archivos modificados. `npx nx typecheck twenty-server` y `npx nx test twenty-server` no arrancan por `spawn EPERM` al cargar plugins Nx; la integración DB no arranca sin PostgreSQL.
+- 2026-08-10 — Entorno Docker: `twenty-db-1` está saludable y `pg_isready` responde; la imagen runtime `twenty-server-1` no contiene checkout/tests ni Jest, por lo que no se ejecutó allí una suite destructiva que pudiera tocar la base compartida. La cobertura unitaria permanece verde.
 - 2026-08-10 — Reanudación con evidencia: el usuario aportó un listado V2 local de 3.000 resultados reales. Se verificó que procede de `/v2/compra-agil`; se usará sólo para seleccionar hasta cinco códigos diversos y la evidencia contractual seguirá proveniendo de las respuestas de detalle V2 sanitizadas.
 - 2026-08-10 — Fixtures: cinco detalles V2 seleccionados desde el listado devolvieron HTTP 200 con un registro. Se versionó una muestra sanitizada con 23 documentos, documentos vacíos, orden de compra, cancelación y proveedores vacíos; `normalize-v2-compra-agil-record.util.spec.ts` pasó (3/3).
 - 2026-08-10 — Relaciones: se documentaron `id`, `codigo_producto` e `id_cotizacion`, incluido el alcance de producto cotizado bajo su proveedor, más fallback ordinal+checksum. La spec valida las claves observadas y arrays vacíos.

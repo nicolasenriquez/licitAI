@@ -16,6 +16,7 @@ import {
   MERCADO_PUBLICO_API_V1_LICITACIONES_DETAIL_BY_CODIGO_ENDPOINT,
   MERCADO_PUBLICO_API_V1_LICITACIONES_SOURCE,
 } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
+import { type MercadoPublicoApiV1LicitacionesByDateResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-licitaciones-client.service';
 import { MercadoPublicoCanonicalRefreshService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-canonical-refresh.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 
@@ -99,7 +100,7 @@ describe('Mercado Publico V1 licitaciones list-to-detail canonical refresh (db-b
       'api-v1-licitaciones-by-date',
     );
     const fetchedAt = new Date('2026-06-15T12:00:00.000Z');
-    const listResponse = {
+    const listResponse: MercadoPublicoApiV1LicitacionesByDateResponse = {
       endpoint: MERCADO_PUBLICO_API_V1_LICITACIONES_BY_DATE_ENDPOINT,
       source: MERCADO_PUBLICO_API_V1_LICITACIONES_SOURCE,
       requestParams: { fecha: '15062026' },

@@ -9,6 +9,7 @@ import { type MercadoPublicoApiV1LicitacionesByDateResponse } from 'src/engine/c
 import { type MercadoPublicoApiV1OcByDateResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-ordenes-de-compra-client.service';
 import { type MercadoPublicoApiV2CompraAgilListResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { coerceToNullableString } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/coerce-to-nullable-string.util';
+import { getV2CompraAgilOrderReferences } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
 import { normalizeV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/normalize-v2-compra-agil-record.util';
 import {
   type MercadoPublicoJobName,
@@ -99,7 +100,7 @@ type PersistMercadoPublicoCsvDownloadInput = {
   sourceUrl: string;
   sourceFileName: string;
   sourcePeriod: string;
-  sourceModality?: string;
+  sourceModality?: string | null;
   fileChecksum: string;
   fileSizeBytes: number;
   compressionType: string | null;
@@ -756,7 +757,7 @@ export class MercadoPublicoPersistenceService {
     };
 
     for (const compraAgilItem of apiResponse.compraAgil) {
-      const ordenCompra = compraAgilItem.orden_compra;
+      const orderReferences = getV2CompraAgilOrderReferences(compraAgilItem);
 
       const normalized = normalizeV2CompraAgilRecord(compraAgilItem);
       placeholders.push(
@@ -770,9 +771,9 @@ export class MercadoPublicoPersistenceService {
         normalized.stateCode,
         normalized.stateId,
         normalized.stateLabel,
-        coerceToNullableString(ordenCompra?.id_orden_compra),
-        coerceToNullableString(ordenCompra?.id_oc),
-        coerceToNullableString(ordenCompra?.codigo_orden_compra),
+        orderReferences.idOrdenCompra,
+        orderReferences.idOc,
+        orderReferences.codigoOrdenCompra,
         coerceToNullableString(compraAgilItem.publicado_desde),
         coerceToNullableString(compraAgilItem.publicado_hasta),
         coerceToNullableString(compraAgilItem.cambio_desde),

@@ -277,6 +277,82 @@ describe('Mercado Publico V2 evidence, history and replay (db-backed)', () => {
     ]);
   });
 
+  it('projects every observed detail child array into one evidence table', async () => {
+    const record = createRecord('CA-CHILDREN', {
+      id_orden_compra: 9001,
+      documentos: [{ id: 77, nombre: 'Document' }],
+      productos_solicitados: [{ codigo_producto: 101, nombre: 'Requested' }],
+      proveedores_cotizando: [
+        {
+          id_cotizacion: 501,
+          id_oc: 9001,
+          productos_cotizados: [
+            { codigo_producto: 101, nombre_producto: 'Quoted' },
+          ],
+        },
+      ],
+    });
+
+    clientService.getList.mockResolvedValueOnce(createResponse([record]));
+    clientService.getByCodigo.mockResolvedValueOnce(createResponse([record]));
+
+    await durableSyncService.start({ cambio_desde: '2026-08-01T00:00:00Z' });
+
+    const stagingOrder = await dataSource.query<
+      { id_orden_compra: string | null; id_oc: string | null }[]
+    >(
+      `SELECT id_orden_compra, id_oc
+       FROM mp.stg_api_v2_compra_agil
+       WHERE codigo = 'CA-CHILDREN'`,
+    );
+    const children = await dataSource.query<
+      {
+        array_name: string;
+        provider_key: string | null;
+        ordinal: number;
+        element_json: unknown;
+      }[]
+    >(
+      `SELECT array_name, provider_key, ordinal, element_json
+       FROM mp.v2_child_evidence
+       ORDER BY array_name, ordinal`,
+    );
+
+    expect(stagingOrder).toEqual([{ id_orden_compra: '9001', id_oc: '9001' }]);
+    expect(children).toEqual([
+      {
+        array_name: 'documentos',
+        provider_key: '77',
+        ordinal: 0,
+        element_json: { id: 77, nombre: 'Document' },
+      },
+      {
+        array_name: 'productos_cotizados',
+        provider_key: '501:101',
+        ordinal: 0,
+        element_json: { codigo_producto: 101, nombre_producto: 'Quoted' },
+      },
+      {
+        array_name: 'productos_solicitados',
+        provider_key: '101',
+        ordinal: 0,
+        element_json: { codigo_producto: 101, nombre: 'Requested' },
+      },
+      {
+        array_name: 'proveedores_cotizando',
+        provider_key: '501',
+        ordinal: 0,
+        element_json: {
+          id_cotizacion: 501,
+          id_oc: 9001,
+          productos_cotizados: [
+            { codigo_producto: 101, nombre_producto: 'Quoted' },
+          ],
+        },
+      },
+    ]);
+  });
+
   it('appends history only on semantic change with before/after and source observations', async () => {
     const first = createRecord('CA-HISTORY', {
       nombre: 'Alpha',

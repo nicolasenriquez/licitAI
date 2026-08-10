@@ -9,6 +9,7 @@ import {
   getV2CompraAgilCallNumber,
   getV2CompraAgilProviderOrderId,
 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
+import { coerceToNullableString } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/coerce-to-nullable-string.util';
 import { createJsonSha256 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/create-json-sha256.util';
 import {
   type NormalizedV2CompraAgilRecord,
@@ -542,7 +543,73 @@ export class MercadoPublicoV2ProjectionService {
     observationId: string,
     record: MercadoPublicoApiV2CompraAgilRecord,
   ): Promise<void> {
-    if (!Array.isArray(record.documentos)) {
+    const children: Array<{
+      arrayName: string;
+      providerKey: string | null;
+      ordinal: number;
+      element: unknown;
+    }> = [];
+    const nextOrdinalByArray = new Map<string, number>();
+    const appendChild = (
+      arrayName: string,
+      element: unknown,
+      providerKey: string | null,
+    ): void => {
+      const ordinal = nextOrdinalByArray.get(arrayName) ?? 0;
+
+      nextOrdinalByArray.set(arrayName, ordinal + 1);
+      children.push({ arrayName, providerKey, ordinal, element });
+    };
+    const appendArray = <Element>(
+      arrayName: string,
+      elements: Element[] | undefined,
+      providerKeyFor: (element: Element) => string | null,
+    ): void => {
+      if (!Array.isArray(elements)) {
+        return;
+      }
+
+      for (const element of elements) {
+        appendChild(arrayName, element, providerKeyFor(element));
+      }
+    };
+
+    appendArray('documentos', record.documentos, (document) =>
+      coerceToNullableString(document.id),
+    );
+    appendArray(
+      'productos_solicitados',
+      record.productos_solicitados,
+      (product) => coerceToNullableString(product.codigo_producto),
+    );
+    appendArray(
+      'proveedores_cotizando',
+      record.proveedores_cotizando,
+      (provider) => coerceToNullableString(provider.id_cotizacion),
+    );
+
+    if (Array.isArray(record.proveedores_cotizando)) {
+      for (const [providerOrdinal, provider] of record.proveedores_cotizando.entries()) {
+        if (!Array.isArray(provider.productos_cotizados)) {
+          continue;
+        }
+
+        const providerIdentifier = coerceToNullableString(
+          provider.id_cotizacion,
+        );
+
+        for (const [productOrdinal, product] of provider.productos_cotizados.entries()) {
+          const productIdentifier = coerceToNullableString(
+            product.codigo_producto,
+          );
+          const nestedKey = `${providerIdentifier ?? providerOrdinal}:${productIdentifier ?? productOrdinal}`;
+
+          appendChild('productos_cotizados', product, nestedKey);
+        }
+      }
+    }
+
+    if (children.length === 0) {
       return;
     }
 
@@ -550,26 +617,20 @@ export class MercadoPublicoV2ProjectionService {
     const params: unknown[] = [];
     let paramIndex = 1;
 
-    for (const [ordinal, document] of record.documentos.entries()) {
+    for (const child of children) {
       placeholders.push(
         `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6})`,
       );
       params.push(
         observationId,
         record.codigo,
-        'documentos',
-        typeof document?.id === 'string' || typeof document?.id === 'number'
-          ? String(document.id)
-          : null,
-        ordinal,
-        createJsonSha256(document),
-        JSON.stringify(document),
+        child.arrayName,
+        child.providerKey,
+        child.ordinal,
+        createJsonSha256(child.element),
+        JSON.stringify(child.element),
       );
       paramIndex += 7;
-    }
-
-    if (placeholders.length === 0) {
-      return;
     }
 
     await entityManager.query(
