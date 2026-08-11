@@ -12,6 +12,11 @@ import {
   Resolver,
 } from '@nestjs/graphql';
 
+import { MercadoPublicoV2BuyersReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-buyers-read.service';
+import {
+  MercadoPublicoV2HistoryReadService,
+  type MercadoPublicoV2HistoryEvent,
+} from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-history-read.service';
 import {
   encodeMercadoPublicoV2OpportunityCursor,
   MercadoPublicoV2ReadService,
@@ -340,6 +345,66 @@ export class MercadoPublicoV2AnalyticsDTO {
 @ObjectType()
 export class MercadoPublicoV2NamespaceDTO {}
 
+@ObjectType()
+export class MercadoPublicoV2HistoryEventDTO {
+  @Field()
+  id!: string;
+
+  @Field()
+  codigo!: string;
+
+  @Field(() => [String])
+  changedFields!: string[];
+
+  @Field(() => String, { nullable: true })
+  previousObservationId!: string | null;
+
+  @Field(() => String, { nullable: true })
+  newObservationId!: string | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  providerChangedAt!: Date | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  observedAt!: Date | null;
+
+  @Field(() => String, { nullable: true })
+  normalizerVersion!: string | null;
+
+  @Field(() => String, { nullable: true })
+  providerSchemaFingerprint!: string | null;
+
+  @Field(() => String, { nullable: true })
+  source!: string | null;
+
+  @Field(() => String, { nullable: true })
+  endpoint!: string | null;
+
+  @Field(() => String, { nullable: true })
+  snapshotKind!: string | null;
+
+  @Field(() => GraphQLISODateTime)
+  createdAt!: Date;
+}
+
+@ObjectType()
+export class MercadoPublicoV2HistoryEdgeDTO {
+  @Field()
+  cursor!: string;
+
+  @Field(() => MercadoPublicoV2HistoryEventDTO)
+  node!: MercadoPublicoV2HistoryEventDTO;
+}
+
+@ObjectType()
+export class MercadoPublicoV2HistoryConnectionDTO {
+  @Field(() => [MercadoPublicoV2HistoryEdgeDTO])
+  edges!: MercadoPublicoV2HistoryEdgeDTO[];
+
+  @Field(() => MercadoPublicoV2PageInfoDTO)
+  pageInfo!: MercadoPublicoV2PageInfoDTO;
+}
+
 const toOpportunityDTO = (
   row: MercadoPublicoV2OpportunityRow,
 ): MercadoPublicoV2OpportunityDTO => ({
@@ -404,6 +469,24 @@ const toAnalyticsDTO = (
   llamadoBuckets: analytics.llamadoBuckets.map(toAnalyticsBucketDTO),
 });
 
+const toHistoryEventDTO = (
+  event: MercadoPublicoV2HistoryEvent,
+): MercadoPublicoV2HistoryEventDTO => ({
+  id: event.id,
+  codigo: event.codigo,
+  changedFields: event.changedFields,
+  previousObservationId: event.previousObservationId,
+  newObservationId: event.newObservationId,
+  providerChangedAt: event.providerChangedAt,
+  observedAt: event.observedAt,
+  normalizerVersion: event.normalizerVersion,
+  providerSchemaFingerprint: event.providerSchemaFingerprint,
+  source: event.source,
+  endpoint: event.endpoint,
+  snapshotKind: event.snapshotKind,
+  createdAt: event.createdAt,
+});
+
 @UseGuards(WorkspaceAuthGuard, NoPermissionGuard)
 @Resolver()
 export class MercadoPublicoV2Resolver {
@@ -418,6 +501,8 @@ export class MercadoPublicoV2Resolver {
 export class MercadoPublicoV2NamespaceResolver {
   constructor(
     private readonly mercadoPublicoV2ReadService: MercadoPublicoV2ReadService,
+    private readonly mercadoPublicoV2HistoryReadService: MercadoPublicoV2HistoryReadService,
+    private readonly mercadoPublicoV2BuyersReadService: MercadoPublicoV2BuyersReadService,
   ) {}
 
   @ResolveField(() => MercadoPublicoV2OpportunityConnectionDTO)
@@ -479,5 +564,34 @@ export class MercadoPublicoV2NamespaceResolver {
     );
 
     return toAnalyticsDTO(result);
+  }
+
+  @ResolveField(() => MercadoPublicoV2HistoryConnectionDTO)
+  async history(
+    @Args('codigo', { type: () => String })
+    codigo: string,
+    @Args('after', { type: () => String, nullable: true })
+    after?: string | null,
+    @Args('first', { type: () => Int, nullable: true, defaultValue: 50 })
+    first?: number,
+  ): Promise<MercadoPublicoV2HistoryConnectionDTO> {
+    const result = await this.mercadoPublicoV2HistoryReadService.listHistory(
+      codigo,
+      after,
+      first,
+    );
+
+    return {
+      edges: result.rows.map((event) => ({
+        cursor: event.cursor,
+        node: toHistoryEventDTO(event),
+      })),
+      pageInfo: {
+        hasNextPage: result.hasNextPage,
+        hasPreviousPage: after != null,
+        startCursor: result.startCursor,
+        endCursor: result.endCursor,
+      },
+    };
   }
 }

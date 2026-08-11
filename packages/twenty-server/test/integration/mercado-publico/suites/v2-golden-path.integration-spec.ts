@@ -1,6 +1,8 @@
 import { type DataSource } from 'typeorm';
 
 import fixture from 'src/engine/core-modules/mercado-publico/drivers/api/__tests__/fixtures/v2-compra-agil-list.json';
+import { MercadoPublicoV2BuyersReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-buyers-read.service';
+import { MercadoPublicoV2HistoryReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-history-read.service';
 import { MercadoPublicoV2NamespaceResolver } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2.resolver';
 import { MercadoPublicoV2ReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-read.service';
 import { MpCanonicalCompraAgilFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007880-mp-canonical-compra-agil';
@@ -107,7 +109,11 @@ describe('Mercado Publico V2 golden path (db-backed)', () => {
       durableSyncService,
     );
     readService = new MercadoPublicoV2ReadService(dataSource);
-    resolver = new MercadoPublicoV2NamespaceResolver(readService);
+    resolver = new MercadoPublicoV2NamespaceResolver(
+      readService,
+      {} as MercadoPublicoV2HistoryReadService,
+      {} as MercadoPublicoV2BuyersReadService,
+    );
   });
 
   beforeEach(async () => {

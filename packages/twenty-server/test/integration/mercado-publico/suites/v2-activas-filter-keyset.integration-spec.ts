@@ -1,5 +1,7 @@
 import { type DataSource } from 'typeorm';
 
+import { MercadoPublicoV2BuyersReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-buyers-read.service';
+import { MercadoPublicoV2HistoryReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-history-read.service';
 import { MercadoPublicoV2ReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-read.service';
 import {
   MercadoPublicoV2NamespaceResolver,
@@ -161,7 +163,11 @@ describe('Mercado Publico V2 Activas filters and keyset (db-backed)', () => {
     await applyCommands(dataSource);
 
     readService = new MercadoPublicoV2ReadService(dataSource);
-    resolver = new MercadoPublicoV2NamespaceResolver(readService);
+    resolver = new MercadoPublicoV2NamespaceResolver(
+      readService,
+      {} as MercadoPublicoV2HistoryReadService,
+      {} as MercadoPublicoV2BuyersReadService,
+    );
   });
 
   beforeEach(async () => {

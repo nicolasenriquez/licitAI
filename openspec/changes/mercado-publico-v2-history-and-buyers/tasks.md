@@ -1,41 +1,60 @@
 ## 0. Investigation and Scope Lock
 
-- [ ] 0.1 Reconfirm the G2 lane B boundary against `implementation-sdlc-map.md`,
+- [x] 0.1 Reconfirm the G2 lane B boundary against `implementation-sdlc-map.md`,
   `mp.v2_history`, and the current `mercadoPublicoV2` namespace before code
   changes.
   Traceability: Group G2; Slice S1; Issue 25; Scope contract evidence only.
+  Notes: Confirmed G2 lane B is 25 -> 26 -> 27; `mp.v2_history` and its
+  `codigo, created_at` index exist; `MercadoPublicoV2NamespaceResolver`
+  currently exposes only `opportunities` and `analytics`.
 
-- [ ] 0.2 Record Issues 25 and 26 as completed evidence and verify that Issue
+- [x] 0.2 Record Issues 25 and 26 as completed evidence and verify that Issue
   27 adds no migration, detail-contract, provider, or control-plane work.
   Traceability: Group G2; Slice S1; Issue 26; Scope authenticated detail evidence only.
+  Notes: Issues 25 and 26 are `Status: done` with `Completed: 2026-08-10`
+  and recorded evidence; Issue 27 remains `ready-for-human` and adds no
+  migration, detail-contract, provider, or control-plane work.
 
 ## 1. Contract Coverage (Failing First)
 
-- [ ] 1.1 Add failing read-service and resolver coverage for a keyset Historial
+- [x] 1.1 Add failing read-service and resolver coverage for a keyset Historial
   event for a required `codigo`, with semantic diff, provenance, and no join to
   the current snapshot.
   Traceability: Group G2; Slice S1; Issue 27; Acceptance AC 27.1, AC 27.4.
+  Notes: Added history reader and namespace resolver contract specs. Jest is
+  red because dedicated history reader and resolver field are not implemented.
 
-- [ ] 1.2 Add failing read-service and resolver coverage for buyer aggregates
+- [x] 1.2 Add failing read-service and resolver coverage for buyer aggregates
   that share the Active filter population, group by `buyerCode`, exclude rows
   without that code from selectable aggregates, and declare coverage,
   availability, completeness, and freshness without a monetary total.
   Traceability: Group G2; Slice S2; Issue 27; Acceptance AC 27.2, AC 27.4.
+  Notes: Added buyer reader and namespace resolver contract specs. Jest is red
+  because dedicated buyer reader and resolver field are not implemented.
 
-- [ ] 1.3 Add failing authenticated Playwright coverage for both routes,
+- [x] 1.3 Add failing authenticated Playwright coverage for both routes,
   buyer-to-Activas navigation, browser Back, and accessible partial states.
   Use an isolated workspace with seeded V2 data and the real authentication
   flow; do not mock GraphQL or rely on Compose residue.
   Traceability: Group G2; Slice S3; Issue 27; Acceptance AC 27.3, AC 27.5.
+  Notes: Added five real-network Playwright tests using login setup storage and
+  seeded-fixture defaults. `--list` compiles all tests; runtime run passed auth
+  setup and failed route assertions until tasks 2.2 and 2.4 land.
 
 ## 2. Implementation
 
 ### Historial
 
-- [ ] 2.1 Add a dedicated Historial reader, DTOs, and namespace resolver field
+- [x] 2.1 Add a dedicated Historial reader, DTOs, and namespace resolver field
   that requires `codigo`, with stable `created_at, id` keyset pagination and a
   derived semantic diff.
   Traceability: Group G2; Slice S1; Issue 27; Acceptance AC 27.1.
+  Notes: Added `MercadoPublicoV2HistoryReadService` querying only
+  `mp.v2_history` joined to `mp.v2_observation` with `created_at DESC, id DESC`
+  keyset cursors and a derived `changedFields` diff, plus History DTOs and a
+  `history` namespace field requiring `codigo`. History contract spec is green;
+  the resolver buyers case stays red until 2.3. Resolver spec mock aligned to
+  per-event cursors.
 
 - [ ] 2.2 Add the Historial route, page, and private Mercado Público local
   navigation using Twenty shell, tokens, and explicit state rendering. Require

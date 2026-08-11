@@ -9,6 +9,8 @@ import {
   MercadoPublicoV2Resolver,
 } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2.resolver';
 import { MercadoPublicoV2DetailResolver } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-detail.resolver';
+import { MercadoPublicoV2BuyersReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-buyers-read.service';
+import { MercadoPublicoV2HistoryReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-history-read.service';
 import { MercadoPublicoV2DetailReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-detail-read.service';
 import { MercadoPublicoV2ReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-read.service';
 import { MercadoPublicoJob } from 'src/engine/core-modules/mercado-publico/jobs/mercado-publico.job';
@@ -66,6 +68,8 @@ import { MercadoPublicoV2EvidenceReplayService } from 'src/engine/core-modules/m
     MercadoPublicoV2EvidenceReplayService,
     MercadoPublicoV2ReadService,
     MercadoPublicoV2DetailReadService,
+    MercadoPublicoV2HistoryReadService,
+    MercadoPublicoV2BuyersReadService,
     MercadoPublicoV2NamespaceResolver,
     MercadoPublicoV2Resolver,
     MercadoPublicoV2DetailResolver,
