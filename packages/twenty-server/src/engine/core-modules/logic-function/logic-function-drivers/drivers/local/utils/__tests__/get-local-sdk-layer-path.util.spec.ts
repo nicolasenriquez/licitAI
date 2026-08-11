@@ -8,6 +8,7 @@ describe('getLocalSdkLayerPath', () => {
         workspaceId: 'ws-1',
         applicationUniversalIdentifier: 'app-2',
       }),
-    ).toBe(`${LOGIC_FUNCTION_EXECUTOR_TMPDIR_FOLDER}/sdk/ws-1-app-2`);
+    ).toBe(join(LOGIC_FUNCTION_EXECUTOR_TMPDIR_FOLDER, 'sdk', 'ws-1-app-2'));
   });
 });
+import { join } from 'node:path';

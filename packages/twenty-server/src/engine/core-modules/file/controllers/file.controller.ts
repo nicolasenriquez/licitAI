@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 
 import { pipeline } from 'node:stream/promises';
-import { join } from 'path';
+import { posix as path } from 'node:path';
 
 import { Request, Response } from 'express';
 import { FileFolder } from 'twenty-shared/types';
@@ -46,7 +46,7 @@ export class FileController {
     @Param('applicationId')
     applicationId: string,
   ) {
-    const filepath = join(...req.params.path);
+    const filepath = path.join(...req.params.path);
 
     const filePathValidationResult = validateFilePath({
       resourcePath: filepath,

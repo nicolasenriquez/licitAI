@@ -86,8 +86,9 @@ ci-prepush: ci-gate ci-check ci-build ci-test
 # Standard local CI pipeline (commit-build: no server needed)
 ci: ci-check ci-build ci-test
 
-# Full CI including validate + security + integration (integration infra is gated)
-ci-full: ci ci-validate ci-security ci-integration
+# Full CI including validate + security + integration. Fail before CI work when
+# the explicitly started CI infrastructure or source server is missing.
+ci-full: _ensure-installed _ensure-ci-prerequisites ci ci-validate ci-security ci-integration
 
 # All static checks across packages
 ci-check: _ensure-installed ci-server-lint ci-front-lint ci-front-typecheck ci-shared ci-ui ci-sdk ci-docs
@@ -251,7 +252,7 @@ ci-validate: _ensure-installed _ensure-server-healthy
 
 ci-security:
     @echo === yarn npm audit (HIGH/CRITICAL) ===
-    yarn npm audit --severity high
+    cmd /C "set NODE_OPTIONS=--use-system-ca&& yarn npm audit --severity high"
     @echo === Secret scan of staged changes ===
     docker run --rm --platform {{PLATFORM}} --mount type=bind,source=%CD%,target=/repo,readonly -w /repo ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f git --pre-commit --redact --staged --verbose
     @echo === SBOM ===
@@ -318,6 +319,9 @@ _ensure-clickhouse:
 [private]
 _ensure-server-healthy:
     @npx wait-on http://localhost:3000/healthz --timeout 5000 2>nul || (echo ERROR: No healthy server on :3000. Start one in another terminal: npx nx start:ci twenty-server & exit 1)
+
+[private]
+_ensure-ci-prerequisites: _ensure-pg _ensure-redis _ensure-clickhouse _ensure-server-healthy
 
 [private]
 _docker-network:

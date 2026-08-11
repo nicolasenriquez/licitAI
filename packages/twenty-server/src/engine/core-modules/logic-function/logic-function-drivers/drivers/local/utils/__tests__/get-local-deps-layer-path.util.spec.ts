@@ -6,7 +6,7 @@ describe('getLocalDepsLayerPath', () => {
   it('joins the tmpdir folder, the deps segment and the yarnLockChecksum', () => {
     expect(
       getLocalDepsLayerPath({ yarnLockChecksum: 'abc123' } as FlatApplication),
-    ).toBe(`${LOGIC_FUNCTION_EXECUTOR_TMPDIR_FOLDER}/deps/abc123`);
+    ).toBe(join(LOGIC_FUNCTION_EXECUTOR_TMPDIR_FOLDER, 'deps', 'abc123'));
   });
 
   it('falls back to default when yarnLockChecksum is undefined', () => {
@@ -14,6 +14,7 @@ describe('getLocalDepsLayerPath', () => {
       getLocalDepsLayerPath({
         yarnLockChecksum: undefined,
       } as unknown as FlatApplication),
-    ).toBe(`${LOGIC_FUNCTION_EXECUTOR_TMPDIR_FOLDER}/deps/default`);
+    ).toBe(join(LOGIC_FUNCTION_EXECUTOR_TMPDIR_FOLDER, 'deps', 'default'));
   });
 });
+import { join } from 'node:path';

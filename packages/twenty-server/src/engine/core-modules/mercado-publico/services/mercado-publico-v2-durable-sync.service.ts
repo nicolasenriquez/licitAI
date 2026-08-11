@@ -726,11 +726,7 @@ export class MercadoPublicoV2DurableSyncService {
       );
 
       if (terminal) {
-        await this.markCohortTerminal(
-          context,
-          item.codigo,
-          lifecycle.reason,
-        );
+        await this.markCohortTerminal(context, item.codigo, lifecycle.reason);
       }
 
       await this.updateSyncRunCounters(context.syncRunId);

@@ -22,6 +22,7 @@ import 'react-loading-skeleton/dist/skeleton.css';
 import 'twenty-ui/style.css';
 import 'twenty-ui/theme-light.css';
 import 'twenty-ui/theme-dark.css';
+import { THEME_LIGHT } from 'twenty-ui/theme';
 import { ThemeProvider } from 'twenty-ui/theme-constants';
 // oxlint-disable-next-line no-restricted-imports
 import { messages as enMessages } from '../src/locales/generated/en';
@@ -33,8 +34,7 @@ import { mockedUserJWT } from '~/testing/mock-data/jwt';
 // oxlint-disable-next-line no-restricted-imports
 import { ClickOutsideListenerContext } from '../src/modules/ui/utilities/pointer-event/contexts/ClickOutsideListenerContext';
 
-const MOCK_IMAGE_SVG =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192"><rect width="192" height="192" fill="#d9d9d9"/></svg>';
+const MOCK_IMAGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192"><rect width="192" height="192" fill="${THEME_LIGHT.border.color.strong}"/></svg>`;
 
 const respondWithMockImage = () =>
   new HttpResponse(MOCK_IMAGE_SVG, {

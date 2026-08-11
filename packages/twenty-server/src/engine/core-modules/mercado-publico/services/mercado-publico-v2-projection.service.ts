@@ -437,11 +437,7 @@ export class MercadoPublicoV2ProjectionService {
         observationId,
         semanticFingerprint,
       );
-      await this.projectChildren(
-        entityManager,
-        observationId,
-        context,
-      );
+      await this.projectChildren(entityManager, observationId, context);
       await entityManager.query(
         `
           UPDATE mp.stg_api_v2_compra_agil
@@ -632,7 +628,10 @@ export class MercadoPublicoV2ProjectionService {
     );
 
     if (Array.isArray(record.proveedores_cotizando)) {
-      for (const [providerOrdinal, provider] of record.proveedores_cotizando.entries()) {
+      for (const [
+        providerOrdinal,
+        provider,
+      ] of record.proveedores_cotizando.entries()) {
         if (!Array.isArray(provider.productos_cotizados)) {
           continue;
         }
@@ -641,7 +640,10 @@ export class MercadoPublicoV2ProjectionService {
           provider.id_cotizacion,
         );
 
-        for (const [productOrdinal, product] of provider.productos_cotizados.entries()) {
+        for (const [
+          productOrdinal,
+          product,
+        ] of provider.productos_cotizados.entries()) {
           const productIdentifier = coerceToNullableString(
             product.codigo_producto,
           );
@@ -665,7 +667,7 @@ export class MercadoPublicoV2ProjectionService {
     for (const child of children) {
       const parentProviderKey =
         child.arrayName === 'productos_cotizados'
-          ? child.providerKey?.split(':', 1)[0] ?? null
+          ? (child.providerKey?.split(':', 1)[0] ?? null)
           : null;
 
       placeholders.push(
@@ -706,15 +708,14 @@ export class MercadoPublicoV2ProjectionService {
     const nestedProductTotal = Array.isArray(record.proveedores_cotizando)
       ? record.proveedores_cotizando.reduce(
           (total, provider) =>
-            total + (Array.isArray(provider.productos_cotizados)
+            total +
+            (Array.isArray(provider.productos_cotizados)
               ? provider.productos_cotizados.length
               : 0),
           0,
         )
       : 0;
-    const nestedProductPresent = Array.isArray(
-      record.proveedores_cotizando,
-    )
+    const nestedProductPresent = Array.isArray(record.proveedores_cotizando)
       ? record.proveedores_cotizando.some((provider) =>
           Array.isArray(provider.productos_cotizados),
         )

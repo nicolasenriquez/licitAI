@@ -28,13 +28,15 @@ describe('LocalDriver security hardening', () => {
   it('should reject writeFile when target is a symlink', async () => {
     const storagePath = await createTempDirectory('local-driver-storage-');
     const outsidePath = await createTempDirectory('local-driver-outside-');
-    const outsideFilePath = path.join(outsidePath, 'outside.txt');
+    const outsideFilePath = path.join(outsidePath, 'target.txt');
     const symlinkFolderPath = path.join(storagePath, 'workspace', 'app');
-    const symlinkFilePath = path.join(symlinkFolderPath, 'target.txt');
-
-    await mkdir(symlinkFolderPath, { recursive: true });
+    await mkdir(path.dirname(symlinkFolderPath), { recursive: true });
     await writeFile(outsideFilePath, 'outside');
-    await symlink(outsideFilePath, symlinkFilePath);
+    await symlink(
+      outsidePath,
+      symlinkFolderPath,
+      process.platform === 'win32' ? 'junction' : 'dir',
+    );
 
     const driver = new LocalDriver({ storagePath });
 
@@ -54,18 +56,21 @@ describe('LocalDriver security hardening', () => {
   it('should reject downloadFile when path resolves outside storage', async () => {
     const storagePath = await createTempDirectory('local-driver-storage-');
     const outsidePath = await createTempDirectory('local-driver-outside-');
-    const outsideFilePath = path.join(outsidePath, 'outside.txt');
+    const outsideFilePath = path.join(outsidePath, 'target.txt');
     const symlinkFolderPath = path.join(storagePath, 'workspace', 'app');
-    const symlinkFilePath = path.join(symlinkFolderPath, 'target.txt');
     const downloadDestinationPath = path.join(
       storagePath,
       'download',
       'file.txt',
     );
 
-    await mkdir(symlinkFolderPath, { recursive: true });
+    await mkdir(path.dirname(symlinkFolderPath), { recursive: true });
     await writeFile(outsideFilePath, 'outside');
-    await symlink(outsideFilePath, symlinkFilePath);
+    await symlink(
+      outsidePath,
+      symlinkFolderPath,
+      process.platform === 'win32' ? 'junction' : 'dir',
+    );
 
     const driver = new LocalDriver({ storagePath });
 

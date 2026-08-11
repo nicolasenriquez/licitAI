@@ -11,6 +11,8 @@ user explicitly requests the legacy OpenSpec workflow.
 Read only what is needed:
 
 - the active change folder under `openspec/changes/<change-name>/`
+- `.scratch/<feature-slug>/implementation-sdlc-map.md` when the change was
+  prepared from an implementation SDLC map
 - `.agents/skills/grill-with-docs/SKILL.md`
 - [references/opsx-command-contract.md](references/opsx-command-contract.md)
 - [references/opsx-house-style.md](references/opsx-house-style.md)
@@ -59,6 +61,8 @@ implementation command.
 2. Resolve the active change name or path.
 3. Investigate first, lock the ownership boundary, and identify every material
    gap before authoring the specification.
+   When an implementation SDLC map is available, use it to preserve approved
+   issue groups, slices, blockers, and retrospective evidence.
 4. When a material gap remains, use `grill-with-docs` to resolve it and return
    to investigation. Do not create a supposedly ready specification while a
    gap remains.
@@ -84,7 +88,11 @@ Keep the active change profile explicit:
 Keep artifacts compatible with local command expectations:
 
 - `proposal.md` must include `## Notes`
+- when a map is used, `## Notes` must identify its source map path and group
+  identifier
 - every checkbox task in `tasks.md` must include an adjacent `Traceability:` line
+- when an implementation SDLC map exists, implementation task traceability must
+  include `Group`, `Slice`, `Issue`, and applicable `Acceptance` identifiers
 - completed tasks should also include an adjacent `Notes:` line
 - use sequential numeric task IDs only such as `0.1`, `1.1`, `2.1`, `2.2`
 - do not mix numeric task IDs with alphabetic subsection IDs
@@ -213,6 +221,11 @@ misread as numeric order. Keep numeric IDs stable, list each task once in that
 block, and reject missing IDs or cycles. Layer headings group tasks; they do not
 define execution order.
 
+When an implementation SDLC map is present, every mapped implementation issue
+must appear in at least one task traceability line. Do not invent issue coverage.
+Retrospective issues use existing evidence in adjacent `Notes:` lines instead of
+new implementation claims.
+
 Use the selected Matt rules as guidance only:
 
 - grilling / grill-with-docs: clarify intent, ownership, and scope one question
@@ -225,6 +238,7 @@ Use the selected Matt rules as guidance only:
 - to-tickets: use vertical tracer-bullet slices, genuine blockers, and
   expand-contract.
 
-OpenSpec remains the sole source of truth. Do not run Matt commands that publish
-tracker work or create parallel artifacts during normal Opsx authoring; in
-particular, do not invoke to-spec or to-tickets as authoring steps.
+OpenSpec remains the sole source of truth after authoring. The implementation
+SDLC map is input context only. Do not run Matt commands that publish tracker
+work or create parallel artifacts during normal Opsx authoring; in particular,
+do not invoke to-spec or to-tickets as authoring steps.

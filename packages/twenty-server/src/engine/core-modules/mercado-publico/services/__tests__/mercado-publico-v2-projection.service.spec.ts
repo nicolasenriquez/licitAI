@@ -8,24 +8,26 @@ type QueryCall = { sql: string; params: unknown[] };
 const buildHarness = () => {
   const queries: QueryCall[] = [];
   const entityManager = {
-    query: jest.fn().mockImplementation(async (sql: string, params: unknown[] = []) => {
-      queries.push({ sql, params });
+    query: jest
+      .fn()
+      .mockImplementation(async (sql: string, params: unknown[] = []) => {
+        queries.push({ sql, params });
 
-      if (sql.includes('INSERT INTO mp.v2_observation')) {
-        return [{ id: 'observation-id' }];
-      }
+        if (sql.includes('INSERT INTO mp.v2_observation')) {
+          return [{ id: 'observation-id' }];
+        }
 
-      if (sql.includes('INSERT INTO mp.compra_agil')) {
-        return [{ id: 'current-id' }];
-      }
+        if (sql.includes('INSERT INTO mp.compra_agil')) {
+          return [{ id: 'current-id' }];
+        }
 
-      return [];
-    }),
+        return [];
+      }),
   };
   const dataSource = {
-    transaction: jest.fn().mockImplementation(async (callback) =>
-      callback(entityManager),
-    ),
+    transaction: jest
+      .fn()
+      .mockImplementation(async (callback) => callback(entityManager)),
   };
   const service = new MercadoPublicoV2ProjectionService(dataSource as never);
 
@@ -243,9 +245,7 @@ describe('MercadoPublicoV2ProjectionService', () => {
   it('marks relations absent from the record as unavailable', async () => {
     const { service, queries } = buildHarness();
 
-    await service.ingest(
-      buildContext({ codigo: 'CA-LIST-ONLY' }, 'list'),
-    );
+    await service.ingest(buildContext({ codigo: 'CA-LIST-ONLY' }, 'list'));
 
     const snapshotQuery = queries.find((query) =>
       query.sql.includes('INSERT INTO mp.v2_relation_snapshot'),

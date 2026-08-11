@@ -173,6 +173,13 @@ If phase `1` is intentionally omitted:
 
 - [ ] 4.3 Run `openspec validate <change-name>`.
   Traceability: final artifact-level proof that proposal, design, tasks, and spec remain aligned.
+
+When tasks are sourced from an implementation SDLC map, keep issue mapping in
+the same adjacent `Traceability:` line:
+
+```md
+Traceability: Group G1; Slice S1; Issue 18; Acceptance AC 18.1, AC 18.2.
+```
 ```
 
 ## docs-or-governance-change task shape

@@ -6,7 +6,13 @@ import {
   type FrontComponentExecutionContext,
   type FrontComponentHostCommunicationApi,
 } from 'twenty-front-component-renderer';
-import { type AppPath, type EnqueueSnackbarParams } from 'twenty-shared/types';
+import {
+  type AppPath,
+  type EnqueueSnackbarParams,
+  type NavigateOptions,
+  type SidePanelPages,
+} from 'twenty-shared/types';
+import { type NavigateFunction } from 'twenty-sdk/front-component';
 
 import { currentUserState } from '@/auth/states/currentUserState';
 import { useCommandMenuConfirmationModal } from '@/command-menu-item/confirmation-modal/hooks/useCommandMenuConfirmationModal';
@@ -19,7 +25,11 @@ import { sidePanelSearchState } from '@/side-panel/states/sidePanelSearchState';
 import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
 import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
 import { useSetAtomFamilyState } from '@/ui/utilities/state/jotai/hooks/useSetAtomFamilyState';
-import { assertUnreachable, isDefined } from 'twenty-shared/utils';
+import {
+  assertUnreachable,
+  isDefined,
+  type getAppPath,
+} from 'twenty-shared/utils';
 import { useIcons } from 'twenty-ui/icon';
 import { useCopyToClipboard } from '~/hooks/useCopyToClipboard';
 import { useNavigateApp } from '~/hooks/useNavigateApp';
@@ -68,11 +78,11 @@ export const useFrontComponentExecutionContext = ({
     commandMenuItemId ?? '',
   );
 
-  const navigate: FrontComponentHostCommunicationApi['navigate'] = async (
-    to,
-    params,
-    queryParams,
-    options,
+  const navigate: NavigateFunction = async <T extends AppPath>(
+    to: T,
+    params?: Parameters<typeof getAppPath<T>>[1],
+    queryParams?: Record<string, unknown>,
+    options?: NavigateOptions,
   ) => {
     navigateApp(
       to as AppPath,
@@ -83,7 +93,17 @@ export const useFrontComponentExecutionContext = ({
   };
 
   const openSidePanelPage: FrontComponentHostCommunicationApi['openSidePanelPage'] =
-    async ({ page, pageTitle, pageIcon, shouldResetSearchState }) => {
+    async ({
+      page,
+      pageTitle,
+      pageIcon,
+      shouldResetSearchState,
+    }: {
+      page: SidePanelPages;
+      pageTitle: string;
+      pageIcon?: string;
+      shouldResetSearchState?: boolean;
+    }) => {
       navigateSidePanel({
         page,
         pageTitle,
@@ -96,7 +116,17 @@ export const useFrontComponentExecutionContext = ({
     };
 
   const openCommandConfirmationModal: FrontComponentHostCommunicationApi['openCommandConfirmationModal'] =
-    async ({ title, subtitle, confirmButtonText, confirmButtonAccent }) => {
+    async ({
+      title,
+      subtitle,
+      confirmButtonText,
+      confirmButtonAccent,
+    }: {
+      title: string;
+      subtitle: string;
+      confirmButtonText?: string;
+      confirmButtonAccent?: 'default' | 'blue' | 'danger';
+    }) => {
       openConfirmationModal({
         caller: { type: 'frontComponent', frontComponentId },
         title,
@@ -159,7 +189,7 @@ export const useFrontComponentExecutionContext = ({
     };
 
   const updateProgress: FrontComponentHostCommunicationApi['updateProgress'] =
-    async (progress) => {
+    async (progress: number) => {
       if (!isDefined(commandMenuItemId)) {
         return;
       }
@@ -168,7 +198,7 @@ export const useFrontComponentExecutionContext = ({
     };
 
   const copyToClipboard: FrontComponentHostCommunicationApi['copyToClipboard'] =
-    async (text) => {
+    async (text: string) => {
       if (!isNonEmptyString(text)) {
         return;
       }

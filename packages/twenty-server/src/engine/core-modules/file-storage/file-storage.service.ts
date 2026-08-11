@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { basename, dirname, join } from 'path';
+import { posix as path } from 'node:path';
 import { type Readable } from 'stream';
 
 import { FileFolder } from 'twenty-shared/types';
@@ -50,13 +50,13 @@ export class FileStorageService {
     fileFolder: FileFolder;
     relativePath: string;
   }): { onStoragePath: string; resourcePath: string } {
-    const resourcePath = join(fileFolder, relativePath).replace(/\/+/g, '/');
+    const resourcePath = path
+      .join(fileFolder, relativePath)
+      .replace(/\/+/g, '/');
 
-    const onStoragePath = join(
-      workspaceId,
-      applicationUniversalIdentifier,
-      resourcePath,
-    ).replace(/\/+/g, '/');
+    const onStoragePath = path
+      .join(workspaceId, applicationUniversalIdentifier, resourcePath)
+      .replace(/\/+/g, '/');
 
     validateStoragePathIsWithinWorkspaceOrThrow({
       onStoragePath,
@@ -266,8 +266,8 @@ export class FileStorageService {
       this.validateAndBuildFileStoragePathOrThrow(params);
 
     await driver.delete({
-      folderPath: dirname(onStorageFilePath),
-      filename: basename(onStorageFilePath),
+      folderPath: path.dirname(onStorageFilePath),
+      filename: path.basename(onStorageFilePath),
     });
 
     const application = await this.applicationRepository.findOneOrFail({
@@ -385,8 +385,14 @@ export class FileStorageService {
 
     if (isFile) {
       return driver.copy({
-        from: { folderPath: dirname(fromPath), filename: basename(fromPath) },
-        to: { folderPath: dirname(toPath), filename: basename(toPath) },
+        from: {
+          folderPath: path.dirname(fromPath),
+          filename: path.basename(fromPath),
+        },
+        to: {
+          folderPath: path.dirname(toPath),
+          filename: path.basename(toPath),
+        },
       });
     }
 
