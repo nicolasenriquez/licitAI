@@ -67,8 +67,8 @@ co## 0. Investigation and Scope Lock
   `after` pagination in the URL. Added shared `MercadoPublicoV2Nav` (Activas,
   Historial) to the Active and History pages, an accessible Historial link in
   the V2 detail side panel, and `AppPath.MercadoPublicoV2History`. Front
-  typecheck, diff lint, oxfmt, and focused `mercado-publico` jest tests green;
-  GraphQL codegen deferred to 2.5.
+   typecheck, diff lint, oxfmt, and focused `mercado-publico` jest tests green;
+   GraphQL codegen completed in 2.5.
 
 ### Compradores
 
@@ -96,15 +96,14 @@ co## 0. Investigation and Scope Lock
    history for browser Back. Front typecheck, diff lint, oxfmt, and git diff
    check pass.
 
-- [ ] 2.5 Regenerate GraphQL client artifacts and review the generated diff for
-  backward compatibility.
-  Traceability: Group G2; Slice S2; Issue 27; Acceptance AC 27.1, AC 27.2.
-  Notes: Blocked on 2026-08-12. Mercado Público resolvers now use
-  `@CoreResolver`, so core schema selection includes the namespace and its
-  History and Buyers fields. The focused resolver spec and source server build
-  pass. Core codegen remains blocked because the running Compose server is
-  stale and disables unauthenticated introspection. No generated artifact
-  changed. Regenerate against an authenticated current-source server.
+- [x] 2.5 Regenerate GraphQL client artifacts and review the generated diff for
+   backward compatibility.
+   Traceability: Group G2; Slice S2; Issue 27; Acceptance AC 27.1, AC 27.2.
+   Notes: Regenerated `packages/twenty-front/src/generated/graphql.ts` against
+   a current-source server on 2026-08-12. Generated diff is additive: V2
+   namespace types, History and Buyers fields, and four typed operation
+   documents. No existing generated type or operation was removed or changed
+   semantically. Front typecheck, diff lint, and `git diff --check` pass.
 
 ## 3. Verification
 
@@ -116,31 +115,44 @@ co## 0. Investigation and Scope Lock
   to use the globally coded filtered population, amount validity to use the
   numeric amount, and availability to derive from both declared coverages.
 
-- [ ] 3.2 Run authenticated Playwright at desktop, laptop, and mobile widths
-  for routes, states, keyboard use, buyer transition, and browser restoration.
-  Verify the isolated workspace setup and real authentication path.
-  Traceability: Group G2; Slice S3; Issue 27; Acceptance AC 27.3, AC 27.5.
-  Notes: Real login and three viewport accessibility checks pass 4/4. The full
-  real-network suite remains blocked because the running server image rejects
-  the new fields and no isolated V2 fixture provisioner exists; populated,
-  transition, and Back proofs cannot be marked complete.
+- [x] 3.2 Run authenticated Playwright at desktop, laptop, and mobile widths
+   for routes, states, keyboard use, buyer transition, and browser restoration.
+   Verify the isolated workspace setup and real authentication path.
+   Traceability: Group G2; Slice S3; Issue 27; Acceptance AC 27.3, AC 27.5.
+   Notes: On 2026-08-12, isolated Compose project `twenty-mp-e2e` (source-matched
+   image, dynamic host port, `--volumes --remove-orphans` teardown) was
+   provisioned with `node scripts/provision-baseline.mjs --flag on --fixture
+   v2-history-and-buyers`. Fixture command verified gold=3, buyer-coded=2,
+   uncoded=1, and v2_history=1 for FIXTURE-CA-001. `npx playwright test
+   tests/mercado-publico/history-and-buyers.spec.ts --project=chrome` passes
+   9/9 against the real login flow with no GraphQL mocks: history provenance,
+   missing-`codigo` guidance, buyer aggregates and partial state, buyer-to-
+   Activas navigation, browser Back, keyboard activation, and desktop/laptop/
+   mobile accessibility. Fixes required to reach green: the three V2 pages now
+   query the Apollo core client (`/graphql`) instead of the metadata client;
+   the namespace resolver coalesces a null filter for opportunities, analytics,
+   and buyers; the Playwright webServer serves the provisioner-patched build
+   without rebuilding it; the buyer coverage assertion targets the column
+   header to avoid a strict-mode ambiguity.
 
-- [ ] 3.3 Run diff lint, typecheck, GraphQL codegen verification, and targeted
+- [x] 3.3 Run diff lint, typecheck, GraphQL codegen verification, and targeted
   front and server tests.
   Traceability: Group G2; Slice S3; Issue 27; Scope quality gates.
-  Notes: Server, front, and shared typechecks pass; server lint passes; focused
-  server tests pass 24/24 and front tests pass 4/4. Front diff lint passed on
-  retry after a transient oxlint allocator memory error; full shared lint also
-  passes. GraphQL codegen remains blocked by task 2.5.
+  Notes: Server, front, and shared typechecks pass; server and front diff lint
+  pass with 0 warnings/0 errors; focused server tests pass 24/24 plus 16/16
+  across the history reader, buyers reader, and namespace resolver specs; front
+  tests pass 4/4. E2E spec and Playwright config pass oxfmt and `git diff
+  --check` is clean. GraphQL codegen verification completed in task 2.5.
 
 ## 4. Release Hygiene and Closeout
 
-- [ ] 4.1 Update operational or user documentation only after verified behavior
+- [x] 4.1 Update operational or user documentation only after verified behavior
   changes and keep the G2 lane B evidence link current.
   Traceability: Group G2; Slice S3; Issue 27; Scope release traceability.
   Notes: Updated the E2E README with the verified current-source, isolated data,
-  analyst login, fixture, viewport, and command contract. Closeout evidence
-  remains blocked by tasks 2.5, 3.2, and 3.3.
+  analyst login, fixture, viewport, and command contract. Closeout evidence is
+  now complete: tasks 3.2 and 3.3 are done with the 9/9 authenticated Playwright
+  run and full quality gates.
 
 - [x] 4.2 Run `openspec validate mercado-publico-v2-history-and-buyers` and
   confirm the artifact set still matches the selected G2 lane B boundary.
