@@ -166,28 +166,6 @@ export class MercadoPublicoV2ProjectionService {
     });
   }
 
-  async reproject(
-    observationId: string,
-    context: MercadoPublicoV2ProjectionContext,
-  ): Promise<MercadoPublicoV2ProjectionResult> {
-    const normalized = normalizeV2CompraAgilRecord(context.record);
-    const semanticPayload = buildSemanticPayload(
-      context.record.codigo,
-      normalized,
-    );
-    const semanticFingerprint = createJsonSha256(semanticPayload);
-
-    return this.coreDataSource.transaction(async (entityManager) =>
-      this.project(
-        entityManager,
-        observationId,
-        context,
-        semanticPayload,
-        semanticFingerprint,
-      ),
-    );
-  }
-
   async rebuild(
     reprojections: MercadoPublicoV2Reprojection[],
   ): Promise<MercadoPublicoV2ProjectionResult[]> {

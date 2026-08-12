@@ -1,0 +1,103 @@
+import { InjectDataSource } from '@nestjs/typeorm';
+import { Logger } from '@nestjs/common';
+import { Command, CommandRunner } from 'nest-commander';
+
+import { DataSource } from 'typeorm';
+
+import { mercadoPublicoV2E2EFixture } from 'src/engine/core-modules/mercado-publico/drivers/api/fixtures/mercado-publico-v2-e2e.fixture';
+import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
+
+const FIXTURE_ENABLED_ENV = 'MERCADO_PUBLICO_V2_E2E_FIXTURE_ENABLED';
+const FIXTURE_SCOPE_ENV = 'MERCADO_PUBLICO_V2_E2E_FIXTURE_SCOPE';
+
+type FixtureVerificationRow = {
+  total: string;
+  codedBuyer: string;
+  uncodedBuyer: string;
+};
+
+@Command({
+  name: 'mercado-publico:v2:e2e-fixture',
+  description:
+    'Reset and seed the isolated Mercado Publico V2 E2E fixture. Requires explicit disposable-environment flags.',
+})
+export class MercadoPublicoV2E2EFixtureCommand extends CommandRunner {
+  private readonly logger = new Logger(MercadoPublicoV2E2EFixtureCommand.name);
+
+  constructor(
+    private readonly mercadoPublicoV2DurableSyncService: MercadoPublicoV2DurableSyncService,
+    @InjectDataSource()
+    private readonly coreDataSource: DataSource,
+  ) {
+    super();
+  }
+
+  async run(): Promise<void> {
+    if (
+      process.env[FIXTURE_ENABLED_ENV] !== 'true' ||
+      process.env[FIXTURE_SCOPE_ENV] !== 'isolated'
+    ) {
+      throw new Error(
+        `${FIXTURE_ENABLED_ENV}=true and ${FIXTURE_SCOPE_ENV}=isolated are required`,
+      );
+    }
+
+    await this.coreDataSource.query(`
+      TRUNCATE TABLE
+        mp.gold_detected_process,
+        mp.v2_cohort,
+        mp.sync_run_item,
+        mp.sync_run_page,
+        mp.source_watermark,
+        mp.v2_history,
+        mp.v2_relation_snapshot,
+        mp.v2_child_evidence,
+        mp.v2_observation,
+        mp.sync_run,
+        mp.compra_agil,
+        mp.stg_api_v2_compra_agil,
+        mp.raw_api_payload,
+        mp.stg_job_run
+      RESTART IDENTITY CASCADE
+    `);
+
+    const initial = await this.mercadoPublicoV2DurableSyncService.runFixture(
+      mercadoPublicoV2E2EFixture.initial,
+    );
+    const changed = await this.mercadoPublicoV2DurableSyncService.runFixture(
+      mercadoPublicoV2E2EFixture.changed,
+    );
+
+    const verificationRows = await this.coreDataSource.query<
+      FixtureVerificationRow[]
+    >(`
+      SELECT
+        COUNT(*)::text AS total,
+        COUNT(*) FILTER (WHERE buyer_code = '60.000.000-0')::text AS "codedBuyer",
+        COUNT(*) FILTER (WHERE buyer_code IS NULL)::text AS "uncodedBuyer"
+      FROM mp.gold_detected_process
+      WHERE process_type = 'compra_agil'
+    `);
+    const historyRows = await this.coreDataSource.query<{ count: string }[]>(`
+      SELECT COUNT(*)::text AS count
+      FROM mp.v2_history
+      WHERE codigo = 'FIXTURE-CA-001'
+    `);
+    const verification = verificationRows[0];
+
+    if (
+      initial.status !== 'succeeded' ||
+      changed.status !== 'succeeded' ||
+      verification?.total !== '3' ||
+      verification.codedBuyer !== '2' ||
+      verification.uncodedBuyer !== '1' ||
+      historyRows[0]?.count !== '1'
+    ) {
+      throw new Error('Mercado Publico V2 E2E fixture verification failed');
+    }
+
+    this.logger.log(
+      'Mercado Publico V2 E2E fixture ready: FIXTURE-CA-001, 60.000.000-0',
+    );
+  }
+}

@@ -21,7 +21,6 @@ import { MpV2EvidenceHistoryReplayFastInstanceCommand } from 'src/database/comma
 import { MpV2ActivasFiltersFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1789000000000-mp-v2-activas-filters';
 import { rawDataSource } from 'src/database/typeorm/raw/raw.datasource';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
-import { MercadoPublicoV2GoldenPathService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-golden-path.service';
 import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
 import { MercadoPublicoV2ProjectionService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-projection.service';
 
@@ -83,7 +82,7 @@ const truncateTables = async (dataSource: DataSource): Promise<void> => {
 
 describe('Mercado Publico V2 golden path (db-backed)', () => {
   let dataSource: DataSource;
-  let goldenPathService: MercadoPublicoV2GoldenPathService;
+  let durableSyncService: MercadoPublicoV2DurableSyncService;
   let readService: MercadoPublicoV2ReadService;
   let resolver: MercadoPublicoV2NamespaceResolver;
 
@@ -98,15 +97,11 @@ describe('Mercado Publico V2 golden path (db-backed)', () => {
     await applyCommands(dataSource);
 
     const persistenceService = new MercadoPublicoPersistenceService(dataSource);
-    const durableSyncService = new MercadoPublicoV2DurableSyncService(
+    durableSyncService = new MercadoPublicoV2DurableSyncService(
       {} as never,
       persistenceService,
       dataSource,
       new MercadoPublicoV2ProjectionService(dataSource),
-    );
-
-    goldenPathService = new MercadoPublicoV2GoldenPathService(
-      durableSyncService,
     );
     readService = new MercadoPublicoV2ReadService(dataSource);
     resolver = new MercadoPublicoV2NamespaceResolver(
@@ -129,7 +124,7 @@ describe('Mercado Publico V2 golden path (db-backed)', () => {
   });
 
   it('persists fixture evidence and exposes its published projection', async () => {
-    const result = await goldenPathService.runFixture(fixture);
+    const result = await durableSyncService.runFixture(fixture);
 
     const syncRuns = await dataSource.query<
       { id: string; status: string; records_projected: number }[]
@@ -190,7 +185,7 @@ describe('Mercado Publico V2 golden path (db-backed)', () => {
   });
 
   it('uses active cohort membership instead of canonical state for Activas', async () => {
-    await goldenPathService.runFixture(fixture);
+    await durableSyncService.runFixture(fixture);
     await dataSource.query(`
       UPDATE mp.gold_detected_process
       SET canonical_state = 'cerrada'

@@ -31,6 +31,7 @@ export const resolveCsvStorageTargetPath = async (
   period: string,
   sourceFileName: string,
   sourceModality?: string | null,
+  fileChecksum?: string,
 ): Promise<string> => {
   assertSafeSegment(dataset, 'source_dataset');
   assertPeriod(period);
@@ -38,10 +39,23 @@ export const resolveCsvStorageTargetPath = async (
     assertSafeSegment(sourceModality, 'source_modality');
   }
   assertSafeFileName(sourceFileName);
+  if (fileChecksum !== undefined) {
+    if (!/^[a-f0-9]{64}$/.test(fileChecksum)) {
+      throw new Error(`Invalid file_checksum: "${fileChecksum}"`);
+    }
+  }
 
   const modalitySegment = sourceModality ?? '_default';
   const dirPath = path.join(csvStorageRoot, dataset, period, modalitySegment);
-  const resolved = path.resolve(dirPath, sourceFileName);
+  const extension = path.extname(sourceFileName);
+  const baseName = extension
+    ? sourceFileName.slice(0, -extension.length)
+    : sourceFileName;
+  const targetFileName =
+    fileChecksum === undefined
+      ? sourceFileName
+      : `${baseName}.${fileChecksum}${extension}`;
+  const resolved = path.resolve(dirPath, targetFileName);
   const rootResolved = path.resolve(csvStorageRoot) + path.sep;
 
   if (

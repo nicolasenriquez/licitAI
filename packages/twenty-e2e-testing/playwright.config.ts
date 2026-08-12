@@ -25,7 +25,7 @@ export default defineConfig({
   workers: 1, // 1 worker = 1 test at the time, tests can't be parallelized
   timeout: 30 * 1000, // timeout can be changed
   webServer: {
-    command: 'npx nx run twenty-front:preview --watch=false --open=false',
+    command: 'npx serve -s packages/twenty-front/build -l 3001',
     cwd: path.resolve(__dirname, '../..'),
     url: 'http://localhost:3001',
     timeout: 300 * 1000,

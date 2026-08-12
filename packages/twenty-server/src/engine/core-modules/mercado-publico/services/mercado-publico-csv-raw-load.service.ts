@@ -1,5 +1,4 @@
 import * as fs from 'fs';
-import * as path from 'path';
 
 import { parse } from 'csv-parse';
 
@@ -12,6 +11,7 @@ import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/m
 import { mapMercadoPublicoErrorSummaryToJobRunStatus } from 'src/engine/core-modules/mercado-publico/services/utils/map-mercado-publico-error-summary-to-job-run-status.util';
 import { buildMercadoPublicoUnexpectedErrorSummaryText } from 'src/engine/core-modules/mercado-publico/services/utils/build-mercado-publico-error-summary-text.util';
 import { computeRowChecksum } from 'src/engine/core-modules/mercado-publico/services/utils/csv/compute-row-checksum.util';
+import { resolveCsvStorageTargetPath } from 'src/engine/core-modules/mercado-publico/services/utils/csv/resolve-csv-storage-target-path.util';
 
 type MercadoPublicoCsvRawLoadPayload = {
   raw_csv_file_id: string;
@@ -151,16 +151,28 @@ export class MercadoPublicoCsvRawLoadService {
       throw new Error('MERCADO_PUBLICO_CSV_STORAGE_ROOT is not configured');
     }
 
-    const filePath = path.join(
+    const filePath = await resolveCsvStorageTargetPath(
       settings.csvStorageRoot,
       fileMeta.source_dataset,
       fileMeta.source_period,
-      fileMeta.source_modality ?? '_default',
       fileMeta.source_file_name,
+      fileMeta.source_modality,
+      fileMeta.file_checksum,
     );
+    const legacyFilePath = await resolveCsvStorageTargetPath(
+      settings.csvStorageRoot,
+      fileMeta.source_dataset,
+      fileMeta.source_period,
+      fileMeta.source_file_name,
+      fileMeta.source_modality,
+    );
+    const readableFilePath = await fs.promises
+      .access(filePath)
+      .then(() => filePath)
+      .catch(() => legacyFilePath);
 
     this.logger.log(
-      `Loading raw rows from ${fileMeta.source_dataset}/${fileMeta.source_period} ${filePath}`,
+      `Loading raw rows from ${fileMeta.source_dataset}/${fileMeta.source_period} ${readableFilePath}`,
     );
 
     const nodeEncoding = resolveNodeEncoding(fileMeta.detected_encoding);
@@ -217,7 +229,7 @@ export class MercadoPublicoCsvRawLoadService {
       },
     });
 
-    const readStream = fs.createReadStream(filePath);
+    const readStream = fs.createReadStream(readableFilePath);
 
     readStream.on('error', (err) => parser.emit('error', err));
     readStream.pipe(parser);
@@ -264,7 +276,7 @@ export class MercadoPublicoCsvRawLoadService {
     await flushBatch();
 
     this.logger.log(
-      `Finished loading ${successCount} rows (${errorCount} errors) from ${filePath}`,
+      `Finished loading ${successCount} rows (${errorCount} errors) from ${readableFilePath}`,
     );
 
     return { totalLines, successCount, errorCount };

@@ -1,5 +1,4 @@
 import * as fs from 'fs';
-import * as path from 'path';
 
 import { parse } from 'csv-parse';
 
@@ -12,6 +11,7 @@ import { detectDelimiter } from 'src/engine/core-modules/mercado-publico/service
 import { detectQuotechar } from 'src/engine/core-modules/mercado-publico/services/utils/csv/detect-quotechar.util';
 import { parseCsvHeader } from 'src/engine/core-modules/mercado-publico/services/utils/csv/parse-csv-header.util';
 import { computeSchemaFingerprint } from 'src/engine/core-modules/mercado-publico/services/utils/csv/compute-schema-fingerprint.util';
+import { resolveCsvStorageTargetPath } from 'src/engine/core-modules/mercado-publico/services/utils/csv/resolve-csv-storage-target-path.util';
 
 export type CsvFileProfileResult = {
   detectedEncoding: 'utf-8' | 'utf-8-sig' | 'latin-1';
@@ -59,19 +59,31 @@ export class MercadoPublicoCsvProfilingService {
       );
     }
 
-    const filePath = path.join(
+    const filePath = await resolveCsvStorageTargetPath(
       settings.csvStorageRoot,
       fileRow.source_dataset,
       fileRow.source_period,
-      fileRow.source_modality ?? '_default',
       fileRow.source_file_name,
+      fileRow.source_modality,
+      fileRow.file_checksum,
     );
+    const legacyFilePath = await resolveCsvStorageTargetPath(
+      settings.csvStorageRoot,
+      fileRow.source_dataset,
+      fileRow.source_period,
+      fileRow.source_file_name,
+      fileRow.source_modality,
+    );
+    const readableFilePath = await fs.promises
+      .access(filePath)
+      .then(() => filePath)
+      .catch(() => legacyFilePath);
 
     this.logger.log(
-      `Profiling ${fileRow.source_dataset}/${fileRow.source_period} from ${filePath}`,
+      `Profiling ${fileRow.source_dataset}/${fileRow.source_period} from ${readableFilePath}`,
     );
 
-    const readStream = fs.createReadStream(filePath, {
+    const readStream = fs.createReadStream(readableFilePath, {
       highWaterMark: PROFILE_SAMPLE_BYTES,
     });
 

@@ -1,5 +1,7 @@
 import * as fs from 'fs';
+import { randomUUID } from 'crypto';
 import { pipeline } from 'stream/promises';
+import * as path from 'path';
 
 import { Injectable, Logger } from '@nestjs/common';
 
@@ -72,12 +74,16 @@ export class MercadoPublicoCsvDownloadSharedService {
       contentType,
     );
 
-    const storagePath = await resolveCsvStorageTargetPath(
+    const legacyStoragePath = await resolveCsvStorageTargetPath(
       settings.csvStorageRoot,
       input.sourceDataset,
       input.sourcePeriod,
       sourceFileName,
       input.sourceModality,
+    );
+    const temporaryPath = path.join(
+      path.dirname(legacyStoragePath),
+      `.${sourceFileName}.${randomUUID()}.part`,
     );
 
     const rawByteStream = response.data as NodeJS.ReadableStream;
@@ -91,10 +97,10 @@ export class MercadoPublicoCsvDownloadSharedService {
         compressedHash,
         decompressor,
         decompressedMetrics,
-        fs.createWriteStream(storagePath),
+        fs.createWriteStream(temporaryPath),
       );
     } catch (error) {
-      await fs.promises.rm(storagePath, { force: true }).catch(() => {});
+      await fs.promises.rm(temporaryPath, { force: true }).catch(() => {});
       throw error;
     }
 
@@ -102,8 +108,36 @@ export class MercadoPublicoCsvDownloadSharedService {
     const fileSizeBytes = decompressedMetrics.bytes;
 
     if (fileSizeBytes === 0) {
-      await fs.promises.rm(storagePath, { force: true }).catch(() => {});
+      await fs.promises.rm(temporaryPath, { force: true }).catch(() => {});
       throw new Error('Downloaded CSV file is empty');
+    }
+
+    const storagePath = await resolveCsvStorageTargetPath(
+      settings.csvStorageRoot,
+      input.sourceDataset,
+      input.sourcePeriod,
+      sourceFileName,
+      input.sourceModality,
+      fileChecksum,
+    );
+
+    try {
+      await fs.promises.rename(temporaryPath, storagePath);
+    } catch (error) {
+      const errorCode = (error as NodeJS.ErrnoException).code;
+
+      if (errorCode !== 'EEXIST' && errorCode !== 'EPERM') {
+        await fs.promises.rm(temporaryPath, { force: true }).catch(() => {});
+        throw error;
+      }
+
+      try {
+        await fs.promises.access(storagePath);
+        await fs.promises.rm(temporaryPath, { force: true });
+      } catch {
+        await fs.promises.rm(temporaryPath, { force: true }).catch(() => {});
+        throw error;
+      }
     }
 
     const persistenceResult =

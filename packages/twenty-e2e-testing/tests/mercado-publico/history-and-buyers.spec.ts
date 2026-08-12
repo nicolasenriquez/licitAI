@@ -60,7 +60,9 @@ test.describe('Mercado Publico V2 history and buyers', () => {
       page.getByRole('heading', { name: 'Compradores' }),
     ).toBeVisible();
     await expect(page.getByText(seededBuyerCode)).toBeVisible();
-    await expect(page.getByText('Cobertura de comprador')).toBeVisible();
+    await expect(
+      page.getByRole('columnheader', { name: 'Cobertura de comprador' }),
+    ).toBeVisible();
     await expect(page.getByRole('status')).toContainText(
       /cobertura|disponibilidad/i,
     );

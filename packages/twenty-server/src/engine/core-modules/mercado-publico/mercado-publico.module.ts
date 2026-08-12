@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { MercadoPublicoRunCommand } from 'src/engine/core-modules/mercado-publico/commands/mercado-publico-run.command';
+import { MercadoPublicoV2E2EFixtureCommand } from 'src/engine/core-modules/mercado-publico/commands/mercado-publico-v2-e2e-fixture.command';
 import { MercadoPublicoApiV1LicitacionesClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-licitaciones-client.service';
 import { MercadoPublicoApiV1OrdenesDeCompraClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-ordenes-de-compra-client.service';
 import { MercadoPublicoApiV2CompraAgilClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
@@ -42,7 +43,6 @@ import { MercadoPublicoCsvRawLoadService } from 'src/engine/core-modules/mercado
 import { MercadoPublicoCsvStagingProjectionService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-staging-projection.service';
 import { MercadoPublicoReconciliationService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-reconciliation.service';
 import { MercadoPublicoQuotaTrackerService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-quota-tracker.service';
-import { MercadoPublicoV2GoldenPathService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-golden-path.service';
 import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
 import { MercadoPublicoV2ProjectionService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-projection.service';
 import { MercadoPublicoV2EvidenceReplayService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-evidence-replay.service';
@@ -62,7 +62,6 @@ import { MercadoPublicoV2EvidenceReplayService } from 'src/engine/core-modules/m
     MercadoPublicoCsvStagingProjectionService,
     MercadoPublicoReconciliationService,
     MercadoPublicoQuotaTrackerService,
-    MercadoPublicoV2GoldenPathService,
     MercadoPublicoV2DurableSyncService,
     MercadoPublicoV2ProjectionService,
     MercadoPublicoV2EvidenceReplayService,
@@ -92,6 +91,7 @@ import { MercadoPublicoV2EvidenceReplayService } from 'src/engine/core-modules/m
     MercadoPublicoApiV2CompraAgilPublicationWindowService,
     MercadoPublicoApiV2CompraAgilDetailByCodigoService,
     MercadoPublicoRunCommand,
+    MercadoPublicoV2E2EFixtureCommand,
     MercadoPublicoJob,
   ],
   exports: [
@@ -102,7 +102,6 @@ import { MercadoPublicoV2EvidenceReplayService } from 'src/engine/core-modules/m
     MercadoPublicoDetectedProcessReadService,
     MercadoPublicoPipelineHealthReadService,
     MercadoPublicoProcessDetailReadService,
-    MercadoPublicoV2GoldenPathService,
     MercadoPublicoV2DurableSyncService,
     MercadoPublicoV2ProjectionService,
     MercadoPublicoV2EvidenceReplayService,

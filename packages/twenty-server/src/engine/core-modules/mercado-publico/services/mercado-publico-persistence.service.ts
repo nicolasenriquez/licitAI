@@ -142,6 +142,7 @@ type RawCsvFileMeta = {
   source_period: string;
   source_modality: string | null;
   source_file_name: string;
+  file_checksum: string;
   detected_encoding: string;
   detected_delimiter: string;
   quotechar: string | null;
@@ -965,6 +966,7 @@ export class MercadoPublicoPersistenceService {
           source_period,
           source_modality,
           source_file_name,
+          file_checksum,
           detected_encoding,
           detected_delimiter,
           quotechar

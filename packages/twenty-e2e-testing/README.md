@@ -127,16 +127,16 @@ must contain:
   amount;
 - one opportunity without `buyerCode`.
 
-No supported idempotent V2 E2E fixture provisioner exists yet. Do not run the
-populated-state acceptance tests against persisted Compose data and call them
-isolated. Set `MERCADO_PUBLICO_V2_E2E_CODIGO` and
-`MERCADO_PUBLICO_V2_E2E_BUYER_CODE` to the seeded identities when they differ
-from the defaults.
+The supported provisioner creates an isolated Compose project on port `3002`,
+builds the current source revision, removes its volumes, runs migrations, and
+seeds the fixture through the server-side durable sync path. It requires the
+disposable fixture flags set by `docker-compose.e2e.yml`; it does not use
+persisted local Compose data.
 
 Run the real login and test target:
 
 ```powershell
-node scripts/provision-baseline.mjs --flag on
+node scripts/provision-baseline.mjs --flag on --fixture v2-history-and-buyers
 npx playwright test tests/mercado-publico/history-and-buyers.spec.ts --project=chrome
 ```
 

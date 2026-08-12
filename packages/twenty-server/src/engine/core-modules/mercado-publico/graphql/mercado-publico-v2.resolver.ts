@@ -587,8 +587,9 @@ export class MercadoPublicoV2NamespaceResolver {
   ): Promise<MercadoPublicoV2OpportunityConnectionDTO> {
     const resolvedSort =
       sort ?? MercadoPublicoV2OpportunitySortEnum.CLOSING_AT_DESC;
+    const resolvedFilter = (filter ?? {}) as MercadoPublicoV2OpportunityFilter;
     const result = await this.mercadoPublicoV2ReadService.listOpportunities(
-      filter as MercadoPublicoV2OpportunityFilter,
+      resolvedFilter,
       after,
       first,
       resolvedSort as MercadoPublicoV2OpportunitySort,
@@ -622,7 +623,7 @@ export class MercadoPublicoV2NamespaceResolver {
     filter?: MercadoPublicoV2OpportunityFilterInput,
   ): Promise<MercadoPublicoV2AnalyticsDTO> {
     const result = await this.mercadoPublicoV2ReadService.getAnalytics(
-      filter as MercadoPublicoV2OpportunityFilter,
+      (filter ?? {}) as MercadoPublicoV2OpportunityFilter,
     );
 
     return toAnalyticsDTO(result);
@@ -670,7 +671,7 @@ export class MercadoPublicoV2NamespaceResolver {
     first?: number,
   ): Promise<MercadoPublicoV2BuyerConnectionDTO> {
     const result = await this.mercadoPublicoV2BuyersReadService.listBuyers(
-      filter as MercadoPublicoV2OpportunityFilter,
+      (filter ?? {}) as MercadoPublicoV2OpportunityFilter,
       after,
       first,
     );

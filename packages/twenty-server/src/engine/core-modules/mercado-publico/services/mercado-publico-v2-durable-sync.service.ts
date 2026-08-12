@@ -270,6 +270,7 @@ export class MercadoPublicoV2DurableSyncService {
     payload: Record<string, unknown>,
     watermarkBefore: Date | null,
   ): CompraAgilListParams {
+    const hasExplicitId = getNonEmptyString(payload.id) !== undefined;
     const explicitChangeStart = getNonEmptyString(payload.cambio_desde);
     const explicitChangeEnd = getNonEmptyString(payload.cambio_hasta);
     const explicitPublicationStart = getNonEmptyString(payload.publicado_desde);
@@ -302,7 +303,7 @@ export class MercadoPublicoV2DurableSyncService {
     const executionStartedAt = new Date().toISOString();
     const derivedChangeStart =
       explicitChangeStart ??
-      (watermarkBefore === null
+      (hasExplicitId || watermarkBefore === null
         ? undefined
         : new Date(
             watermarkBefore.getTime() - WATERMARK_OVERLAP_MS,
@@ -319,7 +320,9 @@ export class MercadoPublicoV2DurableSyncService {
     }
 
     const usesWatermarkWindow =
-      explicitChangeStart === undefined && watermarkBefore !== null;
+      !hasExplicitId &&
+      explicitChangeStart === undefined &&
+      watermarkBefore !== null;
 
     return {
       cambio_desde: derivedChangeStart,
@@ -397,6 +400,10 @@ export class MercadoPublicoV2DurableSyncService {
   }
 
   private async freezeActiveCohort(context: SyncRunContext): Promise<void> {
+    if (context.requestParams.id !== undefined) {
+      return;
+    }
+
     await this.coreDataSource.query(
       `
         INSERT INTO mp.sync_run_item (
@@ -517,9 +524,10 @@ export class MercadoPublicoV2DurableSyncService {
       );
 
       for (const record of response.compraAgil) {
+        const targetedSync = context.requestParams.id === record.codigo;
         const classification = classifyV2CompraAgilLifecycle(
           record,
-          knownCodes.has(record.codigo),
+          knownCodes.has(record.codigo) || targetedSync,
         );
 
         if (!classification.includeInCohort) {
@@ -968,7 +976,9 @@ export class MercadoPublicoV2DurableSyncService {
     const recordsFailed = Number(count.records_failed);
     const status = recordsFailed > 0 ? 'partial_failed' : 'succeeded';
     const watermarkAfter =
-      status === 'succeeded' ? await this.advanceWatermark(context) : null;
+      status === 'succeeded' && context.requestParams.id === undefined
+        ? await this.advanceWatermark(context)
+        : null;
 
     await this.coreDataSource.query(
       `
