@@ -137,8 +137,8 @@ const StyledSectionHeading = styled.h2`
 
 const StyledDetailList = styled.dl`
   display: grid;
-  grid-template-columns: max-content 1fr;
   gap: ${themeCssVariables.spacing[2]} ${themeCssVariables.spacing[3]};
+  grid-template-columns: max-content 1fr;
   margin: 0;
 `;
 

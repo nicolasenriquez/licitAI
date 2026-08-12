@@ -132,6 +132,14 @@ const MercadoPublicoV2HistoryPage = lazy(() =>
   ),
 );
 
+const MercadoPublicoV2BuyersPage = lazy(() =>
+  import('~/pages/mercado-publico/MercadoPublicoV2BuyersPage').then(
+    (module) => ({
+      default: module.MercadoPublicoV2BuyersPage,
+    }),
+  ),
+);
+
 export const useCreateAppRouter = (
   isFunctionSettingsEnabled?: boolean,
   isAdminPageEnabled?: boolean,
@@ -277,6 +285,14 @@ export const useCreateAppRouter = (
                   element={
                     <LazyRoute>
                       <MercadoPublicoV2HistoryPage />
+                    </LazyRoute>
+                  }
+                />
+                <Route
+                  path={AppPath.MercadoPublicoV2Buyers}
+                  element={
+                    <LazyRoute>
+                      <MercadoPublicoV2BuyersPage />
                     </LazyRoute>
                   }
                 />

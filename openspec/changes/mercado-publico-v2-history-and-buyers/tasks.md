@@ -85,39 +85,68 @@ co## 0. Investigation and Scope Lock
    GraphQL DTOs and namespace field. Focused server tests pass 17/17; server
    typecheck, diff lint, oxfmt, and `git diff --check` pass.
 
-- [ ] 2.4 Add the Compradores route and page. Serialize a selected buyer into
-  the Activas URL as `buyer=<buyerCode>` without replacing the current history
-  entry.
-  Traceability: Group G2; Slice S2; Issue 27; Acceptance AC 27.3, AC 27.4, AC 27.5.
+- [x] 2.4 Add the Compradores route and page. Serialize a selected buyer into
+   the Activas URL as `buyer=<buyerCode>` without replacing the current history
+   entry.
+   Traceability: Group G2; Slice S2; Issue 27; Acceptance AC 27.3, AC 27.4, AC 27.5.
+   Notes: Added authenticated V2 Compradores route and page with server-side
+   buyer aggregates, explicit loading/error/empty/partial/populated states,
+   responsive table, keyboard-accessible buyer links, and keyset pagination.
+   Buyer links push `buyer=<buyerCode>` to Activas while preserving prior URL
+   history for browser Back. Front typecheck, diff lint, oxfmt, and git diff
+   check pass.
 
 - [ ] 2.5 Regenerate GraphQL client artifacts and review the generated diff for
   backward compatibility.
   Traceability: Group G2; Slice S2; Issue 27; Acceptance AC 27.1, AC 27.2.
+  Notes: Blocked on 2026-08-12. Mercado Público resolvers now use
+  `@CoreResolver`, so core schema selection includes the namespace and its
+  History and Buyers fields. The focused resolver spec and source server build
+  pass. Core codegen remains blocked because the running Compose server is
+  stale and disables unauthenticated introspection. No generated artifact
+  changed. Regenerate against an authenticated current-source server.
 
 ## 3. Verification
 
-- [ ] 3.1 Run focused server tests for filter reuse, cursor validation,
+- [x] 3.1 Run focused server tests for filter reuse, cursor validation,
   provenance, authorization, and absent or partial data.
   Traceability: Group G2; Slice S3; Issue 27; Acceptance AC 27.1, AC 27.2, AC 27.4.
+  Notes: Focused server suites pass 24/24. Added malformed History and Buyers
+  cursor rejection and resolver guard metadata proof. Corrected buyer coverage
+  to use the globally coded filtered population, amount validity to use the
+  numeric amount, and availability to derive from both declared coverages.
 
 - [ ] 3.2 Run authenticated Playwright at desktop, laptop, and mobile widths
   for routes, states, keyboard use, buyer transition, and browser restoration.
   Verify the isolated workspace setup and real authentication path.
   Traceability: Group G2; Slice S3; Issue 27; Acceptance AC 27.3, AC 27.5.
+  Notes: Real login and three viewport accessibility checks pass 4/4. The full
+  real-network suite remains blocked because the running server image rejects
+  the new fields and no isolated V2 fixture provisioner exists; populated,
+  transition, and Back proofs cannot be marked complete.
 
 - [ ] 3.3 Run diff lint, typecheck, GraphQL codegen verification, and targeted
   front and server tests.
   Traceability: Group G2; Slice S3; Issue 27; Scope quality gates.
+  Notes: Server, front, and shared typechecks pass; server lint passes; focused
+  server tests pass 24/24 and front tests pass 4/4. Front diff lint passed on
+  retry after a transient oxlint allocator memory error; full shared lint also
+  passes. GraphQL codegen remains blocked by task 2.5.
 
 ## 4. Release Hygiene and Closeout
 
 - [ ] 4.1 Update operational or user documentation only after verified behavior
   changes and keep the G2 lane B evidence link current.
   Traceability: Group G2; Slice S3; Issue 27; Scope release traceability.
+  Notes: Updated the E2E README with the verified current-source, isolated data,
+  analyst login, fixture, viewport, and command contract. Closeout evidence
+  remains blocked by tasks 2.5, 3.2, and 3.3.
 
-- [ ] 4.2 Run `openspec validate mercado-publico-v2-history-and-buyers` and
+- [x] 4.2 Run `openspec validate mercado-publico-v2-history-and-buyers` and
   confirm the artifact set still matches the selected G2 lane B boundary.
   Traceability: Group G2; Slice S3; Issue 27; Scope artifact validation.
+  Notes: `openspec validate mercado-publico-v2-history-and-buyers` passes. No
+  migration, detail, provider, ingestion, or control-plane scope was added.
 
 ## Execution Order
 

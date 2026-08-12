@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 // This spec uses storageState from login.setup.ts and real GraphQL responses.
@@ -103,4 +104,30 @@ test.describe('Mercado Publico V2 history and buyers', () => {
       ),
     );
   });
+
+  for (const viewport of [
+    { name: 'desktop', width: 1440, height: 900 },
+    { name: 'laptop', width: 1280, height: 900 },
+    { name: 'mobile', width: 390, height: 844 },
+  ]) {
+    test(`${viewport.name} routes remain responsive and accessible`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(viewport);
+
+      for (const path of [HISTORY_PATH, BUYERS_PATH]) {
+        await page.goto(path, { waitUntil: 'domcontentloaded' });
+        await expect(page.locator('main')).toBeVisible();
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth),
+        ).toBeLessThanOrEqual(viewport.width);
+
+        const accessibilityScanResults = await new AxeBuilder({ page })
+          .include('main')
+          .analyze();
+
+        expect(accessibilityScanResults.violations).toEqual([]);
+      }
+    });
+  }
 });

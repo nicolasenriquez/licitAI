@@ -12,6 +12,7 @@ const buyerRow = (
   buyer_code: 'BUYER-001',
   buyer_name: 'Municipalidad de Ejemplo',
   population: '2',
+  buyer_count: '1',
   opportunity_count: '1',
   amount_count: '1',
   as_of: new Date('2026-08-10T12:00:00Z'),
@@ -51,6 +52,7 @@ describe('MercadoPublicoV2BuyersReadService', () => {
     expect(sql).toContain('FROM mp.gold_detected_process');
     expect(sql).toContain('FROM mp.v2_cohort');
     expect(sql).toContain('GROUP BY buyer_code');
+    expect(sql).toContain('COUNT(buyer_code)');
     expect(sql).toContain('buyer_code IS NOT NULL');
     expect(sql).not.toMatch(/SUM\s*\(/i);
     expect(query.mock.calls[0][1]).toEqual([['publicada'], 13, 11]);
@@ -73,6 +75,7 @@ describe('MercadoPublicoV2BuyersReadService', () => {
     const query = jest.fn().mockResolvedValueOnce([
       buyerRow({
         population: '4',
+        buyer_count: '2',
         opportunity_count: '2',
         amount_count: '0',
         as_of: null,
@@ -87,7 +90,7 @@ describe('MercadoPublicoV2BuyersReadService', () => {
     expect(result.rows[0]).toMatchObject({
       buyerCoverage: 0.5,
       amountCoverage: 0,
-      availability: 'partial',
+      availability: 'unavailable',
       completeness: 'partial',
       asOf: null,
     });
@@ -108,5 +111,17 @@ describe('MercadoPublicoV2BuyersReadService', () => {
 
     expect(query.mock.calls[0][0]).toContain('buyer_code > $1');
     expect(query.mock.calls[0][1]).toEqual(['BUYER-001', 11]);
+  });
+
+  it('rejects malformed buyer cursors before querying', async () => {
+    const query = jest.fn();
+    const service = new MercadoPublicoV2BuyersReadService({
+      query,
+    } as unknown as DataSource);
+
+    await expect(service.listBuyers({}, 'not-json')).rejects.toThrow(
+      'Mercado Publico V2 buyer cursor is invalid',
+    );
+    expect(query).not.toHaveBeenCalled();
   });
 });

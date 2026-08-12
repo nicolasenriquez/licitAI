@@ -21,6 +21,8 @@ AI-assisted delivery is an explicit operating assumption for Twenty. The reposit
 - Humans retain accountability for business decisions and final review.
 - Shared context must live in files (docs, ADRs, code comments), not only in chat or memory.
 - The repository optimizes for a small engineering team augmented by AI.
+- Agents follow `docs/governance/ai-context-management.md` when session context
+  grows or work crosses session boundaries.
 
 ## Required Reading Order For AI Agents
 

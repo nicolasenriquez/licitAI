@@ -1,7 +1,15 @@
+const serverBaseUrl =
+  process.env.REACT_APP_SERVER_BASE_URL ?? 'http://localhost:3000';
+const schemaUrl = `${serverBaseUrl}/admin-panel`;
+
 module.exports = {
-  schema:
-    (process.env.REACT_APP_SERVER_BASE_URL ?? 'http://localhost:3000') +
-    '/admin-panel',
+  schema: process.env.CODEGEN_TOKEN
+    ? {
+        [schemaUrl]: {
+          headers: { Authorization: `Bearer ${process.env.CODEGEN_TOKEN}` },
+        },
+      }
+    : schemaUrl,
   documents: [
     './src/modules/settings/admin-panel/**/graphql/**/*.{ts,tsx}',
     './src/modules/settings/application-registrations/graphql/fragments/*.{ts,tsx}',

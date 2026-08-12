@@ -112,6 +112,38 @@ Then run an authenticated Mercado Publico smoke:
 npx playwright test tests/mercado-publico/baseline.spec.ts --project=chrome
 ```
 
+### Mercado Publico V2 history and buyers
+
+Use a disposable deployment and database. Workspace isolation is not enough
+because the `mp` schema is deployment-local. The server image must contain the
+same source revision as the frontend so `/metadata` exposes `history` and
+`buyers`.
+
+Seed V2 data through the real ingestion and normalization path. The fixture
+must contain:
+
+- one opportunity ingested twice with a semantic change;
+- one buyer with an amount and one opportunity for that buyer without an
+  amount;
+- one opportunity without `buyerCode`.
+
+No supported idempotent V2 E2E fixture provisioner exists yet. Do not run the
+populated-state acceptance tests against persisted Compose data and call them
+isolated. Set `MERCADO_PUBLICO_V2_E2E_CODIGO` and
+`MERCADO_PUBLICO_V2_E2E_BUYER_CODE` to the seeded identities when they differ
+from the defaults.
+
+Run the real login and test target:
+
+```powershell
+node scripts/provision-baseline.mjs --flag on
+npx playwright test tests/mercado-publico/history-and-buyers.spec.ts --project=chrome
+```
+
+The spec checks desktop `1440x900`, laptop `1280x900`, and mobile `390x844`
+viewports. It uses real GraphQL responses and browser history. It does not mock
+GraphQL.
+
 ### Failure diagnosis
 
 | Symptom | Check |

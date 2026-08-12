@@ -7,10 +7,10 @@ import {
   Int,
   ObjectType,
   ResolveField,
-  Resolver,
 } from '@nestjs/graphql';
 import GraphQLJSON from 'graphql-type-json';
 
+import { CoreResolver } from 'src/engine/api/graphql/graphql-config/decorators/core-resolver.decorator';
 import {
   MercadoPublicoV2DetailFreshnessDTO,
   MercadoPublicoV2DetailProvenanceDTO,
@@ -215,7 +215,7 @@ const toRelationConnectionDTO = (
 });
 
 @UseGuards(WorkspaceAuthGuard, NoPermissionGuard)
-@Resolver(() => MercadoPublicoV2NamespaceDTO)
+@CoreResolver(() => MercadoPublicoV2NamespaceDTO)
 export class MercadoPublicoV2DetailResolver {
   constructor(
     private readonly mercadoPublicoV2DetailReadService: MercadoPublicoV2DetailReadService,

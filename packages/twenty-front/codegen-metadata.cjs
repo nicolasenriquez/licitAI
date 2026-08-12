@@ -1,7 +1,15 @@
+const serverBaseUrl =
+  process.env.REACT_APP_SERVER_BASE_URL ?? 'http://localhost:3000';
+const schemaUrl = `${serverBaseUrl}/metadata`;
+
 module.exports = {
-  schema:
-    (process.env.REACT_APP_SERVER_BASE_URL ?? 'http://localhost:3000') +
-    '/metadata',
+  schema: process.env.CODEGEN_TOKEN
+    ? {
+        [schemaUrl]: {
+          headers: { Authorization: `Bearer ${process.env.CODEGEN_TOKEN}` },
+        },
+      }
+    : schemaUrl,
   documents: [
     './src/modules/auth/graphql/**/*.{ts,tsx}',
     './src/modules/users/graphql/**/*.{ts,tsx}',

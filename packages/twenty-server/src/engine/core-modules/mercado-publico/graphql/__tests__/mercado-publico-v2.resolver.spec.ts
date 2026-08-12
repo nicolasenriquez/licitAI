@@ -1,12 +1,35 @@
+import { GUARDS_METADATA } from '@nestjs/common/constants';
+
+import { RESOLVER_SCHEMA_SCOPE_KEY } from 'src/engine/api/graphql/graphql-config/constants/resolver-schema-scope-key.constant';
+import { MercadoPublicoV2DetailResolver } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-detail.resolver';
 import {
+  MercadoPublicoV2Resolver,
   MercadoPublicoV2NamespaceResolver,
   type MercadoPublicoV2OpportunityFilterInput,
 } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2.resolver';
 import { type MercadoPublicoV2BuyersReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-buyers-read.service';
 import { type MercadoPublicoV2HistoryReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-history-read.service';
 import { type MercadoPublicoV2ReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-read.service';
+import { NoPermissionGuard } from 'src/engine/guards/no-permission.guard';
+import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 
 describe('MercadoPublicoV2NamespaceResolver', () => {
+  it.each([
+    MercadoPublicoV2Resolver,
+    MercadoPublicoV2NamespaceResolver,
+    MercadoPublicoV2DetailResolver,
+  ])('registers %p in core GraphQL schema', (resolver) => {
+    expect(Reflect.getMetadata(RESOLVER_SCHEMA_SCOPE_KEY, resolver)).toBe(
+      'core',
+    );
+  });
+
+  it('protects namespace fields with workspace authentication', () => {
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, MercadoPublicoV2NamespaceResolver),
+    ).toEqual([WorkspaceAuthGuard, NoPermissionGuard]);
+  });
+
   it('delegates required history identity and maps event edges', async () => {
     const historyService = {
       listHistory: jest.fn().mockResolvedValue({

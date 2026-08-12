@@ -19,25 +19,32 @@ working here.
 **Engines:** Node `^24.5.0`, yarn `>=4.0.2` (yarn `4.13.0` pinned). npm is
 explicitly disabled in `package.json` — never use `npm install` or `package-lock.json`.
 
-## Workspace Routing Pilot
+## Workspace Routing
 
 `AGENTS.md` at the repository root remains the canonical entrypoint for agent
 instructions in this checkout.
 
-During this routing rollout, use the contract below before acting:
+Before substantive work:
 
-- Start at `AGENTS.md`, then read `index.md` to choose the correct surface.
+- Read `index.md`. It is the canonical routing map for this checkout.
 - Treat tokens as a first-class budget: prefer the smallest sufficient file set, the shortest sufficient declaration, and the shortest sufficient response that preserves correctness.
-- Route into `openspec/` for active OpenSpec changes, proposal/design/tasks/spec artifacts, change review, implementation, and archive/sync work.
-- Route into `docs/` for repository architecture, business context, governance, operations, standards, and ADR reading or editing.
-- Route into `packages/` for package-scoped work and for selecting the right package surface before leaf-package work.
-- Route into `.agents/` for repo-local skills and shared workflow assets.
-- If a task starts in `docs/` but is really about an active OpenSpec change, return to the root map and reroute into `openspec/`.
-- If a task starts in `openspec/` but is really about architecture, governance, or other repo docs, return to the root map and reroute into `docs/`.
-- If a task starts in `packages/` but is really about root docs or OpenSpec change work, return to the root map and reroute.
-- If a task starts in `.agents/` but is really about the published plugin package or another mapped surface, return to the root map and reroute.
-- Do not invent folder-local routing rules for unmapped leaf surfaces during rollout. If the task is outside the mapped surfaces, stay on the root contract, state explicitly that the surface is unmapped, and do not wander.
-- Only when required, declare consulted routing/context files briefly using relative paths. Include only the files actually needed for the task, then state the selected surface.
+- Read the selected surface's local routing files before substantive work. Its local `AGENTS.md` adds to this contract; if repository instructions conflict, follow the closest applicable file.
+- If no mapped surface applies, stay on the root contract and state that the surface is unmapped.
+- Before a substantive response or edit, briefly declare consulted routing and context files and the selected surface. Use relative paths and include only necessary files.
+
+Mapped surfaces and bounce rules are defined in `index.md`.
+
+## Context Management
+
+- Keep one cohesive task per session.
+- Load only context required for current task. Follow repository pointers for detail.
+- Treat forgotten constraints, repeated questions, ignored files, unrelated edits,
+  or rising correction rate as context degradation.
+- Before degradation affects correctness, write a handoff and start a fresh session.
+- Handoffs state completed work, current state, decisions, changed files,
+  validation, blockers, and next action.
+- Token counts are advisory. Use quality signals first. See
+  `docs/governance/ai-context-management.md`.
 
 ## Communication
 
@@ -69,93 +76,24 @@ in normal prose when the file is inside this repository.
 - **Formatter:** `oxfmt`. `prettier` is not used (root `prettier` block in `package.json` is historical).
 - **Typechecker:** `tsgo` (TypeScript native Go preview), not `tsc`.
 - **Build/test runner:** Nx 22 + `@nx/jest` + Vite.
-- `npx nx lint` and `npx nx lint:diff-with-main` both `dependsOn: ["twenty-oxlint-rules:build"]` — on a fresh clone, run `npx nx build twenty-oxlint-rules` once before linting, or the first lint will fail with a missing plugin error.
+- `npx nx lint` and `npx nx lint:diff-with-main` both depend on `twenty-oxlint-rules:build`. Nx builds the plugin automatically.
 
-## Key Commands
+## Safe Defaults
 
-### Development
 ```bash
-just runtime-check                              # read-only preflight of existing full Compose
-yarn start                                       # server + front + worker, concurrent
-npx nx start twenty-front                        # frontend dev server
-npx nx start twenty-server                       # backend dev server
-npx nx run twenty-server:worker                  # BullMQ background worker
-```
-
-### Testing
-```bash
-# Single test or pattern (preferred — fastest)
+just runtime-check                              # first runtime command; read-only
 cd packages/{pkg} && npx jest "<pattern or filename>"
-
-# All unit tests for a package
-npx nx test twenty-front
-npx nx test twenty-server
-
-# Integration tests with DB reset (expensive — full schema rebuild)
-npx nx run twenty-server:test:integration:with-db-reset
-
-# Storybook
-npx nx storybook:build twenty-front
-npx nx storybook:test twenty-front
-
-# UI E2E: log in via "Continue with Email" with the prefilled dev credentials.
+npx nx lint:diff-with-main <package>              # preferred changed-file lint
+npx nx typecheck <package>
 ```
 
-### Code Quality
-```bash
-# Lint + format only what changed vs main (fastest, always prefer)
-npx nx lint:diff-with-main twenty-front
-npx nx lint:diff-with-main twenty-server          # uses scripts/lint-diff-with-main.mjs
-npx nx lint:diff-with-main twenty-server --configuration=fix
+For the complete command surface, read `docs/operations/command-surface.md`.
+For runtime setup and recovery, read `docs/operations/local-development.md`.
 
-# Full-package lint
-npx nx lint twenty-front
-npx nx lint twenty-server
+### Environment and Secrets
 
-# Typecheck (runs tsgo)
-npx nx typecheck twenty-front
-npx nx typecheck twenty-server
-
-# Format
-npx nx fmt twenty-front
-npx nx fmt twenty-server
-```
-
-`lint:diff-with-main` is `git diff main...HEAD` for the server
-(`scripts/lint-diff-with-main.mjs`) and a `git diff main` for the front.
-On feature branches this is the intended behavior — do not "fix" it by
-repointing the base.
-
-### Build
-```bash
-npx nx build twenty-shared   # build first — other packages depend on its dist
-npx nx build twenty-front
-npx nx build twenty-server
-```
-
-### Database
-```bash
-npx nx database:reset twenty-server                     # truncate + init + seed
-npx nx run twenty-server:database:init                  # first-time schema + seeds
-npx nx run twenty-server:database:migrate               # run registered instance commands (fast only by default; --include-slow for slow)
-npx nx run twenty-server:database:migrate:generate --name <name> --type <fast|slow>
-# ClickHouse
-npx nx run twenty-server:clickhouse:migrate
-npx nx run twenty-server:clickhouse:seed
-```
-
-### GraphQL
-```bash
-npx nx run twenty-front:graphql:generate                # default: data codegen
-npx nx run twenty-front:graphql:generate --configuration=metadata
-npx nx run twenty-front:graphql:generate --configuration=admin
-npx nx run twenty-front:mock:generate                   # regenerate mock data fixtures
-```
-
-### Env
-```bash
-npx nx run twenty-server:reset:env                      # cp .env.example .env
-```
+- Agents may inspect `.env` files only for configuration diagnosis. Never reveal, copy, commit, or document their values; report names and redacted values only.
+- `npx nx run <package>:reset:env` replaces that package's `.env`. Run it only with explicit authorization to overwrite local configuration. Use `.env.example` for examples and defaults.
 
 ## Architecture Overview
 
@@ -164,31 +102,10 @@ npx nx run twenty-server:reset:env                      # cp .env.example .env
 - **Backend:** NestJS, TypeORM, PostgreSQL, Redis, BullMQ, GraphQL (code-first via `@nestjs/graphql` + GraphQL Yoga).
 - **Monorepo:** Nx workspace, Yarn 4 workspaces.
 
-### Package Layout
-```text
-packages/
-├── twenty-front/                  # React app
-├── twenty-server/                 # NestJS API
-├── twenty-shared/                 # Shared types & helpers
-├── twenty-ui/                     # Shared UI primitives
-├── twenty-emails/                 # React Email templates
-├── twenty-sdk/                    # App SDK (defineObject, etc.)
-├── twenty-cli/                    # `twenty` CLI (`app:publish`, `workspace:*`)
-├── twenty-client-sdk/             # Generated GraphQL client
-├── twenty-front-component-renderer/  # remote-dom renderer
-├── create-twenty-app/             # `npx create-twenty-app` scaffolder
-├── twenty-companion/              # Desktop companion
-├── twenty-codex-plugin/           # Published Codex plugin
-├── twenty-claude-skills/          # Published Claude skills bundle
-├── twenty-zapier/                 # Zapier integration
-├── twenty-docker/                 # Compose / Helm / k8s
-├── twenty-e2e-testing/            # Playwright suites
-├── twenty-utils/                  # Shared dev scripts (setup-dev-env.sh)
-├── twenty-oxlint-rules/           # Custom oxlint plugin (built once, then cached)
-├── twenty-website/                # Marketing site (legacy Next.js)
-├── twenty-website-redone/         # Marketing site (new)
-└── twenty-apps/                   # Examples + internal apps (slack, linear, etc.)
-```
+### Package Routing
+
+For package ownership and leaf-package instructions, read `packages/index.md`.
+It is the canonical package map.
 
 ### Conventions That Differ From Defaults
 
@@ -216,23 +133,14 @@ packages/
 - Always include both `up` and `down` logic. **Never delete or rewrite committed `up`/`down` logic** — append, don't mutate.
 - Full rules in `packages/twenty-server/docs/UPGRADE_COMMANDS.md`.
 
-## Dev Environment Setup
+## Runtime Safety
 
-```bash
-bash packages/twenty-utils/setup-dev-env.sh        # read-only existing-stack check
-# flags:
-#   --check    explicit read-only check (same as no flag)
-```
+Use `just runtime-check` before runtime, API, or integration diagnosis. It is
+read-only. Use `just dev-up` only with explicit authorization to start the
+existing Compose project. Skip runtime checks for tasks that only read code.
 
-The full application Compose project is the only routine local runtime. The
-script validates that existing server, worker, PostgreSQL, and Redis services
-are already healthy; it never starts, stops, removes, rebuilds, or creates a
-container, and it never falls back to host-local services. Use `just dev-up`
-only for an explicitly authorized state-changing startup. **Skip this for
-tasks that only read code** (architecture review, doc edits, code review).
-
-CI (`.github/workflows/`) uses Actions service containers and runs setup
-steps individually — it does not call this script.
+For setup, recovery, and CI behavior, read `docs/operations/local-development.md`
+and `docs/operations/ci.md`.
 
 ## Database Inspection (Postgres MCP)
 
@@ -258,26 +166,17 @@ IMPORTANT: Use Context7 for code generation, setup or configuration steps, or
 library/API documentation. Automatically use the Context7 MCP tools to resolve
 library IDs and get library docs without waiting for explicit requests.
 
-After code changes:
-
-1. `npx nx lint:diff-with-main <pkg>` (and `--configuration=fix` if needed).
-2. `npx nx typecheck <pkg>`.
-3. `npx nx test <pkg>` — or single-file `cd packages/<pkg> && npx jest "<pattern>"`.
-4. For entity changes: generate the instance command (see Database section).
-5. For GraphQL schema changes: `npx nx run twenty-front:graphql:generate`, then verify the diff is backward compatible.
+After code changes, run changed-file lint, typecheck, and relevant tests. For
+entity changes, follow `packages/twenty-server/docs/UPGRADE_COMMANDS.md`. For
+GraphQL schema changes, follow `docs/operations/command-surface.md` and verify
+that generated types are backward compatible.
 
 ## graphify
 
-This project has a knowledge graph at `graphify-out/` with god nodes,
-community structure, and cross-file relationships.
+For codebase questions, use the `graphify` skill when it is available. Query
+`graphify-out/graph.json` first when it exists. If the result has no relevant
+source for the selected surface, state that result and continue through
+`AGENTS.md` and `index.md`.
 
-When the user types `/graphify`, invoke the `skill` tool with `skill: "graphify"`
-before doing anything else.
-
-Rules:
-
-- For codebase questions, first run `graphify query "<question>"` when `graphify-out/graph.json` exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts.
-- Dirty `graphify-out/` files are expected after hooks or incremental updates; not a reason to skip graphify. Only skip if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
-- If `graphify-out/wiki/index.md` exists, use it for broad navigation instead of raw source browsing.
-- Read `graphify-out/GRAPH_REPORT.md` only for broad architecture review or when query/path/explain do not surface enough context.
-- Do not run `graphify update .` automatically after code changes — it is too slow and has timed out here. Tell the user to run `graphify update .` manually if they want the graph refreshed.
+Do not run `graphify update .` automatically. Tell the user to run it manually
+if they want to refresh the graph.

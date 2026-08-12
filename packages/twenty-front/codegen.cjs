@@ -1,7 +1,15 @@
+const serverBaseUrl =
+  process.env.REACT_APP_SERVER_BASE_URL ?? 'http://localhost:3000';
+const schemaUrl = `${serverBaseUrl}/graphql`;
+
 module.exports = {
-  schema:
-    (process.env.REACT_APP_SERVER_BASE_URL ?? 'http://localhost:3000') +
-    '/graphql',
+  schema: process.env.CODEGEN_TOKEN
+    ? {
+        [schemaUrl]: {
+          headers: { Authorization: `Bearer ${process.env.CODEGEN_TOKEN}` },
+        },
+      }
+    : schemaUrl,
   documents: [
     './src/modules/workflow/**/graphql/**/*.{ts,tsx}',
     './src/modules/activities/emails/graphql/queries/**/*.{ts,tsx}',
@@ -9,6 +17,7 @@ module.exports = {
     './src/modules/activities/calendar/graphql/**/*.{ts,tsx}',
     './src/modules/search/graphql/**/*.{ts,tsx}',
     './src/modules/command-menu/graphql/**/*.{ts,tsx}',
+    './src/pages/mercado-publico/**/*.{ts,tsx}',
 
     '!./src/**/*.test.{ts,tsx}',
     '!./src/**/*.stories.{ts,tsx}',

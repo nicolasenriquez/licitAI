@@ -10,9 +10,9 @@ import {
   Query,
   registerEnumType,
   ResolveField,
-  Resolver,
 } from '@nestjs/graphql';
 
+import { CoreResolver } from 'src/engine/api/graphql/graphql-config/decorators/core-resolver.decorator';
 import {
   MercadoPublicoV2BuyersReadService,
   type MercadoPublicoV2BuyerAggregate,
@@ -550,7 +550,7 @@ const toBuyerDTO = (
 });
 
 @UseGuards(WorkspaceAuthGuard, NoPermissionGuard)
-@Resolver()
+@CoreResolver()
 export class MercadoPublicoV2Resolver {
   @Query(() => MercadoPublicoV2NamespaceDTO)
   mercadoPublicoV2(): MercadoPublicoV2NamespaceDTO {
@@ -559,7 +559,7 @@ export class MercadoPublicoV2Resolver {
 }
 
 @UseGuards(WorkspaceAuthGuard, NoPermissionGuard)
-@Resolver(() => MercadoPublicoV2NamespaceDTO)
+@CoreResolver(() => MercadoPublicoV2NamespaceDTO)
 export class MercadoPublicoV2NamespaceResolver {
   constructor(
     private readonly mercadoPublicoV2ReadService: MercadoPublicoV2ReadService,

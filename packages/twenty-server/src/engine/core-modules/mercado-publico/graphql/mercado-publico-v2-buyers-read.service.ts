@@ -12,6 +12,7 @@ export type MercadoPublicoV2BuyerRow = {
   buyer_code: string;
   buyer_name: string | null;
   population: string;
+  buyer_count: string;
   opportunity_count: string;
   amount_count: string;
   as_of: Date | null;
@@ -62,9 +63,10 @@ const toBuyerAggregate = (
   row: MercadoPublicoV2BuyerRow,
 ): MercadoPublicoV2BuyerAggregate => {
   const population = Number(row.population);
+  const buyerCount = Number(row.buyer_count);
   const opportunityCount = Number(row.opportunity_count);
   const amountCount = Number(row.amount_count);
-  const buyerCoverage = population === 0 ? 0 : opportunityCount / population;
+  const buyerCoverage = population === 0 ? 0 : buyerCount / population;
   const amountCoverage =
     opportunityCount === 0 ? 0 : amountCount / opportunityCount;
 
@@ -75,9 +77,9 @@ const toBuyerAggregate = (
     buyerCoverage,
     amountCoverage,
     availability:
-      buyerCoverage === 0
+      buyerCoverage === 0 || amountCoverage === 0
         ? 'unavailable'
-        : buyerCoverage === 1
+        : buyerCoverage === 1 && amountCoverage === 1
           ? 'available'
           : 'partial',
     completeness:
@@ -116,7 +118,7 @@ export class MercadoPublicoV2BuyersReadService {
           SELECT
             buyer_code,
             buyer_name,
-            COALESCE(amount_raw, amount::text) AS amount,
+            amount,
             COALESCE(observed_at, persisted_at, last_seen_at) AS as_of
           FROM mp.gold_detected_process
           ${populationWhere.whereSql}
@@ -125,6 +127,7 @@ export class MercadoPublicoV2BuyersReadService {
             buyer_code,
             MAX(buyer_name) AS buyer_name,
             (SELECT COUNT(*)::text FROM filtered) AS population,
+            (SELECT COUNT(buyer_code)::text FROM filtered) AS buyer_count,
             COUNT(*)::text AS opportunity_count,
             COUNT(amount)::text AS amount_count,
             MAX(as_of) AS as_of
@@ -136,6 +139,7 @@ export class MercadoPublicoV2BuyersReadService {
           buyer_code,
           buyer_name,
           population,
+          buyer_count,
           opportunity_count,
           amount_count,
           as_of

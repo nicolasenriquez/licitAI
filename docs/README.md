@@ -30,7 +30,7 @@ context.
 | Architecture | `architecture/` | Current state, target state, reference architecture, data model, security, and repository strategy. |
 | Docs topology | `architecture/documentation-topology.md` | OKF bundle shape, index hierarchy, and documentation topology. |
 | Design | `design/` | Design system, visual tokens, interaction patterns, and wireframe grammar. |
-| Governance | `governance/` | Ownership, decision boundaries, AI-assisted delivery rules, and domain operating model. |
+| Governance | `governance/` | Ownership, decision boundaries, AI-assisted delivery rules, context management, and domain operating model. |
 | Operations | `operations/` | Local development, command surface, database operations, CI/CD, release expectations, and documentation authoring guidance. |
 | Decisions | `decisions/` | ADR index and repository-level architectural decisions. |
 | Templates | `templates/` | Standard templates for ADR creation and governance assets. |
@@ -51,13 +51,14 @@ context.
 9. `architecture/documentation-topology.md` — Documentation topology and index hierarchy
 10. `vision-product.md` — Product context and scope
 11. `governance/ai-assisted-delivery.md` — Agent guardrails and delivery workflow
-12. `operations/command-surface.md` — Developer command contract
-13. `operations/local-development.md` — Local setup and runtime
-14. `operations/okf-authoring-guide.md` — Safe additive documentation authoring rules
-15. `design/design-system.md` — Visual and interaction rules
-16. `standards/okf-standard.md` — Repository OKF taxonomy and frontmatter rules
-17. `decisions/` — Key architectural decisions with rationale
-18. `../.cursor/rules/` — Cursor-specific development rules (16 `.mdc` files)
+12. `governance/ai-context-management.md` — Context and handoff rules
+13. `operations/command-surface.md` — Developer command contract
+14. `operations/local-development.md` — Local setup and runtime
+15. `operations/okf-authoring-guide.md` — Safe additive documentation authoring rules
+16. `design/design-system.md` — Visual and interaction rules
+17. `standards/okf-standard.md` — Repository OKF taxonomy and frontmatter rules
+18. `decisions/` — Key architectural decisions with rationale
+19. `../.cursor/rules/` — Cursor-specific development rules (16 `.mdc` files)
 
 ### For architecture and delivery
 
@@ -107,6 +108,7 @@ context.
 | `index.md` | Canonical routing map from the root contract into mapped documentation surfaces. |
 | `docs/index.md` | Local routing index for durable repository docs before leaf documents. |
 | `docs/` | Durable repository context and operating baseline. Architecture, governance, operations. |
+| `docs/governance/ai-context-management.md` | Detailed rules for context size, degradation signals, clearing, compaction, and handoff. |
 | `docs/standards/okf-standard.md` | Documentation taxonomy, frontmatter contract, and index rules for this repository. |
 | `docs/architecture/documentation-topology.md` | OKF bundle shape, surface model, and ordering rules. |
 | `docs/operations/okf-authoring-guide.md` | Safe additive update policy for future documentation work. |

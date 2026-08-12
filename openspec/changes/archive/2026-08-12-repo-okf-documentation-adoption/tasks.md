@@ -51,5 +51,6 @@ justification.
   Traceability: routing-contract migration
 - [x] 4.2 Run `openspec validate repo-okf-documentation-adoption`.
   Traceability: change validation
-- [ ] 4.3 Defer archive and sync until implementation is complete and accepted.
+- [x] 4.3 Defer archive and sync until implementation is complete and accepted.
   Traceability: change lifecycle hygiene
+  Notes: Accepted for closeout by user request on 2026-08-12; `openspec change validate repo-okf-documentation-adoption` passed. Main spec already contains all delta requirements; formal sync and archive follow.

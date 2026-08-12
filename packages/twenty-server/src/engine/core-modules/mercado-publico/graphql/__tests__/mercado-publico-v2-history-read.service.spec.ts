@@ -124,4 +124,16 @@ describe('MercadoPublicoV2HistoryReadService', () => {
     );
     expect(query).not.toHaveBeenCalled();
   });
+
+  it('rejects malformed history cursors before querying', async () => {
+    const query = jest.fn();
+    const service = new MercadoPublicoV2HistoryReadService({
+      query,
+    } as unknown as DataSource);
+
+    await expect(
+      service.listHistory('FIXTURE-CA-001', 'not-json'),
+    ).rejects.toThrow('Mercado Publico V2 history cursor is invalid');
+    expect(query).not.toHaveBeenCalled();
+  });
 });
