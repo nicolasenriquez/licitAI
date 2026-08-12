@@ -1,5 +1,5 @@
 ---
-type: runbook
+type: operations-guide
 title: Compra Agil V2 operator guide
 description: Safe manual execution contract for the Mercado Publico Compra Agil V2 backbone.
 ---

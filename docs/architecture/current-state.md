@@ -32,7 +32,7 @@ Twenty is a production-grade, open-source CRM with a 22-package Nx monorepo. The
 
 | Area | Decision |
 | --- | --- |
-| Monorepo tool | Nx 22.7.5 with Yarn 4 (Berry). 22 packages with defined task pipelines. |
+| Monorepo tool | Nx 22.7.7 with Yarn 4 (Berry). 22 packages with defined task pipelines. |
 | Backend framework | NestJS 11. Code-first approach with modules, decorators, dependency injection. |
 | API protocol | GraphQL (GraphQL Yoga) with triple-endpoint design: `/graphql` (core data), `/metadata` (schema management), `/admin-panel` (admin operations). REST at `/rest/*`, MCP at `/mcp`. |
 | ORM | TypeORM 0.3.26 (patched) with custom TwentyORM layer for multi-tenant schema isolation. |
@@ -42,7 +42,7 @@ Twenty is a production-grade, open-source CRM with a 22-package Nx monorepo. The
 | Styling | Linaria (zero-runtime CSS-in-JS), styled-components API. CSS variables for theming. |
 | i18n | Lingui. Extract/compile workflow. Crowdin for translations. |
 | Testing | Jest (unit/integration), Playwright (E2E), Vitest (Vite-native). |
-| CI/CD | GitHub Actions (40+ workflows). Per-package CI, E2E, deploy, release, i18n. |
+| CI/CD | GitHub Actions (22 workflows). Per-package CI, E2E, deploy, release, i18n. |
 | Containerization | Docker Compose for dev/prod. Kubernetes Helm charts available. |
 
 ### Package Structure
@@ -158,7 +158,7 @@ Apps are installed via `npx twenty app:install` and published with `npx twenty a
 - **Development**: Docker Compose with PostgreSQL 16 + Redis 7. `setup-dev-env.sh` for one-command setup.
 - **Production**: Docker Compose with server + worker + PostgreSQL + Redis. Kubernetes Helm charts available.
 - **Monitoring**: OpenTelemetry collector, Grafana dashboards, Sentry error tracking, Prometheus metrics.
-- **CI/CD**: GitHub Actions (40+ workflows). Per-package CI (lint, typecheck, test, build), E2E, deploy to main/tag, release drafter, i18n sync, app testing.
+- **CI/CD**: GitHub Actions (22 workflows). Per-package CI (lint, typecheck, test, build), E2E, deploy to main/tag, release drafter, i18n sync, app testing.
 
 ### Quality Gates
 

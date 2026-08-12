@@ -24,7 +24,7 @@ or a newly-created container stack.
 | --- | --- | --- | --- |
 | Runtime | Node.js | ^24.5.0 | Required for all packages |
 | Package manager | Yarn | 4.13.0 (Berry) | With Corepack |
-| Monorepo tool | Nx | 22.7.5 | Task orchestration |
+| Monorepo tool | Nx | 22.7.7 | Task orchestration |
 | Backend | NestJS | 11 | API server on port 3000 |
 | Frontend | React | 19 | Vite dev server on port 3001 |
 | Worker | BullMQ | — | Background job processor |

@@ -113,12 +113,12 @@ These primitives are complemented by:
 ## Current State
 
 - **Active production**: Twenty Cloud available at twenty.com. Regular releases (version 0.2.1).
-- **22-package monorepo**: Full CI/CD with 40+ GitHub Actions workflows.
+- **22-package monorepo**: Full CI/CD with 22 GitHub Actions workflows.
 - **SDK published**: `twenty-sdk` v2.15.0 on npm. CLI scaffolding and app publishing.
 - **12 internal apps**: Slack, Linear, Discord, Fireflies, and more.
 - **Community**: Discord server, GitHub discussions, public roadmap, Crowdin translations.
 - **Self-hosting**: Docker Compose and Kubernetes Helm charts available.
-- **Documentation**: Public docs at docs.twenty.com (Mintlify). CLAUDE.md for AI agents.
+- **Documentation**: Public docs at docs.twenty.com (Mintlify). Root `AGENTS.md` and `index.md` route AI agents.
 
 ## Target State
 

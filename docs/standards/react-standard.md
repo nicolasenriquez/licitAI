@@ -174,7 +174,7 @@ my-feature/
 
 ## References
 
-- `CLAUDE.md` — Code style rules and development workflow.
+- `AGENTS.md` — Root code-style rules and development-workflow routing.
 - `.cursor/rules/react-general-guidelines.mdc` — IDE-specific React rules.
 - `.cursor/rules/react-state-management.mdc` — Jotai and state management rules.
 - `docs/design/design-system.md` — Component catalog and design tokens.

@@ -13,7 +13,7 @@ Define which technology standards are present in the Twenty CRM monorepo, their 
 Engineers, reviewers, architects, and AI agents working on the Twenty codebase.
 
 ## Executive Summary
-Twenty's technology stack is mature and ratified. The backend is NestJS 11 with a custom TwentyORM layer on TypeORM for multi-tenant PostgreSQL. The frontend is React 19 with Jotai state management and Linaria styling. The monorepo is managed by Nx 22.7.5 with Yarn 4. Code quality is enforced through oxlint, oxfmt, and tsgo. This document inventories every technology in the stack and its governing standards.
+Twenty's technology stack is mature and ratified. The backend is NestJS 11 with a custom TwentyORM layer on TypeORM for multi-tenant PostgreSQL. The frontend is React 19 with Jotai state management and Linaria styling. The monorepo is managed by Nx 22.7.7 with Yarn 4. Code quality is enforced through oxlint, oxfmt, and tsgo. This document inventories every technology in the stack and its governing standards.
 
 ## Existing Standards
 
@@ -21,7 +21,7 @@ Twenty's technology stack is mature and ratified. The backend is NestJS 11 with 
 
 | Technology | Version | Purpose | Governing Rules |
 | --- | --- | --- | --- |
-| Nx | 22.7.5 | Task orchestration, caching, dependency graph | `nx.json`, `.cursor/rules/nx-rules.mdc` |
+| Nx | 22.7.7 | Task orchestration, caching, dependency graph | `nx.json`, `.cursor/rules/nx-rules.mdc` |
 | Yarn | 4.13.0 (Berry) | Package manager, workspace resolution | `package.json`, `yarn.config.cjs`, `.yarnrc.yml` |
 | Node.js | ^24.5.0 | JavaScript runtime | `package.json` engines field |
 | oxlint | — | Linter (ESLint equivalent) | `.oxlintrc.json` per package, `nx.json` lint target |
@@ -99,7 +99,7 @@ Twenty's technology stack is mature and ratified. The backend is NestJS 11 with 
 
 ## Code Style Rules
 
-Enforced by lint and typecheck, documented in `CLAUDE.md`, `.cursor/rules/`, and this baseline:
+Enforced by lint and typecheck, documented in `AGENTS.md`, `.cursor/rules/`, and this baseline:
 
 | Rule | Detail |
 | --- | --- |
@@ -161,7 +161,7 @@ Technology in the "Existing Standards" tables above is **binding** unless otherw
 
 ## Guidance For AI Agents
 
-1. Use existing standards files (`.cursor/rules/*.mdc`, `CLAUDE.md`) when they match the implementation surface.
+1. Use existing standards files (`.cursor/rules/*.mdc`, `AGENTS.md`) when they match the implementation surface.
 2. Do not assume a technology choice is available unless it is listed in this document or visible in `package.json`.
 3. Prefer existing utilities from `twenty-shared` (`isDefined()`, `isNonEmptyString()`, `isNonEmptyArray()`) over manual type guards.
 4. Follow the import order: external libraries first, then internal (`@/`), then relative.

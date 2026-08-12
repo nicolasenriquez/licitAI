@@ -27,7 +27,6 @@ Start at the repository root:
 | File | Role |
 | --- | --- |
 | `AGENTS.md` | Canonical operational entrypoint |
-| `CLAUDE.md` | Lightweight shim into the same root contract |
 | `index.md` | Canonical routing map for progressive disclosure |
 
 ## Mapped Surfaces

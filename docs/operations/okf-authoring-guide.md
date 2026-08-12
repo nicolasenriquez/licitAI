@@ -19,7 +19,7 @@ machine-readable or scannable at the file header.
 
 In this repository, that includes:
 
-- routing contracts such as `AGENTS.md`, `CLAUDE.md`, and `CONTEXT.md`
+- routing contracts such as `AGENTS.md` and `CONTEXT.md`
 - durable docs under `docs/`
 - OpenSpec change artifacts
 - repo-local `.agents/` skill and workflow docs

@@ -29,8 +29,10 @@ context.
 | Business | `business/` | Procurement domain: business case, lifecycle, source contracts, workflows, and market positioning for Mercado Publico / ChileCompra data ingestion. |
 | Architecture | `architecture/` | Current state, target state, reference architecture, data model, security, and repository strategy. |
 | Docs topology | `architecture/documentation-topology.md` | OKF bundle shape, index hierarchy, and documentation topology. |
+| Agent documentation workflow | `architecture/agent-context-and-documentation-workflows.md` | Evidence model, ICM evaluation, and documentation-audit pilot. |
 | Design | `design/` | Design system, visual tokens, interaction patterns, and wireframe grammar. |
 | Governance | `governance/` | Ownership, decision boundaries, AI-assisted delivery rules, context management, and domain operating model. |
+| Documentation authority | `governance/documentation-authority.md` | Canonical sources, owners, review triggers, and verifiers for shared docs. |
 | Operations | `operations/` | Local development, command surface, database operations, CI/CD, release expectations, and documentation authoring guidance. |
 | Decisions | `decisions/` | ADR index and repository-level architectural decisions. |
 | Templates | `templates/` | Standard templates for ADR creation and governance assets. |
@@ -40,25 +42,13 @@ context.
 
 ### For AI agents (onboarding)
 
-1. `../CLAUDE.md` — Fast operational rules (dev workflow, testing, lint commands)
-2. `../index.md` — Canonical root routing map
-3. `index.md` — `docs/` routing index
-4. `architecture/current-state.md` — What Twenty is today (packages, stack, architecture)
-5. `architecture/reference-architecture.md` — Architecture diagram and integration rules
-6. `architecture/repository-strategy.md` — Monorepo layout, package dependencies, build order
-7. `architecture/data-model.md` — Multi-tenant data model, entities, field types
-8. `architecture/security-and-identity.md` — Authentication, RBAC, RLS, guards
-9. `architecture/documentation-topology.md` — Documentation topology and index hierarchy
-10. `vision-product.md` — Product context and scope
-11. `governance/ai-assisted-delivery.md` — Agent guardrails and delivery workflow
-12. `governance/ai-context-management.md` — Context and handoff rules
-13. `operations/command-surface.md` — Developer command contract
-14. `operations/local-development.md` — Local setup and runtime
-15. `operations/okf-authoring-guide.md` — Safe additive documentation authoring rules
-16. `design/design-system.md` — Visual and interaction rules
-17. `standards/okf-standard.md` — Repository OKF taxonomy and frontmatter rules
-18. `decisions/` — Key architectural decisions with rationale
-19. `../.cursor/rules/` — Cursor-specific development rules (16 `.mdc` files)
+1. `../AGENTS.md` — Canonical operational entrypoint.
+2. `../index.md` — Canonical root routing map.
+3. `AGENTS.md` — `docs/` contract.
+4. `CONTEXT.md` — `docs/` scope and reading order.
+5. `index.md` — `docs/` routing index.
+6. This file — Durable documentation baseline.
+7. The document that matches the task. Read an ADR or standard only when it applies.
 
 ### For architecture and delivery
 
@@ -85,16 +75,16 @@ context.
 
 | Topic | Current State |
 | --- | --- |
-| Repository maturity | Production-grade. 22 packages, full CI/CD (40+ GitHub Actions workflows), published SDK (`twenty-sdk` v2.15.0), Docker Compose + Kubernetes Helm charts. |
+| Repository maturity | Production-grade. 22 packages, 22 GitHub Actions workflows, published SDK (`twenty-sdk` v2.15.0), Docker Compose + Kubernetes Helm charts. |
 | Product maturity | Active. Twenty Cloud available at twenty.com. Self-hosting supported. App ecosystem with internal, community, and example apps. |
-| Architecture maturity | High but implicit. Architecture is visible in code and `CLAUDE.md` but not consolidated in a single durable document. |
+| Architecture maturity | High but implicit. Architecture is visible in code and existing durable documents, but not consolidated in a single document. |
 | Documentation maturity | Structured. Public docs at docs.twenty.com (Mintlify), root routing via `AGENTS.md` + `index.md`, and an internal baseline under `docs/`. |
 | Technical certainty | High. Stack is ratified: NestJS 11, React 19, TypeScript strict, PostgreSQL 16, Redis 7, BullMQ, GraphQL Yoga, Jotai, Linaria, Nx. |
 | Data certainty | High. Multi-tenant per-workspace PostgreSQL schemas. Metadata-driven object/field model. Instance command migration system. |
 
 ## Target State
 
-- AI agents can onboard from `docs/` alone, using `CLAUDE.md` for fast lookups.
+- AI agents can route from `AGENTS.md` to the selected documentation surface with progressive disclosure.
 - Architecture decisions are traceable through ADRs with rationale and alternatives.
 - Shared rules are explicit and documented, not implicit in code or tribal knowledge.
 - Engineers can challenge architecture decisions with documented evidence.
@@ -104,7 +94,7 @@ context.
 
 | Artifact | Role |
 | --- | --- |
-| `CLAUDE.md` | Fast operational rules for AI agents and engineers. Shortest path to working commands. |
+| `AGENTS.md` | Canonical operational entrypoint for agents and engineers. |
 | `index.md` | Canonical routing map from the root contract into mapped documentation surfaces. |
 | `docs/index.md` | Local routing index for durable repository docs before leaf documents. |
 | `docs/` | Durable repository context and operating baseline. Architecture, governance, operations. |
@@ -125,10 +115,10 @@ context.
 
 | Decision | Resolution |
 | --- | --- |
-| Source of truth for technology standards | `docs/standards/` is authoritative. `.cursor/rules/` serves as indexes referencing `docs/standards/` without duplicating content. `CLAUDE.md` remains fast operational reference. |
+| Source of truth for technology standards | `docs/standards/` is authoritative. `.cursor/rules/` serves as indexes referencing `docs/standards/` without duplicating content. `AGENTS.md` remains the root operational entrypoint. |
 | First ADRs to formalize | Four foundational ADRs: Nx monorepo choice, NestJS + TypeORM, metadata-driven UI, per-workspace schema isolation. |
 | Review process for `docs/` | Same PR process as code: review required, approval before merge. |
-| CI gates for `docs/` | Link checker only. Prevents broken references without adding unnecessary friction. |
+| CI gates for `docs/` | `ci-docs.yaml` lints `twenty-docs` when `package.json` or `packages/twenty-docs/**` changes. Internal `docs/` has no CI validation yet. |
 
 ## Open Decisions
 

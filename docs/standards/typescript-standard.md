@@ -169,7 +169,7 @@ import { type WorkspaceDTO } from './workspace.dto';
 
 ## References
 
-- `CLAUDE.md` — Code style rules and development workflow.
+- `AGENTS.md` — Root code-style rules and development-workflow routing.
 - `.cursor/rules/typescript-guidelines.mdc` — IDE-specific TypeScript rules.
 - `tsconfig.base.json` — Base TypeScript configuration.
 - `docs/architecture/repository-strategy.md` — Monorepo build order.

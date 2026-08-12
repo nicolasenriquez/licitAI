@@ -163,7 +163,7 @@ const company = await entityManager.findOne('company', { where: { id: companyId 
 
 ## References
 
-- `CLAUDE.md` — Database commands and instance command documentation.
+- `AGENTS.md` — Root command routing and instance-command safety rules.
 - `.cursor/rules/server-migrations.mdc` — IDE-specific migration rules.
 - `docs/architecture/data-model.md` — Entity model and schema layers.
 - `docs/architecture/security-and-identity.md` — Permission enforcement in ORM.

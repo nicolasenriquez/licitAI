@@ -19,7 +19,7 @@ The repository SHALL provide a canonical root routing contract for this pilot.
 #### Scenario: Root files define the pilot entrypoint
 
 - **WHEN** an agent starts work in this checkout
-- **THEN** the root contract is defined by `AGENTS.md`, `CLAUDE.md`, and `index.md`
+- **THEN** the root contract is defined by `AGENTS.md` and `index.md`
 - **AND** the root `AGENTS.md` remains the canonical instruction entrypoint
 
 ### Requirement: Root Routes OpenSpec Work Into `openspec/`
@@ -97,7 +97,6 @@ The pilot SHALL expose its routing interface through explicit files.
 - **WHEN** the repository is inspected for the routing pilot
 - **THEN** the following files exist:
   - `AGENTS.md`
-  - `CLAUDE.md`
   - `index.md`
   - `openspec/AGENTS.md`
   - `openspec/CONTEXT.md`
