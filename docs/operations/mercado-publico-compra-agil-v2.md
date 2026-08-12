@@ -64,6 +64,29 @@ payload: {"publicado_desde":"2026-08-10T00:00:00Z","publicado_hasta":"2026-08-10
 - **Policy**: resume or rediscover a failed durable run; do not recreate it
   with a subtly different partial window.
 
+## Sync Operator Deployment
+
+The V2 sync control boundary accepts only explicit human operators. An
+operator assignment is a row in `mp.sync_operator` with a `workspace_id` and a
+`user_workspace_id`. The schema ships through the additive fast instance
+command `MpV2SyncOperationsFastInstanceCommand`; standard deployment applies
+it with `npx nx run twenty-server:database:migrate:prod`.
+
+Manage assignments with the `mercado-publico:sync-operator` command through
+the existing server command surface.
+
+```text
+# assign (idempotent, refreshes assignment metadata)
+mercado-publico:sync-operator -w <workspace_id> -u <user_workspace_id> -a <assigned_by_user_workspace_id>
+
+# remove
+mercado-publico:sync-operator -w <workspace_id> -u <user_workspace_id> --remove
+```
+
+- **Policy**: assign only workspace members who operate the sync.
+- **Policy**: no workspace administrator receives implicit sync control.
+- **Policy**: remove the assignment when an operator leaves the workspace.
+
 ## Error Matrix
 
 | Signal | Classification | Operator action |

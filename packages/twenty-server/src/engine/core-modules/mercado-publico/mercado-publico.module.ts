@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { MercadoPublicoRunCommand } from 'src/engine/core-modules/mercado-publico/commands/mercado-publico-run.command';
+import { MercadoPublicoSyncOperatorCommand } from 'src/engine/core-modules/mercado-publico/commands/mercado-publico-sync-operator.command';
 import { MercadoPublicoV2E2EFixtureCommand } from 'src/engine/core-modules/mercado-publico/commands/mercado-publico-v2-e2e-fixture.command';
 import { MercadoPublicoApiV1LicitacionesClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-licitaciones-client.service';
 import { MercadoPublicoApiV1OrdenesDeCompraClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-ordenes-de-compra-client.service';
@@ -91,6 +92,7 @@ import { MercadoPublicoV2EvidenceReplayService } from 'src/engine/core-modules/m
     MercadoPublicoApiV2CompraAgilPublicationWindowService,
     MercadoPublicoApiV2CompraAgilDetailByCodigoService,
     MercadoPublicoRunCommand,
+    MercadoPublicoSyncOperatorCommand,
     MercadoPublicoV2E2EFixtureCommand,
     MercadoPublicoJob,
   ],
