@@ -1,4 +1,4 @@
-## 0. Investigation and Scope Lock
+co## 0. Investigation and Scope Lock
 
 - [x] 0.1 Reconfirm the G2 lane B boundary against `implementation-sdlc-map.md`,
   `mp.v2_history`, and the current `mercadoPublicoV2` namespace before code
@@ -56,20 +56,34 @@
   the resolver buyers case stays red until 2.3. Resolver spec mock aligned to
   per-event cursors.
 
-- [ ] 2.2 Add the Historial route, page, and private Mercado Público local
+- [x] 2.2 Add the Historial route, page, and private Mercado Público local
   navigation using Twenty shell, tokens, and explicit state rendering. Require
   `codigo` in the URL, add an accessible read-only entry from the existing V2
   detail, and show guidance when it is absent.
   Traceability: Group G2; Slice S1; Issue 27; Acceptance AC 27.1, AC 27.4, AC 27.5.
+  Notes: Added `MercadoPublicoV2HistoryPage` at `/mercado-publico/historial`
+  behind the V2 flag, with required `codigo` guidance state, loading/error/
+  empty/populated states, semantic diff and provenance rendering, and keyset
+  `after` pagination in the URL. Added shared `MercadoPublicoV2Nav` (Activas,
+  Historial) to the Active and History pages, an accessible Historial link in
+  the V2 detail side panel, and `AppPath.MercadoPublicoV2History`. Front
+  typecheck, diff lint, oxfmt, and focused `mercado-publico` jest tests green;
+  GraphQL codegen deferred to 2.5.
 
 ### Compradores
 
-- [ ] 2.3 Extract the existing V2 filter validation and SQL population builder
+- [x] 2.3 Extract the existing V2 filter validation and SQL population builder
   into a focused internal helper, then add a dedicated Compradores reader,
   DTOs, and namespace resolver field that reuses it. Use `buyerCode` as the
   aggregate key and retain the buyer name only as a display label. Calculate
   coverage from observed values and do not convert or total currencies.
-  Traceability: Group G2; Slice S2; Issue 27; Acceptance AC 27.2, AC 27.4.
+   Traceability: Group G2; Slice S2; Issue 27; Acceptance AC 27.2, AC 27.4.
+   Notes: Extracted shared filter validation and population SQL clauses into
+   `mercado-publico-v2-filter.util.ts`. Added the keyset-paginated buyers reader
+   over `mp.gold_detected_process` and `mp.v2_cohort`, with buyer/amount coverage,
+   availability, completeness, freshness, and buyer-code cursors. Added buyer
+   GraphQL DTOs and namespace field. Focused server tests pass 17/17; server
+   typecheck, diff lint, oxfmt, and `git diff --check` pass.
 
 - [ ] 2.4 Add the Compradores route and page. Serialize a selected buyer into
   the Activas URL as `buyer=<buyerCode>` without replacing the current history

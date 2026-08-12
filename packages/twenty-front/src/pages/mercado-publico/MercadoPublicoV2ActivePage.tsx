@@ -21,6 +21,7 @@ import {
   MercadoPublicoV2FilterBar,
   type MercadoPublicoV2FilterBarProps,
 } from '@/mercado-publico/components/MercadoPublicoV2FilterBar';
+import { MercadoPublicoV2Nav } from '@/mercado-publico/components/MercadoPublicoV2Nav';
 import {
   useMercadoPublicoV2UrlState,
   type MercadoPublicoV2Filters,
@@ -849,6 +850,7 @@ export const MercadoPublicoV2ActivePage = () => {
     <StyledPage>
       <StyledHeader>
         <StyledHeading>{t`Activas`}</StyledHeading>
+        <MercadoPublicoV2Nav />
         {opportunities && (
           <StyledCount>{t`${opportunities.totalCount} oportunidades`}</StyledCount>
         )}

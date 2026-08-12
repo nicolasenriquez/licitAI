@@ -3,6 +3,8 @@ import { useLazyQuery, useQuery } from '@apollo/client/react';
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { AppPath } from 'twenty-shared/types';
 
 import { SidePanelPageComponentInstanceContext } from '@/side-panel/states/contexts/SidePanelPageComponentInstanceContext';
 import { useComponentInstanceStateContext } from '@/ui/utilities/state/component-state/hooks/useComponentInstanceStateContext';
@@ -367,6 +369,12 @@ const StyledCode = styled.div`
   font-size: ${themeCssVariables.font.size.sm};
 `;
 
+const StyledHistoryLink = styled(Link)`
+  color: ${themeCssVariables.font.color.primary};
+  font-size: ${themeCssVariables.font.size.md};
+  text-underline-offset: 2px;
+`;
+
 const StyledSection = styled.section`
   display: flex;
   flex-direction: column;
@@ -649,6 +657,12 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
         <StyledTitle>{opportunity.title ?? opportunity.codigo}</StyledTitle>
         <StyledCode>{opportunity.codigo}</StyledCode>
       </div>
+
+      <StyledHistoryLink
+        to={`${AppPath.MercadoPublicoV2History}?codigo=${encodeURIComponent(opportunity.codigo)}`}
+      >
+        {t({ message: 'Ver historial' })}
+      </StyledHistoryLink>
 
       <StyledSection>
         <StyledHeading>{t({ message: 'Identidad y estado' })}</StyledHeading>

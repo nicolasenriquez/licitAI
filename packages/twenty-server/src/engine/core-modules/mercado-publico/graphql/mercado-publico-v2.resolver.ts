@@ -2,6 +2,7 @@ import { UseGuards } from '@nestjs/common';
 import {
   Args,
   Field,
+  Float,
   GraphQLISODateTime,
   InputType,
   Int,
@@ -12,7 +13,10 @@ import {
   Resolver,
 } from '@nestjs/graphql';
 
-import { MercadoPublicoV2BuyersReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-buyers-read.service';
+import {
+  MercadoPublicoV2BuyersReadService,
+  type MercadoPublicoV2BuyerAggregate,
+} from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-buyers-read.service';
 import {
   MercadoPublicoV2HistoryReadService,
   type MercadoPublicoV2HistoryEvent,
@@ -405,6 +409,51 @@ export class MercadoPublicoV2HistoryConnectionDTO {
   pageInfo!: MercadoPublicoV2PageInfoDTO;
 }
 
+@ObjectType()
+export class MercadoPublicoV2BuyerDTO {
+  @Field()
+  buyerCode!: string;
+
+  @Field(() => String, { nullable: true })
+  buyerName!: string | null;
+
+  @Field(() => Int)
+  opportunityCount!: number;
+
+  @Field(() => Float)
+  buyerCoverage!: number;
+
+  @Field(() => Float)
+  amountCoverage!: number;
+
+  @Field()
+  availability!: string;
+
+  @Field()
+  completeness!: string;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  asOf!: Date | null;
+}
+
+@ObjectType()
+export class MercadoPublicoV2BuyerEdgeDTO {
+  @Field()
+  cursor!: string;
+
+  @Field(() => MercadoPublicoV2BuyerDTO)
+  node!: MercadoPublicoV2BuyerDTO;
+}
+
+@ObjectType()
+export class MercadoPublicoV2BuyerConnectionDTO {
+  @Field(() => [MercadoPublicoV2BuyerEdgeDTO])
+  edges!: MercadoPublicoV2BuyerEdgeDTO[];
+
+  @Field(() => MercadoPublicoV2PageInfoDTO)
+  pageInfo!: MercadoPublicoV2PageInfoDTO;
+}
+
 const toOpportunityDTO = (
   row: MercadoPublicoV2OpportunityRow,
 ): MercadoPublicoV2OpportunityDTO => ({
@@ -485,6 +534,19 @@ const toHistoryEventDTO = (
   endpoint: event.endpoint,
   snapshotKind: event.snapshotKind,
   createdAt: event.createdAt,
+});
+
+const toBuyerDTO = (
+  buyer: MercadoPublicoV2BuyerAggregate,
+): MercadoPublicoV2BuyerDTO => ({
+  buyerCode: buyer.buyerCode,
+  buyerName: buyer.buyerName,
+  opportunityCount: buyer.opportunityCount,
+  buyerCoverage: buyer.buyerCoverage,
+  amountCoverage: buyer.amountCoverage,
+  availability: buyer.availability,
+  completeness: buyer.completeness,
+  asOf: buyer.asOf,
 });
 
 @UseGuards(WorkspaceAuthGuard, NoPermissionGuard)
@@ -585,6 +647,38 @@ export class MercadoPublicoV2NamespaceResolver {
       edges: result.rows.map((event) => ({
         cursor: event.cursor,
         node: toHistoryEventDTO(event),
+      })),
+      pageInfo: {
+        hasNextPage: result.hasNextPage,
+        hasPreviousPage: after != null,
+        startCursor: result.startCursor,
+        endCursor: result.endCursor,
+      },
+    };
+  }
+
+  @ResolveField(() => MercadoPublicoV2BuyerConnectionDTO)
+  async buyers(
+    @Args('filter', {
+      type: () => MercadoPublicoV2OpportunityFilterInput,
+      nullable: true,
+    })
+    filter?: MercadoPublicoV2OpportunityFilterInput,
+    @Args('after', { type: () => String, nullable: true })
+    after?: string | null,
+    @Args('first', { type: () => Int, nullable: true, defaultValue: 50 })
+    first?: number,
+  ): Promise<MercadoPublicoV2BuyerConnectionDTO> {
+    const result = await this.mercadoPublicoV2BuyersReadService.listBuyers(
+      filter as MercadoPublicoV2OpportunityFilter,
+      after,
+      first,
+    );
+
+    return {
+      edges: result.rows.map((row) => ({
+        cursor: row.cursor ?? result.startCursor ?? '',
+        node: toBuyerDTO(row),
       })),
       pageInfo: {
         hasNextPage: result.hasNextPage,

@@ -1,7 +1,7 @@
 ---
 name: execute
-description: Execute an implementation plan: read it fully, implement tasks in order, run validations.
-argument-hint: [path-to-plan] [--sync-issues]
+description: "Execute an implementation plan: read it fully, implement tasks in order, run validations."
+argument-hint: "[path-to-plan] [--sync-issues]"
 disable-model-invocation: true
 ---
 
