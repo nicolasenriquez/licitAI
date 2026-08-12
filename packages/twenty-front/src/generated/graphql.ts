@@ -122,6 +122,336 @@ export type LinksMetadata = {
   secondaryLinks?: Maybe<Array<LinkMetadata>>;
 };
 
+export type MercadoPublicoV2AnalyticsBucketDto = {
+  __typename?: 'MercadoPublicoV2AnalyticsBucketDTO';
+  count: Scalars['Int']['output'];
+  key?: Maybe<Scalars['String']['output']>;
+};
+
+export type MercadoPublicoV2AnalyticsCoverageDto = {
+  __typename?: 'MercadoPublicoV2AnalyticsCoverageDTO';
+  amount: Scalars['Int']['output'];
+  buyer: Scalars['Int']['output'];
+  closingAt: Scalars['Int']['output'];
+  currency: Scalars['Int']['output'];
+  documentCount: Scalars['Int']['output'];
+  llamado: Scalars['Int']['output'];
+  region: Scalars['Int']['output'];
+  state: Scalars['Int']['output'];
+};
+
+export type MercadoPublicoV2AnalyticsDto = {
+  __typename?: 'MercadoPublicoV2AnalyticsDTO';
+  asOf?: Maybe<Scalars['DateTime']['output']>;
+  availability: Scalars['String']['output'];
+  calculatedAt: Scalars['DateTime']['output'];
+  closingDateBuckets: Array<MercadoPublicoV2AnalyticsBucketDto>;
+  completeness: Scalars['String']['output'];
+  coverage: MercadoPublicoV2AnalyticsCoverageDto;
+  currencyBuckets: Array<MercadoPublicoV2AnalyticsBucketDto>;
+  documentBuckets: Array<MercadoPublicoV2AnalyticsBucketDto>;
+  freshness: Scalars['String']['output'];
+  llamadoBuckets: Array<MercadoPublicoV2AnalyticsBucketDto>;
+  population: Scalars['Int']['output'];
+  regionBuckets: Array<MercadoPublicoV2AnalyticsBucketDto>;
+  stateBuckets: Array<MercadoPublicoV2AnalyticsBucketDto>;
+};
+
+export type MercadoPublicoV2BuyerConnectionDto = {
+  __typename?: 'MercadoPublicoV2BuyerConnectionDTO';
+  edges: Array<MercadoPublicoV2BuyerEdgeDto>;
+  pageInfo: MercadoPublicoV2PageInfoDto;
+};
+
+export type MercadoPublicoV2BuyerDto = {
+  __typename?: 'MercadoPublicoV2BuyerDTO';
+  amountCoverage: Scalars['Float']['output'];
+  asOf?: Maybe<Scalars['DateTime']['output']>;
+  availability: Scalars['String']['output'];
+  buyerCode: Scalars['String']['output'];
+  buyerCoverage: Scalars['Float']['output'];
+  buyerName?: Maybe<Scalars['String']['output']>;
+  completeness: Scalars['String']['output'];
+  opportunityCount: Scalars['Int']['output'];
+};
+
+export type MercadoPublicoV2BuyerEdgeDto = {
+  __typename?: 'MercadoPublicoV2BuyerEdgeDTO';
+  cursor: Scalars['String']['output'];
+  node: MercadoPublicoV2BuyerDto;
+};
+
+export type MercadoPublicoV2DetailFreshnessDto = {
+  __typename?: 'MercadoPublicoV2DetailFreshnessDTO';
+  asOf?: Maybe<Scalars['DateTime']['output']>;
+  lastError?: Maybe<Scalars['String']['output']>;
+  status: Scalars['String']['output'];
+};
+
+export type MercadoPublicoV2DetailProvenanceDto = {
+  __typename?: 'MercadoPublicoV2DetailProvenanceDTO';
+  endpoint?: Maybe<Scalars['String']['output']>;
+  normalizerVersion?: Maybe<Scalars['String']['output']>;
+  observationId?: Maybe<Scalars['String']['output']>;
+  observedAt?: Maybe<Scalars['DateTime']['output']>;
+  providerChangedAt?: Maybe<Scalars['DateTime']['output']>;
+  providerSchemaFingerprint?: Maybe<Scalars['String']['output']>;
+  snapshotKind?: Maybe<Scalars['String']['output']>;
+  source?: Maybe<Scalars['String']['output']>;
+};
+
+export type MercadoPublicoV2HistoryConnectionDto = {
+  __typename?: 'MercadoPublicoV2HistoryConnectionDTO';
+  edges: Array<MercadoPublicoV2HistoryEdgeDto>;
+  pageInfo: MercadoPublicoV2PageInfoDto;
+};
+
+export type MercadoPublicoV2HistoryEdgeDto = {
+  __typename?: 'MercadoPublicoV2HistoryEdgeDTO';
+  cursor: Scalars['String']['output'];
+  node: MercadoPublicoV2HistoryEventDto;
+};
+
+export type MercadoPublicoV2HistoryEventDto = {
+  __typename?: 'MercadoPublicoV2HistoryEventDTO';
+  changedFields: Array<Scalars['String']['output']>;
+  codigo: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  endpoint?: Maybe<Scalars['String']['output']>;
+  id: Scalars['String']['output'];
+  newObservationId?: Maybe<Scalars['String']['output']>;
+  normalizerVersion?: Maybe<Scalars['String']['output']>;
+  observedAt?: Maybe<Scalars['DateTime']['output']>;
+  previousObservationId?: Maybe<Scalars['String']['output']>;
+  providerChangedAt?: Maybe<Scalars['DateTime']['output']>;
+  providerSchemaFingerprint?: Maybe<Scalars['String']['output']>;
+  snapshotKind?: Maybe<Scalars['String']['output']>;
+  source?: Maybe<Scalars['String']['output']>;
+};
+
+export type MercadoPublicoV2NamespaceDto = {
+  __typename?: 'MercadoPublicoV2NamespaceDTO';
+  analytics: MercadoPublicoV2AnalyticsDto;
+  buyers: MercadoPublicoV2BuyerConnectionDto;
+  documents?: Maybe<MercadoPublicoV2RelationConnectionDto>;
+  history: MercadoPublicoV2HistoryConnectionDto;
+  items?: Maybe<MercadoPublicoV2RelationConnectionDto>;
+  offers?: Maybe<MercadoPublicoV2RelationConnectionDto>;
+  opportunities: MercadoPublicoV2OpportunityConnectionDto;
+  opportunity?: Maybe<MercadoPublicoV2OpportunityDto>;
+  quotedProducts?: Maybe<MercadoPublicoV2RelationConnectionDto>;
+  rawPayload?: Maybe<MercadoPublicoV2SanitizedPayloadDto>;
+};
+
+
+export type MercadoPublicoV2NamespaceDtoAnalyticsArgs = {
+  filter?: InputMaybe<MercadoPublicoV2OpportunityFilterInput>;
+};
+
+
+export type MercadoPublicoV2NamespaceDtoBuyersArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  filter?: InputMaybe<MercadoPublicoV2OpportunityFilterInput>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type MercadoPublicoV2NamespaceDtoDocumentsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  codigo: Scalars['String']['input'];
+  first?: InputMaybe<Scalars['Int']['input']>;
+  observationId?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MercadoPublicoV2NamespaceDtoHistoryArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  codigo: Scalars['String']['input'];
+  first?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type MercadoPublicoV2NamespaceDtoItemsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  codigo: Scalars['String']['input'];
+  first?: InputMaybe<Scalars['Int']['input']>;
+  observationId?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MercadoPublicoV2NamespaceDtoOffersArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  codigo: Scalars['String']['input'];
+  first?: InputMaybe<Scalars['Int']['input']>;
+  observationId?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MercadoPublicoV2NamespaceDtoOpportunitiesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  filter?: InputMaybe<MercadoPublicoV2OpportunityFilterInput>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  sort?: InputMaybe<MercadoPublicoV2OpportunitySort>;
+};
+
+
+export type MercadoPublicoV2NamespaceDtoOpportunityArgs = {
+  codigo: Scalars['String']['input'];
+};
+
+
+export type MercadoPublicoV2NamespaceDtoQuotedProductsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  codigo: Scalars['String']['input'];
+  first?: InputMaybe<Scalars['Int']['input']>;
+  observationId?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MercadoPublicoV2NamespaceDtoRawPayloadArgs = {
+  codigo: Scalars['String']['input'];
+};
+
+export type MercadoPublicoV2OpportunityConnectionDto = {
+  __typename?: 'MercadoPublicoV2OpportunityConnectionDTO';
+  edges: Array<MercadoPublicoV2OpportunityEdgeDto>;
+  pageInfo: MercadoPublicoV2PageInfoDto;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type MercadoPublicoV2OpportunityDto = {
+  __typename?: 'MercadoPublicoV2OpportunityDTO';
+  amount?: Maybe<Scalars['String']['output']>;
+  availability: Scalars['String']['output'];
+  budgetCurrency?: Maybe<Scalars['String']['output']>;
+  budgetEstimate?: Maybe<Scalars['String']['output']>;
+  budgetType?: Maybe<Scalars['String']['output']>;
+  buyerName?: Maybe<Scalars['String']['output']>;
+  callDescription?: Maybe<Scalars['String']['output']>;
+  callFirstClosingAt?: Maybe<Scalars['DateTime']['output']>;
+  callSecondClosingAt?: Maybe<Scalars['DateTime']['output']>;
+  cancelMotive?: Maybe<Scalars['String']['output']>;
+  cancellationAt?: Maybe<Scalars['DateTime']['output']>;
+  closingAt?: Maybe<Scalars['DateTime']['output']>;
+  codigo: Scalars['String']['output'];
+  currency?: Maybe<Scalars['String']['output']>;
+  deliveryAddress?: Maybe<Scalars['String']['output']>;
+  deliveryDays?: Maybe<Scalars['Int']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
+  desertedMotive?: Maybe<Scalars['String']['output']>;
+  detailFreshness?: Maybe<MercadoPublicoV2DetailFreshnessDto>;
+  documentCount?: Maybe<Scalars['Int']['output']>;
+  finePenalty?: Maybe<Scalars['String']['output']>;
+  lifecycleReason?: Maybe<Scalars['String']['output']>;
+  llamado?: Maybe<Scalars['Int']['output']>;
+  normalizerVersion?: Maybe<Scalars['String']['output']>;
+  observationId?: Maybe<Scalars['String']['output']>;
+  provenance?: Maybe<MercadoPublicoV2DetailProvenanceDto>;
+  providerSchemaFingerprint?: Maybe<Scalars['String']['output']>;
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  region?: Maybe<Scalars['Int']['output']>;
+  selectionMotive?: Maybe<Scalars['String']['output']>;
+  state?: Maybe<Scalars['String']['output']>;
+  title?: Maybe<Scalars['String']['output']>;
+  totalDemands?: Maybe<Scalars['Int']['output']>;
+  totalOffers?: Maybe<Scalars['Int']['output']>;
+};
+
+export type MercadoPublicoV2OpportunityEdgeDto = {
+  __typename?: 'MercadoPublicoV2OpportunityEdgeDTO';
+  cursor: Scalars['String']['output'];
+  node: MercadoPublicoV2OpportunityDto;
+};
+
+export type MercadoPublicoV2OpportunityFilterInput = {
+  amountMax?: InputMaybe<Scalars['String']['input']>;
+  amountMin?: InputMaybe<Scalars['String']['input']>;
+  buyer?: InputMaybe<Scalars['String']['input']>;
+  closingAtFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  closingAtTo?: InputMaybe<Scalars['DateTime']['input']>;
+  cohortStatus?: InputMaybe<Scalars['String']['input']>;
+  currencies?: InputMaybe<Array<Scalars['String']['input']>>;
+  documentCountMax?: InputMaybe<Scalars['Int']['input']>;
+  documentCountMin?: InputMaybe<Scalars['Int']['input']>;
+  llamado?: InputMaybe<Scalars['Int']['input']>;
+  region?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  states?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+export enum MercadoPublicoV2OpportunitySort {
+  AMOUNT_ASC = 'AMOUNT_ASC',
+  AMOUNT_DESC = 'AMOUNT_DESC',
+  CLOSING_AT_ASC = 'CLOSING_AT_ASC',
+  CLOSING_AT_DESC = 'CLOSING_AT_DESC',
+  PUBLISHED_AT_ASC = 'PUBLISHED_AT_ASC',
+  PUBLISHED_AT_DESC = 'PUBLISHED_AT_DESC'
+}
+
+export type MercadoPublicoV2PageInfoDto = {
+  __typename?: 'MercadoPublicoV2PageInfoDTO';
+  endCursor?: Maybe<Scalars['String']['output']>;
+  hasNextPage: Scalars['Boolean']['output'];
+  hasPreviousPage: Scalars['Boolean']['output'];
+  startCursor?: Maybe<Scalars['String']['output']>;
+};
+
+export type MercadoPublicoV2RelationAvailabilityDto = {
+  __typename?: 'MercadoPublicoV2RelationAvailabilityDTO';
+  asOf?: Maybe<Scalars['DateTime']['output']>;
+  availability: Scalars['String']['output'];
+  sourceKind?: Maybe<Scalars['String']['output']>;
+  totalCount?: Maybe<Scalars['Int']['output']>;
+};
+
+export type MercadoPublicoV2RelationConnectionDto = {
+  __typename?: 'MercadoPublicoV2RelationConnectionDTO';
+  availability: MercadoPublicoV2RelationAvailabilityDto;
+  edges: Array<MercadoPublicoV2RelationEdgeDto>;
+  pageInfo: MercadoPublicoV2RelationPageInfoDto;
+};
+
+export type MercadoPublicoV2RelationEdgeDto = {
+  __typename?: 'MercadoPublicoV2RelationEdgeDTO';
+  cursor: Scalars['String']['output'];
+  node: MercadoPublicoV2RelationNodeDto;
+};
+
+export type MercadoPublicoV2RelationNodeDto = {
+  __typename?: 'MercadoPublicoV2RelationNodeDTO';
+  description?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  ordinal: Scalars['Int']['output'];
+  productCode?: Maybe<Scalars['String']['output']>;
+  providerId?: Maybe<Scalars['String']['output']>;
+  providerKey?: Maybe<Scalars['String']['output']>;
+  providerName?: Maybe<Scalars['String']['output']>;
+  providerRut?: Maybe<Scalars['String']['output']>;
+  quantity?: Maybe<Scalars['Float']['output']>;
+  totalAmount?: Maybe<Scalars['String']['output']>;
+  unit?: Maybe<Scalars['String']['output']>;
+  unitPrice?: Maybe<Scalars['String']['output']>;
+};
+
+export type MercadoPublicoV2RelationPageInfoDto = {
+  __typename?: 'MercadoPublicoV2RelationPageInfoDTO';
+  endCursor?: Maybe<Scalars['String']['output']>;
+  hasNextPage: Scalars['Boolean']['output'];
+  hasPreviousPage: Scalars['Boolean']['output'];
+  startCursor?: Maybe<Scalars['String']['output']>;
+};
+
+export type MercadoPublicoV2SanitizedPayloadDto = {
+  __typename?: 'MercadoPublicoV2SanitizedPayloadDTO';
+  codigo: Scalars['String']['output'];
+  observationId: Scalars['String']['output'];
+  payload: Scalars['JSON']['output'];
+  redacted: Scalars['Boolean']['output'];
+  sanitizedPayloadChecksum: Scalars['String']['output'];
+  sourcePayloadChecksum: Scalars['String']['output'];
+};
+
 export enum MessageChannelVisibility {
   METADATA = 'METADATA',
   SHARE_EVERYTHING = 'SHARE_EVERYTHING',
@@ -274,6 +604,7 @@ export type Query = {
   /** @deprecated Use getTimelineThreadsFromObjectRecord instead */
   getTimelineThreadsFromPersonId: TimelineThreadsWithTotal;
   isMaintenanceModeBannerDismissed: Scalars['Boolean']['output'];
+  mercadoPublicoV2: MercadoPublicoV2NamespaceDto;
   search: SearchResultConnection;
   workflowStepConnectedAccountHandle?: Maybe<ConnectedAccountHandleDto>;
 };
@@ -791,6 +1122,40 @@ export type UpdateWorkflowVersionPositionsMutationVariables = Exact<{
 
 export type UpdateWorkflowVersionPositionsMutation = { __typename?: 'Mutation', updateWorkflowVersionPositions: boolean };
 
+export type MercadoPublicoV2ActiveOpportunitiesQueryVariables = Exact<{
+  filter?: InputMaybe<MercadoPublicoV2OpportunityFilterInput>;
+  after?: InputMaybe<Scalars['String']['input']>;
+  sort?: InputMaybe<MercadoPublicoV2OpportunitySort>;
+}>;
+
+
+export type MercadoPublicoV2ActiveOpportunitiesQuery = { __typename?: 'Query', mercadoPublicoV2: { __typename?: 'MercadoPublicoV2NamespaceDTO', opportunities: { __typename?: 'MercadoPublicoV2OpportunityConnectionDTO', totalCount: number, edges: Array<{ __typename?: 'MercadoPublicoV2OpportunityEdgeDTO', cursor: string, node: { __typename?: 'MercadoPublicoV2OpportunityDTO', codigo: string, title?: string | null, state?: string | null, buyerName?: string | null, region?: number | null, publishedAt?: string | null, closingAt?: string | null, amount?: string | null, currency?: string | null, documentCount?: number | null, llamado?: number | null, availability: string } }>, pageInfo: { __typename?: 'MercadoPublicoV2PageInfoDTO', hasNextPage: boolean, endCursor?: string | null } } } };
+
+export type MercadoPublicoV2AnalyticsQueryVariables = Exact<{
+  filter?: InputMaybe<MercadoPublicoV2OpportunityFilterInput>;
+}>;
+
+
+export type MercadoPublicoV2AnalyticsQuery = { __typename?: 'Query', mercadoPublicoV2: { __typename?: 'MercadoPublicoV2NamespaceDTO', analytics: { __typename?: 'MercadoPublicoV2AnalyticsDTO', population: number, calculatedAt: string, asOf?: string | null, freshness: string, completeness: string, availability: string, coverage: { __typename?: 'MercadoPublicoV2AnalyticsCoverageDTO', closingAt: number, state: number, region: number, buyer: number, amount: number, currency: number, documentCount: number, llamado: number }, stateBuckets: Array<{ __typename?: 'MercadoPublicoV2AnalyticsBucketDTO', key?: string | null, count: number }>, regionBuckets: Array<{ __typename?: 'MercadoPublicoV2AnalyticsBucketDTO', key?: string | null, count: number }>, currencyBuckets: Array<{ __typename?: 'MercadoPublicoV2AnalyticsBucketDTO', key?: string | null, count: number }>, closingDateBuckets: Array<{ __typename?: 'MercadoPublicoV2AnalyticsBucketDTO', key?: string | null, count: number }>, documentBuckets: Array<{ __typename?: 'MercadoPublicoV2AnalyticsBucketDTO', key?: string | null, count: number }>, llamadoBuckets: Array<{ __typename?: 'MercadoPublicoV2AnalyticsBucketDTO', key?: string | null, count: number }> } } };
+
+export type MercadoPublicoV2BuyersQueryVariables = Exact<{
+  filter?: InputMaybe<MercadoPublicoV2OpportunityFilterInput>;
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type MercadoPublicoV2BuyersQuery = { __typename?: 'Query', mercadoPublicoV2: { __typename?: 'MercadoPublicoV2NamespaceDTO', buyers: { __typename?: 'MercadoPublicoV2BuyerConnectionDTO', edges: Array<{ __typename?: 'MercadoPublicoV2BuyerEdgeDTO', cursor: string, node: { __typename?: 'MercadoPublicoV2BuyerDTO', buyerCode: string, buyerName?: string | null, opportunityCount: number, buyerCoverage: number, amountCoverage: number, availability: string, completeness: string, asOf?: string | null } }>, pageInfo: { __typename?: 'MercadoPublicoV2PageInfoDTO', hasNextPage: boolean, endCursor?: string | null } } } };
+
+export type MercadoPublicoV2HistoryQueryVariables = Exact<{
+  codigo: Scalars['String']['input'];
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type MercadoPublicoV2HistoryQuery = { __typename?: 'Query', mercadoPublicoV2: { __typename?: 'MercadoPublicoV2NamespaceDTO', history: { __typename?: 'MercadoPublicoV2HistoryConnectionDTO', edges: Array<{ __typename?: 'MercadoPublicoV2HistoryEdgeDTO', cursor: string, node: { __typename?: 'MercadoPublicoV2HistoryEventDTO', id: string, codigo: string, changedFields: Array<string>, previousObservationId?: string | null, newObservationId?: string | null, providerChangedAt?: string | null, observedAt?: string | null, normalizerVersion?: string | null, providerSchemaFingerprint?: string | null, source?: string | null, endpoint?: string | null, snapshotKind?: string | null, createdAt: string } }>, pageInfo: { __typename?: 'MercadoPublicoV2PageInfoDTO', hasNextPage: boolean, endCursor?: string | null } } } };
+
 export const TimelineCalendarEventParticipantFragmentFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"TimelineCalendarEventParticipantFragment"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TimelineCalendarEventParticipant"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"personId"}},{"kind":"Field","name":{"kind":"Name","value":"workspaceMemberId"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"displayName"}},{"kind":"Field","name":{"kind":"Name","value":"avatarUrl"}},{"kind":"Field","name":{"kind":"Name","value":"handle"}}]}}]} as unknown as DocumentNode<TimelineCalendarEventParticipantFragmentFragment, unknown>;
 export const TimelineCalendarEventFragmentFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"TimelineCalendarEventFragment"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TimelineCalendarEvent"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"location"}},{"kind":"Field","name":{"kind":"Name","value":"startsAt"}},{"kind":"Field","name":{"kind":"Name","value":"endsAt"}},{"kind":"Field","name":{"kind":"Name","value":"isFullDay"}},{"kind":"Field","name":{"kind":"Name","value":"visibility"}},{"kind":"Field","name":{"kind":"Name","value":"participants"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"TimelineCalendarEventParticipantFragment"}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"TimelineCalendarEventParticipantFragment"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TimelineCalendarEventParticipant"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"personId"}},{"kind":"Field","name":{"kind":"Name","value":"workspaceMemberId"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"displayName"}},{"kind":"Field","name":{"kind":"Name","value":"avatarUrl"}},{"kind":"Field","name":{"kind":"Name","value":"handle"}}]}}]} as unknown as DocumentNode<TimelineCalendarEventFragmentFragment, unknown>;
 export const TimelineCalendarEventsWithTotalFragmentFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"TimelineCalendarEventsWithTotalFragment"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TimelineCalendarEventsWithTotal"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalNumberOfCalendarEvents"}},{"kind":"Field","name":{"kind":"Name","value":"timelineCalendarEvents"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"TimelineCalendarEventFragment"}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"TimelineCalendarEventParticipantFragment"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TimelineCalendarEventParticipant"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"personId"}},{"kind":"Field","name":{"kind":"Name","value":"workspaceMemberId"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"displayName"}},{"kind":"Field","name":{"kind":"Name","value":"avatarUrl"}},{"kind":"Field","name":{"kind":"Name","value":"handle"}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"TimelineCalendarEventFragment"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TimelineCalendarEvent"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"location"}},{"kind":"Field","name":{"kind":"Name","value":"startsAt"}},{"kind":"Field","name":{"kind":"Name","value":"endsAt"}},{"kind":"Field","name":{"kind":"Name","value":"isFullDay"}},{"kind":"Field","name":{"kind":"Name","value":"visibility"}},{"kind":"Field","name":{"kind":"Name","value":"participants"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"TimelineCalendarEventParticipantFragment"}}]}}]}}]} as unknown as DocumentNode<TimelineCalendarEventsWithTotalFragmentFragment, unknown>;
@@ -820,3 +1185,7 @@ export const WorkflowStepConnectedAccountHandleDocument = {"kind":"Document","de
 export const SubmitFormStepDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"SubmitFormStep"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"SubmitFormStepInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"submitFormStep"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}]}]}}]} as unknown as DocumentNode<SubmitFormStepMutation, SubmitFormStepMutationVariables>;
 export const TestHttpRequestDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"TestHttpRequest"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"TestHttpRequestInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"testHttpRequest"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"success"}},{"kind":"Field","name":{"kind":"Name","value":"message"}},{"kind":"Field","name":{"kind":"Name","value":"result"}},{"kind":"Field","name":{"kind":"Name","value":"error"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"statusText"}},{"kind":"Field","name":{"kind":"Name","value":"headers"}}]}}]}}]} as unknown as DocumentNode<TestHttpRequestMutation, TestHttpRequestMutationVariables>;
 export const UpdateWorkflowVersionPositionsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateWorkflowVersionPositions"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UpdateWorkflowVersionPositionsInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateWorkflowVersionPositions"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}]}]}}]} as unknown as DocumentNode<UpdateWorkflowVersionPositionsMutation, UpdateWorkflowVersionPositionsMutationVariables>;
+export const MercadoPublicoV2ActiveOpportunitiesDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"MercadoPublicoV2ActiveOpportunities"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"filter"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"MercadoPublicoV2OpportunityFilterInput"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"after"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"sort"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"MercadoPublicoV2OpportunitySort"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"mercadoPublicoV2"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"opportunities"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"100"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"Variable","name":{"kind":"Name","value":"filter"}}},{"kind":"Argument","name":{"kind":"Name","value":"after"},"value":{"kind":"Variable","name":{"kind":"Name","value":"after"}}},{"kind":"Argument","name":{"kind":"Name","value":"sort"},"value":{"kind":"Variable","name":{"kind":"Name","value":"sort"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cursor"}},{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"codigo"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"state"}},{"kind":"Field","name":{"kind":"Name","value":"buyerName"}},{"kind":"Field","name":{"kind":"Name","value":"region"}},{"kind":"Field","name":{"kind":"Name","value":"publishedAt"}},{"kind":"Field","name":{"kind":"Name","value":"closingAt"}},{"kind":"Field","name":{"kind":"Name","value":"amount"}},{"kind":"Field","name":{"kind":"Name","value":"currency"}},{"kind":"Field","name":{"kind":"Name","value":"documentCount"}},{"kind":"Field","name":{"kind":"Name","value":"llamado"}},{"kind":"Field","name":{"kind":"Name","value":"availability"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"pageInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"hasNextPage"}},{"kind":"Field","name":{"kind":"Name","value":"endCursor"}}]}},{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]}}]} as unknown as DocumentNode<MercadoPublicoV2ActiveOpportunitiesQuery, MercadoPublicoV2ActiveOpportunitiesQueryVariables>;
+export const MercadoPublicoV2AnalyticsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"MercadoPublicoV2Analytics"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"filter"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"MercadoPublicoV2OpportunityFilterInput"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"mercadoPublicoV2"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"analytics"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"Variable","name":{"kind":"Name","value":"filter"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"population"}},{"kind":"Field","name":{"kind":"Name","value":"calculatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"asOf"}},{"kind":"Field","name":{"kind":"Name","value":"freshness"}},{"kind":"Field","name":{"kind":"Name","value":"completeness"}},{"kind":"Field","name":{"kind":"Name","value":"availability"}},{"kind":"Field","name":{"kind":"Name","value":"coverage"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"closingAt"}},{"kind":"Field","name":{"kind":"Name","value":"state"}},{"kind":"Field","name":{"kind":"Name","value":"region"}},{"kind":"Field","name":{"kind":"Name","value":"buyer"}},{"kind":"Field","name":{"kind":"Name","value":"amount"}},{"kind":"Field","name":{"kind":"Name","value":"currency"}},{"kind":"Field","name":{"kind":"Name","value":"documentCount"}},{"kind":"Field","name":{"kind":"Name","value":"llamado"}}]}},{"kind":"Field","name":{"kind":"Name","value":"stateBuckets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"regionBuckets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"currencyBuckets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"closingDateBuckets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"documentBuckets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"llamadoBuckets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}}]}}]}}]}}]} as unknown as DocumentNode<MercadoPublicoV2AnalyticsQuery, MercadoPublicoV2AnalyticsQueryVariables>;
+export const MercadoPublicoV2BuyersDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"MercadoPublicoV2Buyers"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"filter"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"MercadoPublicoV2OpportunityFilterInput"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"after"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"first"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"mercadoPublicoV2"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"buyers"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"Variable","name":{"kind":"Name","value":"filter"}}},{"kind":"Argument","name":{"kind":"Name","value":"after"},"value":{"kind":"Variable","name":{"kind":"Name","value":"after"}}},{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"Variable","name":{"kind":"Name","value":"first"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cursor"}},{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"buyerCode"}},{"kind":"Field","name":{"kind":"Name","value":"buyerName"}},{"kind":"Field","name":{"kind":"Name","value":"opportunityCount"}},{"kind":"Field","name":{"kind":"Name","value":"buyerCoverage"}},{"kind":"Field","name":{"kind":"Name","value":"amountCoverage"}},{"kind":"Field","name":{"kind":"Name","value":"availability"}},{"kind":"Field","name":{"kind":"Name","value":"completeness"}},{"kind":"Field","name":{"kind":"Name","value":"asOf"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"pageInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"hasNextPage"}},{"kind":"Field","name":{"kind":"Name","value":"endCursor"}}]}}]}}]}}]}}]} as unknown as DocumentNode<MercadoPublicoV2BuyersQuery, MercadoPublicoV2BuyersQueryVariables>;
+export const MercadoPublicoV2HistoryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"MercadoPublicoV2History"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"codigo"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"after"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"first"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"mercadoPublicoV2"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"history"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"codigo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"codigo"}}},{"kind":"Argument","name":{"kind":"Name","value":"after"},"value":{"kind":"Variable","name":{"kind":"Name","value":"after"}}},{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"Variable","name":{"kind":"Name","value":"first"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cursor"}},{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"codigo"}},{"kind":"Field","name":{"kind":"Name","value":"changedFields"}},{"kind":"Field","name":{"kind":"Name","value":"previousObservationId"}},{"kind":"Field","name":{"kind":"Name","value":"newObservationId"}},{"kind":"Field","name":{"kind":"Name","value":"providerChangedAt"}},{"kind":"Field","name":{"kind":"Name","value":"observedAt"}},{"kind":"Field","name":{"kind":"Name","value":"normalizerVersion"}},{"kind":"Field","name":{"kind":"Name","value":"providerSchemaFingerprint"}},{"kind":"Field","name":{"kind":"Name","value":"source"}},{"kind":"Field","name":{"kind":"Name","value":"endpoint"}},{"kind":"Field","name":{"kind":"Name","value":"snapshotKind"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"pageInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"hasNextPage"}},{"kind":"Field","name":{"kind":"Name","value":"endCursor"}}]}}]}}]}}]}}]} as unknown as DocumentNode<MercadoPublicoV2HistoryQuery, MercadoPublicoV2HistoryQueryVariables>;

@@ -10,6 +10,7 @@ import { Button } from 'twenty-ui/input';
 import { AppPath } from 'twenty-shared/types';
 
 import { MercadoPublicoV2Nav } from '@/mercado-publico/components/MercadoPublicoV2Nav';
+import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
 import {
   useMercadoPublicoV2UrlState,
   type MercadoPublicoV2Filters,
@@ -333,11 +334,13 @@ export const MercadoPublicoV2BuyersPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { state } = useMercadoPublicoV2UrlState();
   const queryFilter = toQueryFilter(state);
+  const apolloCoreClient = useApolloCoreClient();
 
   const { data, error, loading, refetch } = useQuery<
     MercadoPublicoV2BuyersQuery,
     MercadoPublicoV2BuyersQueryVariables
   >(MERCADO_PUBLICO_V2_BUYERS_QUERY, {
+    client: apolloCoreClient,
     variables: { filter: queryFilter, after: state.after, first: 50 },
   });
 

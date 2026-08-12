@@ -8,6 +8,7 @@ import { MOBILE_VIEWPORT, themeCssVariables } from 'twenty-ui/theme-constants';
 import { Button } from 'twenty-ui/input';
 
 import { MercadoPublicoV2Nav } from '@/mercado-publico/components/MercadoPublicoV2Nav';
+import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
 
 const MERCADO_PUBLICO_V2_HISTORY_QUERY = gql`
   query MercadoPublicoV2History($codigo: String!, $after: String, $first: Int) {
@@ -166,11 +167,13 @@ export const MercadoPublicoV2HistoryPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const codigo = searchParams.get('codigo');
   const after = searchParams.get('after');
+  const apolloCoreClient = useApolloCoreClient();
 
   const { data, error, loading, refetch } = useQuery<
     HistoryQuery,
     HistoryQueryVariables
   >(MERCADO_PUBLICO_V2_HISTORY_QUERY, {
+    client: apolloCoreClient,
     variables: { codigo: codigo ?? '', after, first: 50 },
     skip: codigo === null || codigo === '',
   });

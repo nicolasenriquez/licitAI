@@ -30,6 +30,7 @@ import {
 import { useNavigateSidePanel } from '@/side-panel/hooks/useNavigateSidePanel';
 import { useSidePanelMenu } from '@/side-panel/hooks/useSidePanelMenu';
 import { isSidePanelOpenedState } from '@/side-panel/states/isSidePanelOpenedState';
+import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
 
 const MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY = gql`
   query MercadoPublicoV2ActiveOpportunities(
@@ -682,6 +683,7 @@ export const MercadoPublicoV2ActivePage = () => {
   }, []);
 
   const queryFilter = useMemo(() => toQueryFilter(state), [state]);
+  const apolloCoreClient = useApolloCoreClient();
 
   const {
     data,
@@ -692,6 +694,7 @@ export const MercadoPublicoV2ActivePage = () => {
     MercadoPublicoV2ActiveQuery,
     MercadoPublicoV2ActiveQueryVariables
   >(MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY, {
+    client: apolloCoreClient,
     variables: {
       filter: queryFilter,
       after: state.after,
@@ -707,6 +710,7 @@ export const MercadoPublicoV2ActivePage = () => {
     MercadoPublicoV2AnalyticsQuery,
     Pick<MercadoPublicoV2ActiveQueryVariables, 'filter'>
   >(MERCADO_PUBLICO_V2_ANALYTICS_QUERY, {
+    client: apolloCoreClient,
     variables: { filter: queryFilter },
   });
 

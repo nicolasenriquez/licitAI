@@ -108,14 +108,6 @@ const NotFound = lazy(() =>
   })),
 );
 
-const MercadoPublicoV2BaselinePage = lazy(() =>
-  import('~/pages/mercado-publico/MercadoPublicoV2BaselinePage').then(
-    (module) => ({
-      default: module.MercadoPublicoV2BaselinePage,
-    }),
-  ),
-);
-
 const MercadoPublicoV2ActivePage = lazy(() =>
   import('~/pages/mercado-publico/MercadoPublicoV2ActivePage').then(
     (module) => ({
@@ -293,14 +285,6 @@ export const useCreateAppRouter = (
                   element={
                     <LazyRoute>
                       <MercadoPublicoV2BuyersPage />
-                    </LazyRoute>
-                  }
-                />
-                <Route
-                  path={AppPath.MercadoPublicoV2Baseline}
-                  element={
-                    <LazyRoute>
-                      <MercadoPublicoV2BaselinePage />
                     </LazyRoute>
                   }
                 />
