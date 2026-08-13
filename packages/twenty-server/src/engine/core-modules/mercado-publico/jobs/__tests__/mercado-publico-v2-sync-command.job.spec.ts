@@ -87,9 +87,7 @@ describe('MercadoPublicoV2SyncCommandJob', () => {
       'command-stale',
       expect.any(String),
     );
-    expect(durableService.executeExistingRun).toHaveBeenCalledWith(
-      'run-stale',
-    );
+    expect(durableService.executeExistingRun).toHaveBeenCalledWith('run-stale');
   });
 
   it('does not perform provider work itself', async () => {
@@ -104,7 +102,8 @@ describe('MercadoPublicoV2SyncCommandJob', () => {
     );
 
     expect(
-      (job as unknown as Record<string, unknown>).mercadoPublicoApiV2CompraAgilClientService,
+      (job as unknown as Record<string, unknown>)
+        .mercadoPublicoApiV2CompraAgilClientService,
     ).toBeUndefined();
 
     await job.handle({ commandId: 'command-1' });

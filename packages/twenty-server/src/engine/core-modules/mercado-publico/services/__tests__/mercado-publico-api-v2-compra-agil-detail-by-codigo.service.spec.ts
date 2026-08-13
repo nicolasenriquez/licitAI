@@ -58,9 +58,7 @@ describe('MercadoPublicoApiV2CompraAgilDetailByCodigoService', () => {
 
     it('should propagate durable synchronization failures', async () => {
       durableSyncService.start.mockRejectedValue(new Error('Network error'));
-      await expect(
-        service.run({ codigo: 'CA-1' }),
-      ).rejects.toThrow();
+      await expect(service.run({ codigo: 'CA-1' })).rejects.toThrow();
     });
   });
 });

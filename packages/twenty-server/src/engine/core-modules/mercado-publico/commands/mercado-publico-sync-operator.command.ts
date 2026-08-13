@@ -18,9 +18,7 @@ type MercadoPublicoSyncOperatorCommandOptions = {
     'Assign or remove an explicit Mercado Publico V2 sync operator for a workspace',
 })
 export class MercadoPublicoSyncOperatorCommand extends CommandRunner {
-  private readonly logger = new Logger(
-    MercadoPublicoSyncOperatorCommand.name,
-  );
+  private readonly logger = new Logger(MercadoPublicoSyncOperatorCommand.name);
 
   constructor(
     @InjectDataSource()
@@ -58,7 +56,11 @@ export class MercadoPublicoSyncOperatorCommand extends CommandRunner {
           assigned_by_user_workspace_id = EXCLUDED.assigned_by_user_workspace_id,
           updated_at = now()
       `,
-      [options.workspaceId, options.userWorkspaceId, options.assignedBy ?? null],
+      [
+        options.workspaceId,
+        options.userWorkspaceId,
+        options.assignedBy ?? null,
+      ],
     );
     this.logger.log(
       `Assigned Mercado Publico V2 sync operator ${options.userWorkspaceId} to workspace ${options.workspaceId}`,

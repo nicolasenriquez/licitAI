@@ -3,7 +3,9 @@ import * as fs from 'fs/promises';
 
 const assertPeriod = (period: string): void => {
   if (!/^\d{4}-\d{2}$/.test(period)) {
-    throw new Error(`Invalid source_period: "${period}". Expected YYYY-MM format.`);
+    throw new Error(
+      `Invalid source_period: "${period}". Expected YYYY-MM format.`,
+    );
   }
 };
 

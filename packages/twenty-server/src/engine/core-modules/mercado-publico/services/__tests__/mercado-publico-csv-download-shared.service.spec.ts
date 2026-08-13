@@ -46,8 +46,9 @@ describe('MercadoPublicoCsvDownloadSharedService', () => {
 
       expect(result.storagePath).toContain(`2026-06.${checksum}.csv`);
       await expect(readFile(result.storagePath)).resolves.toEqual(contents);
-      await expect(readdir(join(csvStorageRoot, 'oc', '2026-06', '_default')))
-        .resolves.toEqual([`2026-06.${checksum}.csv`]);
+      await expect(
+        readdir(join(csvStorageRoot, 'oc', '2026-06', '_default')),
+      ).resolves.toEqual([`2026-06.${checksum}.csv`]);
       expect(persistenceService.persistCsvDownload).toHaveBeenCalledWith(
         expect.objectContaining({ fileChecksum: checksum }),
       );

@@ -30,18 +30,14 @@ const PROFILE_SAMPLE_BYTES = 64 * 1024;
 
 @Injectable()
 export class MercadoPublicoCsvProfilingService {
-  private readonly logger = new Logger(
-    MercadoPublicoCsvProfilingService.name,
-  );
+  private readonly logger = new Logger(MercadoPublicoCsvProfilingService.name);
 
   constructor(
     private readonly mercadoPublicoConfigService: MercadoPublicoConfigService,
     private readonly mercadoPublicoPersistenceService: MercadoPublicoPersistenceService,
   ) {}
 
-  async profileFileById(
-    rawCsvFileId: string,
-  ): Promise<CsvFileProfileResult> {
+  async profileFileById(rawCsvFileId: string): Promise<CsvFileProfileResult> {
     const settings = this.mercadoPublicoConfigService.getSettings();
 
     if (!settings.csvStorageRoot) {
@@ -54,9 +50,7 @@ export class MercadoPublicoCsvProfilingService {
       );
 
     if (!fileRow) {
-      throw new Error(
-        `raw_csv_file row not found for id ${rawCsvFileId}`,
-      );
+      throw new Error(`raw_csv_file row not found for id ${rawCsvFileId}`);
     }
 
     const filePath = await resolveCsvStorageTargetPath(
