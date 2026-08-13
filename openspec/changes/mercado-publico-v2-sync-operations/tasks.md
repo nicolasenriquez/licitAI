@@ -225,22 +225,25 @@
   39 tests pass. No cron-job spec exists in the module, so recovery is covered
   indirectly through the control-service `recoverDispatches` cases.
 
-- [ ] 3.2 Run isolated operator and analyst Playwright checks for confirmation,
+- [x] 3.2 Run isolated operator and analyst Playwright checks for confirmation,
   safe state, denial, keyboard operation, and responsive rendering.
   Human-gated: Playwright E2E. Run only when the user explicitly requests it.
   Traceability: Group G3; Issue 28; AC 28.1, AC 28.2, AC 28.5, AC 28.6;
   Issue 29; AC 29.2, AC 29.5.
+  Notes: Provisioned the isolated twenty-mp-e2e fixture from source revision
+  585d504c3601 and ran the operator and analyst sync-control spec: 7/7 tests
+  passed, including setup, safe latest-run state, keyboard operation, mobile
+  rendering, explicit confirmation, and analyst denial.
 
-- [ ] 3.3 Run GraphQL codegen, changed-file lint, typechecks, formatting,
+- [x] 3.3 Run GraphQL codegen, changed-file lint, typechecks, formatting,
   `git diff --check`, and `openspec validate mercado-publico-v2-sync-operations`.
   Human-gated: codegen requires a healthy source server. Run only when the user
   explicitly requests it.
   Traceability: Group G3; Issue 28; Issue 29; quality gate.
-  Notes: Partial gate evidence: `twenty-front` and `twenty-server`
-  `lint:diff-with-main`, typechecks, changed-file `oxfmt`, `git diff --check`,
-  and `openspec validate` pass; the sync-control resolver test passes 14/14.
-  GraphQL codegen loads the Tim-authenticated schema at `localhost:3000` but
-  rejects 59 stale-schema document errors, including the new sync-control
-  fields. The source server could not become healthy on temporary port 3100
-  within 180 seconds, so this task remains pending until codegen runs against
-  the current source schema.
+  Notes: `twenty-front` and `twenty-server` `lint:diff-with-main`, typechecks,
+  changed-file `oxfmt`, `git diff --check`, and `openspec validate` pass; the
+  sync-control resolver test passes 14/14. `npx nx run
+  twenty-front:graphql:generate` passes against the current source server on
+  temporary port 3002, and regenerates the V2 sync-control types. The official
+  Compose runtime remains healthy on port 3000; port 63927 belongs only to the
+  isolated E2E fixture.
