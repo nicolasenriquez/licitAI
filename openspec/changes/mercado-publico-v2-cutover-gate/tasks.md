@@ -49,7 +49,7 @@
   legacy behavior or restore broader surfaces.
   Traceability: Group G4; Slice S1; Issue 30; Acceptance AC 30.1, AC 30.5.
 
-- [ ] 2.2 Update `AppRouter` and `useCreateAppRouter` so the existing build-time
+- [x] 2.2 Update `AppRouter` and `useCreateAppRouter` so the existing build-time
   flag selects complete canonical V2 or legacy composition while the private
   legacy alias remains mounted in both builds. Keep V2 subroutes enabled-only.
   Traceability: Group G4; Slice S1; Issue 30; Acceptance AC 30.1, AC 30.5.
@@ -196,3 +196,12 @@
   formatting, and `git diff --check` pass. `graphql:generate` is blocked because
   healthy local server image denies introspection; no runtime changed. No legacy
   mutation is present.
+- 2026-08-13: Started task 2.2. Wiring the existing build-time V2 flag into an
+  atomic canonical route composition while mounting the private legacy alias in
+  both builds.
+- 2026-08-13: Completed task 2.2. `AppRouter` continues to pass the existing
+  build-time flag into `useCreateAppRouter`; the router now selects V2 canonical
+  plus V2 subroutes when enabled, legacy canonical without V2 subroutes when
+  disabled, and mounts `AppPath.MercadoPublicoLegacy` in both builds. Focused
+  route-matrix and retained legacy document tests, frontend typecheck, diff lint,
+  formatting, and `git diff --check` pass.

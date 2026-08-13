@@ -116,6 +116,14 @@ const MercadoPublicoV2ActivePage = lazy(() =>
   ),
 );
 
+const MercadoPublicoCommandCenterPage = lazy(() =>
+  import('~/pages/mercado-publico/MercadoPublicoCommandCenterPage').then(
+    (module) => ({
+      default: module.MercadoPublicoCommandCenterPage,
+    }),
+  ),
+);
+
 const MercadoPublicoV2HistoryPage = lazy(() =>
   import('~/pages/mercado-publico/MercadoPublicoV2HistoryPage').then(
     (module) => ({
@@ -270,7 +278,7 @@ export const useCreateAppRouter = (
                 </LazyRoute>
               }
             />
-            {isMercadoPublicoV2Enabled && (
+            {isMercadoPublicoV2Enabled ? (
               <>
                 <Route
                   path={AppPath.MercadoPublico}
@@ -305,7 +313,24 @@ export const useCreateAppRouter = (
                   }
                 />
               </>
+            ) : (
+              <Route
+                path={AppPath.MercadoPublico}
+                element={
+                  <LazyRoute>
+                    <MercadoPublicoCommandCenterPage />
+                  </LazyRoute>
+                }
+              />
             )}
+            <Route
+              path={AppPath.MercadoPublicoLegacy}
+              element={
+                <LazyRoute>
+                  <MercadoPublicoCommandCenterPage />
+                </LazyRoute>
+              }
+            />
             <Route
               path={AppPath.SettingsCatchAll}
               element={
