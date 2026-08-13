@@ -25,7 +25,9 @@ import { MercadoPublicoV2DetailReadService } from 'src/engine/core-modules/merca
 import { MercadoPublicoV2ReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-read.service';
 import { MercadoPublicoJob } from 'src/engine/core-modules/mercado-publico/jobs/mercado-publico.job';
 import { MercadoPublicoV2SyncCommandJob } from 'src/engine/core-modules/mercado-publico/jobs/mercado-publico-v2-sync-command.job';
+import { MercadoPublicoQueryResolver } from 'src/engine/core-modules/mercado-publico/mercado-publico-query.resolver';
 import { SecureHttpClientModule } from 'src/engine/core-modules/secure-http-client/secure-http-client.module';
+import { MercadoPublicoApiCallLogReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-call-log-read.service';
 import { MercadoPublicoApiV1LicitacionesByDateService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-v1-licitaciones-by-date.service';
 import { MercadoPublicoApiV1LicitacionDetailByCodigoService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-v1-licitacion-detail-by-codigo.service';
 import { MercadoPublicoApiV1LicitacionesByStateService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-api-v1-licitaciones-by-state.service';
@@ -51,6 +53,7 @@ import { MercadoPublicoCsvProfilingService } from 'src/engine/core-modules/merca
 import { MercadoPublicoCsvProfileService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-profile.service';
 import { MercadoPublicoCsvRawLoadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-raw-load.service';
 import { MercadoPublicoCsvStagingProjectionService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-csv-staging-projection.service';
+import { MercadoPublicoJobRunReadService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-job-run-read.service';
 import { MercadoPublicoReconciliationService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-reconciliation.service';
 import { MercadoPublicoQuotaTrackerService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-quota-tracker.service';
 import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
@@ -87,11 +90,14 @@ import { MercadoPublicoV2EvidenceReplayService } from 'src/engine/core-modules/m
     MercadoPublicoV2SyncOperatorGuard,
     MercadoPublicoV2SyncControlService,
     MercadoPublicoCanonicalRefreshService,
+    MercadoPublicoApiCallLogReadService,
     MercadoPublicoApiQuotaUsageReadService,
     MercadoPublicoCsvFileHealthReadService,
     MercadoPublicoDetectedProcessReadService,
     MercadoPublicoPipelineHealthReadService,
     MercadoPublicoProcessDetailReadService,
+    MercadoPublicoJobRunReadService,
+    MercadoPublicoQueryResolver,
     MercadoPublicoApiV1LicitacionesClientService,
     MercadoPublicoApiV1OrdenesDeCompraClientService,
     MercadoPublicoApiV2CompraAgilClientService,

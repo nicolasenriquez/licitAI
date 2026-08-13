@@ -6,7 +6,7 @@ import {
   GetMercadoPublicoJobRunsDocument,
   GetMercadoPublicoPipelineHealthDocument,
   GetMercadoPublicoProcessDetailDocument,
-} from '~/generated/graphql';
+} from '~/generated/mercado-publico-legacy.graphql';
 
 const legacyReadDocuments = [
   GetMercadoPublicoDetectedProcessesDocument,

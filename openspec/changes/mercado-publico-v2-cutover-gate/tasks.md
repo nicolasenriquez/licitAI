@@ -41,7 +41,7 @@
 
 ### Retained legacy route
 
-- [ ] 2.1 Restore historical `MercadoPublicoCommandCenterPage` from `fbf6b573ab`
+- [x] 2.1 Restore historical `MercadoPublicoCommandCenterPage` from `fbf6b573ab`
   and only its compilation-required module subtree. Restore its historical
   read-only resolver, seven query documents, and generated output; add no
   mutation. Add private
@@ -184,3 +184,15 @@
   generated query documents are absent. Both package typechecks fail only on
   those missing task 2.1 artifacts. `npx nx lint:diff-with-main twenty-front`
   passes; server diff lint exhausted memory before analysis.
+- 2026-08-13: Started task 2.1. Restoring the selected historical legacy
+  command-center compilation closure, seven reads, generated output, and private
+  path only.
+- 2026-08-13: Completed task 2.1. Restored `MercadoPublicoCommandCenterPage`,
+  its required module subtree, the historical seven read-only query documents,
+  resolver, DTO/read-service closure, and `AppPath.MercadoPublicoLegacy`.
+  Preserved V2 generated output and added historical legacy generated output in
+  `packages/twenty-front/src/generated/mercado-publico-legacy.graphql.ts`.
+  Both legacy contract tests, front/server typechecks, front/server diff lint,
+  formatting, and `git diff --check` pass. `graphql:generate` is blocked because
+  healthy local server image denies introspection; no runtime changed. No legacy
+  mutation is present.
