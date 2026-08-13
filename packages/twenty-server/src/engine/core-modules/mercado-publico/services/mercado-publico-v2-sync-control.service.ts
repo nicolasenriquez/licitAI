@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 
 import { InjectMessageQueue } from 'src/engine/core-modules/message-queue/decorators/message-queue.decorator';
 import { MessageQueue } from 'src/engine/core-modules/message-queue/message-queue.constants';
@@ -30,7 +30,6 @@ export type MercadoPublicoV2SubmitCommandInput = {
   action: MercadoPublicoV2SyncControlAction;
   idempotencyKey: string;
   confirmed?: boolean;
-  syncRunId?: string;
 };
 
 export type MercadoPublicoV2SubmitCommandResult = {
@@ -39,8 +38,8 @@ export type MercadoPublicoV2SubmitCommandResult = {
 };
 
 export type MercadoPublicoV2LatestRun = {
-  syncRunId: string | null;
   safeStatus: string;
+  canResume: boolean;
   startedAt: Date | null;
   updatedAt: Date | null;
   timeline: {
@@ -66,19 +65,12 @@ const MERCADO_PUBLICO_V2_SYNC_ACTIVE_RUN_STATUSES = [
   'reconciling',
 ] as const;
 
-const isUniqueViolation = (error: unknown): boolean =>
-  (error as { code?: string } | null)?.code === '23505';
-
 export const buildMercadoPublicoV2SyncCommandFingerprint = (
-  input: Pick<
-    MercadoPublicoV2SubmitCommandInput,
-    'action' | 'confirmed' | 'syncRunId'
-  >,
+  input: Pick<MercadoPublicoV2SubmitCommandInput, 'action' | 'confirmed'>,
 ): string =>
   JSON.stringify({
     action: input.action,
     confirmed: input.action === 'resume' ? undefined : input.confirmed,
-    syncRunId: input.syncRunId ?? null,
   });
 
 @Injectable()
@@ -122,63 +114,100 @@ export class MercadoPublicoV2SyncControlService {
     }
 
     const fingerprint = buildMercadoPublicoV2SyncCommandFingerprint(input);
-    const existingCommand = await this.findCommand(
-      input.workspaceId,
-      input.idempotencyKey,
-    );
-
-    if (existingCommand !== undefined) {
-      if (existingCommand.request_fingerprint !== fingerprint) {
-        throw new Error(
-          '409 Conflict: the idempotency key was reused with a different request',
+    const submission = await this.coreDataSource.transaction(
+      async (entityManager) => {
+        const existingCommand = await this.findCommand(
+          entityManager,
+          input.workspaceId,
+          input.idempotencyKey,
         );
-      }
 
-      return (
-        existingCommand.result ?? {
-          state:
-            existingCommand.state as MercadoPublicoV2SubmitCommandResult['state'],
-          syncRunId: existingCommand.sync_run_id ?? undefined,
+        if (existingCommand !== undefined) {
+          if (existingCommand.request_fingerprint !== fingerprint) {
+            throw new Error(
+              '409 Conflict: the idempotency key was reused with a different request',
+            );
+          }
+
+          return {
+            commandId: existingCommand.id,
+            result: existingCommand.result ?? {
+              state:
+                existingCommand.state as MercadoPublicoV2SubmitCommandResult['state'],
+              syncRunId: existingCommand.sync_run_id ?? undefined,
+            },
+            shouldDispatch: false,
+          };
         }
-      );
-    }
 
-    if (input.action === 'resume') {
-      await this.assertResumableRun(input);
-    }
+        const command = await this.insertCommand(
+          entityManager,
+          input,
+          fingerprint,
+        );
 
-    const commandId = await this.insertCommand(input, fingerprint);
+        if (!command.created) {
+          return {
+            commandId: command.id,
+            result: command.result ?? {
+              state:
+                command.state as MercadoPublicoV2SubmitCommandResult['state'],
+              syncRunId: command.sync_run_id ?? undefined,
+            },
+            shouldDispatch: false,
+          };
+        }
 
-    await this.appendAudit({
-      workspaceId: input.workspaceId,
-      syncCommandId: commandId,
-      actorUserWorkspaceId: input.actorUserWorkspaceId,
-      eventType: 'command_created',
-      eventData: { action: input.action },
-    });
+        const commandId = command.id;
 
-    let result: MercadoPublicoV2SubmitCommandResult;
+        await this.appendAudit(entityManager, {
+          workspaceId: input.workspaceId,
+          syncCommandId: commandId,
+          actorUserWorkspaceId: input.actorUserWorkspaceId,
+          eventType: 'command_created',
+          eventData: { action: input.action },
+        });
 
-    if (input.action === 'start') {
-      result = await this.createRunOrReuse(input, commandId);
-    } else if (input.action === 'cancel') {
-      result = await this.requestCancellation(input, commandId);
-    } else {
-      result = { state: 'queued', syncRunId: input.syncRunId };
-    }
+        const result =
+          input.action === 'start'
+            ? await this.createRunOrReuse(entityManager, input, commandId)
+            : input.action === 'cancel'
+              ? await this.requestCancellation(entityManager, input, commandId)
+              : {
+                  state: 'queued' as const,
+                  syncRunId: await this.assertResumableRun(
+                    entityManager,
+                    input,
+                  ),
+                };
 
-    await this.coreDataSource.query(
-      `
-        UPDATE mp.sync_command
-        SET sync_run_id = $2, result = $3::jsonb, updated_at = now()
-        WHERE id = $1
-      `,
-      [commandId, result.syncRunId ?? null, JSON.stringify(result)],
+        await entityManager.query(
+          `
+            UPDATE mp.sync_command
+            SET sync_run_id = $2,
+                result = $3::jsonb,
+                state = CASE WHEN action = 'cancel' THEN 'succeeded' ELSE state END,
+                finished_at = CASE WHEN action = 'cancel' THEN now() ELSE finished_at END,
+                updated_at = now()
+            WHERE id = $1
+          `,
+          [commandId, result.syncRunId ?? null, JSON.stringify(result)],
+        );
+
+        return {
+          commandId,
+          result,
+          shouldDispatch:
+            input.action !== 'cancel' && result.state === 'queued',
+        };
+      },
     );
 
-    await this.dispatch(commandId, input, result);
+    if (submission.shouldDispatch) {
+      await this.dispatch(submission.commandId, input, submission.result);
+    }
 
-    return result;
+    return submission.result;
   }
 
   async claimCommand(
@@ -205,27 +234,6 @@ export class MercadoPublicoV2SyncControlService {
 
     if (command === undefined) {
       return { kind: 'noop', reason: 'unknown_command' };
-    }
-
-    if (command.action === 'cancel') {
-      await this.coreDataSource.query(
-        `
-          UPDATE mp.sync_run
-          SET status = 'cancelled', finished_at = now(), updated_at = now()
-          WHERE id = $1 AND status = 'queued'
-        `,
-        [command.sync_run_id],
-      );
-      await this.coreDataSource.query(
-        `
-          UPDATE mp.sync_command
-          SET state = 'cancelled', finished_at = now(), updated_at = now()
-          WHERE id = $1
-        `,
-        [commandId],
-      );
-
-      return { kind: 'noop', reason: 'cancelled' };
     }
 
     if (command.sync_run_id === null) {
@@ -280,7 +288,7 @@ export class MercadoPublicoV2SyncControlService {
       `,
       [command.sync_run_id, workerId],
     );
-    await this.appendAudit({
+    await this.appendAudit(this.coreDataSource, {
       workspaceId: command.workspace_id,
       syncRunId: command.sync_run_id,
       syncCommandId: commandId,
@@ -293,6 +301,67 @@ export class MercadoPublicoV2SyncControlService {
       syncRunId: command.sync_run_id,
       attemptId: attemptRows[0].id,
     };
+  }
+
+  async finalizeCommand({
+    commandId,
+    attemptId,
+    status,
+    errorSummary,
+  }: {
+    commandId: string;
+    attemptId: string;
+    status: 'succeeded' | 'partial_failed' | 'failed' | 'cancelled';
+    errorSummary?: string;
+  }): Promise<void> {
+    const commandState =
+      status === 'succeeded'
+        ? 'succeeded'
+        : status === 'cancelled'
+          ? 'cancelled'
+          : 'failed';
+
+    await this.coreDataSource.transaction(async (entityManager) => {
+      const commands = await entityManager.query<
+        { workspace_id: string; sync_run_id: string }[]
+      >(
+        `
+          UPDATE mp.sync_command
+          SET state = $2,
+              error_summary = $3,
+              finished_at = now(),
+              updated_at = now()
+          WHERE id = $1 AND state = 'claimed'
+          RETURNING workspace_id, sync_run_id
+        `,
+        [commandId, commandState, errorSummary ?? null],
+      );
+      const command = commands[0];
+
+      if (command === undefined) {
+        return;
+      }
+
+      await entityManager.query(
+        `
+          UPDATE mp.sync_run_attempt
+          SET state = $2,
+              error_summary = $3,
+              finished_at = now(),
+              updated_at = now()
+          WHERE id = $1 AND state = 'running'
+        `,
+        [attemptId, commandState, errorSummary ?? null],
+      );
+      await this.appendAudit(entityManager, {
+        workspaceId: command.workspace_id,
+        syncRunId: command.sync_run_id,
+        syncCommandId: commandId,
+        syncRunAttemptId: attemptId,
+        eventType: `run_${status}`,
+        eventData: {},
+      });
+    });
   }
 
   async recoverDispatches(
@@ -365,7 +434,7 @@ export class MercadoPublicoV2SyncControlService {
     );
 
     for (const row of recoverableRows) {
-      await this.appendAudit({
+      await this.appendAudit(this.coreDataSource, {
         workspaceId: row.workspace_id,
         syncCommandId: row.id,
         eventType: 'heartbeat_recovery',
@@ -395,12 +464,13 @@ export class MercadoPublicoV2SyncControlService {
       {
         id: string;
         status: string;
+        error_stage: string | null;
         created_at: Date | null;
         updated_at: Date | null;
       }[]
     >(
       `
-        SELECT id, status, created_at, updated_at
+        SELECT id, status, error_stage, created_at, updated_at
         FROM mp.sync_run
         WHERE control_workspace_id = $1
         ORDER BY created_at DESC
@@ -436,8 +506,10 @@ export class MercadoPublicoV2SyncControlService {
     );
 
     return {
-      syncRunId: row.id,
       safeStatus: row.status,
+      canResume:
+        row.status === 'partial_failed' ||
+        (row.status === 'cancelled' && row.error_stage === 'hydrating'),
       startedAt: row.created_at,
       updatedAt: row.updated_at,
       timeline: timelineRows.map((timelineRow) => ({
@@ -449,38 +521,53 @@ export class MercadoPublicoV2SyncControlService {
   }
 
   private async assertResumableRun(
+    entityManager: EntityManager,
     input: MercadoPublicoV2SubmitCommandInput,
-  ): Promise<void> {
-    const rows = await this.coreDataSource.query<
-      { status: string; error_stage: string | null }[]
-    >(
+  ): Promise<string> {
+    const rows = await entityManager.query<{ id: string }[]>(
       `
-        SELECT status, error_stage
-        FROM mp.sync_run
-        WHERE id = $1 AND control_workspace_id = $2
+        WITH resumable_run AS (
+          SELECT id
+          FROM mp.sync_run
+          WHERE control_workspace_id = $1
+            AND (
+              status = 'partial_failed'
+              OR (status = 'cancelled' AND error_stage = 'hydrating')
+            )
+          ORDER BY created_at DESC
+          LIMIT 1
+          FOR UPDATE
+        )
+        UPDATE mp.sync_run r
+        SET status = 'hydrating',
+            cancellation_requested_at = NULL,
+            cancellation_requested_by_user_workspace_id = NULL,
+            error_stage = NULL,
+            error_summary = NULL,
+            finished_at = NULL,
+            updated_at = now()
+        FROM resumable_run
+        WHERE r.id = resumable_run.id
+        RETURNING r.id
       `,
-      [input.syncRunId, input.workspaceId],
+      [input.workspaceId],
     );
-    const run = rows[0];
-    const isResumable =
-      run !== undefined &&
-      (run.status === 'partial_failed' || run.status === 'cancelled') &&
-      run.error_stage !== 'discovering';
 
-    if (!isResumable) {
+    if (rows[0] === undefined) {
       throw new Error(
         '409 Conflict: the Mercado Publico V2 sync run is not resumable',
       );
     }
+
+    return rows[0].id;
   }
 
   private async findCommand(
+    entityManager: EntityManager,
     workspaceId: string,
     idempotencyKey: string,
   ): Promise<MercadoPublicoV2SyncCommandRow | undefined> {
-    const rows = await this.coreDataSource.query<
-      MercadoPublicoV2SyncCommandRow[]
-    >(
+    const rows = await entityManager.query<MercadoPublicoV2SyncCommandRow[]>(
       `
         SELECT id, state, request_fingerprint, sync_run_id, result
         FROM mp.sync_command
@@ -493,16 +580,19 @@ export class MercadoPublicoV2SyncControlService {
   }
 
   private async insertCommand(
+    entityManager: EntityManager,
     input: MercadoPublicoV2SubmitCommandInput,
     fingerprint: string,
-  ): Promise<string> {
-    const rows = await this.coreDataSource.query<{ id: string }[]>(
+  ): Promise<MercadoPublicoV2SyncCommandRow & { created: boolean }> {
+    const rows = await entityManager.query<{ id: string }[]>(
       `
         INSERT INTO mp.sync_command (
           idempotency_key, workspace_id, actor_user_workspace_id, action,
           intent, scope, request_fingerprint, request_payload, state
         )
         VALUES ($1, $2, $3, $4, 'incremental', 'global', $5, $6::jsonb, 'pending')
+        ON CONFLICT ON CONSTRAINT uq_mp_sync_command_workspace_idempotency_key
+        DO NOTHING
         RETURNING id
       `,
       [
@@ -515,32 +605,62 @@ export class MercadoPublicoV2SyncControlService {
       ],
     );
 
-    return rows[0].id;
+    if (rows[0] === undefined) {
+      const command = await this.findCommand(
+        entityManager,
+        input.workspaceId,
+        input.idempotencyKey,
+      );
+
+      if (command === undefined) {
+        throw new Error('Unable to load the Mercado Publico V2 sync command');
+      }
+
+      if (command.request_fingerprint !== fingerprint) {
+        throw new Error(
+          '409 Conflict: the idempotency key was reused with a different request',
+        );
+      }
+
+      return { ...command, created: false };
+    }
+
+    return {
+      id: rows[0].id,
+      state: 'pending',
+      request_fingerprint: fingerprint,
+      sync_run_id: null,
+      result: null,
+      created: true,
+    };
   }
 
   private async createRunOrReuse(
+    entityManager: EntityManager,
     input: MercadoPublicoV2SubmitCommandInput,
     commandId: string,
   ): Promise<MercadoPublicoV2SubmitCommandResult> {
-    try {
-      const rows = await this.coreDataSource.query<{ id: string }[]>(
-        `
-          INSERT INTO mp.sync_run (
-            intent, source, scope, status,
-            control_workspace_id, control_user_workspace_id
-          )
-          VALUES ('incremental', $1, 'global', 'queued', $2, $3)
-          RETURNING id
-        `,
-        [
-          MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
-          input.workspaceId,
-          input.actorUserWorkspaceId,
-        ],
-      );
+    const rows = await entityManager.query<{ id: string }[]>(
+      `
+        INSERT INTO mp.sync_run (
+          intent, source, scope, status,
+          control_workspace_id, control_user_workspace_id
+        )
+        VALUES ('incremental', $1, 'global', 'queued', $2, $3)
+        ON CONFLICT DO NOTHING
+        RETURNING id
+      `,
+      [
+        MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
+        input.workspaceId,
+        input.actorUserWorkspaceId,
+      ],
+    );
+
+    if (rows[0] !== undefined) {
       const syncRunId = rows[0].id;
 
-      await this.appendAudit({
+      await this.appendAudit(entityManager, {
         workspaceId: input.workspaceId,
         syncRunId,
         syncCommandId: commandId,
@@ -550,49 +670,43 @@ export class MercadoPublicoV2SyncControlService {
       });
 
       return { state: 'queued', syncRunId };
-    } catch (error) {
-      if (!isUniqueViolation(error)) {
-        throw error;
-      }
-
-      const activeRun = await this.findActiveRun();
-
-      if (activeRun === undefined) {
-        throw error;
-      }
-
-      const isSameWorkspace =
-        activeRun.control_workspace_id === input.workspaceId;
-
-      await this.coreDataSource.query(
-        `
-          UPDATE mp.sync_command
-          SET state = 'reused', sync_run_id = $2, updated_at = now()
-          WHERE id = $1
-        `,
-        [commandId, isSameWorkspace ? activeRun.id : null],
-      );
-      await this.appendAudit({
-        workspaceId: input.workspaceId,
-        syncRunId: isSameWorkspace ? activeRun.id : null,
-        syncCommandId: commandId,
-        actorUserWorkspaceId: input.actorUserWorkspaceId,
-        eventType: 'reused',
-        eventData: {},
-      });
-
-      if (isSameWorkspace) {
-        return { state: 'reused', syncRunId: activeRun.id };
-      }
-
-      return { state: 'global_sync_active' };
     }
+
+    const activeRun = await this.findActiveRun(entityManager);
+
+    if (activeRun === undefined) {
+      throw new Error('Unable to load the active Mercado Publico V2 sync run');
+    }
+
+    const isSameWorkspace =
+      activeRun.control_workspace_id === input.workspaceId;
+
+    await entityManager.query(
+      `
+        UPDATE mp.sync_command
+        SET state = 'reused', sync_run_id = $2, updated_at = now()
+        WHERE id = $1
+      `,
+      [commandId, isSameWorkspace ? activeRun.id : null],
+    );
+    await this.appendAudit(entityManager, {
+      workspaceId: input.workspaceId,
+      syncRunId: isSameWorkspace ? activeRun.id : null,
+      syncCommandId: commandId,
+      actorUserWorkspaceId: input.actorUserWorkspaceId,
+      eventType: 'reused',
+      eventData: {},
+    });
+
+    return isSameWorkspace
+      ? { state: 'reused', syncRunId: activeRun.id }
+      : { state: 'global_sync_active' };
   }
 
-  private async findActiveRun(): Promise<
-    { id: string; control_workspace_id: string } | undefined
-  > {
-    const rows = await this.coreDataSource.query<
+  private async findActiveRun(
+    entityManager: EntityManager,
+  ): Promise<{ id: string; control_workspace_id: string } | undefined> {
+    const rows = await entityManager.query<
       { id: string; control_workspace_id: string }[]
     >(
       `
@@ -613,31 +727,79 @@ export class MercadoPublicoV2SyncControlService {
   }
 
   private async requestCancellation(
+    entityManager: EntityManager,
     input: MercadoPublicoV2SubmitCommandInput,
     commandId: string,
   ): Promise<MercadoPublicoV2SubmitCommandResult> {
-    await this.coreDataSource.query(
+    const rows = await entityManager.query<{ id: string; status: string }[]>(
       `
-        UPDATE mp.sync_run
-        SET cancellation_requested_at = now(),
-            cancellation_requested_by_user_workspace_id = $2,
-            updated_at = now()
+        SELECT id, status
+        FROM mp.sync_run
         WHERE control_workspace_id = $1
           AND status IN (${MERCADO_PUBLICO_V2_SYNC_ACTIVE_RUN_STATUSES.map(
             (status) => `'${status}'`,
           ).join(', ')})
+        ORDER BY created_at DESC
+        LIMIT 1
+        FOR UPDATE
       `,
-      [input.workspaceId, input.actorUserWorkspaceId],
+      [input.workspaceId],
     );
-    await this.appendAudit({
+    const run = rows[0];
+
+    if (run === undefined) {
+      throw new Error(
+        '409 Conflict: there is no active Mercado Publico V2 sync run',
+      );
+    }
+
+    if (run.status === 'queued') {
+      await entityManager.query(
+        `
+          UPDATE mp.sync_run
+          SET status = 'cancelled',
+              error_stage = 'queued',
+              cancellation_requested_at = now(),
+              cancellation_requested_by_user_workspace_id = $2,
+              finished_at = now(),
+              updated_at = now()
+          WHERE id = $1
+        `,
+        [run.id, input.actorUserWorkspaceId],
+      );
+      await entityManager.query(
+        `
+          UPDATE mp.sync_command
+          SET state = 'cancelled', finished_at = now(), updated_at = now()
+          WHERE sync_run_id = $1
+            AND action IN ('start', 'resume')
+            AND state IN ('pending', 'claimed')
+        `,
+        [run.id],
+      );
+    } else {
+      await entityManager.query(
+        `
+          UPDATE mp.sync_run
+          SET cancellation_requested_at = now(),
+              cancellation_requested_by_user_workspace_id = $2,
+              updated_at = now()
+          WHERE id = $1
+        `,
+        [run.id, input.actorUserWorkspaceId],
+      );
+    }
+
+    await this.appendAudit(entityManager, {
       workspaceId: input.workspaceId,
+      syncRunId: run.id,
       syncCommandId: commandId,
       actorUserWorkspaceId: input.actorUserWorkspaceId,
       eventType: 'cancellation_requested',
       eventData: {},
     });
 
-    return { state: 'cancelled' };
+    return { state: 'cancelled', syncRunId: run.id };
   }
 
   private async dispatch(
@@ -660,7 +822,7 @@ export class MercadoPublicoV2SyncControlService {
         `,
         [commandId],
       );
-      await this.appendAudit({
+      await this.appendAudit(this.coreDataSource, {
         workspaceId: input.workspaceId,
         syncRunId: result.syncRunId ?? null,
         syncCommandId: commandId,
@@ -672,7 +834,7 @@ export class MercadoPublicoV2SyncControlService {
       this.logger.warn(
         `Failed to dispatch Mercado Publico V2 sync command ${commandId}: ${(error as Error).message}`,
       );
-      await this.appendAudit({
+      await this.appendAudit(this.coreDataSource, {
         workspaceId: input.workspaceId,
         syncRunId: result.syncRunId ?? null,
         syncCommandId: commandId,
@@ -683,33 +845,39 @@ export class MercadoPublicoV2SyncControlService {
     }
   }
 
-  private async appendAudit({
-    workspaceId,
-    syncRunId,
-    syncCommandId,
-    actorUserWorkspaceId,
-    eventType,
-    eventData,
-  }: {
-    workspaceId: string;
-    syncRunId?: string | null;
-    syncCommandId?: string | null;
-    actorUserWorkspaceId?: string | null;
-    eventType: string;
-    eventData: Record<string, unknown>;
-  }): Promise<void> {
-    await this.coreDataSource.query(
+  private async appendAudit(
+    entityManager: DataSource | EntityManager,
+    {
+      workspaceId,
+      syncRunId,
+      syncCommandId,
+      syncRunAttemptId,
+      actorUserWorkspaceId,
+      eventType,
+      eventData,
+    }: {
+      workspaceId: string;
+      syncRunId?: string | null;
+      syncCommandId?: string | null;
+      syncRunAttemptId?: string | null;
+      actorUserWorkspaceId?: string | null;
+      eventType: string;
+      eventData: Record<string, unknown>;
+    },
+  ): Promise<void> {
+    await entityManager.query(
       `
         INSERT INTO mp.sync_run_audit (
-          workspace_id, sync_run_id, sync_command_id,
+          workspace_id, sync_run_id, sync_command_id, sync_run_attempt_id,
           actor_user_workspace_id, event_type, event_data
         )
-        VALUES ($1, $2, $3, $4, '${eventType}', $5::jsonb)
+        VALUES ($1, $2, $3, $4, $5, '${eventType}', $6::jsonb)
       `,
       [
         workspaceId,
         syncRunId ?? null,
         syncCommandId ?? null,
+        syncRunAttemptId ?? null,
         actorUserWorkspaceId ?? null,
         JSON.stringify(eventData),
       ],

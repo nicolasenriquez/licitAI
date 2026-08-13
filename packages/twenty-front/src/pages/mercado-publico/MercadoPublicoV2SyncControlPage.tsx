@@ -14,8 +14,8 @@ const MERCADO_PUBLICO_V2_SYNC_CONTROL_LATEST_RUN_QUERY = gql`
   query MercadoPublicoV2SyncControlLatestRun {
     mercadoPublicoV2SyncControl {
       latestRun {
-        syncRunId
         safeStatus
+        canResume
         startedAt
         updatedAt
         timeline {
@@ -69,8 +69,6 @@ const ACTIVE_STATUSES = [
   'projecting',
   'reconciling',
 ];
-
-const RESUMABLE_STATUSES = ['partial_failed', 'cancelled'];
 
 const StyledPage = styled.div`
   display: flex;
@@ -160,8 +158,8 @@ type MercadoPublicoV2SyncControlLatestRunQuery = {
   mercadoPublicoV2SyncControl: {
     latestRun: {
       __typename?: 'MercadoPublicoV2LatestRunDTO';
-      syncRunId?: string | null;
       safeStatus: string;
+      canResume: boolean;
       startedAt?: string | null;
       updatedAt?: string | null;
       timeline: MercadoPublicoV2SyncTimelineEvent[];
@@ -215,7 +213,7 @@ export const MercadoPublicoV2SyncControlPage = () => {
   >(MERCADO_PUBLICO_V2_CANCEL_SYNC_MUTATION, { client: apolloCoreClient });
   const [resumeSync] = useMutation<
     MercadoPublicoV2ResumeSyncMutation,
-    { input: { idempotencyKey: string; syncRunId: string } }
+    { input: { idempotencyKey: string } }
   >(MERCADO_PUBLICO_V2_RESUME_SYNC_MUTATION, { client: apolloCoreClient });
 
   const latestRun = data?.mercadoPublicoV2SyncControl.latestRun;
@@ -224,10 +222,7 @@ export const MercadoPublicoV2SyncControlPage = () => {
     latestRun !== undefined &&
     ACTIVE_STATUSES.includes(latestRun.safeStatus);
   const isResumable =
-    latestRun !== null &&
-    latestRun !== undefined &&
-    RESUMABLE_STATUSES.includes(latestRun.safeStatus) &&
-    latestRun.syncRunId !== null;
+    latestRun !== null && latestRun !== undefined && latestRun.canResume;
 
   const runAction = async () => {
     if (pendingAction === null) {
@@ -244,14 +239,9 @@ export const MercadoPublicoV2SyncControlPage = () => {
       await cancelSync({
         variables: { input: { idempotencyKey, confirmed: true } },
       });
-    } else if (
-      latestRun?.syncRunId !== null &&
-      latestRun?.syncRunId !== undefined
-    ) {
+    } else if (latestRun?.canResume === true) {
       await resumeSync({
-        variables: {
-          input: { idempotencyKey, syncRunId: latestRun.syncRunId },
-        },
+        variables: { input: { idempotencyKey } },
       });
     }
 

@@ -6,6 +6,7 @@ describe('MercadoPublicoV2SyncCommandJob', () => {
   const buildControlService = (claimResult: unknown) =>
     ({
       claimCommand: jest.fn().mockResolvedValue(claimResult),
+      finalizeCommand: jest.fn().mockResolvedValue(undefined),
     }) as unknown as jest.Mocked<MercadoPublicoV2SyncControlService>;
 
   const buildDurableService = () =>
@@ -33,6 +34,11 @@ describe('MercadoPublicoV2SyncCommandJob', () => {
       expect.any(String),
     );
     expect(durableService.executeExistingRun).toHaveBeenCalledWith('run-1');
+    expect(controlService.finalizeCommand).toHaveBeenCalledWith({
+      commandId: 'command-1',
+      attemptId: 'attempt-1',
+      status: 'succeeded',
+    });
     expect(durableService.start).not.toHaveBeenCalled();
   });
 
@@ -88,6 +94,38 @@ describe('MercadoPublicoV2SyncCommandJob', () => {
       expect.any(String),
     );
     expect(durableService.executeExistingRun).toHaveBeenCalledWith('run-stale');
+    expect(controlService.finalizeCommand).toHaveBeenCalledWith({
+      commandId: 'command-stale',
+      attemptId: 'attempt-2',
+      status: 'succeeded',
+    });
+  });
+
+  it('finalizes a claimed attempt as failed when execution throws', async () => {
+    const controlService = buildControlService({
+      kind: 'claimed',
+      syncRunId: 'run-1',
+      attemptId: 'attempt-1',
+    });
+    const durableService = buildDurableService();
+    durableService.executeExistingRun.mockRejectedValueOnce(
+      new Error('failed'),
+    );
+    const job = new MercadoPublicoV2SyncCommandJob(
+      controlService,
+      durableService,
+    );
+
+    await expect(job.handle({ commandId: 'command-1' })).rejects.toThrow(
+      'failed',
+    );
+
+    expect(controlService.finalizeCommand).toHaveBeenCalledWith({
+      commandId: 'command-1',
+      attemptId: 'attempt-1',
+      status: 'failed',
+      errorSummary: 'failed',
+    });
   });
 
   it('does not perform provider work itself', async () => {

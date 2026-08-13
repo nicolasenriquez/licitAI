@@ -136,6 +136,10 @@ export class MercadoPublicoV2DurableSyncService {
   async resume(syncRunId: string): Promise<MercadoPublicoV2DurableSyncResult> {
     const context = await this.loadSyncRun(syncRunId);
 
+    if (context.status === 'cancelled' && context.error_stage === 'queued') {
+      return this.getCancelledRunResult(context);
+    }
+
     if (context.error_stage === 'discovering') {
       throw new Error(
         `Mercado Publico V2 sync run ${syncRunId} failed during discovery and must be rediscovered`,
@@ -1134,6 +1138,39 @@ export class MercadoPublicoV2DurableSyncService {
     this.logger.log(
       `Mercado Publico V2 sync ${context.syncRunId} cancelled cooperatively`,
     );
+
+    return {
+      syncRunId: context.syncRunId,
+      status: 'cancelled',
+      recordsDiscovered: Number(count.records_discovered ?? 0),
+      recordsHydrated: Number(count.records_hydrated ?? 0),
+      recordsFailed: Number(count.records_failed ?? 0),
+      pagesCheckpointed: Number(count.pages_checkpointed ?? 0),
+      watermarkAfter: null,
+      observationIds: [],
+      recordsProjected: Number(count.records_hydrated ?? 0),
+    };
+  }
+
+  private async getCancelledRunResult(
+    context: SyncRunContext,
+  ): Promise<MercadoPublicoV2DurableSyncResult> {
+    const counts = await this.coreDataSource.query<
+      {
+        records_discovered: string;
+        records_hydrated: string;
+        records_failed: string;
+        pages_checkpointed: string;
+      }[]
+    >(
+      `
+        SELECT records_discovered, records_hydrated, records_failed, pages_checkpointed
+        FROM mp.sync_run
+        WHERE id = $1
+      `,
+      [context.syncRunId],
+    );
+    const count = counts[0] ?? {};
 
     return {
       syncRunId: context.syncRunId,

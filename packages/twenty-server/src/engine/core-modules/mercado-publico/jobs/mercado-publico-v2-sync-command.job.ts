@@ -35,8 +35,29 @@ export class MercadoPublicoV2SyncCommandJob {
       return;
     }
 
-    await this.mercadoPublicoV2DurableSyncService.executeExistingRun(
-      claim.syncRunId,
-    );
+    try {
+      const result =
+        await this.mercadoPublicoV2DurableSyncService.executeExistingRun(
+          claim.syncRunId,
+        );
+
+      await this.mercadoPublicoV2SyncControlService.finalizeCommand({
+        commandId: data.commandId,
+        attemptId: claim.attemptId,
+        status: result.status,
+      });
+    } catch (error) {
+      await this.mercadoPublicoV2SyncControlService.finalizeCommand({
+        commandId: data.commandId,
+        attemptId: claim.attemptId,
+        status: 'failed',
+        errorSummary:
+          error instanceof Error
+            ? error.message
+            : 'Mercado Publico V2 sync command failed',
+      });
+
+      throw error;
+    }
   }
 }

@@ -16,6 +16,13 @@ const buildInput = (overrides: Record<string, unknown> = {}) =>
     ...overrides,
   }) as Parameters<MercadoPublicoV2SyncControlService['submitCommand']>[0];
 
+const transactionUsing = (query: jest.Mock) =>
+  jest.fn(
+    async (
+      runInTransaction: (entityManager: { query: jest.Mock }) => unknown,
+    ) => runInTransaction({ query }),
+  );
+
 describe('MercadoPublicoV2SyncControlService', () => {
   it('loads the latest-run timeline through the core user workspace table', async () => {
     const query = jest
@@ -41,7 +48,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
     );
 
     await expect(service.getLatestRun('workspace-1')).resolves.toMatchObject({
-      syncRunId: 'run-1',
+      canResume: false,
       timeline: [{ operatorName: 'Operator' }],
     });
     expect(query.mock.calls[1][0]).toContain('core."userWorkspace"');
@@ -69,7 +76,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       return Promise.resolve([]);
     });
     const service = new MercadoPublicoV2SyncControlService(
-      { query, transaction: jest.fn() } as never,
+      { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
     );
 
@@ -98,7 +105,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       return Promise.resolve([]);
     });
     const service = new MercadoPublicoV2SyncControlService(
-      { query, transaction: jest.fn() } as never,
+      { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
     );
 
@@ -115,15 +122,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
         return Promise.resolve([{ id: 'command-1' }]);
       }
       if (sql.includes('INSERT INTO mp.sync_run (')) {
-        const error = new Error(
-          'duplicate key value violates unique constraint',
-        ) as Error & {
-          code: string;
-        };
-
-        error.code = '23505';
-
-        return Promise.reject(error);
+        return Promise.resolve([]);
       }
       if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
         return Promise.resolve([
@@ -138,7 +137,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       return Promise.resolve([]);
     });
     const service = new MercadoPublicoV2SyncControlService(
-      { query, transaction: jest.fn() } as never,
+      { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
     );
 
@@ -159,15 +158,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
         return Promise.resolve([{ id: 'command-1' }]);
       }
       if (sql.includes('INSERT INTO mp.sync_run (')) {
-        const error = new Error(
-          'duplicate key value violates unique constraint',
-        ) as Error & {
-          code: string;
-        };
-
-        error.code = '23505';
-
-        return Promise.reject(error);
+        return Promise.resolve([]);
       }
       if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
         return Promise.resolve([
@@ -182,7 +173,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       return Promise.resolve([]);
     });
     const service = new MercadoPublicoV2SyncControlService(
-      { query, transaction: jest.fn() } as never,
+      { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
     );
 
@@ -195,11 +186,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
   });
 
   it('creates exactly one run under concurrent global starts', async () => {
-    const insertRun = jest
-      .fn()
-      .mockRejectedValueOnce(
-        Object.assign(new Error('unique violation'), { code: '23505' }),
-      );
+    const insertRun = jest.fn().mockResolvedValueOnce([]);
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('INSERT INTO mp.sync_command')) {
         return Promise.resolve([{ id: 'command-1' }]);
@@ -220,7 +207,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       return Promise.resolve([]);
     });
     const service = new MercadoPublicoV2SyncControlService(
-      { query, transaction: jest.fn() } as never,
+      { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
     );
 
@@ -245,7 +232,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       add: jest.fn().mockRejectedValue(new Error('redis unavailable')),
     } as unknown as jest.Mocked<MessageQueueService>;
     const service = new MercadoPublicoV2SyncControlService(
-      { query, transaction: jest.fn() } as never,
+      { query, transaction: transactionUsing(query) } as never,
       messageQueueService,
     );
 
@@ -272,7 +259,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       return Promise.resolve([]);
     });
     const service = new MercadoPublicoV2SyncControlService(
-      { query, transaction: jest.fn() } as never,
+      { query, transaction: transactionUsing(query) } as never,
       {
         add: jest.fn().mockResolvedValue({}),
       } as unknown as MessageQueueService,

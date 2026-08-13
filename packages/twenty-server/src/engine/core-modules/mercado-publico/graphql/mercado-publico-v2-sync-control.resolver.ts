@@ -36,11 +36,11 @@ export class MercadoPublicoV2SyncTimelineEventDTO {
 
 @ObjectType()
 export class MercadoPublicoV2LatestRunDTO {
-  @Field(() => String, { nullable: true })
-  syncRunId!: string | null;
-
   @Field()
   safeStatus!: string;
+
+  @Field()
+  canResume!: boolean;
 
   @Field(() => GraphQLISODateTime, { nullable: true })
   startedAt!: Date | null;
@@ -56,9 +56,6 @@ export class MercadoPublicoV2LatestRunDTO {
 export class MercadoPublicoV2SyncCommandResultDTO {
   @Field()
   state!: string;
-
-  @Field(() => String, { nullable: true })
-  syncRunId!: string | null;
 }
 
 @InputType()
@@ -83,9 +80,6 @@ export class MercadoPublicoV2CancelSyncInput {
 export class MercadoPublicoV2ResumeSyncInput {
   @Field()
   idempotencyKey!: string;
-
-  @Field()
-  syncRunId!: string;
 }
 
 @UseGuards(
@@ -149,7 +143,7 @@ export class MercadoPublicoV2SyncControlNamespaceResolver {
       confirmed: input.confirmed,
     });
 
-    return { state: result.state, syncRunId: result.syncRunId ?? null };
+    return { state: result.state };
   }
 
   @ResolveField(() => MercadoPublicoV2SyncCommandResultDTO)
@@ -173,7 +167,7 @@ export class MercadoPublicoV2SyncControlNamespaceResolver {
       confirmed: input.confirmed,
     });
 
-    return { state: result.state, syncRunId: result.syncRunId ?? null };
+    return { state: result.state };
   }
 
   @ResolveField(() => MercadoPublicoV2SyncCommandResultDTO)
@@ -188,10 +182,8 @@ export class MercadoPublicoV2SyncControlNamespaceResolver {
       actorUserWorkspaceId: userWorkspaceId ?? '',
       action: 'resume',
       idempotencyKey: input.idempotencyKey,
-      syncRunId: input.syncRunId,
-      confirmed: true,
     });
 
-    return { state: result.state, syncRunId: result.syncRunId ?? null };
+    return { state: result.state };
   }
 }
