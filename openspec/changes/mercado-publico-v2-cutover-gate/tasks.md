@@ -32,7 +32,7 @@
   screenshot, trace, console, network, and direct role behavior.
   Traceability: Group G4; Slice S2; Issue 30; Acceptance AC 30.2, AC 30.3, AC 30.4.
 
-- [ ] 1.3 Add failing release-gate harness coverage or evidence assertions that
+- [x] 1.3 Add failing release-gate harness coverage or evidence assertions that
   aggregate existing lifecycle, evidence, analytics, security, navigation, and
   cutover proof without weakening their owning suites.
   Traceability: Group G4; Slice S3; Issue 31; Acceptance AC 31.2, AC 31.4, AC 31.6.
@@ -219,3 +219,14 @@
   when disabled and has no three-phase deployment/evidence orchestration; task
   2.3 owns that fixture/harness work. An enabled attempted run exceeded the
   preview-build timeout before assertions began.
+- 2026-08-13: Started task 1.3. Adding fail-first release-gate manifest and
+  runner contract coverage without duplicating lifecycle, evidence, analytics,
+  security, navigation, or cutover product assertions.
+- 2026-08-13: Completed task 1.3. Added
+  `packages/twenty-e2e-testing/scripts/mercado-publico-release-gate.test.mjs`.
+  It requires task 2.5 to aggregate lifecycle, evidence, analytics, security,
+  navigation, and cutover owner suites exactly once and rejects cloud smoke
+  unless URL, identity, authorization, and allowed-data inputs exist. Focused
+  Node test is red as intended because the release-gate runner is absent;
+  direct `oxlint`, formatting, and `git diff --check` pass. No existing product
+  assertion or runtime state changed.
