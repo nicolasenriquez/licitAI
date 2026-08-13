@@ -20,7 +20,7 @@
   disabled V2 subroutes, and no mixed composition.
   Traceability: Group G4; Slice S1; Issue 30; Acceptance AC 30.1.
 
-- [ ] 1.4 Add failing resolver and generated-document coverage for the seven
+- [x] 1.4 Add failing resolver and generated-document coverage for the seven
   retained legacy read queries. Prove that no legacy mutation is restored.
   Traceability: Group G4; Slice S1; Issue 30; Acceptance AC 30.2, AC 30.5.
 
@@ -174,3 +174,13 @@
   canonical plus alias and subroutes when enabled, legacy canonical plus alias
   and no V2 subroutes when disabled. `npx nx typecheck twenty-front` and
   `npx nx lint:diff-with-main twenty-front` pass.
+- 2026-08-13: Started task 1.4. Adding fail-first coverage for the selected
+  legacy resolver and all seven historical read query documents.
+- 2026-08-13: Completed task 1.4. Added failing contract proofs in
+  `packages/twenty-server/src/engine/core-modules/mercado-publico/__tests__/mercado-publico-legacy-query-contract.spec.ts`
+  and
+  `packages/twenty-front/src/modules/mercado-publico/__tests__/mercado-publico-legacy-query-documents.spec.ts`.
+  Focused Jest is red as intended: the legacy resolver module and all seven
+  generated query documents are absent. Both package typechecks fail only on
+  those missing task 2.1 artifacts. `npx nx lint:diff-with-main twenty-front`
+  passes; server diff lint exhausted memory before analysis.
