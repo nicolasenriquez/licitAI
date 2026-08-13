@@ -27,6 +27,7 @@ context.
 | --- | --- | --- |
 | Product vision | `vision-product.md` | Why Twenty exists, who it serves, product register, and MVP scope. |
 | Business | `business/` | Procurement domain: business case, lifecycle, source contracts, workflows, and market positioning for Mercado Publico / ChileCompra data ingestion. |
+| CRM dossier baseline | `business/crm-dossier-playwright-baseline.md` | Read-only user flow and Playwright evidence for the seeded CRM demonstration workspace. |
 | Architecture | `architecture/` | Current state, target state, reference architecture, data model, security, and repository strategy. |
 | Docs topology | `architecture/documentation-topology.md` | OKF bundle shape, index hierarchy, and documentation topology. |
 | Agent documentation workflow | `architecture/agent-context-and-documentation-workflows.md` | Evidence model, ICM evaluation, and documentation-audit pilot. |
