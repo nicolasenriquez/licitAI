@@ -7,7 +7,7 @@
   module subtree.
   Traceability: Group G4; Slice S1; Issue 30; Scope selected legacy alias and G3 predecessor only.
 
-- [ ] 0.2 Record current pre-cutover V2 evidence and G3 latest SyncRun, command,
+- [x] 0.2 Record current pre-cutover V2 evidence and G3 latest SyncRun, command,
   attempt, and audit state. Define stable evidence locations and the exact
   enabled-to-disabled-to-enabled rollback runbook. Define the immutable release
   tag that G5 deploys after live legacy rollback ends.
@@ -158,3 +158,10 @@
   remains selected legacy subtree; no restore performed in this task.
 - 2026-08-13: Started task 0.2. Capturing pre-cutover V2 and G3 durable-state
   evidence, then defining evidence locations and rollback procedure.
+- 2026-08-13: Completed task 0.2. Recorded read-only local Compose baseline in
+  `pre-cutover-evidence.md`: runtime is healthy, V2 durable tables contain zero
+  rows, and current image predates G3 control schema, so no SyncRun, command,
+  attempt, or audit record exists. Defined stable evidence locations, read-only
+  before/after capture query, enabled-to-disabled-to-enabled deploy-only
+  runbook, stop conditions, and protected G5 rollback tag contract. No runtime,
+  database, flag, build, or deployment change was made.
