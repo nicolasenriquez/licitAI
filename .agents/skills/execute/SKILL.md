@@ -121,7 +121,8 @@ After completing implementation tasks:
 
 ### 6. Run Validation Commands
 
-Execute ALL validation commands from the plan in order:
+Execute validation commands from the plan in order. Skip commands on tasks
+marked `Human-gated:` unless the user explicitly requested them.
 
 ```bash
 # Run each command exactly as specified in plan

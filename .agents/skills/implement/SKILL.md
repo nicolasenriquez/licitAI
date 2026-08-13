@@ -8,7 +8,10 @@ Implement the work described by the user in the spec or tickets.
 
 Use /tdd where possible, at pre-agreed seams.
 
-Run typechecking regularly, single test files regularly, and the full test suite once at the end.
+Run typechecking regularly and single test files regularly (fail fast). At the
+end, run the affected unit test suites only: `npx nx lint:diff-with-main <pkg>`,
+`npx nx typecheck <pkg>`, and focused jest. Never run the full test suite or CI
+(`just ci*`) unless the user explicitly requests it.
 
 Once done, use `/code-review` only when the current user explicitly requests a code review; ticket closeout does not depend on review.
 

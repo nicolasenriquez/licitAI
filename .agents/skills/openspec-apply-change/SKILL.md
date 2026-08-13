@@ -140,6 +140,7 @@ What would you like to do?
 
 **Guardrails**
 - Keep going through tasks until done or blocked
+- Pause on tasks marked `Human-gated:` and ask the user before running them.
 - Always read context files before starting (from the apply instructions output)
 - If task is ambiguous, pause and ask before implementing
 - If implementation reveals issues, pause and suggest artifact updates

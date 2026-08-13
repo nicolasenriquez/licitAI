@@ -227,11 +227,14 @@
 
 - [ ] 3.2 Run isolated operator and analyst Playwright checks for confirmation,
   safe state, denial, keyboard operation, and responsive rendering.
+  Human-gated: Playwright E2E. Run only when the user explicitly requests it.
   Traceability: Group G3; Issue 28; AC 28.1, AC 28.2, AC 28.5, AC 28.6;
   Issue 29; AC 29.2, AC 29.5.
 
 - [ ] 3.3 Run GraphQL codegen, changed-file lint, typechecks, formatting,
   `git diff --check`, and `openspec validate mercado-publico-v2-sync-operations`.
+  Human-gated: codegen requires a healthy source server. Run only when the user
+  explicitly requests it.
   Traceability: Group G3; Issue 28; Issue 29; quality gate.
   Notes: Partial gate evidence: `twenty-front` and `twenty-server`
   `lint:diff-with-main`, typechecks, changed-file `oxfmt`, `git diff --check`,

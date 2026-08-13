@@ -238,7 +238,8 @@ Use the selected Matt rules as guidance only:
 - to-tickets: use vertical tracer-bullet slices, genuine blockers, and
   expand-contract.
 
-OpenSpec remains the sole source of truth after authoring. The implementation
+While an OpenSpec change is active and the user selected the OpenSpec workflow,
+the change artifacts are the source of truth for that change. The implementation
 SDLC map is input context only. Do not run Matt commands that publish tracker
 work or create parallel artifacts during normal Opsx authoring; in particular,
 do not invoke to-spec or to-tickets as authoring steps.
