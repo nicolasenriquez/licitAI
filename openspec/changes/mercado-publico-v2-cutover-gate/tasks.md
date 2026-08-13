@@ -15,7 +15,7 @@
 
 ## 1. Contract Coverage (Failing First)
 
-- [ ] 1.1 Add failing AppRouter route-composition tests for both flag values:
+- [x] 1.1 Add failing AppRouter route-composition tests for both flag values:
   canonical V2 versus canonical legacy, private legacy alias in both builds,
   disabled V2 subroutes, and no mixed composition.
   Traceability: Group G4; Slice S1; Issue 30; Acceptance AC 30.1.
@@ -165,3 +165,12 @@
   before/after capture query, enabled-to-disabled-to-enabled deploy-only
   runbook, stop conditions, and protected G5 rollback tag contract. No runtime,
   database, flag, build, or deployment change was made.
+- 2026-08-13: Started task 1.1. Adding fail-first route-composition coverage at
+  the `useCreateAppRouter` seam for the enabled and disabled build matrices.
+- 2026-08-13: Completed task 1.1. Added
+  `packages/twenty-front/src/modules/app/hooks/__tests__/useCreateAppRouter.test.tsx`.
+  Focused Jest is red as intended: enabled build lacks private legacy alias and
+  disabled build lacks canonical legacy. Tests assert one canonical route, V2
+  canonical plus alias and subroutes when enabled, legacy canonical plus alias
+  and no V2 subroutes when disabled. `npx nx typecheck twenty-front` and
+  `npx nx lint:diff-with-main twenty-front` pass.
