@@ -39,7 +39,11 @@ export type MercadoPublicoV2SubmitCommandResult = {
 
 export type MercadoPublicoV2LatestRun = {
   safeStatus: string;
+  safeSummary: string | null;
   canResume: boolean;
+  recordsDiscovered: number;
+  recordsHydrated: number;
+  recordsFailed: number;
   startedAt: Date | null;
   updatedAt: Date | null;
   timeline: {
@@ -47,6 +51,18 @@ export type MercadoPublicoV2LatestRun = {
     at: Date;
     operatorName: string | null;
   }[];
+};
+
+const getMercadoPublicoV2SyncSafeSummary = (status: string): string | null => {
+  if (status === 'cancelled') {
+    return 'La ejecución fue cancelada.';
+  }
+
+  if (status === 'partial_failed' || status === 'failed') {
+    return 'La ejecución no se completó.';
+  }
+
+  return null;
 };
 
 type MercadoPublicoV2SyncCommandRow = {
@@ -465,12 +481,16 @@ export class MercadoPublicoV2SyncControlService {
         id: string;
         status: string;
         error_stage: string | null;
+        records_discovered: string | null;
+        records_hydrated: string | null;
+        records_failed: string | null;
         created_at: Date | null;
         updated_at: Date | null;
       }[]
     >(
       `
-        SELECT id, status, error_stage, created_at, updated_at
+        SELECT id, status, error_stage, records_discovered, records_hydrated,
+               records_failed, created_at, updated_at
         FROM mp.sync_run
         WHERE control_workspace_id = $1
         ORDER BY created_at DESC
@@ -507,9 +527,13 @@ export class MercadoPublicoV2SyncControlService {
 
     return {
       safeStatus: row.status,
+      safeSummary: getMercadoPublicoV2SyncSafeSummary(row.status),
       canResume:
         row.status === 'partial_failed' ||
         (row.status === 'cancelled' && row.error_stage === 'hydrating'),
+      recordsDiscovered: Number(row.records_discovered ?? 0),
+      recordsHydrated: Number(row.records_hydrated ?? 0),
+      recordsFailed: Number(row.records_failed ?? 0),
       startedAt: row.created_at,
       updatedAt: row.updated_at,
       timeline: timelineRows.map((timelineRow) => ({

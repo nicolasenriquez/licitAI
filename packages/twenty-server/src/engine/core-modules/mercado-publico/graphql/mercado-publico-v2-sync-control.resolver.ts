@@ -4,6 +4,7 @@ import {
   Field,
   GraphQLISODateTime,
   InputType,
+  Int,
   Mutation,
   ObjectType,
   Query,
@@ -39,8 +40,20 @@ export class MercadoPublicoV2LatestRunDTO {
   @Field()
   safeStatus!: string;
 
+  @Field(() => String, { nullable: true })
+  safeSummary!: string | null;
+
   @Field()
   canResume!: boolean;
+
+  @Field(() => Int)
+  recordsDiscovered!: number;
+
+  @Field(() => Int)
+  recordsHydrated!: number;
+
+  @Field(() => Int)
+  recordsFailed!: number;
 
   @Field(() => GraphQLISODateTime, { nullable: true })
   startedAt!: Date | null;

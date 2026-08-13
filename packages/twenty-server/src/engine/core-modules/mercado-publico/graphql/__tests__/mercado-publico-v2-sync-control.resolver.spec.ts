@@ -114,19 +114,17 @@ describe('MercadoPublicoV2SyncControlResolver', () => {
     );
     const input = {
       idempotencyKey: '33333333-3333-4333-8333-333333333333',
-      syncRunId: 'run-1',
     } as Parameters<typeof resolver.resume>[0];
 
     await expect(resolver.resume(input)).resolves.toMatchObject({
       state: 'queued',
     });
-    expect(controlService.submitCommand).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: 'resume',
-        syncRunId: 'run-1',
-        confirmed: true,
-      }),
-    );
+    expect(controlService.submitCommand).toHaveBeenCalledWith({
+      workspaceId: '',
+      actorUserWorkspaceId: '',
+      action: 'resume',
+      idempotencyKey: input.idempotencyKey,
+    });
   });
 
   it('delegates the latest workspace run to the control service', async () => {

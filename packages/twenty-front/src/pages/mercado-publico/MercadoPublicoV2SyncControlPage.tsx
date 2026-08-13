@@ -15,7 +15,11 @@ const MERCADO_PUBLICO_V2_SYNC_CONTROL_LATEST_RUN_QUERY = gql`
     mercadoPublicoV2SyncControl {
       latestRun {
         safeStatus
+        safeSummary
         canResume
+        recordsDiscovered
+        recordsHydrated
+        recordsFailed
         startedAt
         updatedAt
         timeline {
@@ -159,7 +163,11 @@ type MercadoPublicoV2SyncControlLatestRunQuery = {
     latestRun: {
       __typename?: 'MercadoPublicoV2LatestRunDTO';
       safeStatus: string;
+      safeSummary?: string | null;
       canResume: boolean;
+      recordsDiscovered: number;
+      recordsHydrated: number;
+      recordsFailed: number;
       startedAt?: string | null;
       updatedAt?: string | null;
       timeline: MercadoPublicoV2SyncTimelineEvent[];
@@ -286,8 +294,17 @@ export const MercadoPublicoV2SyncControlPage = () => {
                   <StyledStatusLine>
                     {t`Estado: ${latestRun.safeStatus}`}
                   </StyledStatusLine>
+                  {latestRun.safeSummary !== null &&
+                    latestRun.safeSummary !== undefined && (
+                      <StyledStatusLine>
+                        {latestRun.safeSummary}
+                      </StyledStatusLine>
+                    )}
                   <StyledStatusLine>
                     {t`Iniciada: ${latestRun.startedAt !== null && latestRun.startedAt !== undefined ? new Date(latestRun.startedAt).toLocaleString() : '—'}`}
+                  </StyledStatusLine>
+                  <StyledStatusLine>
+                    {t`Descubiertos: ${latestRun.recordsDiscovered} · Hidratados: ${latestRun.recordsHydrated} · Fallidos: ${latestRun.recordsFailed}`}
                   </StyledStatusLine>
                 </>
               )}

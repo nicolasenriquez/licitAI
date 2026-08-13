@@ -24,13 +24,16 @@ const transactionUsing = (query: jest.Mock) =>
   );
 
 describe('MercadoPublicoV2SyncControlService', () => {
-  it('loads the latest-run timeline through the core user workspace table', async () => {
+  it('loads safe latest-run counts and timeline through the core user workspace table', async () => {
     const query = jest
       .fn()
       .mockResolvedValueOnce([
         {
           id: 'run-1',
-          status: 'queued',
+          status: 'partial_failed',
+          records_discovered: '3',
+          records_hydrated: '2',
+          records_failed: '1',
           created_at: null,
           updated_at: null,
         },
@@ -48,9 +51,14 @@ describe('MercadoPublicoV2SyncControlService', () => {
     );
 
     await expect(service.getLatestRun('workspace-1')).resolves.toMatchObject({
-      canResume: false,
+      canResume: true,
+      recordsDiscovered: 3,
+      recordsHydrated: 2,
+      recordsFailed: 1,
+      safeSummary: 'La ejecución no se completó.',
       timeline: [{ operatorName: 'Operator' }],
     });
+    expect(query.mock.calls[0][0]).not.toContain('error_summary');
     expect(query.mock.calls[1][0]).toContain('core."userWorkspace"');
     expect(query.mock.calls[1][0]).toContain(
       'concat_ws(\' \', u."firstName", u."lastName")',
