@@ -47,17 +47,48 @@ export default defineConfig({
   ],
   projects: [
     {
-      name: 'setup',
-      testMatch: /.*\.setup\.ts/,
+      name: 'setup-team',
+      testMatch: /login\.setup\.ts/,
     },
     {
       name: 'chrome',
+      testIgnore: /.*sync-control.*/,
       use: {
         ...devices['Desktop Chrome'],
         permissions: ['clipboard-read', 'clipboard-write'],
         storageState: path.resolve(__dirname, '.auth', 'user.json'), // takes saved cookies from directory
       },
-      dependencies: ['setup'],
+      dependencies: ['setup-team'],
+    },
+    {
+      name: 'setup-operator',
+      testMatch: /operator\.setup\.ts/,
+    },
+    {
+      name: 'operator',
+      testMatch: /.*sync-control.*/,
+      grep: /@operator/,
+      use: {
+        ...devices['Desktop Chrome'],
+        permissions: ['clipboard-read', 'clipboard-write'],
+        storageState: path.resolve(__dirname, '.auth', 'operator.json'),
+      },
+      dependencies: ['setup-operator'],
+    },
+    {
+      name: 'setup-analyst',
+      testMatch: /analyst\.setup\.ts/,
+    },
+    {
+      name: 'analyst',
+      testMatch: /.*sync-control.*/,
+      grep: /@analyst/,
+      use: {
+        ...devices['Desktop Chrome'],
+        permissions: ['clipboard-read', 'clipboard-write'],
+        storageState: path.resolve(__dirname, '.auth', 'analyst.json'),
+      },
+      dependencies: ['setup-analyst'],
     },
 
     //{

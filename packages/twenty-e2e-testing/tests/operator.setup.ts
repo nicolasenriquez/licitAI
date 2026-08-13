@@ -3,12 +3,11 @@ import path from 'path';
 
 import { authenticateAndSave } from '../lib/auth/authenticate';
 
-test('Login test', async ({ page }) => {
+test('Login test (operator)', async ({ page }) => {
   test.setTimeout(300_000);
 
   await authenticateAndSave(
     page,
-    path.resolve(__dirname, '..', '.auth', 'user.json'),
+    path.resolve(__dirname, '..', '.auth', 'operator.json'),
   );
-  process.env.LINK = page.url();
 });

@@ -54,13 +54,11 @@ The E2E Playwright configuration always runs Chromium headless. Do not switch
 ### Local prerequisites
 
 Playwright builds and serves the frontend preview at `http://localhost:3001/`.
-Leave that port available, then start and verify the backend before running
-tests:
+Leave that port available and verify the canonical runtime before running
+generic tests:
 
 ```powershell
-cd packages/twenty-docker
-docker compose up -d --force-recreate server
-docker compose ps
+just runtime-check
 curl.exe --fail http://localhost:3000/healthz
 ```
 
@@ -72,38 +70,32 @@ DISABLE_CRON_JOBS_REGISTRATION=true
 ```
 
 These values target the persisted local `mp-local` database used by this E2E
-baseline. The server container must be recreated after changing them. A plain
-`docker compose restart server` keeps the old container environment and can
-leave startup blocked in migrations or cron registration.
+baseline. Recreate the canonical server only as an explicit recovery action;
+routine tests must not create another Compose service or one-off container.
 
-### Development credentials
+### Local test account
 
-Use the local disposable dev seed only:
+Set `DEFAULT_LOGIN` and `DEFAULT_PASSWORD` in the ignored package `.env` for
+the standard local test account. Generic tests use only this account.
 
-| User | Email | Password | Workspace |
-| --- | --- | --- | --- |
-| Default admin | `tim@apple.dev` | `tim@apple.dev` | Apple |
-| Analyst | `jane.austen@apple.dev` | `tim@apple.dev` | Apple |
-| Operator | `phil.schiler@apple.dev` | `tim@apple.dev` | Apple |
-
-The UI flow is: open `/`, click `Continue with Email`, submit email, click
-`Continue`, submit password, then click `Sign in`. The `--light` development
-seed creates only the Apple workspace, so no workspace picker is normally
-shown.
+The operator project uses `DEFAULT_LOGIN`. For an authorization-denial test,
+set `ANALYST_LOGIN` in the ignored package `.env` to a seeded user without the
+explicit sync-operator assignment. Do not put role-specific account values in
+a test, probe, README, or committed environment file.
 
 ### Seed and login smoke
 
 Run the light seed when the disposable database needs its development users:
 
 ```powershell
-docker exec twenty-server-1 yarn command:prod workspace:seed:dev --light
+docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml exec -T server yarn command:prod workspace:seed:dev --light
 ```
 
 Run the login setup from this package. It regenerates ignored
 `.auth/user.json`; stale storage state is not a reason to run headed mode:
 
 ```powershell
-npx playwright test tests/login.setup.ts --project=setup
+npx playwright test tests/login.setup.ts --project=setup-team
 ```
 
 Then run an authenticated Mercado Publico smoke:
@@ -127,11 +119,22 @@ must contain:
   amount;
 - one opportunity without `buyerCode`.
 
-The supported provisioner creates an isolated Compose project on port `3002`,
-builds the current source revision, removes its volumes, runs migrations, and
+The supported provisioner creates only isolated Compose project `twenty-mp-e2e`
+on an available local port,
+builds the current source revision, runs migrations, and
 seeds the fixture through the server-side durable sync path. It requires the
 disposable fixture flags set by `docker-compose.e2e.yml`; it does not use
 persisted local Compose data.
+
+Routine provisions reuse the isolated database volume. The provisioner
+restores the active `default` database from a per-revision template
+(`mp_e2e_template_v2hb_<gitSha>`), so repeat runs skip seeding and fixture
+ingestion. A source change creates a new template and drops stale ones. Use
+`--fresh` to force a full reset including the named volumes:
+
+```powershell
+node scripts/provision-baseline.mjs --flag on --fixture v2-history-and-buyers [--fresh]
+```
 
 Run the real login and test target:
 
@@ -139,6 +142,20 @@ Run the real login and test target:
 node scripts/provision-baseline.mjs --flag on --fixture v2-history-and-buyers
 npx playwright test tests/mercado-publico/history-and-buyers.spec.ts --project=chrome
 ```
+
+The provisioner stops before cleanup when the isolated server is active. Inspect
+that stack first. To discard it explicitly, run:
+
+```powershell
+docker compose -p twenty-mp-e2e --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml -f packages/twenty-docker/docker-compose.e2e.yml down --remove-orphans
+```
+
+To discard it including volumes and templates, add `--volumes` or run the
+provisioner with `--fresh`.
+
+Use `docker compose exec` for commands in an active service. Never use
+`docker compose run` in the local or E2E workflow because it creates a separate
+one-off container.
 
 The spec checks desktop `1440x900`, laptop `1280x900`, and mobile `390x844`
 viewports. It uses real GraphQL responses and browser history. It does not mock
@@ -148,10 +165,10 @@ GraphQL.
 
 | Symptom | Check |
 | --- | --- |
-| Frontend loads but login hangs | `curl.exe --fail http://localhost:3000/healthz` and `docker compose ps` |
+| Frontend loads but login hangs | `just runtime-check` for generic tests, or `docker compose -p twenty-mp-e2e ... ps` for the fixture |
 | Server is unhealthy and logs stop at cron registration | Set `DISABLE_CRON_JOBS_REGISTRATION=true`, then use `--force-recreate` |
 | Login returns invalid credentials | Run `workspace:seed:dev --light` and retry with the credentials above |
-| Authenticated tests cannot find token | Run `tests/login.setup.ts --project=setup`; it must create `.auth/user.json` |
+| Authenticated tests cannot find token | Run `tests/login.setup.ts --project=setup-team`; it must create `.auth/user.json` |
 
 Never use these development credentials outside the disposable local
 environment. Never commit `.env` or `.auth/user.json`.
