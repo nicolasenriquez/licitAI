@@ -74,6 +74,21 @@ msgstr ": Passé"
 msgid ": Today{timeZoneAbbreviationSuffix}"
 msgstr ": Aujourd’hui{timeZoneAbbreviationSuffix}"
 
+#. js-lingui-id: aPxEzY
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "¿Confirmas cancelar la sincronización activa? Se conservará la evidencia registrada."
+msgstr ""
+
+#. js-lingui-id: aHP+Iy
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "¿Confirmas iniciar una sincronización global incremental?"
+msgstr ""
+
+#. js-lingui-id: 44QIP3
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "¿Confirmas reanudar la ejecución desde sus puntos de control?"
+msgstr ""
+
 #. js-lingui-id: N/lIUf
 #: src/modules/settings/billing/hooks/useBillingWording.ts
 msgid ". The change will be applied the {beautifiedRenewDate}."
@@ -2811,13 +2826,6 @@ msgstr "URL de base"
 msgid "Base URL is required"
 msgstr "L'URL de base est requise"
 
-#. js-lingui-id: QoB1Ar
-#: src/pages/mercado-publico/MercadoPublicoV2BaselinePage.tsx
-msgid ""
-"Baseline reproducible protegido por bandera local. Los slices V2 se\n"
-"        construyen sobre esta ruta."
-msgstr ""
-
 #. js-lingui-id: /xLNEx
 #: src/modules/activities/emails/components/EmailComposerFields.tsx
 #: src/modules/activities/emails/components/EmailComposerFields.tsx
@@ -3281,6 +3289,17 @@ msgstr "Annuler votre abonnement"
 msgid "Cancelada"
 msgstr ""
 
+#. js-lingui-id: ytcDq7
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Cancelar"
+msgstr ""
+
+#. js-lingui-id: zlypPi
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Cancelar sincronización"
+msgstr ""
+
 #. js-lingui-id: GGWsTU
 #: src/pages/settings/enterprise/SettingsEnterprise.tsx
 msgid "Canceled"
@@ -3408,6 +3427,12 @@ msgstr "Cc"
 #. js-lingui-id: Dgsw8A
 #: src/modules/activities/emails/components/EmailComposerFields.tsx
 msgid "Cc/Bcc"
+msgstr ""
+
+#. js-lingui-id: aCbLKs
+#: src/modules/mercado-publico/components/MercadoPublicoV2Nav.tsx
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Centro de control"
 msgstr ""
 
 #. js-lingui-id: YzzR1x
@@ -4207,6 +4232,11 @@ msgstr "Confirmer la mise à jour du rôle"
 #: src/modules/settings/billing/components/internal/ResourceCreditPriceSelector.tsx
 msgid "Confirm upgrade"
 msgstr "Confirmer une mise à niveau"
+
+#. js-lingui-id: KRbK2H
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Confirmar"
+msgstr ""
 
 #. js-lingui-id: LOM1MR
 #: src/pages/auth/Authorize.tsx
@@ -7195,6 +7225,12 @@ msgstr ""
 msgid "Estado y frescura"
 msgstr ""
 
+#. js-lingui-id: cwRLTa
+#. placeholder {0}: latestRun.safeStatus
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Estado: {0}"
+msgstr ""
+
 #. js-lingui-id: 8BufAL
 #: src/modules/mercado-publico/components/MercadoPublicoV2FilterBar.tsx
 #: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
@@ -9215,6 +9251,22 @@ msgstr "Informations sur l'utilisateur actuel (générées automatiquement et in
 msgid "Infos"
 msgstr "Informations"
 
+#. js-lingui-id: 1rFIOe
+#. placeholder {0}: latestRun.startedAt !== null && latestRun.startedAt !== undefined ? new Date(latestRun.startedAt).toLocaleString() : '—'
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Iniciada: {0}"
+msgstr ""
+
+#. js-lingui-id: Fwgre3
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Iniciar"
+msgstr ""
+
+#. js-lingui-id: KTiRrT
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Iniciar sincronización"
+msgstr ""
+
 #. js-lingui-id: XU5AOg
 #: src/modules/ai/components/ThinkingStepsDisplay.tsx
 #: src/modules/ai/components/ToolStepRenderer.tsx
@@ -10132,6 +10184,11 @@ msgstr ""
 msgid "Line Chart"
 msgstr ""
 
+#. js-lingui-id: T9ohlt
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Línea de tiempo"
+msgstr ""
+
 #. js-lingui-id: yzF66j
 #: src/modules/navigation-menu-item/edit/side-panel/components/SidePanelNewSidebarItemMainMenu.tsx
 #: src/modules/settings/admin-panel/health-status/maintenance-mode/components/SettingsAdminMaintenanceMode.tsx
@@ -10652,11 +10709,6 @@ msgstr "Membres"
 #: src/utils/title-utils.ts
 msgid "Members - Settings"
 msgstr "Membres - Paramètres"
-
-#. js-lingui-id: I9jXS6
-#: src/pages/mercado-publico/MercadoPublicoV2BaselinePage.tsx
-msgid "Mercado Público V2 (baseline)"
-msgstr ""
 
 #. js-lingui-id: UODtG8
 #: src/modules/object-record/record-merge/components/MergeRecordsFooter.tsx
@@ -11796,6 +11848,16 @@ msgstr ""
 msgid "No hay compradores para la población filtrada."
 msgstr ""
 
+#. js-lingui-id: M4/K0M
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "No hay ejecuciones registradas."
+msgstr ""
+
+#. js-lingui-id: Wk1H6n
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "No hay eventos registrados."
+msgstr ""
+
 #. js-lingui-id: ZYjA6O
 #: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
 msgid "No hay oportunidades disponibles."
@@ -12065,6 +12127,11 @@ msgstr "Aucun objet système comportant des vues trouvé"
 #. js-lingui-id: L4Miic
 #: src/modules/side-panel/pages/page-layout/components/dropdown-content/ChartGroupByFieldSelectionMorphRelationFieldView.tsx
 msgid "No targets available"
+msgstr ""
+
+#. js-lingui-id: dRqaVW
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "No tienes acceso al control de sincronización. Contacta a un administrador para que te asigne como operador."
 msgstr ""
 
 #. js-lingui-id: t0t36i
@@ -13850,6 +13917,16 @@ msgstr ""
 #. js-lingui-id: 6wOBcu
 #: src/pages/settings/layout/components/SettingsLayoutDetailScaffold.tsx
 msgid "Read-only {entityTypeLabel} definition shipped by this app"
+msgstr ""
+
+#. js-lingui-id: W4TmJU
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Reanudar"
+msgstr ""
+
+#. js-lingui-id: JmgXoQ
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Reanudar sincronización"
 msgstr ""
 
 #. js-lingui-id: wUf2OL
@@ -15860,6 +15937,11 @@ msgstr "Singulier"
 msgid "Singular and plural names must be different"
 msgstr "Les noms au singulier et au pluriel doivent être différents"
 
+#. js-lingui-id: GvaGfB
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Sistema"
+msgstr ""
+
 #. js-lingui-id: Swe8Fi
 #: src/modules/object-record/record-merge/utils/getPositionWordLabel.ts
 msgid "Sixth"
@@ -17727,6 +17809,11 @@ msgstr "Ukrainien"
 #. js-lingui-id: GNgAlk
 #: src/modules/advanced-text-editor/extensions/slash-command/DefaultSlashCommands.ts
 msgid "ul"
+msgstr ""
+
+#. js-lingui-id: B05EKw
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Última ejecución"
 msgstr ""
 
 #. js-lingui-id: N/XI5S
