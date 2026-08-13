@@ -65,8 +65,9 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
       finalizeJobRun: jest.fn(),
     } as unknown as jest.Mocked<MercadoPublicoPersistenceService>;
     const transaction = jest.fn(
-      async (callback: (manager: { query: typeof entityManagerQuery }) => unknown) =>
-        callback({ query: entityManagerQuery }),
+      async (
+        callback: (manager: { query: typeof entityManagerQuery }) => unknown,
+      ) => callback({ query: entityManagerQuery }),
     );
     const client = {
       getList,
@@ -83,7 +84,10 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
   };
 
   it('executes an existing run without creating a second run', async () => {
-    const runRow = buildRunRow({ error_stage: 'hydrating', status: 'partial_failed' });
+    const runRow = buildRunRow({
+      error_stage: 'hydrating',
+      status: 'partial_failed',
+    });
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('records_discovered')) {
         return Promise.resolve([
@@ -95,18 +99,24 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
           },
         ]);
       }
-      if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
-        return Promise.resolve([runRow]);
-      }
       if (sql.includes('SELECT id, codigo, status')) {
         return Promise.resolve([
           { id: 'item-1', codigo: 'FIXTURE-CA-001', status: 'pending' },
         ]);
       }
+      if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
+        return Promise.resolve([runRow]);
+      }
 
       return Promise.resolve([]);
     });
-    const entityManagerQuery = jest.fn().mockResolvedValue([]);
+    const entityManagerQuery = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('INSERT INTO mp.v2_observation')) {
+        return Promise.resolve([{ id: 'observation-1' }]);
+      }
+
+      return Promise.resolve([]);
+    });
     const getByCodigo = jest.fn().mockResolvedValue({
       ...buildListResponse(false),
       errorSummary: undefined,
@@ -145,9 +155,7 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
       return Promise.resolve([]);
     });
     const entityManagerQuery = jest.fn().mockResolvedValue([]);
-    const getList = jest
-      .fn()
-      .mockResolvedValue(buildListResponse(true));
+    const getList = jest.fn().mockResolvedValue(buildListResponse(true));
     const service = buildService({
       query,
       entityManagerQuery,
@@ -184,20 +192,26 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
           },
         ]);
       }
-      if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
-        return Promise.resolve([
-          buildRunRow({ error_stage: 'hydrating', status: 'partial_failed' }),
-        ]);
-      }
       if (sql.includes('SELECT id, codigo, status')) {
         return Promise.resolve([
           { id: 'item-1', codigo: 'FIXTURE-CA-001', status: 'pending' },
         ]);
       }
+      if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
+        return Promise.resolve([
+          buildRunRow({ error_stage: 'hydrating', status: 'partial_failed' }),
+        ]);
+      }
 
       return Promise.resolve([]);
     });
-    const entityManagerQuery = jest.fn().mockResolvedValue([]);
+    const entityManagerQuery = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('INSERT INTO mp.v2_observation')) {
+        return Promise.resolve([{ id: 'observation-1' }]);
+      }
+
+      return Promise.resolve([]);
+    });
     const getByCodigo = jest.fn().mockResolvedValue({
       ...buildListResponse(false),
       errorSummary: undefined,
