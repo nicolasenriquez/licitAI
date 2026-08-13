@@ -181,6 +181,11 @@ export type MercadoPublicoV2BuyerEdgeDto = {
   node: MercadoPublicoV2BuyerDto;
 };
 
+export type MercadoPublicoV2CancelSyncInput = {
+  confirmed: Scalars['Boolean']['input'];
+  idempotencyKey: Scalars['String']['input'];
+};
+
 export type MercadoPublicoV2DetailFreshnessDto = {
   __typename?: 'MercadoPublicoV2DetailFreshnessDTO';
   asOf?: Maybe<Scalars['DateTime']['output']>;
@@ -227,6 +232,15 @@ export type MercadoPublicoV2HistoryEventDto = {
   providerSchemaFingerprint?: Maybe<Scalars['String']['output']>;
   snapshotKind?: Maybe<Scalars['String']['output']>;
   source?: Maybe<Scalars['String']['output']>;
+};
+
+export type MercadoPublicoV2LatestRunDto = {
+  __typename?: 'MercadoPublicoV2LatestRunDTO';
+  canResume: Scalars['Boolean']['output'];
+  safeStatus: Scalars['String']['output'];
+  startedAt?: Maybe<Scalars['DateTime']['output']>;
+  timeline: Array<MercadoPublicoV2SyncTimelineEventDto>;
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
 };
 
 export type MercadoPublicoV2NamespaceDto = {
@@ -442,6 +456,10 @@ export type MercadoPublicoV2RelationPageInfoDto = {
   startCursor?: Maybe<Scalars['String']['output']>;
 };
 
+export type MercadoPublicoV2ResumeSyncInput = {
+  idempotencyKey: Scalars['String']['input'];
+};
+
 export type MercadoPublicoV2SanitizedPayloadDto = {
   __typename?: 'MercadoPublicoV2SanitizedPayloadDTO';
   codigo: Scalars['String']['output'];
@@ -450,6 +468,46 @@ export type MercadoPublicoV2SanitizedPayloadDto = {
   redacted: Scalars['Boolean']['output'];
   sanitizedPayloadChecksum: Scalars['String']['output'];
   sourcePayloadChecksum: Scalars['String']['output'];
+};
+
+export type MercadoPublicoV2StartSyncInput = {
+  confirmed: Scalars['Boolean']['input'];
+  idempotencyKey: Scalars['String']['input'];
+};
+
+export type MercadoPublicoV2SyncCommandResultDto = {
+  __typename?: 'MercadoPublicoV2SyncCommandResultDTO';
+  state: Scalars['String']['output'];
+};
+
+export type MercadoPublicoV2SyncControlNamespaceDto = {
+  __typename?: 'MercadoPublicoV2SyncControlNamespaceDTO';
+  cancel: MercadoPublicoV2SyncCommandResultDto;
+  latestRun?: Maybe<MercadoPublicoV2LatestRunDto>;
+  resume: MercadoPublicoV2SyncCommandResultDto;
+  start: MercadoPublicoV2SyncCommandResultDto;
+};
+
+
+export type MercadoPublicoV2SyncControlNamespaceDtoCancelArgs = {
+  input: MercadoPublicoV2CancelSyncInput;
+};
+
+
+export type MercadoPublicoV2SyncControlNamespaceDtoResumeArgs = {
+  input: MercadoPublicoV2ResumeSyncInput;
+};
+
+
+export type MercadoPublicoV2SyncControlNamespaceDtoStartArgs = {
+  input: MercadoPublicoV2StartSyncInput;
+};
+
+export type MercadoPublicoV2SyncTimelineEventDto = {
+  __typename?: 'MercadoPublicoV2SyncTimelineEventDTO';
+  at: Scalars['DateTime']['output'];
+  eventType: Scalars['String']['output'];
+  operatorName?: Maybe<Scalars['String']['output']>;
 };
 
 export enum MessageChannelVisibility {
@@ -472,6 +530,7 @@ export type Mutation = {
   dismissReconnectAccountBanner: Scalars['Boolean']['output'];
   duplicateWorkflow: WorkflowVersionDto;
   duplicateWorkflowVersionStep: WorkflowVersionStepChanges;
+  mercadoPublicoV2SyncControl: MercadoPublicoV2SyncControlNamespaceDto;
   retryWorkflowRun: WorkflowRun;
   runWorkflowVersion: RunWorkflowVersion;
   stopWorkflowRun: WorkflowRun;
@@ -605,6 +664,7 @@ export type Query = {
   getTimelineThreadsFromPersonId: TimelineThreadsWithTotal;
   isMaintenanceModeBannerDismissed: Scalars['Boolean']['output'];
   mercadoPublicoV2: MercadoPublicoV2NamespaceDto;
+  mercadoPublicoV2SyncControl: MercadoPublicoV2SyncControlNamespaceDto;
   search: SearchResultConnection;
   workflowStepConnectedAccountHandle?: Maybe<ConnectedAccountHandleDto>;
 };
@@ -1156,6 +1216,32 @@ export type MercadoPublicoV2HistoryQueryVariables = Exact<{
 
 export type MercadoPublicoV2HistoryQuery = { __typename?: 'Query', mercadoPublicoV2: { __typename?: 'MercadoPublicoV2NamespaceDTO', history: { __typename?: 'MercadoPublicoV2HistoryConnectionDTO', edges: Array<{ __typename?: 'MercadoPublicoV2HistoryEdgeDTO', cursor: string, node: { __typename?: 'MercadoPublicoV2HistoryEventDTO', id: string, codigo: string, changedFields: Array<string>, previousObservationId?: string | null, newObservationId?: string | null, providerChangedAt?: string | null, observedAt?: string | null, normalizerVersion?: string | null, providerSchemaFingerprint?: string | null, source?: string | null, endpoint?: string | null, snapshotKind?: string | null, createdAt: string } }>, pageInfo: { __typename?: 'MercadoPublicoV2PageInfoDTO', hasNextPage: boolean, endCursor?: string | null } } } };
 
+export type MercadoPublicoV2SyncControlLatestRunQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type MercadoPublicoV2SyncControlLatestRunQuery = { __typename?: 'Query', mercadoPublicoV2SyncControl: { __typename?: 'MercadoPublicoV2SyncControlNamespaceDTO', latestRun?: { __typename?: 'MercadoPublicoV2LatestRunDTO', safeStatus: string, canResume: boolean, startedAt?: string | null, updatedAt?: string | null, timeline: Array<{ __typename?: 'MercadoPublicoV2SyncTimelineEventDTO', eventType: string, at: string, operatorName?: string | null }> } | null } };
+
+export type MercadoPublicoV2StartSyncMutationVariables = Exact<{
+  input: MercadoPublicoV2StartSyncInput;
+}>;
+
+
+export type MercadoPublicoV2StartSyncMutation = { __typename?: 'Mutation', mercadoPublicoV2SyncControl: { __typename?: 'MercadoPublicoV2SyncControlNamespaceDTO', start: { __typename?: 'MercadoPublicoV2SyncCommandResultDTO', state: string } } };
+
+export type MercadoPublicoV2CancelSyncMutationVariables = Exact<{
+  input: MercadoPublicoV2CancelSyncInput;
+}>;
+
+
+export type MercadoPublicoV2CancelSyncMutation = { __typename?: 'Mutation', mercadoPublicoV2SyncControl: { __typename?: 'MercadoPublicoV2SyncControlNamespaceDTO', cancel: { __typename?: 'MercadoPublicoV2SyncCommandResultDTO', state: string } } };
+
+export type MercadoPublicoV2ResumeSyncMutationVariables = Exact<{
+  input: MercadoPublicoV2ResumeSyncInput;
+}>;
+
+
+export type MercadoPublicoV2ResumeSyncMutation = { __typename?: 'Mutation', mercadoPublicoV2SyncControl: { __typename?: 'MercadoPublicoV2SyncControlNamespaceDTO', resume: { __typename?: 'MercadoPublicoV2SyncCommandResultDTO', state: string } } };
+
 export const TimelineCalendarEventParticipantFragmentFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"TimelineCalendarEventParticipantFragment"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TimelineCalendarEventParticipant"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"personId"}},{"kind":"Field","name":{"kind":"Name","value":"workspaceMemberId"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"displayName"}},{"kind":"Field","name":{"kind":"Name","value":"avatarUrl"}},{"kind":"Field","name":{"kind":"Name","value":"handle"}}]}}]} as unknown as DocumentNode<TimelineCalendarEventParticipantFragmentFragment, unknown>;
 export const TimelineCalendarEventFragmentFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"TimelineCalendarEventFragment"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TimelineCalendarEvent"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"location"}},{"kind":"Field","name":{"kind":"Name","value":"startsAt"}},{"kind":"Field","name":{"kind":"Name","value":"endsAt"}},{"kind":"Field","name":{"kind":"Name","value":"isFullDay"}},{"kind":"Field","name":{"kind":"Name","value":"visibility"}},{"kind":"Field","name":{"kind":"Name","value":"participants"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"TimelineCalendarEventParticipantFragment"}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"TimelineCalendarEventParticipantFragment"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TimelineCalendarEventParticipant"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"personId"}},{"kind":"Field","name":{"kind":"Name","value":"workspaceMemberId"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"displayName"}},{"kind":"Field","name":{"kind":"Name","value":"avatarUrl"}},{"kind":"Field","name":{"kind":"Name","value":"handle"}}]}}]} as unknown as DocumentNode<TimelineCalendarEventFragmentFragment, unknown>;
 export const TimelineCalendarEventsWithTotalFragmentFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"TimelineCalendarEventsWithTotalFragment"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TimelineCalendarEventsWithTotal"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalNumberOfCalendarEvents"}},{"kind":"Field","name":{"kind":"Name","value":"timelineCalendarEvents"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"TimelineCalendarEventFragment"}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"TimelineCalendarEventParticipantFragment"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TimelineCalendarEventParticipant"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"personId"}},{"kind":"Field","name":{"kind":"Name","value":"workspaceMemberId"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"displayName"}},{"kind":"Field","name":{"kind":"Name","value":"avatarUrl"}},{"kind":"Field","name":{"kind":"Name","value":"handle"}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"TimelineCalendarEventFragment"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TimelineCalendarEvent"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"location"}},{"kind":"Field","name":{"kind":"Name","value":"startsAt"}},{"kind":"Field","name":{"kind":"Name","value":"endsAt"}},{"kind":"Field","name":{"kind":"Name","value":"isFullDay"}},{"kind":"Field","name":{"kind":"Name","value":"visibility"}},{"kind":"Field","name":{"kind":"Name","value":"participants"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"TimelineCalendarEventParticipantFragment"}}]}}]}}]} as unknown as DocumentNode<TimelineCalendarEventsWithTotalFragmentFragment, unknown>;
@@ -1189,3 +1275,7 @@ export const MercadoPublicoV2ActiveOpportunitiesDocument = {"kind":"Document","d
 export const MercadoPublicoV2AnalyticsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"MercadoPublicoV2Analytics"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"filter"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"MercadoPublicoV2OpportunityFilterInput"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"mercadoPublicoV2"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"analytics"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"Variable","name":{"kind":"Name","value":"filter"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"population"}},{"kind":"Field","name":{"kind":"Name","value":"calculatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"asOf"}},{"kind":"Field","name":{"kind":"Name","value":"freshness"}},{"kind":"Field","name":{"kind":"Name","value":"completeness"}},{"kind":"Field","name":{"kind":"Name","value":"availability"}},{"kind":"Field","name":{"kind":"Name","value":"coverage"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"closingAt"}},{"kind":"Field","name":{"kind":"Name","value":"state"}},{"kind":"Field","name":{"kind":"Name","value":"region"}},{"kind":"Field","name":{"kind":"Name","value":"buyer"}},{"kind":"Field","name":{"kind":"Name","value":"amount"}},{"kind":"Field","name":{"kind":"Name","value":"currency"}},{"kind":"Field","name":{"kind":"Name","value":"documentCount"}},{"kind":"Field","name":{"kind":"Name","value":"llamado"}}]}},{"kind":"Field","name":{"kind":"Name","value":"stateBuckets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"regionBuckets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"currencyBuckets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"closingDateBuckets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"documentBuckets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"llamadoBuckets"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}}]}}]}}]}}]} as unknown as DocumentNode<MercadoPublicoV2AnalyticsQuery, MercadoPublicoV2AnalyticsQueryVariables>;
 export const MercadoPublicoV2BuyersDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"MercadoPublicoV2Buyers"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"filter"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"MercadoPublicoV2OpportunityFilterInput"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"after"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"first"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"mercadoPublicoV2"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"buyers"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"Variable","name":{"kind":"Name","value":"filter"}}},{"kind":"Argument","name":{"kind":"Name","value":"after"},"value":{"kind":"Variable","name":{"kind":"Name","value":"after"}}},{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"Variable","name":{"kind":"Name","value":"first"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cursor"}},{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"buyerCode"}},{"kind":"Field","name":{"kind":"Name","value":"buyerName"}},{"kind":"Field","name":{"kind":"Name","value":"opportunityCount"}},{"kind":"Field","name":{"kind":"Name","value":"buyerCoverage"}},{"kind":"Field","name":{"kind":"Name","value":"amountCoverage"}},{"kind":"Field","name":{"kind":"Name","value":"availability"}},{"kind":"Field","name":{"kind":"Name","value":"completeness"}},{"kind":"Field","name":{"kind":"Name","value":"asOf"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"pageInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"hasNextPage"}},{"kind":"Field","name":{"kind":"Name","value":"endCursor"}}]}}]}}]}}]}}]} as unknown as DocumentNode<MercadoPublicoV2BuyersQuery, MercadoPublicoV2BuyersQueryVariables>;
 export const MercadoPublicoV2HistoryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"MercadoPublicoV2History"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"codigo"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"after"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"first"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"mercadoPublicoV2"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"history"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"codigo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"codigo"}}},{"kind":"Argument","name":{"kind":"Name","value":"after"},"value":{"kind":"Variable","name":{"kind":"Name","value":"after"}}},{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"Variable","name":{"kind":"Name","value":"first"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cursor"}},{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"codigo"}},{"kind":"Field","name":{"kind":"Name","value":"changedFields"}},{"kind":"Field","name":{"kind":"Name","value":"previousObservationId"}},{"kind":"Field","name":{"kind":"Name","value":"newObservationId"}},{"kind":"Field","name":{"kind":"Name","value":"providerChangedAt"}},{"kind":"Field","name":{"kind":"Name","value":"observedAt"}},{"kind":"Field","name":{"kind":"Name","value":"normalizerVersion"}},{"kind":"Field","name":{"kind":"Name","value":"providerSchemaFingerprint"}},{"kind":"Field","name":{"kind":"Name","value":"source"}},{"kind":"Field","name":{"kind":"Name","value":"endpoint"}},{"kind":"Field","name":{"kind":"Name","value":"snapshotKind"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"pageInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"hasNextPage"}},{"kind":"Field","name":{"kind":"Name","value":"endCursor"}}]}}]}}]}}]}}]} as unknown as DocumentNode<MercadoPublicoV2HistoryQuery, MercadoPublicoV2HistoryQueryVariables>;
+export const MercadoPublicoV2SyncControlLatestRunDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"MercadoPublicoV2SyncControlLatestRun"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"mercadoPublicoV2SyncControl"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"latestRun"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"safeStatus"}},{"kind":"Field","name":{"kind":"Name","value":"canResume"}},{"kind":"Field","name":{"kind":"Name","value":"startedAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"timeline"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"eventType"}},{"kind":"Field","name":{"kind":"Name","value":"at"}},{"kind":"Field","name":{"kind":"Name","value":"operatorName"}}]}}]}}]}}]}}]} as unknown as DocumentNode<MercadoPublicoV2SyncControlLatestRunQuery, MercadoPublicoV2SyncControlLatestRunQueryVariables>;
+export const MercadoPublicoV2StartSyncDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"MercadoPublicoV2StartSync"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"MercadoPublicoV2StartSyncInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"mercadoPublicoV2SyncControl"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"start"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"state"}}]}}]}}]}}]} as unknown as DocumentNode<MercadoPublicoV2StartSyncMutation, MercadoPublicoV2StartSyncMutationVariables>;
+export const MercadoPublicoV2CancelSyncDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"MercadoPublicoV2CancelSync"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"MercadoPublicoV2CancelSyncInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"mercadoPublicoV2SyncControl"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cancel"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"state"}}]}}]}}]}}]} as unknown as DocumentNode<MercadoPublicoV2CancelSyncMutation, MercadoPublicoV2CancelSyncMutationVariables>;
+export const MercadoPublicoV2ResumeSyncDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"MercadoPublicoV2ResumeSync"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"MercadoPublicoV2ResumeSyncInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"mercadoPublicoV2SyncControl"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"resume"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"state"}}]}}]}}]}}]} as unknown as DocumentNode<MercadoPublicoV2ResumeSyncMutation, MercadoPublicoV2ResumeSyncMutationVariables>;
