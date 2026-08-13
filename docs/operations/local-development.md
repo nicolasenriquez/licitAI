@@ -88,6 +88,23 @@ just dev-up
 infrastructure-only stack and is blocked by the command surface unless a human
 explicitly authorizes `ALLOW_EXTRA_CONTAINERS=1` for a CI reproduction.
 
+## Mercado Publico isolated E2E fixture
+
+The only local exception is the Mercado Publico fixture project
+`twenty-mp-e2e`. Its provisioner owns the project, database, and Redis for
+disposable E2E data. It must not use the canonical `twenty` project or any
+other project name.
+
+Run the provisioner from `packages/twenty-e2e-testing`. If its server is
+already running, inspect it or clean it explicitly before a new provision:
+
+```powershell
+docker compose -p twenty-mp-e2e --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml -f packages/twenty-docker/docker-compose.e2e.yml down --volumes --remove-orphans
+```
+
+Use `docker compose exec` to run a command in an active service. Do not use
+`docker compose run`; it creates a one-off container.
+
 Container-internal database host is service DNS (`db`), not `localhost`. When running the application from the host, connect to `localhost:5432`.
 
 ## Environment Configuration
