@@ -28,8 +28,8 @@ or a newly-created container stack.
 | Backend | NestJS | 11 | API server on port 3000 |
 | Frontend | React | 19 | Vite dev server on port 3001 |
 | Worker | BullMQ | — | Background job processor |
-| Database | PostgreSQL | 16 | Port 5432 |
-| Cache / Queue | Redis | 7 | Port 6379 |
+| Database | PostgreSQL | 16 | Internal in the canonical Compose project |
+| Cache / Queue | Redis | 7 | Internal in the canonical Compose project |
 | Containerization | Docker + Docker Compose | — | Full application runtime |
 
 ## Default Local Runtime
@@ -88,6 +88,16 @@ just dev-up
 infrastructure-only stack and is blocked by the command surface unless a human
 explicitly authorizes `ALLOW_EXTRA_CONTAINERS=1` for a CI reproduction.
 
+## Local Port Ownership
+
+| Owner | Published ports | Rule |
+| --- | --- | --- |
+| Canonical Compose | 3000 | Routine local runtime only. |
+| Playwright preview | 3001 | Generic E2E only. |
+| Server integration | 4000, 4317 | Test-owned listeners. Do not share them with observability tools. |
+| Mercado Publico E2E | Docker-assigned | Query with `docker compose ... port server 3000`. |
+| Alternate CI infrastructure | 5432, 6379, 8123, 9000 | Run only through the explicitly authorized CI mode. |
+
 ## Mercado Publico isolated E2E fixture
 
 The only local exception is the Mercado Publico fixture project
@@ -105,7 +115,9 @@ docker compose -p twenty-mp-e2e --env-file packages/twenty-docker/.env -f packag
 Use `docker compose exec` to run a command in an active service. Do not use
 `docker compose run`; it creates a one-off container.
 
-Container-internal database host is service DNS (`db`), not `localhost`. When running the application from the host, connect to `localhost:5432`.
+Container-internal database host is service DNS (`db`), not `localhost`. Use
+`localhost:5432` only when the explicitly authorized alternate CI
+infrastructure is active.
 
 ## Environment Configuration
 

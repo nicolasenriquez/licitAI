@@ -360,7 +360,7 @@ docker compose exec server yarn database:migrate:prod
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `Port 3000 in use` | The canonical app Compose is already running. | Run `just runtime-check`; do not tear it down for a different local stack. |
+| `Port 3000 in use` | The canonical app Compose is already running. | Run `just runtime-check`; do not tear it down for a different local stack. See [local port ownership](local-development.md#local-port-ownership). |
 | `Redis not reachable on :6379` | The canonical Redis is internal to the app Compose network. | Use runtime/API checks through the server; request alternate CI infrastructure only if the test genuinely requires host Redis. |
 | `node_modules not found` | `yarn install` never run or `git clean` was used. | `yarn install` |
 | `lint:diff-with-main` fails with "unknown revision" | Local `main` branch stale. | `git fetch origin main` |

@@ -8,7 +8,8 @@ services:
         APP_VERSION: ${APP_VERSION:-0.0.0-e2e}
     image: twenty-mp-e2e:${GIT_SHA:-local-source}
     ports: !override
-      - '${MERCADO_PUBLICO_V2_E2E_SERVER_PORT:-3002}:3000'
+      - target: 3000
+        host_ip: 127.0.0.1
     restart: 'no'
     environment:
       DISABLE_DB_MIGRATIONS: 'false'

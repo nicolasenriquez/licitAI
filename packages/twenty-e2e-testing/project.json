@@ -7,46 +7,45 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/twenty-e2e-testing",
-        "commands": [
-          "yarn playwright install",
-          "cp .env.example .env"
-        ]
+        "commands": ["yarn playwright install", "cp .env.example .env"]
       }
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/twenty-e2e-testing",
-        "commands": [
-          "yarn playwright test"
-        ]
+        "commands": ["yarn playwright test"]
+      }
+    },
+    "test:mercado-publico": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/twenty-e2e-testing",
+        "command": "node scripts/provision-baseline.mjs --flag on --fixture v2-history-and-buyers && yarn playwright test --config=playwright.mercado-publico.config.ts tests/mercado-publico --project=chrome",
+        "env": {
+          "REACT_APP_MERCADO_PUBLICO_V2_ENABLED": "true"
+        }
       }
     },
     "test:ui": {
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/twenty-e2e-testing",
-        "commands": [
-          "yarn playwright test --ui"
-        ]
+        "commands": ["yarn playwright test --ui"]
       }
     },
     "test:debug": {
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/twenty-e2e-testing",
-        "commands": [
-          "yarn playwright test --debug"
-        ]
+        "commands": ["yarn playwright test --debug"]
       }
     },
     "test:report": {
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/twenty-e2e-testing",
-        "commands": [
-          "yarn playwright show-report"
-        ]
+        "commands": ["yarn playwright show-report"]
       }
     }
   }

@@ -1,13 +1,11 @@
 // Baseline provisioner: disposable env + identities, no versioned secrets.
 // Usage: node scripts/provision-baseline.mjs [--flag on|off] [--fixture name] [--fresh]
 //
-// This script writes REACT_APP_MERCADO_PUBLICO_V2_ENABLED to the frontend
-//      .env.local AND the e2e .env (the Playwright spec reads it from
-//      process.env via the dotenv config in playwright.config.ts)
+// This script builds the fixture frontend with process-scoped configuration.
+// It never changes frontend or E2E .env files.
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { createServer } from 'node:net';
 import { resolve } from 'node:path';
 import process from 'node:process';
 
@@ -35,13 +33,10 @@ if (
 // Anchor to the script location so the script works from any cwd.
 const scriptDir = import.meta.dirname;
 const repoRoot = resolve(scriptDir, '../../..');
-const frontendEnvLocal = resolve(scriptDir, '../../twenty-front/.env.local');
 const frontendBuildIndex = resolve(
   scriptDir,
   '../../twenty-front/build/index.html',
 );
-const e2eEnv = resolve(scriptDir, '../.env');
-const flagKey = 'REACT_APP_MERCADO_PUBLICO_V2_ENABLED=';
 const flagValue = flagArg === 'off' ? 'false' : 'true';
 const composeDir = resolve(scriptDir, '../../twenty-docker');
 const composeFiles = [
@@ -96,43 +91,6 @@ const execDbSql = (sql) => {
   return result.stdout.trim();
 };
 
-const findAvailablePort = (preferredPort) =>
-  new Promise((resolvePort, reject) => {
-    const server = createServer();
-
-    server.once('error', reject);
-    server.listen(preferredPort, '0.0.0.0', () => {
-      const address = server.address();
-      const port =
-        typeof address === 'object' && address !== null ? address.port : null;
-
-      server.close(() => {
-        if (port === null) {
-          reject(new Error('Could not determine E2E server port'));
-        } else {
-          resolvePort(String(port));
-        }
-      });
-    });
-  });
-
-const readLines = (path) => readFileSync(path, 'utf8').split(/\r?\n/);
-const writeLines = (path, lines) =>
-  writeFileSync(path, lines.join('\n') + '\n', 'utf8');
-
-const upsertLine = (path, key, value) => {
-  const lines = existsSync(path) ? readLines(path) : [];
-  const index = lines.findIndex((line) => line.startsWith(key));
-
-  if (index === -1) {
-    lines.push(`${key}${value}`);
-  } else {
-    lines[index] = `${key}${value}`;
-  }
-
-  writeLines(path, lines);
-};
-
 const run = (args, allowFailure = false) => {
   const result = spawnSync(
     'docker',
@@ -151,6 +109,37 @@ const run = (args, allowFailure = false) => {
   }
 };
 
+const getPublishedServerPort = () => {
+  const result = spawnSync(
+    'docker',
+    [
+      'compose',
+      '-p',
+      composeProject,
+      ...composeFiles,
+      'port',
+      'server',
+      '3000',
+    ],
+    { cwd: composeDir, encoding: 'utf8' },
+  );
+
+  if (result.error || result.status !== 0) {
+    throw (
+      result.error ??
+      new Error(`Could not read E2E server port: ${result.stderr}`)
+    );
+  }
+
+  const port = result.stdout.trim().match(/:(\d+)$/)?.[1];
+
+  if (port === undefined) {
+    throw new Error(`Could not parse E2E server port: ${result.stdout}`);
+  }
+
+  return port;
+};
+
 // ponytail: one retry absorbs the compose --wait "No such container"
 // recreation race; add backoff if it shows up more than once per provision.
 const runServerUp = (extraArgs = []) => {
@@ -160,7 +149,11 @@ const runServerUp = (extraArgs = []) => {
     const result = spawnSync(
       'docker',
       ['compose', '-p', composeProject, ...composeFiles, ...args],
-      { cwd: composeDir, stdio: 'inherit', shell: process.platform === 'win32' },
+      {
+        cwd: composeDir,
+        stdio: 'inherit',
+        shell: process.platform === 'win32',
+      },
     );
 
     if (result.error === undefined && result.status === 0) {
@@ -204,8 +197,6 @@ const isE2EServerRunning = () => {
   return result.stdout.trim() !== '';
 };
 
-let serverPort;
-
 if (fixtureArg === e2eFixture) {
   if (flagValue !== 'true') {
     console.error('The V2 fixture requires --flag on');
@@ -230,41 +221,8 @@ if (fixtureArg === e2eFixture) {
     throw new Error(runningServerError);
   }
 
-  serverPort =
-    process.env.MERCADO_PUBLICO_V2_E2E_SERVER_PORT ??
-    (await findAvailablePort(0));
-  process.env.MERCADO_PUBLICO_V2_E2E_SERVER_PORT = serverPort;
-
   console.log(`Provisioning isolated Compose project ${composeProject}`);
   console.log(`Source revision: ${gitSha}`);
-  upsertLine(frontendEnvLocal, flagKey, flagValue);
-  const frontendBuild = spawnSync('yarn', ['nx', 'build', 'twenty-front'], {
-    cwd: repoRoot,
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
-  });
-
-  if (frontendBuild.error || frontendBuild.status !== 0) {
-    throw frontendBuild.error ?? new Error('Frontend build failed');
-  }
-
-  const frontendIndex = readFileSync(frontendBuildIndex, 'utf8');
-  const configuredFrontendIndex = frontendIndex.replace(
-    /<!-- BEGIN: Twenty Config -->[\s\S]*?<!-- END: Twenty Config -->/,
-    `<!-- BEGIN: Twenty Config -->
-    <script id="twenty-env-config">
-      window._env_ = ${JSON.stringify({
-        REACT_APP_SERVER_BASE_URL: `http://localhost:${serverPort}`,
-      })};
-    </script>
-    <!-- END: Twenty Config -->`,
-  );
-
-  if (configuredFrontendIndex === frontendIndex) {
-    throw new Error('Frontend runtime configuration markers were not found');
-  }
-
-  writeFileSync(frontendBuildIndex, configuredFrontendIndex, 'utf8');
 
   run(
     freshArg
@@ -319,32 +277,50 @@ if (fixtureArg === e2eFixture) {
     console.log(`Captured baseline template ${templateDb}`);
     runServerUp();
   }
-}
 
-upsertLine(e2eEnv, flagKey, flagValue);
+  const serverPort = getPublishedServerPort();
+  const frontendBuild = spawnSync('yarn', ['nx', 'build', 'twenty-front'], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      REACT_APP_MERCADO_PUBLICO_V2_ENABLED: flagValue,
+    },
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
 
-if (serverPort !== undefined) {
-  upsertLine(
-    frontendEnvLocal,
-    'REACT_APP_SERVER_BASE_URL=',
-    `http://localhost:${serverPort}`,
+  if (frontendBuild.error || frontendBuild.status !== 0) {
+    throw frontendBuild.error ?? new Error('Frontend build failed');
+  }
+
+  const frontendIndex = readFileSync(frontendBuildIndex, 'utf8');
+  const configuredFrontendIndex = frontendIndex.replace(
+    /<!-- BEGIN: Twenty Config -->[\s\S]*?<!-- END: Twenty Config -->/,
+    `<!-- BEGIN: Twenty Config -->
+    <script id="twenty-env-config">
+      window._env_ = ${JSON.stringify({
+        REACT_APP_SERVER_BASE_URL: `http://localhost:${serverPort}`,
+      })};
+    </script>
+    <!-- END: Twenty Config -->`,
   );
-  upsertLine(e2eEnv, 'MERCADO_PUBLICO_V2_E2E_CODIGO=', 'FIXTURE-CA-001');
-  upsertLine(e2eEnv, 'MERCADO_PUBLICO_V2_E2E_BUYER_CODE=', '60.000.000-0');
+
+  if (configuredFrontendIndex === frontendIndex) {
+    throw new Error('Frontend runtime configuration markers were not found');
+  }
+
+  writeFileSync(frontendBuildIndex, configuredFrontendIndex, 'utf8');
 }
 
 console.log(`baseline flag ${flagValue === 'true' ? 'ON' : 'OFF'}`);
-console.log(`  frontend: ${frontendEnvLocal}`);
-console.log(`  e2e:      ${e2eEnv}`);
 console.log('');
 console.log('Next:');
-console.log('  nx start twenty-front   # rebuild with the flag');
-console.log('  npx playwright test tests/mercado-publico/baseline.spec.ts');
+console.log('  npx nx run twenty-e2e-testing:test:mercado-publico');
 
 if (fixtureArg === e2eFixture) {
   console.log('');
   console.log('V2 fixture:');
   console.log(
-    '  npx playwright test tests/mercado-publico/history-and-buyers.spec.ts --project=chrome',
+    "  $env:REACT_APP_MERCADO_PUBLICO_V2_ENABLED = 'true'; npx playwright test tests/mercado-publico/history-and-buyers.spec.ts --project=chrome",
   );
 }

@@ -15,7 +15,7 @@ if (envResult.error) {
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
-export default defineConfig({
+export const playwrightConfig = {
   testDir: './tests',
   outputDir: 'run_results/', // directory for screenshots and videos
   snapshotPathTemplate: '{testDir}/__screenshots__/{testFilePath}/{arg}{ext}', // just in case, do not delete it
@@ -25,7 +25,8 @@ export default defineConfig({
   workers: 1, // 1 worker = 1 test at the time, tests can't be parallelized
   timeout: 30 * 1000, // timeout can be changed
   webServer: {
-    command: 'npx nx run twenty-front:preview --watch=false --open=false',
+    command:
+      'npx nx build twenty-front --skip-nx-cache && npx nx run twenty-front:preview --watch=false --open=false',
     cwd: path.resolve(__dirname, '../..'),
     url: 'http://localhost:3001',
     timeout: 300 * 1000,
@@ -116,4 +117,6 @@ export default defineConfig({
     //  use: { ...devices['Desktop Chrome'], channel: 'chrome' },
     //},
   ],
-});
+};
+
+export default defineConfig(playwrightConfig);

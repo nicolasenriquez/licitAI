@@ -120,7 +120,7 @@ must contain:
 - one opportunity without `buyerCode`.
 
 The supported provisioner creates only isolated Compose project `twenty-mp-e2e`
-on an available local port,
+on a Docker-assigned local port,
 builds the current source revision, runs migrations, and
 seeds the fixture through the server-side durable sync path. It requires the
 disposable fixture flags set by `docker-compose.e2e.yml`; it does not use
@@ -136,15 +136,23 @@ ingestion. A source change creates a new template and drops stale ones. Use
 node scripts/provision-baseline.mjs --flag on --fixture v2-history-and-buyers [--fresh]
 ```
 
-Run the real login and test target:
+Run the isolated fixture through its target:
 
 ```powershell
-node scripts/provision-baseline.mjs --flag on --fixture v2-history-and-buyers
+npx nx run twenty-e2e-testing:test:mercado-publico
+```
+
+The target stops the isolated containers after Playwright completes, including
+when a test fails. It preserves the volumes and templates. To inspect a stack,
+run the provisioner and then run Playwright with the flag in the process
+environment. To discard a manually provisioned stack, run:
+
+```powershell
+$env:REACT_APP_MERCADO_PUBLICO_V2_ENABLED = 'true'
 npx playwright test tests/mercado-publico/history-and-buyers.spec.ts --project=chrome
 ```
 
-The provisioner stops before cleanup when the isolated server is active. Inspect
-that stack first. To discard it explicitly, run:
+Then run:
 
 ```powershell
 docker compose -p twenty-mp-e2e --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml -f packages/twenty-docker/docker-compose.e2e.yml down --remove-orphans
@@ -152,6 +160,9 @@ docker compose -p twenty-mp-e2e --env-file packages/twenty-docker/.env -f packag
 
 To discard it including volumes and templates, add `--volumes` or run the
 provisioner with `--fresh`.
+
+See [local port ownership](../../docs/operations/local-development.md#local-port-ownership)
+before running an E2E workflow that binds a local port.
 
 Use `docker compose exec` for commands in an active service. Never use
 `docker compose run` in the local or E2E workflow because it creates a separate
