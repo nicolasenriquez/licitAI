@@ -33,6 +33,7 @@ export const MercadoPublicoV2Nav = () => {
     { to: AppPath.MercadoPublico, label: t`Activas` },
     { to: AppPath.MercadoPublicoV2Buyers, label: t`Compradores` },
     { to: AppPath.MercadoPublicoV2History, label: t`Historial` },
+    { to: AppPath.MercadoPublicoV2SyncControl, label: t`Centro de control` },
   ];
 
   return (

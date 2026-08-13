@@ -28,6 +28,7 @@ export enum AppPath {
   MercadoPublico = '/mercado-publico',
   MercadoPublicoV2Buyers = '/mercado-publico/compradores',
   MercadoPublicoV2History = '/mercado-publico/historial',
+  MercadoPublicoV2SyncControl = '/mercado-publico/centro-de-control',
 
   Settings = `settings`,
   SettingsCatchAll = `/${Settings}/*`,
