@@ -24,7 +24,7 @@
   retained legacy read queries. Prove that no legacy mutation is restored.
   Traceability: Group G4; Slice S1; Issue 30; Acceptance AC 30.2, AC 30.5.
 
-- [ ] 1.2 Add failing isolated authenticated Playwright coverage for enabled
+- [x] 1.2 Add failing isolated authenticated Playwright coverage for enabled
   canonical V2 plus alias smoke, disabled canonical legacy smoke, re-enabled V2
   smoke, and evidence preservation across rollback. The legacy proof is one
   read-only journey with no V1-to-V2 field comparison: open Compra Ágil, open
@@ -205,3 +205,17 @@
   disabled, and mounts `AppPath.MercadoPublicoLegacy` in both builds. Focused
   route-matrix and retained legacy document tests, frontend typecheck, diff lint,
   formatting, and `git diff --check` pass.
+- 2026-08-13: Started task 1.2. Adding fail-first isolated authenticated
+  Playwright route-matrix coverage for the three deployment phases and the
+  retained legacy read-only journey.
+- 2026-08-13: Completed task 1.2. Added
+  `packages/twenty-e2e-testing/tests/mercado-publico/cutover-route-matrix.spec.ts`
+  with authenticated enabled, disabled, and re-enabled phase contracts. Each
+  legacy smoke opens Compra Ágil, opens one process detail, closes it, and
+  verifies list context persists; browser evidence asserts no console errors or
+  provider/unapproved external requests and records a phase screenshot. Playwright
+  discovery, direct `oxlint`, formatting, and `git diff --check` pass. Runtime
+  proof remains red by design: the current provisioner rejects the V2 fixture
+  when disabled and has no three-phase deployment/evidence orchestration; task
+  2.3 owns that fixture/harness work. An enabled attempted run exceeded the
+  preview-build timeout before assertions began.
