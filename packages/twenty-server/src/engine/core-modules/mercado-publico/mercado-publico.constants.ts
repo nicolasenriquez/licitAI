@@ -115,6 +115,9 @@ export const MERCADO_PUBLICO_API_V2_COMPRA_AGIL_LIST_ENDPOINT = 'list';
 export const MERCADO_PUBLICO_API_V2_COMPRA_AGIL_DETAIL_BY_CODIGO_ENDPOINT =
   'detail-by-codigo';
 
+export const MERCADO_PUBLICO_V2_SYNC_COMMAND_JOB_NAME =
+  'mercado-publico-v2-sync-command';
+
 export const MERCADO_PUBLICO_ERROR_SUMMARIES = [
   'param_error',
   'hard_fail',

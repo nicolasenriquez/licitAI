@@ -1,4 +1,7 @@
-import { MercadoPublicoV2SyncControlService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-sync-control.service';
+import {
+  MercadoPublicoV2SyncControlService,
+  buildMercadoPublicoV2SyncCommandFingerprint,
+} from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-sync-control.service';
 import { type MessageQueueService } from 'src/engine/core-modules/message-queue/services/message-queue.service';
 
 const IDEMPOTENCY_KEY = '11111111-1111-4111-8111-111111111111';
@@ -11,9 +14,7 @@ const buildInput = (overrides: Record<string, unknown> = {}) =>
     idempotencyKey: IDEMPOTENCY_KEY,
     confirmed: true,
     ...overrides,
-  }) as Parameters<
-    MercadoPublicoV2SyncControlService['submitCommand']
-  >[0];
+  }) as Parameters<MercadoPublicoV2SyncControlService['submitCommand']>[0];
 
 describe('MercadoPublicoV2SyncControlService', () => {
   it('returns the saved result when an operator replays the same key and request', async () => {
@@ -21,7 +22,10 @@ describe('MercadoPublicoV2SyncControlService', () => {
     const existingCommand = {
       id: 'command-1',
       state: 'succeeded',
-      request_fingerprint: 'fingerprint-a',
+      request_fingerprint: buildMercadoPublicoV2SyncCommandFingerprint({
+        action: 'start',
+        confirmed: true,
+      }),
       result: savedResult,
     };
     const query = jest.fn().mockImplementation((sql: string) => {
@@ -77,8 +81,10 @@ describe('MercadoPublicoV2SyncControlService', () => {
       if (sql.includes('INSERT INTO mp.sync_command')) {
         return Promise.resolve([{ id: 'command-1' }]);
       }
-      if (sql.includes('INSERT INTO mp.sync_run')) {
-        const error = new Error('duplicate key value violates unique constraint') as Error & {
+      if (sql.includes('INSERT INTO mp.sync_run (')) {
+        const error = new Error(
+          'duplicate key value violates unique constraint',
+        ) as Error & {
           code: string;
         };
 
@@ -119,8 +125,10 @@ describe('MercadoPublicoV2SyncControlService', () => {
       if (sql.includes('INSERT INTO mp.sync_command')) {
         return Promise.resolve([{ id: 'command-1' }]);
       }
-      if (sql.includes('INSERT INTO mp.sync_run')) {
-        const error = new Error('duplicate key value violates unique constraint') as Error & {
+      if (sql.includes('INSERT INTO mp.sync_run (')) {
+        const error = new Error(
+          'duplicate key value violates unique constraint',
+        ) as Error & {
           code: string;
         };
 
@@ -163,7 +171,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       if (sql.includes('INSERT INTO mp.sync_command')) {
         return Promise.resolve([{ id: 'command-1' }]);
       }
-      if (sql.includes('INSERT INTO mp.sync_run')) {
+      if (sql.includes('INSERT INTO mp.sync_run (')) {
         return insertRun();
       }
       if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
@@ -194,7 +202,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       if (sql.includes('INSERT INTO mp.sync_command')) {
         return Promise.resolve([{ id: 'command-1' }]);
       }
-      if (sql.includes('INSERT INTO mp.sync_run')) {
+      if (sql.includes('INSERT INTO mp.sync_run (')) {
         return Promise.resolve([{ id: 'run-1' }]);
       }
 
@@ -224,7 +232,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       if (sql.includes('INSERT INTO mp.sync_command')) {
         return Promise.resolve([{ id: 'command-1' }]);
       }
-      if (sql.includes('INSERT INTO mp.sync_run')) {
+      if (sql.includes('INSERT INTO mp.sync_run (')) {
         return Promise.resolve([{ id: 'run-1' }]);
       }
 
@@ -232,7 +240,9 @@ describe('MercadoPublicoV2SyncControlService', () => {
     });
     const service = new MercadoPublicoV2SyncControlService(
       { query, transaction: jest.fn() } as never,
-      { add: jest.fn().mockResolvedValue({}) } as unknown as MessageQueueService,
+      {
+        add: jest.fn().mockResolvedValue({}),
+      } as unknown as MessageQueueService,
     );
 
     await service.submitCommand(buildInput());
