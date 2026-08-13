@@ -33,7 +33,7 @@ export class LeftMenu {
     this.opportunitiesTabByStage = page.getByRole('link', { name: 'By Stage' });
     this.tasksTab = page.getByRole('link', { name: 'Tasks' });
     this.tasksTabAll = page.getByRole('link', { name: 'All tasks' });
-    this.tasksTabByStatus = page.getByRole('link', { name: 'Notes' });
+    this.tasksTabByStatus = page.getByRole('link', { name: 'By Status' });
     this.notesTab = page.getByRole('link', { name: 'Notes' });
     this.rocketsTab = page.getByRole('link', { name: 'Rockets' });
     this.workflowsTab = page.getByRole('link', { name: 'Workflows' });
