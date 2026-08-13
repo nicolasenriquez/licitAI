@@ -210,10 +210,20 @@
 
 ## 3. Verification and closeout
 
-- [ ] 3.1 Run focused migration, GraphQL, control-service, queue-worker,
+- [x] 3.1 Run focused migration, GraphQL, control-service, queue-worker,
   durable-sync, and concurrency tests.
   Traceability: Group G3; Issue 28; AC 28.1 through AC 28.6; Issue 29;
   AC 29.1 through AC 29.5.
+  Notes: Ran one jest invocation over the six focused suites: migration
+  `2-16-instance-command-fast-1791000000000-mp-v2-sync-operations.spec.ts`,
+  GraphQL `mercado-publico-v2-sync-control.resolver.spec.ts`, control service
+  `mercado-publico-v2-sync-control.service.spec.ts` (includes the concurrent
+  global-start case), queue worker
+  `mercado-publico-v2-sync-command.job.spec.ts`, and durable sync
+  `mercado-publico-v2-durable-sync.service.spec.ts` plus
+  `mercado-publico-v2-durable-sync.service.existing-run.spec.ts`. 6 suites /
+  39 tests pass. No cron-job spec exists in the module, so recovery is covered
+  indirectly through the control-service `recoverDispatches` cases.
 
 - [ ] 3.2 Run isolated operator and analyst Playwright checks for confirmation,
   safe state, denial, keyboard operation, and responsive rendering.
@@ -223,3 +233,11 @@
 - [ ] 3.3 Run GraphQL codegen, changed-file lint, typechecks, formatting,
   `git diff --check`, and `openspec validate mercado-publico-v2-sync-operations`.
   Traceability: Group G3; Issue 28; Issue 29; quality gate.
+  Notes: Partial gate evidence: `twenty-front` and `twenty-server`
+  `lint:diff-with-main`, typechecks, changed-file `oxfmt`, `git diff --check`,
+  and `openspec validate` pass; the sync-control resolver test passes 14/14.
+  GraphQL codegen loads the Tim-authenticated schema at `localhost:3000` but
+  rejects 59 stale-schema document errors, including the new sync-control
+  fields. The source server could not become healthy on temporary port 3100
+  within 180 seconds, so this task remains pending until codegen runs against
+  the current source schema.
