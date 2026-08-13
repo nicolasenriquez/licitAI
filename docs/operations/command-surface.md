@@ -99,6 +99,10 @@ the local `mp-local` tag.
 | `npx nx run twenty-front:graphql:generate --configuration=metadata` | Generate metadata GraphQL types | Generates typed hooks from metadata schema (`/metadata`) into `generated-metadata/`. |
 | `npx nx run twenty-front:graphql:generate --configuration=admin` | Generate admin GraphQL types | Generates typed hooks from admin schema (`/admin-panel`) into `generated-admin/`. |
 
+Set `CODEGEN_SERVER_BASE_URL` only when core codegen must use a source server
+that differs from the frontend or E2E runtime URL. The variable has priority
+over `REACT_APP_SERVER_BASE_URL` for this command only.
+
 ### Documentation Commands
 
 | Command | Purpose | Details |

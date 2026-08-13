@@ -1,5 +1,7 @@
 const serverBaseUrl =
-  process.env.REACT_APP_SERVER_BASE_URL ?? 'http://localhost:3000';
+  process.env.CODEGEN_SERVER_BASE_URL ??
+  process.env.REACT_APP_SERVER_BASE_URL ??
+  'http://localhost:3000';
 const schemaUrl = `${serverBaseUrl}/graphql`;
 
 module.exports = {
