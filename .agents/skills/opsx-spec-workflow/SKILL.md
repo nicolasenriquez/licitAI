@@ -13,7 +13,8 @@ Read only what is needed:
 - the active change folder under `openspec/changes/<change-name>/`
 - `.scratch/<feature-slug>/implementation-sdlc-map.md` when the change was
   prepared from an implementation SDLC map
-- `.agents/skills/grill-with-docs/SKILL.md`
+- `.agents/skills/grilling/SKILL.md`
+- `.agents/skills/grill-with-docs/SKILL.md` when a decision must persist
 - [references/opsx-command-contract.md](references/opsx-command-contract.md)
 - [references/opsx-house-style.md](references/opsx-house-style.md)
 - [references/artifact-templates.md](references/artifact-templates.md)
@@ -63,9 +64,11 @@ implementation command.
    gap before authoring the specification.
    When an implementation SDLC map is available, use it to preserve approved
    issue groups, slices, blockers, and retrospective evidence.
-4. When a material gap remains, use `grill-with-docs` to resolve it and return
-   to investigation. Do not create a supposedly ready specification while a
-   gap remains.
+4. Classify each material gap. Resolve factual gaps from code, tests, active
+   artifacts, repository docs, or authoritative external documentation. For a
+   remaining decision gap, run `grilling` through `grill-with-docs`, record
+   the answer, and return to investigation. Do not author or declare an
+   implementation-ready specification while any material gap remains.
 5. Once review confirms no material gaps, create or normalize the complete
    required artifact set, including `spec.md`.
 6. Use the canonical phase order from
@@ -109,17 +112,20 @@ an ambiguity.
 
 ## Clarification Protocol
 
-When repo docs, proposal artifacts, and user intent do not yet form a polished
-shared understanding:
+Use this protocol only after investigation cannot resolve a material gap from
+code, tests, active artifacts, repository docs, or authoritative documentation.
+`grill-with-docs` is the persistent wrapper for the `grilling` interview.
 
 1. Stop before implementation planning continues.
 2. Use `/grill-with-docs <change-name|proposal-path> source=openspec mode=grill`.
-3. Ask one focused question only.
+3. Ask one focused decision question only.
 4. Present exactly three alternatives.
 5. Recommend one option as the safest and most professional default.
 6. Wait for the human answer.
 7. Record the decision in `proposal.md` or `design.md`.
-8. Continue only after the ambiguity is closed.
+8. Recheck affected scope, requirements, scenarios, design, and tasks.
+9. Continue only after this gap is closed; repeat for each remaining material
+   decision gap.
 
 ## Workflow States
 
@@ -174,10 +180,11 @@ invent slices or dependencies.
 
 ```text
 Skill sequence
-[opsx-spec-workflow: investigate] --> [grill-with-docs: only if a gap]
-                                      |
-                                      v
-                         [opsx-spec-workflow: author + validate]
+[opsx-spec-workflow: investigate] --> [grilling via grill-with-docs: only if
+                                       unresolved decision gap]
+                                       |
+                                       v
+                          [opsx-spec-workflow: author + validate]
                                       |
                                       v
                          [Implementation Ready: stop]
@@ -228,9 +235,10 @@ new implementation claims.
 
 Use the selected Matt rules as guidance only:
 
-- grilling / grill-with-docs: clarify intent, ownership, and scope one question
-  at a time; preserve the Opsx protocol of exactly three alternatives and one
-  recommendation. The available skill is .agents/skills/grill-with-docs/SKILL.md.
+- grilling via grill-with-docs: close only decision gaps that investigation
+  cannot resolve. Ask one question at a time; preserve exactly three
+  alternatives and one recommendation. Record resolved decisions in change
+  artifacts before resuming authoring.
 - codebase-design: use Module, Interface, Seam, Adapter, Depth, Locality, and
   Leverage.
 - to-spec: prefer the highest existing Seam, external behavior, and test prior
