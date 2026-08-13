@@ -17,6 +17,39 @@ const buildInput = (overrides: Record<string, unknown> = {}) =>
   }) as Parameters<MercadoPublicoV2SyncControlService['submitCommand']>[0];
 
 describe('MercadoPublicoV2SyncControlService', () => {
+  it('loads the latest-run timeline through the core user workspace table', async () => {
+    const query = jest
+      .fn()
+      .mockResolvedValueOnce([
+        {
+          id: 'run-1',
+          status: 'queued',
+          created_at: null,
+          updated_at: null,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          event_type: 'run_created',
+          created_at: new Date('2026-08-13T00:00:00.000Z'),
+          operator_name: 'Operator',
+        },
+      ]);
+    const service = new MercadoPublicoV2SyncControlService(
+      { query } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+    );
+
+    await expect(service.getLatestRun('workspace-1')).resolves.toMatchObject({
+      syncRunId: 'run-1',
+      timeline: [{ operatorName: 'Operator' }],
+    });
+    expect(query.mock.calls[1][0]).toContain('core."userWorkspace"');
+    expect(query.mock.calls[1][0]).toContain(
+      'concat_ws(\' \', u."firstName", u."lastName")',
+    );
+  });
+
   it('returns the saved result when an operator replays the same key and request', async () => {
     const savedResult = { state: 'queued', syncRunId: 'run-1' };
     const existingCommand = {

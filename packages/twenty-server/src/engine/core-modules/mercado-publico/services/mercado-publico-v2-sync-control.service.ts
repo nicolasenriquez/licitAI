@@ -83,9 +83,7 @@ export const buildMercadoPublicoV2SyncCommandFingerprint = (
 
 @Injectable()
 export class MercadoPublicoV2SyncControlService {
-  private readonly logger = new Logger(
-    MercadoPublicoV2SyncControlService.name,
-  );
+  private readonly logger = new Logger(MercadoPublicoV2SyncControlService.name);
 
   constructor(
     @InjectDataSource()
@@ -138,7 +136,8 @@ export class MercadoPublicoV2SyncControlService {
 
       return (
         existingCommand.result ?? {
-          state: existingCommand.state as MercadoPublicoV2SubmitCommandResult['state'],
+          state:
+            existingCommand.state as MercadoPublicoV2SubmitCommandResult['state'],
           syncRunId: existingCommand.sync_run_id ?? undefined,
         }
       );
@@ -383,7 +382,10 @@ export class MercadoPublicoV2SyncControlService {
       `,
     );
 
-    return [...recoverableRows.map((row) => row.id), ...pendingRows.map((row) => row.id)];
+    return [
+      ...recoverableRows.map((row) => row.id),
+      ...pendingRows.map((row) => row.id),
+    ];
   }
 
   async getLatestRun(
@@ -421,10 +423,10 @@ export class MercadoPublicoV2SyncControlService {
     >(
       `
         SELECT a.event_type, a.created_at,
-               u."displayName" AS operator_name
+               concat_ws(' ', u."firstName", u."lastName") AS operator_name
         FROM mp.sync_run_audit a
         LEFT JOIN mp.sync_command c ON c.id = a.sync_command_id
-        LEFT JOIN core.user_workspace uw ON uw.id = a.actor_user_workspace_id
+        LEFT JOIN core."userWorkspace" uw ON uw.id = a.actor_user_workspace_id
         LEFT JOIN core."user" u ON u.id = uw."userId"
         WHERE a.workspace_id = $1
           AND COALESCE(a.sync_run_id, c.sync_run_id) = $2
@@ -559,7 +561,8 @@ export class MercadoPublicoV2SyncControlService {
         throw error;
       }
 
-      const isSameWorkspace = activeRun.control_workspace_id === input.workspaceId;
+      const isSameWorkspace =
+        activeRun.control_workspace_id === input.workspaceId;
 
       await this.coreDataSource.query(
         `

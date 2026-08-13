@@ -4,6 +4,7 @@ import {
   Field,
   GraphQLISODateTime,
   InputType,
+  Mutation,
   ObjectType,
   Query,
   ResolveField,
@@ -15,6 +16,7 @@ import { AuthUserWorkspaceId } from 'src/engine/decorators/auth/auth-user-worksp
 import { AuthWorkspace } from 'src/engine/decorators/auth/auth-workspace.decorator';
 import { MercadoPublicoV2SyncOperatorGuard } from 'src/engine/core-modules/mercado-publico/guards/mercado-publico-v2-sync-operator.guard';
 import { MercadoPublicoV2SyncControlService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-sync-control.service';
+import { CustomPermissionGuard } from 'src/engine/guards/custom-permission.guard';
 import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 
 @ObjectType()
@@ -86,16 +88,31 @@ export class MercadoPublicoV2ResumeSyncInput {
   syncRunId!: string;
 }
 
-@UseGuards(WorkspaceAuthGuard, MercadoPublicoV2SyncOperatorGuard)
+@UseGuards(
+  WorkspaceAuthGuard,
+  CustomPermissionGuard,
+  MercadoPublicoV2SyncOperatorGuard,
+)
 @CoreResolver()
 export class MercadoPublicoV2SyncControlResolver {
   @Query(() => MercadoPublicoV2SyncControlNamespaceDTO)
   mercadoPublicoV2SyncControl(): MercadoPublicoV2SyncControlNamespaceDTO {
     return {};
   }
+
+  @Mutation(() => MercadoPublicoV2SyncControlNamespaceDTO, {
+    name: 'mercadoPublicoV2SyncControl',
+  })
+  mercadoPublicoV2SyncControlMutation(): MercadoPublicoV2SyncControlNamespaceDTO {
+    return {};
+  }
 }
 
-@UseGuards(WorkspaceAuthGuard, MercadoPublicoV2SyncOperatorGuard)
+@UseGuards(
+  WorkspaceAuthGuard,
+  CustomPermissionGuard,
+  MercadoPublicoV2SyncOperatorGuard,
+)
 @CoreResolver(() => MercadoPublicoV2SyncControlNamespaceDTO)
 export class MercadoPublicoV2SyncControlNamespaceResolver {
   constructor(
@@ -119,7 +136,9 @@ export class MercadoPublicoV2SyncControlNamespaceResolver {
     @AuthUserWorkspaceId() userWorkspaceId?: string,
   ): Promise<MercadoPublicoV2SyncCommandResultDTO> {
     if (input.confirmed !== true) {
-      throw new Error('Confirmation required to start a Mercado Publico V2 sync');
+      throw new Error(
+        'Confirmation required to start a Mercado Publico V2 sync',
+      );
     }
 
     const result = await this.mercadoPublicoV2SyncControlService.submitCommand({
@@ -141,7 +160,9 @@ export class MercadoPublicoV2SyncControlNamespaceResolver {
     @AuthUserWorkspaceId() userWorkspaceId?: string,
   ): Promise<MercadoPublicoV2SyncCommandResultDTO> {
     if (input.confirmed !== true) {
-      throw new Error('Confirmation required to cancel a Mercado Publico V2 sync');
+      throw new Error(
+        'Confirmation required to cancel a Mercado Publico V2 sync',
+      );
     }
 
     const result = await this.mercadoPublicoV2SyncControlService.submitCommand({

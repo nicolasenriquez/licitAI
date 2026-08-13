@@ -9,6 +9,7 @@ import {
 } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-sync-control.resolver';
 import { MercadoPublicoV2SyncOperatorGuard } from 'src/engine/core-modules/mercado-publico/guards/mercado-publico-v2-sync-operator.guard';
 import { type MercadoPublicoV2SyncControlService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-sync-control.service';
+import { CustomPermissionGuard } from 'src/engine/guards/custom-permission.guard';
 import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 import { PermissionsException } from 'src/engine/metadata-modules/permissions/permissions.exception';
 
@@ -28,6 +29,7 @@ describe('MercadoPublicoV2SyncControlResolver', () => {
   ])('guards %p with auth and explicit operator access', (resolver) => {
     expect(Reflect.getMetadata(GUARDS_METADATA, resolver)).toEqual([
       WorkspaceAuthGuard,
+      CustomPermissionGuard,
       MercadoPublicoV2SyncOperatorGuard,
     ]);
   });

@@ -6,6 +6,8 @@ import { DataSource } from 'typeorm';
 
 import { mercadoPublicoV2E2EFixture } from 'src/engine/core-modules/mercado-publico/drivers/api/fixtures/mercado-publico-v2-e2e.fixture';
 import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
+import { SEED_APPLE_WORKSPACE_ID } from 'src/engine/workspace-manager/dev-seeder/core/constants/seeder-workspaces.constant';
+import { USER_WORKSPACE_DATA_SEED_IDS } from 'src/engine/workspace-manager/dev-seeder/core/utils/seed-user-workspaces.util';
 
 const FIXTURE_ENABLED_ENV = 'MERCADO_PUBLICO_V2_E2E_FIXTURE_ENABLED';
 const FIXTURE_SCOPE_ENV = 'MERCADO_PUBLICO_V2_E2E_FIXTURE_SCOPE';
@@ -95,6 +97,19 @@ export class MercadoPublicoV2E2EFixtureCommand extends CommandRunner {
     ) {
       throw new Error('Mercado Publico V2 E2E fixture verification failed');
     }
+
+    await this.coreDataSource.query(
+      `
+        INSERT INTO mp.sync_operator (
+          workspace_id,
+          user_workspace_id,
+          assigned_by_user_workspace_id
+        )
+        VALUES ($1, $2, $2)
+        ON CONFLICT (workspace_id, user_workspace_id) DO NOTHING
+      `,
+      [SEED_APPLE_WORKSPACE_ID, USER_WORKSPACE_DATA_SEED_IDS.TIM],
+    );
 
     this.logger.log(
       'Mercado Publico V2 E2E fixture ready: FIXTURE-CA-001, 60.000.000-0',
