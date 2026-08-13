@@ -14,7 +14,7 @@ E2E environment file.
 
 **Goals:**
 
-- Reject use of canonical project `twenty` before Docker Compose runs.
+- Accept only fixed project `twenty-mp-e2e` before Docker Compose runs.
 - Reject a second local E2E provision while the E2E server is active.
 - Preserve existing cleanup-before-provisioning and failure diagnostics.
 - State the exception and cleanup contract in operations documentation.
@@ -46,11 +46,12 @@ files, or creating containers.
 
 ## Decisions
 
-1. Keep `twenty-mp-e2e` as fixed default project and reject `twenty`.
+1. Keep `twenty-mp-e2e` as the only accepted project.
 
    Rationale: current CI has no same-daemon provisioner concurrency, while a
-   fixed project keeps local cleanup and diagnosis discoverable. Rejecting the
-   canonical name prevents a destructive override from targeting the runtime.
+   fixed project keeps local cleanup and diagnosis discoverable. Rejecting all
+   overrides prevents a destructive provision from creating a third stack or
+   targeting the canonical runtime.
 
    Alternatives considered:
    - Dynamic project names.
@@ -96,6 +97,12 @@ files, or creating containers.
 
    Rationale: the repository's Docker-first rule remains true for development.
    This fixture is a test-only, isolated lifecycle with explicit ownership.
+
+6. Make Playwright setup dependencies role-specific.
+
+   Rationale: the standard test account is sufficient for generic tests. The
+   operator and analyst setups exist only to prove distinct authorization
+   behavior, so they must not run for the generic browser project.
 
 ## Risks / Trade-offs
 

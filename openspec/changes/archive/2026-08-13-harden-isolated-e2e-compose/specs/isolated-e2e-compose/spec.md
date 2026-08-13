@@ -1,15 +1,16 @@
 ## ADDED Requirements
 
-### Requirement: Isolated E2E provisioning protects the canonical project
-The Mercado Publico E2E provisioner SHALL reject a Compose project named
-`twenty` before it invokes Docker Compose. It SHALL report that `twenty` is the
-canonical local runtime and SHALL not start, stop, remove, build, or recreate
-resources in that project.
+### Requirement: Isolated E2E provisioning owns one project
+The Mercado Publico E2E provisioner SHALL accept only Compose project
+`twenty-mp-e2e` before it invokes Docker Compose. It SHALL reject `twenty` and
+every other override, and SHALL not start, stop, remove, build, or recreate
+resources for a rejected project.
 
 #### Scenario: Caller selects canonical project
-- **WHEN** `MERCADO_PUBLICO_V2_E2E_COMPOSE_PROJECT` equals `twenty`
+- **WHEN** `MERCADO_PUBLICO_V2_E2E_COMPOSE_PROJECT` does not equal
+  `twenty-mp-e2e`
 - **THEN** the provisioner fails before its first Docker Compose operation and
-  reports the canonical-project restriction
+  reports the fixed-project restriction
 
 ### Requirement: Isolated E2E provisioning is locally exclusive
 The Mercado Publico E2E provisioner SHALL use one fixed local project by
@@ -50,3 +51,17 @@ ownership restriction, and explicit cleanup command.
 - **WHEN** an engineer reads the E2E or operations guidance
 - **THEN** the engineer can distinguish the isolated E2E project from the
   canonical runtime and find the supported cleanup action
+
+### Requirement: Playwright runs only required authentication setup
+The generic Playwright project SHALL depend only on the standard local login.
+Role-specific projects SHALL depend only on their matching role login.
+
+#### Scenario: Generic authenticated test runs
+- **WHEN** an engineer runs the generic browser project
+- **THEN** Playwright runs the standard login setup and does not run operator
+  or analyst setup
+
+#### Scenario: Role-specific test runs
+- **WHEN** an engineer runs a role-specific test under the operator or analyst
+  project
+- **THEN** only assertions for that role execute

@@ -26,14 +26,20 @@ duplicating the canonical Compose stack.
 
 ## What Changes
 
-- Reject `MERCADO_PUBLICO_V2_E2E_COMPOSE_PROJECT=twenty` before any Compose
-  operation.
+- Accept only `twenty-mp-e2e` as the local E2E Compose project before any
+  Compose operation. Reject `twenty` and every other override.
 - Reject provisioning when the fixed E2E project's `server` service is already
   running; require an explicit human cleanup before retrying.
 - Preserve existing cleanup-before-provisioning and preserve the E2E project
   after a provisioning failure for local diagnosis.
 - Document the E2E provisioner as a destructive, isolated exception to the
   canonical runtime, including its supported cleanup command.
+- Make the generic Playwright project depend only on the standard local login;
+  keep role-specific setup projects limited to role-specific tests.
+- Run operator and analyst assertions only under their matching Playwright
+  project.
+- Remove ad hoc Playwright probes that bypass the configured login and target
+  selection.
 - Keep the base Compose file, Dockerfile, images, service topology, and CI
   configuration unchanged.
 
@@ -97,7 +103,8 @@ duplicating the canonical Compose stack.
 - Adds one local preflight module and one `node:test` spec under
   `packages/twenty-e2e-testing/scripts/`.
 - Affects `packages/twenty-e2e-testing/package.json` only to expose the focused
-  Node test command.
+  Node test command, and `playwright.config.ts` to narrow setup dependencies.
+- Removes obsolete `packages/twenty-e2e-testing/probe-*` diagnostics.
 - Affects `packages/twenty-e2e-testing/README.md`,
   `docs/operations/command-surface.md`, and
   `docs/operations/local-development.md`.
