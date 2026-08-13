@@ -1,5 +1,5 @@
 // Baseline provisioner: disposable env + identities, no versioned secrets.
-// Usage: node scripts/provision-baseline.mjs [--flag on|off] [--fixture name]
+// Usage: node scripts/provision-baseline.mjs [--flag on|off] [--fixture name] [--fresh]
 //
 // This script writes REACT_APP_MERCADO_PUBLICO_V2_ENABLED to the frontend
 //      .env.local AND the e2e .env (the Playwright spec reads it from
@@ -11,9 +11,15 @@ import { createServer } from 'node:net';
 import { resolve } from 'node:path';
 import process from 'node:process';
 
+import {
+  getE2EComposePreflightError,
+  isolatedE2EComposeProject,
+} from './e2e-compose-preflight.mjs';
+
 const flagArg = process.argv[2] === '--flag' ? process.argv[3] : undefined;
 const fixtureArg =
   process.argv[4] === '--fixture' ? process.argv[5] : undefined;
+const freshArg = process.argv.includes('--fresh');
 const e2eFixture = 'v2-history-and-buyers';
 
 if (
@@ -21,7 +27,7 @@ if (
   (fixtureArg !== undefined && fixtureArg !== e2eFixture)
 ) {
   console.error(
-    'Usage: node scripts/provision-baseline.mjs [--flag on|off] [--fixture v2-history-and-buyers]',
+    'Usage: node scripts/provision-baseline.mjs [--flag on|off] [--fixture v2-history-and-buyers] [--fresh]',
   );
   process.exit(1);
 }
@@ -45,7 +51,50 @@ const composeFiles = [
   'docker-compose.e2e.yml',
 ];
 const composeProject =
-  process.env.MERCADO_PUBLICO_V2_E2E_COMPOSE_PROJECT ?? 'twenty-mp-e2e';
+  process.env.MERCADO_PUBLICO_V2_E2E_COMPOSE_PROJECT ??
+  isolatedE2EComposeProject;
+
+const composeProjectError = getE2EComposePreflightError({
+  composeProject,
+  isServerRunning: false,
+});
+
+if (composeProjectError !== undefined) {
+  throw new Error(composeProjectError);
+}
+
+// ponytail: compose defaults (PG_DATABASE_USER/PG_DATABASE_NAME). If the
+// twenty-docker .env ever defines them, read them here or fail loudly.
+const PG_USER = 'postgres';
+const PG_DATABASE = 'default';
+
+const execDbSql = (sql) => {
+  const result = spawnSync(
+    'docker',
+    [
+      'compose',
+      '-p',
+      composeProject,
+      ...composeFiles,
+      'exec',
+      '--no-TTY',
+      'db',
+      'psql',
+      '-U',
+      PG_USER,
+      '-d',
+      'postgres',
+      '-tA',
+    ],
+    { cwd: composeDir, input: sql, encoding: 'utf8' },
+  );
+
+  if (result.error || result.status !== 0) {
+    throw result.error ?? new Error(`psql failed: ${result.stderr}`);
+  }
+
+  return result.stdout.trim();
+};
 
 const findAvailablePort = (preferredPort) =>
   new Promise((resolvePort, reject) => {
@@ -67,10 +116,6 @@ const findAvailablePort = (preferredPort) =>
     });
   });
 
-const configuredServerPort = process.env.MERCADO_PUBLICO_V2_E2E_SERVER_PORT;
-const serverPort = configuredServerPort ?? (await findAvailablePort(0));
-process.env.MERCADO_PUBLICO_V2_E2E_SERVER_PORT = serverPort;
-
 const readLines = (path) => readFileSync(path, 'utf8').split(/\r?\n/);
 const writeLines = (path, lines) =>
   writeFileSync(path, lines.join('\n') + '\n', 'utf8');
@@ -87,16 +132,6 @@ const upsertLine = (path, key, value) => {
 
   writeLines(path, lines);
 };
-
-upsertLine(frontendEnvLocal, flagKey, flagValue);
-upsertLine(e2eEnv, flagKey, flagValue);
-upsertLine(
-  frontendEnvLocal,
-  'REACT_APP_SERVER_BASE_URL=',
-  `http://localhost:${serverPort}`,
-);
-upsertLine(e2eEnv, 'MERCADO_PUBLICO_V2_E2E_CODIGO=', 'FIXTURE-CA-001');
-upsertLine(e2eEnv, 'MERCADO_PUBLICO_V2_E2E_BUYER_CODE=', '60.000.000-0');
 
 const run = (args, allowFailure = false) => {
   const result = spawnSync(
@@ -116,6 +151,61 @@ const run = (args, allowFailure = false) => {
   }
 };
 
+// ponytail: one retry absorbs the compose --wait "No such container"
+// recreation race; add backoff if it shows up more than once per provision.
+const runServerUp = (extraArgs = []) => {
+  const args = ['up', '--detach', ...extraArgs, '--wait', 'server'];
+
+  for (let attempt = 0; ; attempt += 1) {
+    const result = spawnSync(
+      'docker',
+      ['compose', '-p', composeProject, ...composeFiles, ...args],
+      { cwd: composeDir, stdio: 'inherit', shell: process.platform === 'win32' },
+    );
+
+    if (result.error === undefined && result.status === 0) {
+      return;
+    }
+
+    if (attempt >= 1) {
+      throw (
+        result.error ?? new Error(`docker compose failed with ${result.status}`)
+      );
+    }
+  }
+};
+
+const isE2EServerRunning = () => {
+  const result = spawnSync(
+    'docker',
+    [
+      'ps',
+      '--quiet',
+      '--filter',
+      `label=com.docker.compose.project=${composeProject}`,
+      '--filter',
+      'label=com.docker.compose.service=server',
+      '--filter',
+      'status=running',
+    ],
+    {
+      cwd: composeDir,
+      encoding: 'utf8',
+    },
+  );
+
+  if (result.error || result.status !== 0) {
+    throw (
+      result.error ??
+      new Error(`Could not inspect E2E server state: ${result.stderr}`)
+    );
+  }
+
+  return result.stdout.trim() !== '';
+};
+
+let serverPort;
+
 if (fixtureArg === e2eFixture) {
   if (flagValue !== 'true') {
     console.error('The V2 fixture requires --flag on');
@@ -131,8 +221,23 @@ if (fixtureArg === e2eFixture) {
   process.env.GIT_SHA = gitSha;
   process.env.APP_VERSION = process.env.APP_VERSION ?? '0.0.0-e2e';
 
+  const runningServerError = getE2EComposePreflightError({
+    composeProject,
+    isServerRunning: isE2EServerRunning(),
+  });
+
+  if (runningServerError !== undefined) {
+    throw new Error(runningServerError);
+  }
+
+  serverPort =
+    process.env.MERCADO_PUBLICO_V2_E2E_SERVER_PORT ??
+    (await findAvailablePort(0));
+  process.env.MERCADO_PUBLICO_V2_E2E_SERVER_PORT = serverPort;
+
   console.log(`Provisioning isolated Compose project ${composeProject}`);
   console.log(`Source revision: ${gitSha}`);
+  upsertLine(frontendEnvLocal, flagKey, flagValue);
   const frontendBuild = spawnSync('yarn', ['nx', 'build', 'twenty-front'], {
     cwd: repoRoot,
     stdio: 'inherit',
@@ -161,37 +266,76 @@ if (fixtureArg === e2eFixture) {
 
   writeFileSync(frontendBuildIndex, configuredFrontendIndex, 'utf8');
 
-  run(['down', '--volumes', '--remove-orphans'], true);
-  run(['up', '--detach', '--build', '--wait', 'server']);
-  run([
-    'exec',
-    '--no-TTY',
-    'server',
-    'yarn',
-    'command:prod',
-    'workspace:seed:dev',
-    '--light',
-  ]);
-  run([
-    'exec',
-    '--no-TTY',
-    'server',
-    'yarn',
-    'command:prod',
-    'mercado-publico:v2:e2e-fixture',
-  ]);
+  run(
+    freshArg
+      ? ['down', '--volumes', '--remove-orphans']
+      : ['down', '--remove-orphans'],
+    true,
+  );
+  run(['up', '--detach', '--wait', 'db']);
+
+  const templateDb = `mp_e2e_template_v2hb_${gitSha}`;
+  const hasTemplate =
+    execDbSql(`SELECT 1 FROM pg_database WHERE datname = '${templateDb}'`) ===
+    '1';
+
+  execDbSql(`DROP DATABASE IF EXISTS ${PG_DATABASE};`);
+
+  if (hasTemplate) {
+    console.log(`Restoring baseline from template ${templateDb}`);
+    execDbSql(`CREATE DATABASE ${PG_DATABASE} TEMPLATE ${templateDb};`);
+    runServerUp(['--build']);
+  } else {
+    const staleTemplates = execDbSql(
+      "SELECT datname FROM pg_database WHERE datname LIKE 'mp_e2e_template_%'",
+    );
+    execDbSql(
+      staleTemplates
+        .split('\n')
+        .filter(Boolean)
+        .map((name) => `DROP DATABASE IF EXISTS ${name};`)
+        .join('\n'),
+    );
+    runServerUp(['--build']);
+    run([
+      'exec',
+      '--no-TTY',
+      'server',
+      'yarn',
+      'command:prod',
+      'workspace:seed:dev',
+      '--light',
+    ]);
+    run([
+      'exec',
+      '--no-TTY',
+      'server',
+      'yarn',
+      'command:prod',
+      'mercado-publico:v2:e2e-fixture',
+    ]);
+    run(['stop', 'server']);
+    execDbSql(`CREATE DATABASE ${templateDb} TEMPLATE ${PG_DATABASE};`);
+    console.log(`Captured baseline template ${templateDb}`);
+    runServerUp();
+  }
+}
+
+upsertLine(e2eEnv, flagKey, flagValue);
+
+if (serverPort !== undefined) {
+  upsertLine(
+    frontendEnvLocal,
+    'REACT_APP_SERVER_BASE_URL=',
+    `http://localhost:${serverPort}`,
+  );
+  upsertLine(e2eEnv, 'MERCADO_PUBLICO_V2_E2E_CODIGO=', 'FIXTURE-CA-001');
+  upsertLine(e2eEnv, 'MERCADO_PUBLICO_V2_E2E_BUYER_CODE=', '60.000.000-0');
 }
 
 console.log(`baseline flag ${flagValue === 'true' ? 'ON' : 'OFF'}`);
 console.log(`  frontend: ${frontendEnvLocal}`);
 console.log(`  e2e:      ${e2eEnv}`);
-console.log('');
-console.log('Identities (seeded by workspace:seed:dev --light):');
-console.log('  analista -> jane.austen@apple.dev');
-console.log('  operador -> phil.schiler@apple.dev');
-console.log(
-  '  password -> tim@apple.dev (dev-seed bcrypt hash, local disposable env only)',
-);
 console.log('');
 console.log('Next:');
 console.log('  nx start twenty-front   # rebuild with the flag');
