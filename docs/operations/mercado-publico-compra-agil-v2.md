@@ -87,6 +87,17 @@ mercado-publico:sync-operator -w <workspace_id> -u <user_workspace_id> --remove
 - **Policy**: no workspace administrator receives implicit sync control.
 - **Policy**: remove the assignment when an operator leaves the workspace.
 
+## Sync Control
+
+An assigned operator uses Centro de control to start, resume, or cancel the
+global incremental V2 sync. Start and cancel require confirmation. Resume does
+not require confirmation and continues only an eligible run from its saved
+checkpoints.
+
+The latest-run view shows status, stored discovered, hydrated, and failed
+counts, plus a safe summary. It does not show internal IDs, idempotency keys,
+payloads, or technical error causes.
+
 ## Error Matrix
 
 | Signal | Classification | Operator action |

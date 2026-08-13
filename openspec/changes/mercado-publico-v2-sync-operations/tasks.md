@@ -199,14 +199,16 @@
   start/cancel require `confirmed: true`; fresh UUID idempotency keys; no
   internal IDs or payloads rendered), and a sanitized timeline of audit events
   with visible operator names. Extended the backend namespace:
-  `MercadoPublicoV2LatestRunDTO` now exposes `syncRunId`, `startedAt`,
-  `updatedAt`, `safeStatus`, and `timeline` events; `getLatestRun` builds the
-  timeline from `mp.sync_run_audit` joined through `mp.sync_command` and
-  `core.user_workspace`/`core.user` for operator names. Server guard remains
-  authoritative; non-operators see a denial card. Front/server typechecks
-  pass; server sync-control specs 21/21; lint 0/0 both packages. GraphQL
-  codegen was attempted but the local schema endpoint is not reachable; the
-  page uses locally declared result types and codegen runs in 3.3.
+  `MercadoPublicoV2LatestRunDTO` exposes `safeStatus`, `safeSummary`, stored
+  discovered, hydrated, and failed counts, `startedAt`, `updatedAt`, and
+  timeline events. It does not expose a run ID or a technical error summary.
+  `getLatestRun` builds the timeline from `mp.sync_run_audit` joined through
+  `mp.sync_command` and `core.user_workspace`/`core.user` for operator names.
+  Server guard remains authoritative; non-operators see a denial card.
+  Front/server typechecks pass; server sync-control specs 21/21; lint 0/0
+  both packages. GraphQL codegen was attempted but the local schema endpoint
+  is not reachable; the page uses locally declared result types and codegen
+  runs in 3.3.
 
 ## 3. Verification and closeout
 
@@ -247,3 +249,11 @@
   temporary port 3002, and regenerates the V2 sync-control types. The official
   Compose runtime remains healthy on port 3000; port 63927 belongs only to the
   isolated E2E fixture.
+  Follow-up 2026-08-13: the resolver proof now matches the implemented resume
+  input (idempotency key only; no confirmation or run ID). The latest-run
+  projection now returns stored counts and a safe summary without selecting
+  `error_summary`. The resolver suite passes 14/14 and the resolver plus
+  control-service suites pass 22/22. Both package typechecks, changed-file
+  lint, formatting, `git diff --check`, and OpenSpec validation pass. A new
+  codegen attempt stopped at `http://localhost:63927/graphql` because that E2E
+  endpoint disables introspection; no generated files changed.
