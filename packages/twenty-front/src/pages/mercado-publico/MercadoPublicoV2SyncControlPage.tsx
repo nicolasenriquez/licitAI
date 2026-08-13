@@ -8,6 +8,7 @@ import { Loader } from 'twenty-ui/feedback';
 import { Button } from 'twenty-ui/input';
 
 import { MercadoPublicoV2Nav } from '@/mercado-publico/components/MercadoPublicoV2Nav';
+import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
 
 const MERCADO_PUBLICO_V2_SYNC_CONTROL_LATEST_RUN_QUERY = gql`
   query MercadoPublicoV2SyncControlLatestRun {
@@ -38,7 +39,9 @@ const MERCADO_PUBLICO_V2_START_SYNC_MUTATION = gql`
 `;
 
 const MERCADO_PUBLICO_V2_CANCEL_SYNC_MUTATION = gql`
-  mutation MercadoPublicoV2CancelSync($input: MercadoPublicoV2CancelSyncInput!) {
+  mutation MercadoPublicoV2CancelSync(
+    $input: MercadoPublicoV2CancelSyncInput!
+  ) {
     mercadoPublicoV2SyncControl {
       cancel(input: $input) {
         state
@@ -48,7 +51,9 @@ const MERCADO_PUBLICO_V2_CANCEL_SYNC_MUTATION = gql`
 `;
 
 const MERCADO_PUBLICO_V2_RESUME_SYNC_MUTATION = gql`
-  mutation MercadoPublicoV2ResumeSync($input: MercadoPublicoV2ResumeSyncInput!) {
+  mutation MercadoPublicoV2ResumeSync(
+    $input: MercadoPublicoV2ResumeSyncInput!
+  ) {
     mercadoPublicoV2SyncControl {
       resume(input: $input) {
         state
@@ -83,10 +88,10 @@ const StyledSection = styled.section`
 const StyledCard = styled.div`
   border: 1px solid ${themeCssVariables.border.color.medium};
   border-radius: ${themeCssVariables.border.radius.md};
-  padding: ${themeCssVariables.spacing[4]};
   display: flex;
   flex-direction: column;
   gap: ${themeCssVariables.spacing[3]};
+  padding: ${themeCssVariables.spacing[4]};
 `;
 
 const StyledStatusLine = styled.p`
@@ -94,37 +99,37 @@ const StyledStatusLine = styled.p`
 `;
 
 const StyledTimelineList = styled.ol`
-  margin: 0;
-  padding-left: ${themeCssVariables.spacing[5]};
   display: flex;
   flex-direction: column;
   gap: ${themeCssVariables.spacing[2]};
+  margin: 0;
+  padding-left: ${themeCssVariables.spacing[5]};
 `;
 
 const StyledDialogOverlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
   align-items: center;
+  background: ${themeCssVariables.background.overlayTertiary};
+  display: flex;
+  inset: 0;
   justify-content: center;
+  position: fixed;
   z-index: 100;
 `;
 
 const StyledDialog = styled.div`
   background: ${themeCssVariables.background.primary};
   border-radius: ${themeCssVariables.border.radius.md};
-  padding: ${themeCssVariables.spacing[5]};
   display: flex;
   flex-direction: column;
   gap: ${themeCssVariables.spacing[4]};
   min-width: 320px;
+  padding: ${themeCssVariables.spacing[5]};
 `;
 
 const StyledDialogActions = styled.div`
   display: flex;
-  justify-content: flex-end;
   gap: ${themeCssVariables.spacing[3]};
+  justify-content: flex-end;
 `;
 
 const getEventLabel = (eventType: string): string => {
@@ -166,7 +171,10 @@ type MercadoPublicoV2SyncControlLatestRunQuery = {
 
 type MercadoPublicoV2StartSyncMutation = {
   mercadoPublicoV2SyncControl: {
-    start: { __typename?: 'MercadoPublicoV2SyncCommandResultDTO'; state: string };
+    start: {
+      __typename?: 'MercadoPublicoV2SyncCommandResultDTO';
+      state: string;
+    };
   };
 };
 
@@ -191,22 +199,24 @@ type MercadoPublicoV2ResumeSyncMutation = {
 export const MercadoPublicoV2SyncControlPage = () => {
   const { t } = useLingui();
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const apolloCoreClient = useApolloCoreClient();
   const { data, loading, error, refetch } =
     useQuery<MercadoPublicoV2SyncControlLatestRunQuery>(
       MERCADO_PUBLICO_V2_SYNC_CONTROL_LATEST_RUN_QUERY,
+      { client: apolloCoreClient },
     );
   const [startSync] = useMutation<
     MercadoPublicoV2StartSyncMutation,
     { input: { idempotencyKey: string; confirmed: boolean } }
-  >(MERCADO_PUBLICO_V2_START_SYNC_MUTATION);
+  >(MERCADO_PUBLICO_V2_START_SYNC_MUTATION, { client: apolloCoreClient });
   const [cancelSync] = useMutation<
     MercadoPublicoV2CancelSyncMutation,
     { input: { idempotencyKey: string; confirmed: boolean } }
-  >(MERCADO_PUBLICO_V2_CANCEL_SYNC_MUTATION);
+  >(MERCADO_PUBLICO_V2_CANCEL_SYNC_MUTATION, { client: apolloCoreClient });
   const [resumeSync] = useMutation<
     MercadoPublicoV2ResumeSyncMutation,
     { input: { idempotencyKey: string; syncRunId: string } }
-  >(MERCADO_PUBLICO_V2_RESUME_SYNC_MUTATION);
+  >(MERCADO_PUBLICO_V2_RESUME_SYNC_MUTATION, { client: apolloCoreClient });
 
   const latestRun = data?.mercadoPublicoV2SyncControl.latestRun;
   const isActive =
@@ -234,7 +244,10 @@ export const MercadoPublicoV2SyncControlPage = () => {
       await cancelSync({
         variables: { input: { idempotencyKey, confirmed: true } },
       });
-    } else if (latestRun?.syncRunId !== null && latestRun?.syncRunId !== undefined) {
+    } else if (
+      latestRun?.syncRunId !== null &&
+      latestRun?.syncRunId !== undefined
+    ) {
       await resumeSync({
         variables: {
           input: { idempotencyKey, syncRunId: latestRun.syncRunId },
@@ -335,7 +348,10 @@ export const MercadoPublicoV2SyncControlPage = () => {
             <h2>{confirmationTitle}</h2>
             <p>{confirmationMessage}</p>
             <StyledDialogActions>
-              <Button title={t`Cancelar`} onClick={() => setPendingAction(null)} />
+              <Button
+                title={t`Cancelar`}
+                onClick={() => setPendingAction(null)}
+              />
               <Button
                 title={t`Confirmar`}
                 variant="primary"
