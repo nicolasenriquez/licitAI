@@ -7,7 +7,7 @@ import { type MercadoPublicoApiV2CompraAgilListResponse } from 'src/engine/core-
 import { type MercadoPublicoApiV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/types/mercado-publico-api-v2-compra-agil-record.type';
 import {
   getV2CompraAgilCallNumber,
-  getV2CompraAgilProviderOrderId,
+  getV2CompraAgilOrderReferences,
 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
 import { coerceToNullableString } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/coerce-to-nullable-string.util';
 import { createJsonSha256 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/create-json-sha256.util';
@@ -57,6 +57,8 @@ type SemanticPayload = {
   amount: string | null;
   currency_source: string | null;
   document_count: number | null;
+  id_orden_compra: string | null;
+  id_oc: string | null;
 };
 
 type CompraAgilCurrentRow = SemanticPayload & {
@@ -72,6 +74,7 @@ const toIsoOrNull = (value: Date | null): string | null =>
 const buildSemanticPayload = (
   codigo: string,
   normalized: NormalizedV2CompraAgilRecord,
+  orderReferences: ReturnType<typeof getV2CompraAgilOrderReferences>,
 ): SemanticPayload => ({
   codigo,
   estado: normalized.stateCode,
@@ -87,6 +90,8 @@ const buildSemanticPayload = (
   amount: normalized.amount,
   currency_source: normalized.currency,
   document_count: normalized.documentCount,
+  id_orden_compra: orderReferences.idOrdenCompra,
+  id_oc: orderReferences.idOc,
 });
 
 const rebuildSemanticPayload = (
@@ -106,6 +111,8 @@ const rebuildSemanticPayload = (
   amount: row.amount_raw ?? (row.amount === null ? null : String(row.amount)),
   currency_source: row.currency_source,
   document_count: row.document_count,
+  id_orden_compra: row.id_orden_compra,
+  id_oc: row.id_oc,
 });
 
 @Injectable()
@@ -122,6 +129,7 @@ export class MercadoPublicoV2ProjectionService {
     const semanticPayload = buildSemanticPayload(
       context.record.codigo,
       normalized,
+      getV2CompraAgilOrderReferences(context.record),
     );
     const semanticFingerprint = createJsonSha256(semanticPayload);
     const observedAt = context.response.fetchedAt;
@@ -208,6 +216,7 @@ export class MercadoPublicoV2ProjectionService {
         const semanticPayload = buildSemanticPayload(
           context.record.codigo,
           normalized,
+          getV2CompraAgilOrderReferences(context.record),
         );
 
         results.push(
@@ -248,10 +257,12 @@ export class MercadoPublicoV2ProjectionService {
           closing_at,
           provider_changed_at_raw,
           amount,
-          amount_raw,
-          currency_source,
-          document_count,
-          observation_id,
+           amount_raw,
+           currency_source,
+           document_count,
+           id_orden_compra,
+           id_oc,
+           observation_id,
           semantic_fingerprint
         FROM mp.compra_agil
         WHERE codigo = $1
@@ -272,26 +283,27 @@ export class MercadoPublicoV2ProjectionService {
 
     const normalized = normalizeV2CompraAgilRecord(context.record);
     const observedAt = context.response.fetchedAt;
-    const providerOrderId = getV2CompraAgilProviderOrderId(context.record);
+    const orderReferences = getV2CompraAgilOrderReferences(context.record);
     const schemaFingerprint = context.response.schemaFingerprint;
 
     const upsertedRows = await entityManager.query<{ id: string }[]>(
       `
         INSERT INTO mp.compra_agil (
-          codigo, estado, state_id, state_label, id_orden_compra, region, title,
+          codigo, estado, state_id, state_label, id_orden_compra, id_oc, region, title,
           buyer_code, buyer_name, published_at, closing_at, amount, amount_raw,
           currency_source, document_count, observation_id, normalizer_version,
           provider_schema_fingerprint, provider_changed_at_raw,
           provider_changed_at, observed_at, last_seen_at, semantic_fingerprint,
           persisted_at, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-          $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, now(), now())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+          $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, now(), now())
         ON CONFLICT (codigo) DO UPDATE SET
           estado = EXCLUDED.estado,
           state_id = EXCLUDED.state_id,
-          state_label = EXCLUDED.state_label,
-          id_orden_compra = EXCLUDED.id_orden_compra,
+           state_label = EXCLUDED.state_label,
+           id_orden_compra = EXCLUDED.id_orden_compra,
+           id_oc = EXCLUDED.id_oc,
           region = EXCLUDED.region,
           title = EXCLUDED.title,
           buyer_code = EXCLUDED.buyer_code,
@@ -346,7 +358,8 @@ export class MercadoPublicoV2ProjectionService {
         normalized.stateCode,
         normalized.stateId,
         normalized.stateLabel,
-        providerOrderId,
+        orderReferences.idOrdenCompra,
+        orderReferences.idOc,
         normalized.region,
         normalized.title,
         normalized.buyerCode,

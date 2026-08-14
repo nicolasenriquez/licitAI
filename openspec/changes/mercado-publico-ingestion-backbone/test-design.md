@@ -208,13 +208,14 @@ Target: `classifyHttpFailure(error: unknown): 'param_error' \| 'hard_fail' \| 's
 | `should classify 429 as retryable_failed` | axios error with `response.status: 429` | `'retryable_failed'` |
 | `should classify 500 as retryable_failed` | axios error with `response.status: 500` | `'retryable_failed'` |
 | `should classify 503 as retryable_failed` | axios error with `response.status: 503` | `'retryable_failed'` |
+| `should classify 504 as retryable_failed` | axios error with `response.status: 504` | `'retryable_failed'` |
 | `should classify timeout as retryable_failed` | axios error with `code: 'ETIMEDOUT'` | `'retryable_failed'` |
 | `should classify ECONNABORTED as retryable_failed` | axios error with `code: 'ECONNABORTED'` | `'retryable_failed'` |
 | `should classify network error as retryable_failed` | axios error with `code: 'ERR_NETWORK'` | `'retryable_failed'` |
 | `should classify unknown status as hard_fail` | axios error with `response.status: 418` | `'hard_fail'` (safe default) |
 | `should classify non-axios error as hard_fail` | `new Error('boom')` | `'hard_fail'` |
 
-Note: classification drives job retry behavior. 429/500/503/timeout = retryable (bounded backoff). 401/403 = hard fail, no retry. 400 = param error, no retry, record. 404 = soft miss, auditable, no retry. Tests pin the full matrix. `isAxiosError` used for type narrowing (per `http-tool.ts:3` pattern).
+Note: classification drives job retry behavior. 429/500/503/504/timeout = retryable (bounded backoff). 401/403 = hard fail, no retry. 400 = param error, no retry, record. 404 = soft miss, auditable, no retry. Tests pin the full matrix. `isAxiosError` used for type narrowing (per `http-tool.ts:3` pattern).
 
 ---
 

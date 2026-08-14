@@ -330,7 +330,7 @@ The system SHALL classify Mercado Publico HTTP failures into deterministic opera
 
 #### Scenario: Retryable transient failure
 
-- **WHEN** the external API returns `429`, `500`, `503`, or times out
+- **WHEN** the external API returns `429`, `500`, `503`, `504`, or times out
 - **THEN** the job is marked `retryable_failed`
 - **AND** the system uses bounded backoff without infinite retries
 

@@ -414,9 +414,11 @@ Every CSV row must persist:
 - `400`: fail validation and record parameter error.
 - `401` / `403`: fail hard.
 - `404`: soft miss, but auditable.
-- `429` / `500` / `503` / timeout: `retryable_failed`.
+- `429` / `500` / `503` / `504` / timeout: `retryable_failed`.
 - Apply bounded backoff.
 - No infinite retry loops.
+- A local `max_pages` budget is permitted only for manual smoke runs. It is not
+  sent to the provider and cannot advance the global watermark.
 - Enforce daily operational quota with reset in `America/Santiago`.
 - Record `last429At` and retry window when available.
 

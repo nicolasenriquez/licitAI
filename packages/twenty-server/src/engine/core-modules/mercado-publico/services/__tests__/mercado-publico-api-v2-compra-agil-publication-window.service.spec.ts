@@ -70,4 +70,29 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
       }),
     ).rejects.toThrow('does not support "orden"');
   });
+
+  it('passes a local page budget to the durable pipeline', async () => {
+    await service.run({
+      publicado_desde: '2026-06-01T00:00:00Z',
+      publicado_hasta: '2026-06-01T23:59:59Z',
+      max_pages: 3,
+    });
+
+    expect(durableSyncService.start).toHaveBeenCalledWith(
+      expect.objectContaining({ max_pages: 3 }),
+      'manual',
+      'api-v2-compra-agil-by-publication-window',
+    );
+  });
+
+  it('resumes the specified durable run without parsing a new window', async () => {
+    durableSyncService.resume = jest.fn().mockResolvedValue({
+      status: 'succeeded',
+    });
+
+    await service.run({ sync_run_id: 'sync-run-id' });
+
+    expect(durableSyncService.resume).toHaveBeenCalledWith('sync-run-id');
+    expect(durableSyncService.start).not.toHaveBeenCalled();
+  });
 });

@@ -118,8 +118,20 @@ export const validateCompraAgilListParams = (
     }
   }
 
-  if (params.numero_pagina !== undefined && params.numero_pagina < 1) {
+  if (
+    params.numero_pagina !== undefined &&
+    (!Number.isInteger(params.numero_pagina) || params.numero_pagina < 1)
+  ) {
     errors.push({ field: 'numero_pagina', code: 'must_start_at_1' });
+  }
+
+  if (
+    params.region !== undefined &&
+    (!Number.isInteger(params.region) ||
+      params.region < 1 ||
+      params.region > 16)
+  ) {
+    errors.push({ field: 'region', code: 'out_of_range' });
   }
 
   if (

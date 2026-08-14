@@ -8,8 +8,8 @@ description: Safe manual execution contract for the Mercado Publico Compra Agil 
 
 ## Purpose
 
-Run a bounded, auditable Compra Agil V2 ingestion without exposing tickets or
-repeating a failing request.
+Run an auditable Compra Agil V2 ingestion without exposing tickets or
+repeating a failed run from page one.
 
 ## Evidence Labels
 
@@ -21,19 +21,20 @@ repeating a failing request.
 
 ## Sources and Contract
 
-- **Official**: [Mercado Publico API documentation](https://api.mercadopublico.cl/documentos/Documentaci%C3%B3n%20API%20Mercado%20Publico%20-%20Licitaciones.pdf)
-  documents the official API host and ticket-based access pattern.
-- **Official**: [ChileCompra Compra Agil FAQ](https://ayuda.mercadopublico.cl/preguntasfrecuentes/articulo/?id=KA-02013)
-  confirms the Compra Agil operating domain.
+- **Official**: [ChileCompra API](https://www.chilecompra.cl/api/) documents
+  ticket-based API access.
+- **Official**: [API Compra Agil V2 guide](https://www.chilecompra.cl/wp-content/uploads/2026/05/Documentacion_API_Compra_Agil-2-1.pdf)
+  defines the V2 endpoint, request parameters, response envelope, pagination,
+  daily quota, and error contract.
 - **Implemented**: V2 requests use `GET /v2/compra-agil` and send the secret
   in the `ticket` header. The ticket must come only from managed configuration.
-- **Implemented**: `tamano_pagina` is at most 50, `numero_pagina` starts at 1,
-  `id` and `q` are mutually exclusive, and `ordenar_por` is propagated.
+- **Implemented**: `tamano_pagina` is an integer from 1 through 50,
+  `numero_pagina` is a positive integer, `region` is an integer from 1 through
+  16, `id` and `q` are mutually exclusive, and `ordenar_por` is propagated.
 - **Implemented**: `orden` is rejected. A supplied `cambio_*` or `publicado_*`
   window must include both UTC bounds.
-- **Unknown**: a publicly stable V2 parameter schema and sort-direction
-  vocabulary are not retained as evidence here. Do not add parameters based on
-  an observed response alone.
+- **Implemented**: successful V2 envelopes use `payload.items` for lists and
+  `payload` for a detail record. Raw responses remain retained for audit.
 
 ## Safe Manual Recipe
 
@@ -57,6 +58,21 @@ payload: {"publicado_desde":"2026-08-10T00:00:00Z","publicado_hasta":"2026-08-10
   another SyncRun. Existing queued jobs without an execution key resume only a
   matching active run with the same request parameters.
 
+### Three-page smoke only
+
+Use `max_pages: 3` only for a smoke test. It is a local pipeline budget and is
+never sent to ChileCompra.
+
+```text
+payload: {"publicado_desde":"2026-08-12T00:00:00Z","publicado_hasta":"2026-08-12T23:59:59Z","tamano_pagina":50,"max_pages":3,"ordenar_por":"FechaUltimaModificacion"}
+```
+
+- **Implemented**: a bounded run checkpoints and processes at most three pages.
+- **Implemented**: a bounded run never advances the global source watermark.
+- **Policy**: do not treat a bounded run as one-day coverage.
+- Omit `max_pages` for the final full-day run. Only a successful exhaustive run
+  can advance the global watermark.
+
 ## Watermark and Pagination
 
 - **Implemented**: when a durable sync has a watermark, it sets
@@ -65,8 +81,15 @@ payload: {"publicado_desde":"2026-08-10T00:00:00Z","publicado_hasta":"2026-08-10
   one complete change window.
 - **Implemented**: a relative `ttl_cambio_ms` is used only when no watermark
   window is derived.
-- **Policy**: resume or rediscover a failed durable run; do not recreate it
-  with a subtly different partial window.
+- **Implemented**: a retryable discovery failure resumes from the first page
+  without a checkpoint. Hydration resumes pending items after resetting any
+  interrupted `processing` item.
+- **Policy**: resume a failed durable run; do not recreate it with a subtly
+  different partial window.
+
+```text
+payload: {"sync_run_id":"<failed-sync-run-id>"}
+```
 
 ## Detail Hydration Recovery
 
@@ -161,3 +184,11 @@ V2 control commands use configured fixed BullMQ retry settings. On a retryable
 failure, command state returns to `pending` before BullMQ retries it. The final
 allowed attempt records `failed`; recovery does not retry it forever. Each
 attempt resumes the same durable run and its saved checkpoints.
+
+**Official**: ChileCompra directs clients to respect `Retry-After` for 429.
+**Policy**: wait for the provider reset window when 429 has no usable
+`Retry-After`; do not burn fixed-delay retries against a daily quota.
+
+**Policy**: 504 is retryable because the provider has returned endpoint timeout
+responses in retained runtime evidence. It is not listed in the published error
+matrix.

@@ -125,4 +125,23 @@ describe('normalizeV2CompraAgilRecord', () => {
       finePenalty: null,
     });
   });
+
+  it('does not turn list query bounds into process dates', () => {
+    expect(
+      normalizeV2CompraAgilRecord({
+        codigo: 'CA-1',
+        publicado_desde: '2026-06-01T00:00:00Z',
+        publicado_hasta: '2026-06-01T23:59:59Z',
+      }),
+    ).toMatchObject({ publishedAt: null, closingAt: null });
+  });
+
+  it('keeps a CLP fallback paired with CLP currency', () => {
+    expect(
+      normalizeV2CompraAgilRecord({
+        codigo: 'CA-1',
+        presupuesto: { moneda: 'USD', monto_disponible_clp: 120000 },
+      }),
+    ).toMatchObject({ amount: '120000', currency: 'CLP' });
+  });
 });

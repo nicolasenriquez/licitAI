@@ -88,11 +88,12 @@ export const normalizeV2CompraAgilRecord = (
   const providerChangedAt = normalizeV2CompraAgilDate(
     dates?.fecha_ultimo_cambio ?? record.fecha_ultimo_cambio,
   );
-  const amount =
-    record.presupuesto?.monto_disponible ??
+  const sourceAmount =
+    record.presupuesto?.monto_disponible ?? record.montos?.monto_disponible;
+  const clpAmount =
     record.presupuesto?.monto_disponible_clp ??
-    record.montos?.monto_disponible ??
     record.montos?.monto_disponible_clp;
+  const amount = sourceAmount ?? clpAmount;
   const delivery = record.entrega;
   const call = record.convocatoria;
   const budget = record.presupuesto;
@@ -112,18 +113,21 @@ export const normalizeV2CompraAgilRecord = (
           ? record.region
           : null,
     publishedAt: normalizeV2CompraAgilDate(
-      dates?.fecha_publicacion ??
-        record.fecha_publicacion ??
-        record.publicado_desde,
+      dates?.fecha_publicacion ?? record.fecha_publicacion,
     ).value,
     closingAt: normalizeV2CompraAgilDate(
-      dates?.fecha_cierre ?? record.fecha_cierre ?? record.publicado_hasta,
+      dates?.fecha_cierre ?? record.fecha_cierre,
     ).value,
     providerChangedAt: providerChangedAt.value,
     providerChangedAtRaw: providerChangedAt.raw,
     stateId,
     amount: toDecimalString(amount),
-    currency: coerceToText(budget?.moneda ?? record.montos?.moneda),
+    currency:
+      sourceAmount !== null && sourceAmount !== undefined
+        ? coerceToText(budget?.moneda ?? record.montos?.moneda)
+        : clpAmount !== null && clpAmount !== undefined
+          ? 'CLP'
+          : null,
     documentCount: Array.isArray(record.documentos)
       ? record.documentos.length
       : null,

@@ -117,6 +117,27 @@ describe('MercadoPublicoV2ProjectionService', () => {
     ]);
   });
 
+  it('persists order references split into id_orden_compra and id_oc', async () => {
+    const { service, queries } = buildHarness();
+
+    await service.ingest(
+      buildContext({
+        codigo: 'CA-ORDER-REFS',
+        orden_compra: {
+          id_orden_compra: 700,
+          id_oc: 701,
+        },
+      }),
+    );
+
+    const compraAgilQuery = queries.find((query) =>
+      query.sql.includes('INSERT INTO mp.compra_agil'),
+    );
+
+    expect(compraAgilQuery?.params.slice(4, 6)).toEqual(['700', '701']);
+    expect(compraAgilQuery?.sql).toContain('id_oc');
+  });
+
   it('projects detail fields into the gold read model', async () => {
     const { service, queries } = buildHarness();
 

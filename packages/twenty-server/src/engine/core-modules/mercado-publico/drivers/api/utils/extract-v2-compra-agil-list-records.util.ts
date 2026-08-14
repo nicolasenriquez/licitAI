@@ -49,9 +49,7 @@ const recursivelyExtractRecords = (
   }
 
   for (const preferredArrayKey of PREFERRED_ARRAY_KEYS) {
-    const preferredArrayRecords = extractRecordArray(
-      value[preferredArrayKey],
-    );
+    const preferredArrayRecords = extractRecordArray(value[preferredArrayKey]);
 
     if (preferredArrayRecords.length > 0) {
       return preferredArrayRecords;

@@ -3,9 +3,7 @@ import detailEnvelope from 'src/engine/core-modules/mercado-publico/drivers/api/
 
 describe('extractV2CompraAgilListRecords', () => {
   it('should extract records from top-level array', () => {
-    const payload = [
-      { codigo: 'CA-1', estado: 'publicada' },
-    ];
+    const payload = [{ codigo: 'CA-1', estado: 'publicada' }];
 
     const records = extractV2CompraAgilListRecords(payload);
 
@@ -74,6 +72,17 @@ describe('extractV2CompraAgilListRecords', () => {
         orden_compra: { id_orden_compra: 'FIXTURE-OC-DETAIL' },
       }),
     ]);
+  });
+
+  it('should extract an official detail record nested under payload', () => {
+    const records = extractV2CompraAgilListRecords({
+      success: 'OK',
+      payload: { codigo: 'CA-1', estado: { codigo: 'publicada' } },
+      errors: null,
+    });
+
+    expect(records).toHaveLength(1);
+    expect(records[0].codigo).toBe('CA-1');
   });
 
   it('should filter out non-record items', () => {

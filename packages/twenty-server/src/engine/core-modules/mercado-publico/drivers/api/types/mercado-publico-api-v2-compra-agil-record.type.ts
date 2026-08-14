@@ -110,8 +110,8 @@ export type MercadoPublicoApiV2CompraAgilRecord = {
   cambio_desde?: string;
   cambio_hasta?: string;
   orden_compra?: {
-    id_orden_compra?: string;
-    id_oc?: string;
+    id_orden_compra?: number | string | null;
+    id_oc?: number | string | null;
     codigo_orden_compra?: string;
   };
   fecha_publicacion?: string;
