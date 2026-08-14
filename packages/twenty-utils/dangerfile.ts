@@ -18,15 +18,16 @@ if (packageChanged && !lockfileChanged) {
   warn(`${message} - <i>${idea}</i>`);
 }
 
-// Check environment configuration changes
-const envExampleChanged = danger.git.modified_files.find((x) => 
-  x.includes('.env.example')
+// Check server environment configuration changes
+const serverEnvExampleChanged = danger.git.modified_files.find(
+  (x) => x === 'packages/twenty-server/.env.example',
 );
 
-// Check if .env.example was changed
-if (envExampleChanged) {
+// Check if the server .env.example was changed
+if (serverEnvExampleChanged) {
   const message = 'Changes were made to .env.example';
-  const idea = 'Please make sure any new environment variables are properly documented with metadata in config-variables.ts';
+  const idea =
+    'Please make sure any new environment variables are properly documented with metadata in config-variables.ts';
   warn(`${message} - <i>${idea}</i>`);
 }
 
