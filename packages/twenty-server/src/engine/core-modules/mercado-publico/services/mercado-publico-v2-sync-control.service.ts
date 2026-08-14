@@ -3,6 +3,9 @@ import { InjectDataSource } from '@nestjs/typeorm';
 
 import { DataSource, EntityManager } from 'typeorm';
 
+import { isValidUuid } from 'twenty-shared/utils';
+
+import { UserInputError } from 'src/engine/core-modules/graphql/utils/graphql-errors.util';
 import { InjectMessageQueue } from 'src/engine/core-modules/message-queue/decorators/message-queue.decorator';
 import { MessageQueue } from 'src/engine/core-modules/message-queue/message-queue.constants';
 import { MessageQueueService } from 'src/engine/core-modules/message-queue/services/message-queue.service';
@@ -160,6 +163,12 @@ export class MercadoPublicoV2SyncControlService {
   async submitCommand(
     input: MercadoPublicoV2SubmitCommandInput,
   ): Promise<MercadoPublicoV2SubmitCommandResult> {
+    if (!isValidUuid(input.idempotencyKey)) {
+      throw new UserInputError(
+        'The Mercado Publico V2 command idempotency key must be a valid UUID',
+      );
+    }
+
     if (input.action !== 'resume' && input.confirmed !== true) {
       throw new Error(
         'Confirmation required for Mercado Publico V2 start and cancel commands',
@@ -645,6 +654,19 @@ export class MercadoPublicoV2SyncControlService {
         '409 Conflict: the Mercado Publico V2 sync run is not resumable',
       );
     }
+
+    await entityManager.query(
+      `
+        UPDATE mp.sync_run_item
+        SET status = 'pending', attempts = 0, error_stage = NULL,
+            error_summary = NULL, updated_at = now()
+        WHERE sync_run_id = $1
+          AND status = 'terminal'
+          AND error_stage = 'hydrating'
+          AND (error_summary LIKE 'retryable%' OR error_summary = 'soft_miss')
+      `,
+      [rows[0].id],
+    );
 
     return rows[0].id;
   }

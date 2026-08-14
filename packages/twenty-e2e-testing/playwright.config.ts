@@ -10,15 +10,19 @@ if (envResult.error) {
   throw new Error('Failed to load .env file');
 }
 
+const analystLogin = process.env.ANALYST_LOGIN ?? '';
+
 /* === Run your local dev server before starting the tests === */
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
+export const GLOBAL_TEST_IGNORE =
+  /.*(external-integrations|key-features-gated|mercado-publico-contract).*/;
+
 export const playwrightConfig = {
   testDir: './tests',
-  testIgnore:
-    /.*(external-integrations|key-features-gated|mercado-publico-contract).*/,
+  testIgnore: GLOBAL_TEST_IGNORE,
   outputDir: 'run_results/',
   snapshotPathTemplate: '{testDir}/__screenshots__/{testFilePath}/{arg}{ext}',
   fullyParallel: false, // parallelization of tests will be done later in the future
@@ -55,7 +59,7 @@ export const playwrightConfig = {
     },
     {
       name: 'chrome',
-      testIgnore: /.*sync-control.*/,
+      testIgnore: [GLOBAL_TEST_IGNORE, /.*sync-control.*/],
       use: {
         ...devices['Desktop Chrome'],
         permissions: ['clipboard-read', 'clipboard-write'],
@@ -78,21 +82,25 @@ export const playwrightConfig = {
       },
       dependencies: ['setup-operator'],
     },
-    {
-      name: 'setup-analyst',
-      testMatch: /analyst\.setup\.ts/,
-    },
-    {
-      name: 'analyst',
-      testMatch: /.*sync-control.*/,
-      grep: /@analyst/,
-      use: {
-        ...devices['Desktop Chrome'],
-        permissions: ['clipboard-read', 'clipboard-write'],
-        storageState: path.resolve(__dirname, '.auth', 'analyst.json'),
-      },
-      dependencies: ['setup-analyst'],
-    },
+    ...(analystLogin.length > 0
+      ? [
+          {
+            name: 'setup-analyst',
+            testMatch: /analyst\.setup\.ts/,
+          },
+          {
+            name: 'analyst',
+            testMatch: /.*sync-control.*/,
+            grep: /@analyst/,
+            use: {
+              ...devices['Desktop Chrome'],
+              permissions: ['clipboard-read', 'clipboard-write'],
+              storageState: path.resolve(__dirname, '.auth', 'analyst.json'),
+            },
+            dependencies: ['setup-analyst'],
+          },
+        ]
+      : []),
 
     //{
     //  name: 'webkit',
@@ -120,5 +128,19 @@ export const playwrightConfig = {
     //},
   ],
 };
+
+export const buildNarrowedTestProjects = playwrightConfig.projects.map(
+  (project) => {
+    if (project.name === 'setup-team') {
+      return { ...project, testDir: './tests' };
+    }
+
+    if (project.name === 'chrome') {
+      return { ...project, testIgnore: [] };
+    }
+
+    return project;
+  },
+);
 
 export default defineConfig(playwrightConfig);

@@ -59,6 +59,22 @@ type SemanticPayload = {
   document_count: number | null;
   id_orden_compra: string | null;
   id_oc: string | null;
+  description: string | null;
+  delivery_address: string | null;
+  delivery_days: number | null;
+  cancellation_at: string | null;
+  call_description: string | null;
+  call_first_closing_at: string | null;
+  call_second_closing_at: string | null;
+  budget_type: string | null;
+  budget_estimate: string | null;
+  budget_currency: string | null;
+  cancel_motive: string | null;
+  deserted_motive: string | null;
+  selection_motive: string | null;
+  total_offers: number | null;
+  total_demands: number | null;
+  fine_penalty: string | null;
 };
 
 type CompraAgilCurrentRow = SemanticPayload & {
@@ -66,6 +82,25 @@ type CompraAgilCurrentRow = SemanticPayload & {
   observation_id: string | null;
   semantic_fingerprint: string | null;
   amount_raw: string | null;
+};
+
+type GoldDetectedProcessRow = {
+  description: string | null;
+  delivery_address: string | null;
+  delivery_days: number | null;
+  cancellation_at: Date | null;
+  call_description: string | null;
+  call_first_closing_at: Date | null;
+  call_second_closing_at: Date | null;
+  budget_type: string | null;
+  budget_estimate: string | null;
+  budget_currency: string | null;
+  cancel_motive: string | null;
+  deserted_motive: string | null;
+  selection_motive: string | null;
+  total_offers: number | null;
+  total_demands: number | null;
+  fine_penalty: string | null;
 };
 
 const toIsoOrNull = (value: Date | null): string | null =>
@@ -92,10 +127,27 @@ const buildSemanticPayload = (
   document_count: normalized.documentCount,
   id_orden_compra: orderReferences.idOrdenCompra,
   id_oc: orderReferences.idOc,
+  description: normalized.description,
+  delivery_address: normalized.deliveryAddress,
+  delivery_days: normalized.deliveryDays,
+  cancellation_at: toIsoOrNull(normalized.cancellationAt),
+  call_description: normalized.callDescription,
+  call_first_closing_at: toIsoOrNull(normalized.callFirstClosingAt),
+  call_second_closing_at: toIsoOrNull(normalized.callSecondClosingAt),
+  budget_type: normalized.budgetType,
+  budget_estimate: normalized.budgetEstimate,
+  budget_currency: normalized.budgetCurrency,
+  cancel_motive: normalized.cancelMotive,
+  deserted_motive: normalized.desertedMotive,
+  selection_motive: normalized.selectionMotive,
+  total_offers: normalized.totalOffers,
+  total_demands: normalized.totalDemands,
+  fine_penalty: normalized.finePenalty,
 });
 
 const rebuildSemanticPayload = (
   row: CompraAgilCurrentRow,
+  goldRow: GoldDetectedProcessRow | undefined,
 ): SemanticPayload => ({
   codigo: row.codigo,
   estado: row.estado,
@@ -113,6 +165,22 @@ const rebuildSemanticPayload = (
   document_count: row.document_count,
   id_orden_compra: row.id_orden_compra,
   id_oc: row.id_oc,
+  description: goldRow?.description ?? null,
+  delivery_address: goldRow?.delivery_address ?? null,
+  delivery_days: goldRow?.delivery_days ?? null,
+  cancellation_at: toIsoOrNull(goldRow?.cancellation_at ?? null),
+  call_description: goldRow?.call_description ?? null,
+  call_first_closing_at: toIsoOrNull(goldRow?.call_first_closing_at ?? null),
+  call_second_closing_at: toIsoOrNull(goldRow?.call_second_closing_at ?? null),
+  budget_type: goldRow?.budget_type ?? null,
+  budget_estimate: goldRow?.budget_estimate ?? null,
+  budget_currency: goldRow?.budget_currency ?? null,
+  cancel_motive: goldRow?.cancel_motive ?? null,
+  deserted_motive: goldRow?.deserted_motive ?? null,
+  selection_motive: goldRow?.selection_motive ?? null,
+  total_offers: goldRow?.total_offers ?? null,
+  total_demands: goldRow?.total_demands ?? null,
+  fine_penalty: goldRow?.fine_penalty ?? null,
 });
 
 @Injectable()
@@ -271,6 +339,23 @@ export class MercadoPublicoV2ProjectionService {
     );
     const previous = currentRows[0];
 
+    const previousGoldRows =
+      previous === undefined
+        ? []
+        : await entityManager.query<GoldDetectedProcessRow[]>(
+            `
+              SELECT description, delivery_address, delivery_days, cancellation_at,
+                     call_description, call_first_closing_at, call_second_closing_at,
+                     budget_type, budget_estimate, budget_currency, cancel_motive,
+                     deserted_motive, selection_motive, total_offers, total_demands,
+                     fine_penalty
+              FROM mp.gold_detected_process
+              WHERE process_type = 'compra_agil' AND process_code = $1
+            `,
+            [context.record.codigo],
+          );
+    const previousGold = previousGoldRows[0];
+
     if (previous !== undefined && previous.observation_id === observationId) {
       return {
         observationId,
@@ -390,7 +475,7 @@ export class MercadoPublicoV2ProjectionService {
       previous.semantic_fingerprint !== semanticFingerprint;
 
     if (semanticChanged && previous !== undefined) {
-      const previousSemantic = rebuildSemanticPayload(previous);
+      const previousSemantic = rebuildSemanticPayload(previous, previousGold);
 
       await entityManager.query(
         `

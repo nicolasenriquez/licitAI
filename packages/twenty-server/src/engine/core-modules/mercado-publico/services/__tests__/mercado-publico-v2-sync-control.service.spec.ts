@@ -126,6 +126,31 @@ describe('MercadoPublicoV2SyncControlService', () => {
     expect(resumeUpdate?.[0]).toContain(
       "WHEN r.error_stage = 'discovering' THEN 'discovering'",
     );
+
+    const requeueUpdate = query.mock.calls.find(([sql]) =>
+      sql.includes('UPDATE mp.sync_run_item'),
+    );
+
+    expect(requeueUpdate?.[0]).toContain("status = 'pending', attempts = 0");
+    expect(requeueUpdate?.[0]).toContain(
+      "error_summary LIKE 'retryable%' OR error_summary = 'soft_miss'",
+    );
+    expect(requeueUpdate?.[1]).toContain('run-1');
+  });
+
+  it('rejects a malformed idempotency key before touching the database', async () => {
+    const query = jest.fn();
+    const service = new MercadoPublicoV2SyncControlService(
+      { query, transaction: transactionUsing(query) } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+    );
+
+    await expect(
+      service.submitCommand(buildInput({ idempotencyKey: 'not-a-uuid' })),
+    ).rejects.toThrow(/valid UUID/);
+
+    expect(query).not.toHaveBeenCalled();
   });
 
   it('persists the selected page budget with a new run', async () => {

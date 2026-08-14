@@ -216,6 +216,122 @@ describe('MercadoPublicoV2ProjectionService', () => {
     );
   });
 
+  it('includes detail fields in the semantic history payloads', async () => {
+    const queries: QueryCall[] = [];
+    const entityManager = {
+      query: jest
+        .fn()
+        .mockImplementation(async (sql: string, params: unknown[] = []) => {
+          queries.push({ sql, params });
+
+          if (sql.includes('INSERT INTO mp.v2_observation')) {
+            return [{ id: 'observation-id' }];
+          }
+
+          if (sql.includes('SELECT') && sql.includes('FROM mp.compra_agil')) {
+            return [
+              {
+                id: 'current-id',
+                codigo: 'CA-HISTORY',
+                estado: null,
+                state_id: null,
+                state_label: null,
+                title: null,
+                buyer_code: null,
+                buyer_name: null,
+                region: null,
+                published_at: null,
+                closing_at: null,
+                provider_changed_at_raw: null,
+                amount: null,
+                amount_raw: null,
+                currency_source: null,
+                document_count: null,
+                id_orden_compra: null,
+                id_oc: null,
+                observation_id: 'old-observation-id',
+                semantic_fingerprint: 'old-fingerprint',
+              },
+            ];
+          }
+
+          if (sql.includes('FROM mp.gold_detected_process')) {
+            return [
+              {
+                description: 'Descripción anterior',
+                delivery_address: null,
+                delivery_days: null,
+                cancellation_at: null,
+                call_description: null,
+                call_first_closing_at: null,
+                call_second_closing_at: null,
+                budget_type: null,
+                budget_estimate: null,
+                budget_currency: null,
+                cancel_motive: null,
+                deserted_motive: null,
+                selection_motive: null,
+                total_offers: null,
+                total_demands: null,
+                fine_penalty: null,
+              },
+            ];
+          }
+
+          if (sql.includes('INSERT INTO mp.compra_agil')) {
+            return [{ id: 'current-id' }];
+          }
+
+          return [];
+        }),
+    };
+    const dataSource = {
+      transaction: jest
+        .fn()
+        .mockImplementation(async (callback) => callback(entityManager)),
+    };
+    const service = new MercadoPublicoV2ProjectionService(dataSource as never);
+
+    await service.ingest(
+      buildContext({
+        codigo: 'CA-HISTORY',
+        descripcion: 'Servicio de aseo',
+        entrega: {
+          direccion_entrega: 'Av. Central 123',
+          plazo_entrega_dias: 15,
+        },
+        presupuesto: {
+          tipo_presupuesto: 'estimado',
+          moneda: 'CLP',
+          presupuesto_estimado: 150000,
+        },
+        resumen: {
+          multa_sancion: 0,
+          total_ofertas_recibidas: 3,
+          total_demandas: 0,
+        },
+      }),
+    );
+
+    const historyQuery = queries.find((query) =>
+      query.sql.includes('INSERT INTO mp.v2_history'),
+    );
+
+    expect(historyQuery).toBeDefined();
+    expect(JSON.parse(historyQuery?.params[5] as string)).toMatchObject({
+      description: 'Descripción anterior',
+      delivery_days: null,
+    });
+    expect(JSON.parse(historyQuery?.params[6] as string)).toMatchObject({
+      description: 'Servicio de aseo',
+      delivery_address: 'Av. Central 123',
+      delivery_days: 15,
+      budget_estimate: '150000',
+      total_offers: 3,
+      fine_penalty: '0',
+    });
+  });
+
   it('records relation availability snapshots for every observed array', async () => {
     const { service, queries } = buildHarness();
 
