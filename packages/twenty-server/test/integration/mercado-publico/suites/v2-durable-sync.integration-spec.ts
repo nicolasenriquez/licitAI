@@ -184,6 +184,7 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
     } as unknown as jest.Mocked<MercadoPublicoApiV2CompraAgilClientService>;
     service = new MercadoPublicoV2DurableSyncService(
       clientService,
+      { getSettings: () => ({ httpMaxRetries: 3, httpRetryBackoffMs: 0 }) } as never,
       new MercadoPublicoPersistenceService(dataSource),
       dataSource,
       new MercadoPublicoV2ProjectionService(dataSource),

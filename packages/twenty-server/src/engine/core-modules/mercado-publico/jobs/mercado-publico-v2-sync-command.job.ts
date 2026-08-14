@@ -6,6 +6,8 @@ import { MessageQueue } from 'src/engine/core-modules/message-queue/message-queu
 import { MERCADO_PUBLICO_V2_SYNC_COMMAND_JOB_NAME } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
 import { MercadoPublicoV2SyncControlService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-sync-control.service';
+import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
+import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 
 export type MercadoPublicoV2SyncCommandJobData = {
   commandId: string;
@@ -47,10 +49,15 @@ export class MercadoPublicoV2SyncCommandJob {
         status: result.status,
       });
     } catch (error) {
+      const retryable =
+        error instanceof MercadoPublicoRecordedJobFailureError
+          ? error.retryable
+          : classifyFailure(error) === 'retryable_failed';
       await this.mercadoPublicoV2SyncControlService.finalizeCommand({
         commandId: data.commandId,
         attemptId: claim.attemptId,
-        status: 'failed',
+        status: retryable ? 'retryable_failed' : 'failed',
+        attemptNumber: claim.attemptNumber,
         errorSummary:
           error instanceof Error
             ? error.message

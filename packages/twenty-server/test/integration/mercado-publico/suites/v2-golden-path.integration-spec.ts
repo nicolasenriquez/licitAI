@@ -99,6 +99,7 @@ describe('Mercado Publico V2 golden path (db-backed)', () => {
     const persistenceService = new MercadoPublicoPersistenceService(dataSource);
     durableSyncService = new MercadoPublicoV2DurableSyncService(
       {} as never,
+      { getSettings: () => ({ httpMaxRetries: 3, httpRetryBackoffMs: 0 }) } as never,
       persistenceService,
       dataSource,
       new MercadoPublicoV2ProjectionService(dataSource),

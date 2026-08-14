@@ -5,6 +5,9 @@ import {
 import { type MessageQueueService } from 'src/engine/core-modules/message-queue/services/message-queue.service';
 
 const IDEMPOTENCY_KEY = '11111111-1111-4111-8111-111111111111';
+const queueConfig = {
+  getSettings: () => ({ httpMaxRetries: 3, httpRetryBackoffMs: 1000 }),
+};
 
 const buildInput = (overrides: Record<string, unknown> = {}) =>
   ({
@@ -48,6 +51,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
     const service = new MercadoPublicoV2SyncControlService(
       { query } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
     );
 
     await expect(service.getLatestRun('workspace-1')).resolves.toMatchObject({
@@ -86,6 +90,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
     const service = new MercadoPublicoV2SyncControlService(
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
     );
 
     const result = await service.submitCommand(buildInput());
@@ -115,6 +120,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
     const service = new MercadoPublicoV2SyncControlService(
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
     );
 
     await expect(
@@ -147,6 +153,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
     const service = new MercadoPublicoV2SyncControlService(
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
     );
 
     const result = await service.submitCommand(buildInput());
@@ -183,6 +190,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
     const service = new MercadoPublicoV2SyncControlService(
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
     );
 
     const result = await service.submitCommand(buildInput());
@@ -217,6 +225,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
     const service = new MercadoPublicoV2SyncControlService(
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
     );
 
     await expect(service.submitCommand(buildInput())).resolves.toMatchObject({
@@ -242,6 +251,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
     const service = new MercadoPublicoV2SyncControlService(
       { query, transaction: transactionUsing(query) } as never,
       messageQueueService,
+      queueConfig as never,
     );
 
     const result = await service.submitCommand(buildInput());
@@ -271,6 +281,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       {
         add: jest.fn().mockResolvedValue({}),
       } as unknown as MessageQueueService,
+      queueConfig as never,
     );
 
     await service.submitCommand(buildInput());

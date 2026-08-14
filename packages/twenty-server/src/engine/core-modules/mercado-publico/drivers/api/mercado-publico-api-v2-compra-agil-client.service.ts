@@ -18,6 +18,7 @@ import {
 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/validate-compra-agil-params.util';
 import { classifyMercadoPublicoHttpStatus } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-mercado-publico-http-status.util';
 import { parseMercadoPublicoBodyError } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/parse-mercado-publico-body-error.util';
+import { parseRetryAfterSeconds } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/parse-retry-after-seconds.util';
 import {
   MERCADO_PUBLICO_API_V2_COMPRA_AGIL_DETAIL_BY_CODIGO_ENDPOINT,
   MERCADO_PUBLICO_API_V2_COMPRA_AGIL_LIST_ENDPOINT,
@@ -44,6 +45,7 @@ export type MercadoPublicoApiV2CompraAgilListResponse = {
   errorSummary?: MercadoPublicoErrorSummary;
   errorMessage?: string;
   errorCode?: string;
+  retryAfterSeconds?: number;
 };
 
 const ensureTrailingSlash = (value: string): string => {
@@ -164,6 +166,9 @@ export class MercadoPublicoApiV2CompraAgilClientService {
     const httpStatusErrorSummary = classifyMercadoPublicoHttpStatus(
       response.status,
     );
+    const retryAfterSeconds = parseRetryAfterSeconds(
+      response.headers?.['retry-after'],
+    );
     this.tryRecord429(response.status);
 
     return {
@@ -181,6 +186,7 @@ export class MercadoPublicoApiV2CompraAgilClientService {
       errorSummary: bodyError?.errorSummary ?? httpStatusErrorSummary,
       errorMessage: bodyError?.message,
       errorCode: bodyError?.code ?? undefined,
+      retryAfterSeconds: retryAfterSeconds ?? undefined,
     };
   }
 
@@ -227,6 +233,9 @@ export class MercadoPublicoApiV2CompraAgilClientService {
     const httpStatusErrorSummary = classifyMercadoPublicoHttpStatus(
       response.status,
     );
+    const retryAfterSeconds = parseRetryAfterSeconds(
+      response.headers?.['retry-after'],
+    );
     this.tryRecord429(response.status);
 
     return {
@@ -243,6 +252,7 @@ export class MercadoPublicoApiV2CompraAgilClientService {
       errorSummary: bodyError?.errorSummary ?? httpStatusErrorSummary,
       errorMessage: bodyError?.message,
       errorCode: bodyError?.code ?? undefined,
+      retryAfterSeconds: retryAfterSeconds ?? undefined,
     };
   }
 

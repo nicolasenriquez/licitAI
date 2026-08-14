@@ -58,6 +58,10 @@ const recursivelyExtractRecords = (
     }
   }
 
+  if (isV2CompraAgilRecord(value)) {
+    return [value];
+  }
+
   for (const nestedValue of Object.values(value)) {
     const nestedRecords = recursivelyExtractRecords(nestedValue);
 
@@ -72,15 +76,5 @@ const recursivelyExtractRecords = (
 export const extractV2CompraAgilListRecords = (
   payload: unknown,
 ): MercadoPublicoApiV2CompraAgilRecord[] => {
-  const records = recursivelyExtractRecords(payload);
-
-  if (records.length > 0) {
-    return records;
-  }
-
-  if (isV2CompraAgilRecord(payload)) {
-    return [payload];
-  }
-
-  return [];
+  return recursivelyExtractRecords(payload);
 };

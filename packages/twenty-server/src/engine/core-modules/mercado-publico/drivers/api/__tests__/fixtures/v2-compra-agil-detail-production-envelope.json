@@ -1,5 +1,6 @@
 {
-  "data": {
+  "errors": [],
+  "payload": {
     "codigo": "FIXTURE-CA-DETAIL",
     "estado": {
       "codigo": "publicada",
@@ -10,7 +11,6 @@
       "id_orden_compra": "FIXTURE-OC-DETAIL"
     }
   },
-  "metadata": {
-    "request_id": "fixture-request"
-  }
+  "success": "OK",
+  "trace": "fixture-request"
 }

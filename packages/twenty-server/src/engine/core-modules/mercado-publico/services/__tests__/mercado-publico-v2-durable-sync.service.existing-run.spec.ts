@@ -76,6 +76,9 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
     } as unknown as jest.Mocked<MercadoPublicoApiV2CompraAgilClientService>;
     const service = new MercadoPublicoV2DurableSyncService(
       client,
+      {
+        getSettings: () => ({ httpMaxRetries: 3, httpRetryBackoffMs: 0 }),
+      } as never,
       persistenceService,
       { query, transaction } as never,
       new MercadoPublicoV2ProjectionService({ transaction } as never),
@@ -89,6 +92,7 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
       error_stage: 'hydrating',
       status: 'partial_failed',
     });
+    let pendingItemReads = 0;
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('records_discovered')) {
         return Promise.resolve([
@@ -100,10 +104,21 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
           },
         ]);
       }
-      if (sql.includes('SELECT id, codigo, status')) {
-        return Promise.resolve([
-          { id: 'item-1', codigo: 'FIXTURE-CA-001', status: 'pending' },
-        ]);
+      if (sql.includes('SELECT id, codigo')) {
+        pendingItemReads += 1;
+
+        return Promise.resolve(
+          pendingItemReads === 1
+            ? [
+                {
+                  id: 'item-1',
+                  codigo: 'FIXTURE-CA-001',
+                  attempts: 0,
+                  status: 'pending',
+                },
+              ]
+            : [],
+        );
       }
       if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
         return Promise.resolve([runRow]);
@@ -155,7 +170,7 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
           },
         ]);
       }
-      if (sql.includes('SELECT id, codigo, status')) {
+      if (sql.includes('SELECT id, codigo')) {
         return Promise.resolve([]);
       }
       if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
@@ -232,6 +247,7 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
   });
 
   it('resumes only a discovery-complete run', async () => {
+    let pendingItemReads = 0;
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('records_discovered')) {
         return Promise.resolve([
@@ -243,10 +259,21 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
           },
         ]);
       }
-      if (sql.includes('SELECT id, codigo, status')) {
-        return Promise.resolve([
-          { id: 'item-1', codigo: 'FIXTURE-CA-001', status: 'pending' },
-        ]);
+      if (sql.includes('SELECT id, codigo')) {
+        pendingItemReads += 1;
+
+        return Promise.resolve(
+          pendingItemReads === 1
+            ? [
+                {
+                  id: 'item-1',
+                  codigo: 'FIXTURE-CA-001',
+                  attempts: 0,
+                  status: 'pending',
+                },
+              ]
+            : [],
+        );
       }
       if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
         return Promise.resolve([
@@ -376,12 +403,25 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
     ]);
   });
 
-  it('keeps an all-retryable hydration failure resumable', async () => {
+  it('exhausts retryable hydration failures per item', async () => {
+    let pendingItemReads = 0;
     const query = jest.fn().mockImplementation((sql: string) => {
-      if (sql.includes('SELECT id, codigo, status')) {
-        return Promise.resolve([
-          { id: 'item-1', codigo: 'FIXTURE-CA-001', status: 'pending' },
-        ]);
+      if (sql.includes('SELECT id, codigo')) {
+        const attempts = pendingItemReads;
+        pendingItemReads += 1;
+
+        return Promise.resolve(
+          attempts < 4
+            ? [
+                {
+                  id: 'item-1',
+                  codigo: 'FIXTURE-CA-001',
+                  attempts,
+                  status: 'pending',
+                },
+              ]
+            : [],
+        );
       }
       if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
         return Promise.resolve([
@@ -404,27 +444,22 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
       getByCodigo,
     });
 
-    await expect(service.executeExistingRun('run-1')).rejects.toThrow(
-      /retryable detail response/,
+    await expect(
+      (
+        service as unknown as {
+          hydrate: (
+            context: { syncRunId: string },
+            jobRunRecordId: string,
+          ) => Promise<unknown>;
+        }
+      ).hydrate({ syncRunId: 'run-1' }, 'job-run-1'),
+    ).resolves.toBe('completed');
+
+    expect(getByCodigo).toHaveBeenCalledTimes(4);
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining("SET status = 'terminal'"),
+      ['item-1', 'retryable_failed', 'raw-payload-1'],
     );
-
-    const hydrationItemsQuery = query.mock.calls.find(([sql]) =>
-      sql.includes('hydration_required = true'),
-    );
-
-    expect(hydrationItemsQuery?.[0]).toContain('ORDER BY attempts ASC');
-
-    const failUpdate = query.mock.calls.find(([sql]) =>
-      sql.includes('error_retryable = $3'),
-    );
-
-    expect(failUpdate).toBeDefined();
-    expect(failUpdate[1]).toEqual([
-      'run-1',
-      'hydrating',
-      true,
-      'retryable_failed: durable hydrating failed',
-    ]);
   });
 
   it('fails terminally on a non-retryable discovery failure', async () => {

@@ -42,6 +42,13 @@ export class MercadoPublicoV2SyncRecoveryCronJob {
       await this.messageQueueService.add(
         MERCADO_PUBLICO_V2_SYNC_COMMAND_JOB_NAME,
         { commandId },
+        {
+          retryLimit: settings.httpMaxRetries,
+          backoff: {
+            type: 'fixed',
+            delay: settings.httpRetryBackoffMs,
+          },
+        },
       );
     }
 

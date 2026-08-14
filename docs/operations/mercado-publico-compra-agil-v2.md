@@ -130,11 +130,34 @@ payloads, or technical error causes.
 | --- | --- | --- |
 | 400 | Parameter error | Stop; correct the local payload once. |
 | 401 / 403 | Hard failure | Verify managed ticket configuration without printing it. |
-| 404 | Soft miss | Record the outcome; do not treat it as a transport retry. |
-| 429 | Retryable | Respect `Retry-After` when the provider supplies it; quota telemetry records the event. |
-| 500 / 503 / 504 / timeout | Retryable | Let the bounded queue retry policy resume the same durable run. |
+| 404 | Soft miss | Persist provider evidence and terminalize item. Do not retry transport. |
+| 429 | Retryable | Respect `Retry-After`; retain item pending until its item retry limit. |
+| 500 / 503 / 504 / timeout | Retryable | Retry item without aborting remaining hydration items. |
 
-**Implemented**: `Retry-After` delta-seconds and HTTP-date values are parsed
-without storing headers. **Policy**: the current minimal telemetry design keeps
-existing checkpoints and raw audit trails; it does not add a duplicate manifest
-or database column for this header.
+`Retry-After` delta-seconds and HTTP-date values are parsed without storing
+headers. A provider response waits for this delay before next retry; otherwise
+the configured fixed backoff applies.
+
+## Hydration Completion
+
+Hydration reads pending items in serial batches of 100. Provider retryable
+responses affect only their item. Each item has
+`MERCADO_PUBLICO_HTTP_MAX_RETRIES + 1` total attempts.
+
+Soft misses, detail-code mismatches, and exhausted retryable requests become
+terminal items with an error summary. Lifecycle-terminal provider records are
+also terminal, but have no error summary. The run `records_failed` count
+contains only terminal items with an error summary.
+
+The worker completes after no pending hydration item remains. A run with one or
+more terminal error items ends as `partial_failed` and does not advance its
+watermark. Serial requests protect provider quota. Add bounded concurrency only
+after a successful run exceeds its agreed duration SLO and quota telemetry
+shows available capacity.
+
+## Command Retries
+
+V2 control commands use configured fixed BullMQ retry settings. On a retryable
+failure, command state returns to `pending` before BullMQ retries it. The final
+allowed attempt records `failed`; recovery does not retry it forever. Each
+attempt resumes the same durable run and its saved checkpoints.

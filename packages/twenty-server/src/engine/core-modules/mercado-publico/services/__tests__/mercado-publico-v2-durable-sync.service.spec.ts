@@ -4,13 +4,17 @@ import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/merc
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoV2ProjectionService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-projection.service';
 
+const syncConfig = {
+  getSettings: () => ({ httpMaxRetries: 3, httpRetryBackoffMs: 0 }),
+};
+
 describe('MercadoPublicoV2DurableSyncService', () => {
   it('runs the fixture through frozen page and item checkpoints', async () => {
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('INSERT INTO mp.sync_run')) {
         return Promise.resolve([{ id: 'sync-run-1' }]);
       }
-      if (sql.includes('SELECT id, codigo, status')) {
+      if (sql.includes('SELECT id, codigo')) {
         return Promise.resolve([
           { id: 'item-1', codigo: 'FIXTURE-CA-001', status: 'pending' },
         ]);
@@ -56,6 +60,7 @@ describe('MercadoPublicoV2DurableSyncService', () => {
     );
     const service = new MercadoPublicoV2DurableSyncService(
       {} as unknown as MercadoPublicoApiV2CompraAgilClientService,
+      syncConfig as never,
       persistenceService,
       { query, transaction } as never,
       new MercadoPublicoV2ProjectionService({ transaction } as never),
@@ -80,6 +85,7 @@ describe('MercadoPublicoV2DurableSyncService', () => {
     const query = jest.fn().mockResolvedValue([]);
     const service = new MercadoPublicoV2DurableSyncService(
       {} as MercadoPublicoApiV2CompraAgilClientService,
+      syncConfig as never,
       {} as MercadoPublicoPersistenceService,
       { query } as never,
       {} as MercadoPublicoV2ProjectionService,
@@ -111,12 +117,24 @@ describe('MercadoPublicoV2DurableSyncService', () => {
     );
   });
 
-  it('persists an empty detail payload before retaining the item for review', async () => {
+  it('persists an empty detail payload before terminalizing the item', async () => {
+    let pendingItemReads = 0;
     const query = jest.fn().mockImplementation((sql: string) => {
-      if (sql.includes('SELECT id, codigo, status')) {
-        return Promise.resolve([
-          { id: 'item-1', codigo: 'FIXTURE-CA-001', status: 'pending' },
-        ]);
+      if (sql.includes('SELECT id, codigo')) {
+        pendingItemReads += 1;
+
+        return Promise.resolve(
+          pendingItemReads === 1
+            ? [
+                {
+                  id: 'item-1',
+                  codigo: 'FIXTURE-CA-001',
+                  attempts: 0,
+                  status: 'pending',
+                },
+              ]
+            : [],
+        );
       }
 
       return Promise.resolve([]);
@@ -140,6 +158,7 @@ describe('MercadoPublicoV2DurableSyncService', () => {
       {
         getByCodigo: jest.fn().mockResolvedValue(response),
       } as unknown as MercadoPublicoApiV2CompraAgilClientService,
+      syncConfig as never,
       {
         persistV2CompraAgilSnapshot,
       } as unknown as MercadoPublicoPersistenceService,
@@ -163,8 +182,8 @@ describe('MercadoPublicoV2DurableSyncService', () => {
       errorSummaryText: undefined,
     });
     expect(query).toHaveBeenCalledWith(
-      expect.stringContaining('raw_api_payload_id = COALESCE($4'),
-      ['item-1', 'hydrating', 'soft_miss', 'raw-empty-detail'],
+      expect.stringContaining("SET status = 'terminal'"),
+      ['item-1', 'soft_miss', 'raw-empty-detail'],
     );
   });
 
@@ -184,6 +203,7 @@ describe('MercadoPublicoV2DurableSyncService', () => {
     } as unknown as jest.Mocked<MercadoPublicoPersistenceService>;
     const service = new MercadoPublicoV2DurableSyncService(
       {} as unknown as MercadoPublicoApiV2CompraAgilClientService,
+      syncConfig as never,
       persistenceService,
       { query } as never,
       {} as MercadoPublicoV2ProjectionService,
@@ -210,6 +230,7 @@ describe('MercadoPublicoV2DurableSyncService', () => {
     });
     const service = new MercadoPublicoV2DurableSyncService(
       {} as MercadoPublicoApiV2CompraAgilClientService,
+      syncConfig as never,
       {} as MercadoPublicoPersistenceService,
       { query } as never,
       {} as MercadoPublicoV2ProjectionService,
@@ -239,6 +260,7 @@ describe('MercadoPublicoV2DurableSyncService', () => {
     const query = jest.fn().mockResolvedValue([]);
     const service = new MercadoPublicoV2DurableSyncService(
       {} as MercadoPublicoApiV2CompraAgilClientService,
+      syncConfig as never,
       {} as MercadoPublicoPersistenceService,
       { query } as never,
       {} as MercadoPublicoV2ProjectionService,

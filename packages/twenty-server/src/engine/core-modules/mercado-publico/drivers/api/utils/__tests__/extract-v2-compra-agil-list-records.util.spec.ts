@@ -1,4 +1,5 @@
 import { extractV2CompraAgilListRecords } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
+import detailEnvelope from 'src/engine/core-modules/mercado-publico/drivers/api/__tests__/fixtures/v2-compra-agil-detail-production-envelope.json';
 
 describe('extractV2CompraAgilListRecords', () => {
   it('should extract records from top-level array', () => {
@@ -62,6 +63,17 @@ describe('extractV2CompraAgilListRecords', () => {
     expect(records).toHaveLength(1);
     expect(records[0].codigo).toBe('CA-1');
     expect(records[0].orden_compra?.id_orden_compra).toBe('OC-123');
+  });
+
+  it('should extract a detail record from the production payload envelope', () => {
+    const records = extractV2CompraAgilListRecords(detailEnvelope);
+
+    expect(records).toEqual([
+      expect.objectContaining({
+        codigo: 'FIXTURE-CA-DETAIL',
+        orden_compra: { id_orden_compra: 'FIXTURE-OC-DETAIL' },
+      }),
+    ]);
   });
 
   it('should filter out non-record items', () => {

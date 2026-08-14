@@ -10,11 +10,17 @@ import {
   MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
   MERCADO_PUBLICO_V2_SYNC_COMMAND_JOB_NAME,
 } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
+import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
 
 export type MercadoPublicoV2SyncControlAction = 'start' | 'resume' | 'cancel';
 
 export type MercadoPublicoV2ClaimCommandResult =
-  | { kind: 'claimed'; syncRunId: string; attemptId: string }
+  | {
+      kind: 'claimed';
+      syncRunId: string;
+      attemptId: string;
+      attemptNumber: number;
+    }
   | {
       kind: 'noop';
       reason:
@@ -98,6 +104,7 @@ export class MercadoPublicoV2SyncControlService {
     private readonly coreDataSource: DataSource,
     @InjectMessageQueue(MessageQueue.mercadoPublicoQueue)
     private readonly messageQueueService: MessageQueueService,
+    private readonly mercadoPublicoConfigService: MercadoPublicoConfigService,
   ) {}
 
   async isOperator({
@@ -316,6 +323,7 @@ export class MercadoPublicoV2SyncControlService {
       kind: 'claimed',
       syncRunId: command.sync_run_id,
       attemptId: attemptRows[0].id,
+      attemptNumber: Number(attemptNumberRows[0]?.next_attempt ?? 1),
     };
   }
 
@@ -324,33 +332,47 @@ export class MercadoPublicoV2SyncControlService {
     attemptId,
     status,
     errorSummary,
+    attemptNumber,
   }: {
     commandId: string;
     attemptId: string;
-    status: 'succeeded' | 'partial_failed' | 'failed' | 'cancelled';
+    status:
+      | 'succeeded'
+      | 'partial_failed'
+      | 'retryable_failed'
+      | 'failed'
+      | 'cancelled';
     errorSummary?: string;
+    attemptNumber?: number;
   }): Promise<void> {
-    const commandState =
-      status === 'succeeded'
+    const retryable =
+      status === 'retryable_failed' &&
+      attemptNumber !== undefined &&
+      attemptNumber <=
+        this.mercadoPublicoConfigService.getSettings().httpMaxRetries;
+    const commandState = retryable
+      ? 'pending'
+      : status === 'succeeded'
         ? 'succeeded'
         : status === 'cancelled'
           ? 'cancelled'
           : 'failed';
+    const attemptState = retryable ? 'failed' : commandState;
 
     await this.coreDataSource.transaction(async (entityManager) => {
       const commands = await entityManager.query<
         { workspace_id: string; sync_run_id: string }[]
       >(
         `
-          UPDATE mp.sync_command
-          SET state = $2,
-              error_summary = $3,
-              finished_at = now(),
-              updated_at = now()
-          WHERE id = $1 AND state = 'claimed'
-          RETURNING workspace_id, sync_run_id
-        `,
-        [commandId, commandState, errorSummary ?? null],
+            UPDATE mp.sync_command
+            SET state = $2,
+                error_summary = $3,
+                finished_at = CASE WHEN $4 THEN NULL ELSE now() END,
+                updated_at = now()
+            WHERE id = $1 AND state = 'claimed'
+            RETURNING workspace_id, sync_run_id
+          `,
+        [commandId, commandState, errorSummary ?? null, retryable],
       );
       const command = commands[0];
 
@@ -367,7 +389,7 @@ export class MercadoPublicoV2SyncControlService {
               updated_at = now()
           WHERE id = $1 AND state = 'running'
         `,
-        [attemptId, commandState, errorSummary ?? null],
+        [attemptId, attemptState, errorSummary ?? null],
       );
       await this.appendAudit(entityManager, {
         workspaceId: command.workspace_id,
@@ -835,6 +857,15 @@ export class MercadoPublicoV2SyncControlService {
       await this.messageQueueService.add(
         MERCADO_PUBLICO_V2_SYNC_COMMAND_JOB_NAME,
         { commandId },
+        {
+          retryLimit:
+            this.mercadoPublicoConfigService.getSettings().httpMaxRetries,
+          backoff: {
+            type: 'fixed',
+            delay:
+              this.mercadoPublicoConfigService.getSettings().httpRetryBackoffMs,
+          },
+        },
       );
       await this.coreDataSource.query(
         `

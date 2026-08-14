@@ -72,15 +72,15 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
     });
 
     it('should throw when tamano_pagina exceeds 50', async () => {
-      await expect(
-        service.getList({ tamano_pagina: 51 }),
-      ).rejects.toThrow('Compra Agil V2 list params invalid');
+      await expect(service.getList({ tamano_pagina: 51 })).rejects.toThrow(
+        'Compra Agil V2 list params invalid',
+      );
     });
 
     it('should throw when id and q are both provided', async () => {
-      await expect(
-        service.getList({ id: 'X', q: 'Y' }),
-      ).rejects.toThrow('Compra Agil V2 list params invalid');
+      await expect(service.getList({ id: 'X', q: 'Y' })).rejects.toThrow(
+        'Compra Agil V2 list params invalid',
+      );
     });
 
     it('should fetch list and return formatted response', async () => {
@@ -153,6 +153,7 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       mockHttpClient.get.mockResolvedValue({
         status: 429,
         data: {},
+        headers: { 'retry-after': '120' },
       });
 
       mockConfigService.getSettings
@@ -164,6 +165,7 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       await expect(service.getList({})).resolves.toMatchObject({
         httpStatus: 429,
         errorSummary: 'retryable_failed',
+        retryAfterSeconds: 120,
       });
       expect(mockQuotaTracker.record429).not.toHaveBeenCalled();
     });
@@ -213,9 +215,7 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       expect(result.requestParams).toEqual({ codigo: 'CA-1' });
       expect(result.compraAgil).toHaveLength(1);
       expect(result.compraAgil[0].codigo).toBe('CA-1');
-      expect(result.compraAgil[0].orden_compra?.id_orden_compra).toBe(
-        'OC-123',
-      );
+      expect(result.compraAgil[0].orden_compra?.id_orden_compra).toBe('OC-123');
       expect(result.errorSummary).toBeUndefined();
     });
   });
