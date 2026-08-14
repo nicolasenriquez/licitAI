@@ -1911,7 +1911,7 @@ export class ConfigVariables {
   })
   @CastToPositiveNumber()
   @IsOptional()
-  MERCADO_PUBLICO_HTTP_MAX_RETRIES: number = 3;
+  MERCADO_PUBLICO_HTTP_MAX_RETRIES: number = 1;
 
   @ConfigVariablesMetadata({
     group: ConfigVariablesGroup.SERVER_CONFIG,
