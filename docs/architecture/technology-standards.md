@@ -173,7 +173,7 @@ Technology in the "Existing Standards" tables above is **binding** unless otherw
 - Nx + Yarn 4 remains the monorepo tooling for the foreseeable future.
 - oxlint + oxfmt remain the authoritative lint and format tools. ESLint and Prettier are not used.
 - tsgo remains the authoritative TypeScript type checker.
-- PostgreSQL 16 and Redis 7 are the minimum required versions.
+- PostgreSQL 16 is the minimum required version. Compose pins Redis 7.
 - Linaria is the styling solution for all React components in the monorepo.
 - `docs/standards/` is the authoritative source for technology standards. `.cursor/rules/` serves as indexes referencing `docs/standards/` without duplicating content.
 - ClickHouse is optional for development environments. Enable only when analytics features are needed.

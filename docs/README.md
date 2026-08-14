@@ -80,7 +80,7 @@ context.
 | Product maturity | Active. Twenty Cloud available at twenty.com. Self-hosting supported. App ecosystem with internal, community, and example apps. |
 | Architecture maturity | High but implicit. Architecture is visible in code and existing durable documents, but not consolidated in a single document. |
 | Documentation maturity | Structured. Public docs at docs.twenty.com (Mintlify), root routing via `AGENTS.md` + `index.md`, and an internal baseline under `docs/`. |
-| Technical certainty | High. Stack is ratified: NestJS 11, React 19, TypeScript strict, PostgreSQL 16, Redis 7, BullMQ, GraphQL Yoga, Jotai, Linaria, Nx. |
+| Technical certainty | High. Stack is ratified: NestJS 11, React 19, TypeScript strict, PostgreSQL 16, Redis, BullMQ, GraphQL Yoga, Jotai, Linaria, Nx. |
 | Data certainty | High. Multi-tenant per-workspace PostgreSQL schemas. Metadata-driven object/field model. Instance command migration system. |
 
 ## Target State
@@ -110,7 +110,6 @@ context.
 ## Required Inputs
 
 - Explicit non-functional requirements (SLOs, SLAs, performance budgets).
-- Formal decision records for the 4 foundational ADRs: Nx monorepo, NestJS+TypeORM, metadata-driven UI, per-workspace schema.
 
 ## Resolved Decisions
 

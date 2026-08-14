@@ -113,6 +113,23 @@ If the gate fails, remove the pilot skill and retain this evaluation as the
 record of the decision. If it passes, the user chooses the next governance
 step.
 
+## Audit Record 1
+
+Date: 2026-08-14.
+
+Surface: `docs/` routing files (`AGENTS.md`, `CONTEXT.md`, `index.md`, `README.md`).
+
+Findings:
+
+- Stale claim fixed: `README.md` Required Inputs listed the 4 foundational ADRs as missing; ADRs 0001-0004 are Accepted.
+- Unsupported status corrected: `CONTEXT.md` said `docs/` is a "validated pilot surface (wave 0)"; no wave model exists in the repository. Now states the pilot gate is pending.
+- Version claim softened: `README.md` said "Redis 7"; the main Docker Compose file pins no Redis version.
+- Two advisory findings waived: TypeScript strict (true in six packages), platform claims (twenty.com, docs.twenty.com, npm).
+
+Checks: relative links resolve; frontmatter matches the OKF taxonomy; `docs/index.md` stays body-only per `docs/standards/okf-standard.md`.
+
+Owner: repository maintainer. Verifier: the next staged audit. Retirement: the gate passes after the second audit, or the pilot skill is removed.
+
 ## Sources
 
 - [OpenAI: Custom instructions with AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md)

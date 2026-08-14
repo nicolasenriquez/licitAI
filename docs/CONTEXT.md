@@ -24,7 +24,7 @@ Describe the role of `docs/` in this repository during the workspace routing pil
 
 ## Current Routing Status
 
-- `docs/` is a validated pilot surface (wave 0).
+- `docs/` is an enabled pilot surface; its adoption gate is pending (see `architecture/agent-context-and-documentation-workflows.md`).
 
 ## How To Use This Surface
 
