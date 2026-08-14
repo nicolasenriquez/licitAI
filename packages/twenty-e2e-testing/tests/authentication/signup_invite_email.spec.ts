@@ -16,7 +16,7 @@ test('Sign up with invite link via email', async ({
 
   const inviteLink: string =
     await test.step('Go to Settings and copy invite link', async () => {
-      await page.goto(process.env.LINK); // skip login page (and redirect) when running on environments with multi-workspace enabled
+      await page.goto('/');
       await leftMenu.goToSettings();
       await settingsPage.goToMembersSection();
       await membersSection.copyInviteLink();

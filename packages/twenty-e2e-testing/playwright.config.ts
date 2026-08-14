@@ -17,8 +17,10 @@ if (envResult.error) {
  */
 export const playwrightConfig = {
   testDir: './tests',
-  outputDir: 'run_results/', // directory for screenshots and videos
-  snapshotPathTemplate: '{testDir}/__screenshots__/{testFilePath}/{arg}{ext}', // just in case, do not delete it
+  testIgnore:
+    /.*(external-integrations|key-features-gated|mercado-publico-contract).*/,
+  outputDir: 'run_results/',
+  snapshotPathTemplate: '{testDir}/__screenshots__/{testFilePath}/{arg}{ext}',
   fullyParallel: false, // parallelization of tests will be done later in the future
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -35,7 +37,7 @@ export const playwrightConfig = {
   use: {
     baseURL: process.env.FRONTEND_BASE_URL || 'http://localhost:3001',
     trace: 'retain-on-failure', // trace takes EVERYTHING from page source, records every single step, should be used only when normal debugging won't work
-    screenshot: 'on', // either 'on' here or in different method in modules, if 'on' all screenshots are overwritten each time the test is run
+    screenshot: 'only-on-failure',
     headless: true, // instead of changing it to false, run 'yarn test:e2e:debug' or 'yarn test:e2e:ui'
     testIdAttribute: 'data-testid', // taken from Twenty source
   },

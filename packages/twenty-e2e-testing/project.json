@@ -17,6 +17,27 @@
         "commands": ["yarn playwright test"]
       }
     },
+    "test:key-features": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/twenty-e2e-testing",
+        "command": "yarn playwright test --config=playwright.key-features.standard.config.ts --project=chrome"
+      }
+    },
+    "test:key-features:gated": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/twenty-e2e-testing",
+        "command": "yarn playwright test --config=playwright.key-features.config.ts"
+      }
+    },
+    "test:external-integrations": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/twenty-e2e-testing",
+        "command": "yarn playwright test --config=playwright.external-integrations.config.ts"
+      }
+    },
     "test:mercado-publico": {
       "executor": "nx:run-commands",
       "options": {

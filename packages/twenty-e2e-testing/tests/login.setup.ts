@@ -10,5 +10,4 @@ test('Login test', async ({ page }) => {
     page,
     path.resolve(__dirname, '..', '.auth', 'user.json'),
   );
-  process.env.LINK = page.url();
 });

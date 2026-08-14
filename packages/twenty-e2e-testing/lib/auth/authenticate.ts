@@ -4,8 +4,9 @@ import { LoginPage } from '../pom/loginPage';
 
 export const authenticateAndSave = async (
   page: Page,
-  stateFile: string,
+  stateFile?: string,
   login?: string,
+  password?: string,
 ): Promise<void> => {
   await page.goto('/');
   const loginPage = new LoginPage(page);
@@ -13,7 +14,7 @@ export const authenticateAndSave = async (
   await loginPage.clickLoginWithEmailIfVisible();
   await loginPage.typeEmail(login ?? process.env.DEFAULT_LOGIN);
   await loginPage.clickContinueButton();
-  await loginPage.typePassword(process.env.DEFAULT_PASSWORD);
+  await loginPage.typePassword(password ?? process.env.DEFAULT_PASSWORD);
   await loginPage.clickSignInButton();
   await expect(page).not.toHaveURL(/\/welcome(?:[/?#]|$)/);
   // Workspace picker only shows for multi-workspace users; single-workspace
@@ -23,5 +24,7 @@ export const authenticateAndSave = async (
     await page.getByText('Apple', { exact: true }).click();
     await page.waitForURL((url) => !url.pathname.includes('verify'));
   }
-  await page.context().storageState({ path: stateFile });
+  if (stateFile !== undefined) {
+    await page.context().storageState({ path: stateFile });
+  }
 };

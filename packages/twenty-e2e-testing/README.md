@@ -46,6 +46,34 @@ npx nx test:debug twenty-e2e-testing
 npx nx test:report twenty-e2e-testing
 ```
 
+## Key feature coverage
+
+Run the deterministic local suite with:
+
+```powershell
+npx nx run twenty-e2e-testing:test:key-features
+```
+
+| Capability | Command | Scope |
+| --- | --- | --- |
+| Data model, views, workflows, CSV import/export | `test:key-features` | Local and deterministic. Each test uses a unique name and removes temporary data. |
+| Dashboards, permissions, API settings UI | `test:key-features:gated` | Requires disposable seeded users and explicit feature inputs. |
+| Mail, calendar, SSO | `test:external-integrations` | Requires an approved disposable provider, mailbox, and identity provider. |
+| AI | Manual | No stable acceptance contract or disposable local provider exists. |
+| Self-hosting | `ci-test-docker-compose.yaml` | Compose configuration and `/healthz`, not a browser test. |
+
+The gated command fails before Playwright starts unless dashboard, permission,
+API UI, and `PERMISSIONS_LOGIN` inputs are configured. The external command
+does the same for the disposable provider inputs. It does not skip tests and
+does not use personal or production credentials.
+
+The E2E matrix does not claim acceptance coverage for AI, SSO configuration,
+audit history, or row-level permissions. REST and GraphQL endpoint behaviour
+remains covered by the integration suites in
+`packages/twenty-server/test/integration/rest` and
+`packages/twenty-server/test/integration/graphql`; Playwright verifies only
+that the product exposes the related UI.
+
 ## Headless Login
 
 The E2E Playwright configuration always runs Chromium headless. Do not switch
