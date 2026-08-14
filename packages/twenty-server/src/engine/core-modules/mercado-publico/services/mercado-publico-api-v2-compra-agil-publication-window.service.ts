@@ -26,9 +26,7 @@ export class MercadoPublicoApiV2CompraAgilPublicationWindowService {
     executionKey?: string,
   ): Promise<void> {
     if (isNonEmptyString(payload.sync_run_id)) {
-      await this.mercadoPublicoV2DurableSyncService.resume(
-        payload.sync_run_id,
-      );
+      await this.mercadoPublicoV2DurableSyncService.resume(payload.sync_run_id);
 
       return;
     }

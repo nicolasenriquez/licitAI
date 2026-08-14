@@ -9,9 +9,7 @@ const RETRYABLE_ERROR_CODES = new Set([
   'ETIMEDOUT',
 ]);
 
-export const classifyFailure = (
-  error: unknown,
-): MercadoPublicoErrorSummary => {
+export const classifyFailure = (error: unknown): MercadoPublicoErrorSummary => {
   if (!axios.isAxiosError(error)) {
     return 'hard_fail';
   }
