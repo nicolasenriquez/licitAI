@@ -176,9 +176,10 @@ tag recorded at G4 closeout.
 - Run existing lifecycle, evidence, analytics, security, navigation, and G3
   control proofs with the complete local harness. Record results rather than
   reimplement their contracts.
-- Run one correct V2 cycle on each of two consecutive `America/Santiago`
-  calendar dates through existing G3 control. Record durable
-  cohort/checkpoint/projection/watermark evidence for each. A human reviews every
-  changed visual baseline and records reason and result.
+- Run existing backend V2 publication-window cycles for 12 and 13 August 2026
+  with `tamano_pagina: 50`. Record each requested source window and durable
+  SyncRun/cohort/checkpoint/projection/watermark evidence. Page size does not
+  assert an exact returned-record count. A human reviews every changed visual
+  baseline and records reason and result.
 - Cloud smoke remains optional and only runs after explicit URL, identity,
   authorization, and allowed data are supplied.

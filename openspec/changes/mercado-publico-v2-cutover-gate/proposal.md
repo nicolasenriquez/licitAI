@@ -110,8 +110,9 @@ from one deployment.
 - Prove parity and rollback through browser-visible behavior, real authentication,
   network checks, screenshots, and traces; broad suites do not replace these
   proofs.
-- Record two daily V2-cycle results and human visual-baseline review as release
-  evidence, not automated assertions invented from absent runtime authority.
+- Record two V2 publication-window cycle results for 12 and 13 August 2026 with
+  requested page size 50, plus human visual-baseline review, as release
+  evidence. This verifies bounded source windows, not elapsed calendar days.
 
 ## Notes
 
@@ -128,7 +129,9 @@ from one deployment.
   journey with browser evidence. It does not compare V1 and V2 fields.
 - Human decision: restore all seven historical legacy GraphQL read queries so
   the selected command-center page remains unchanged. G4 restores no mutation.
-- Human decision: the daily gate requires one correct V2 cycle on each of two
-  consecutive `America/Santiago` calendar dates.
+- Human decision: the operational proof requires one correct V2
+  publication-window cycle for each of 12 and 13 August 2026, both with
+  `tamano_pagina: 50`. Page size is a request, not an exact returned-record
+  count.
 - Preconditions: G3 Issue 29 is the declared upstream blocker. G4 implementation
   begins only after its accepted evidence is available.

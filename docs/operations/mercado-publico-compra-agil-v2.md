@@ -52,6 +52,10 @@ payload: {"publicado_desde":"2026-08-10T00:00:00Z","publicado_hasta":"2026-08-10
   from its safe error classification, then use a new run.
 - **Policy**: do not paste response bodies, full headers, or tickets into logs,
   issues, fixtures, or chat. Persisted raw evidence stays in the audited store.
+- **Implemented**: a command-enqueued V2 run has one durable execution key.
+  Bounded queue retries resume that run from its checkpoint instead of creating
+  another SyncRun. Existing queued jobs without an execution key resume only a
+  matching active run with the same request parameters.
 
 ## Watermark and Pagination
 
@@ -64,6 +68,23 @@ payload: {"publicado_desde":"2026-08-10T00:00:00Z","publicado_hasta":"2026-08-10
 - **Policy**: resume or rediscover a failed durable run; do not recreate it
   with a subtly different partial window.
 
+## Detail Hydration Recovery
+
+- **Implemented**: every received detail response, including HTTP `200` with no
+  Compra Agil record, is persisted as raw audited evidence before the item stays
+  pending. Do not infer provider meaning from an empty response without that
+  evidence.
+- **Implemented**: detail hydration skips a request only when fresh list data
+  matches a current detail observation by provider change time, state, and OC
+  linkage. A frozen cohort item without fresh list evidence still requests
+  detail.
+- **Implemented**: each list and detail attempt refreshes the SyncRun heartbeat.
+  A retryable detail response stops the current pass, stores a terminal
+  resumable `partial_failed` run, and lets bounded queue retry resume it.
+- **Policy**: do not cancel a retryable run to make room for another run. Apply
+  the required instance command, then let the existing command retry or use the
+  authorized resume path.
+
 ## Sync Operator Deployment
 
 The V2 sync control boundary accepts only explicit human operators. An
@@ -71,6 +92,11 @@ operator assignment is a row in `mp.sync_operator` with a `workspace_id` and a
 `user_workspace_id`. The schema ships through the additive fast instance
 command `MpV2SyncOperationsFastInstanceCommand`; standard deployment applies
 it with `npx nx run twenty-server:database:migrate:prod`.
+
+The durable hydration-recovery schema ships through the additive fast instance
+command `MpV2DurableHydrationRecoveryFastInstanceCommand`. It adds only
+execution and hydration-decision metadata. Deploy it before enqueuing a new V2
+manual run that must resume through the generic queue.
 
 Manage assignments with the `mercado-publico:sync-operator` command through
 the existing server command surface.
@@ -106,7 +132,7 @@ payloads, or technical error causes.
 | 401 / 403 | Hard failure | Verify managed ticket configuration without printing it. |
 | 404 | Soft miss | Record the outcome; do not treat it as a transport retry. |
 | 429 | Retryable | Respect `Retry-After` when the provider supplies it; quota telemetry records the event. |
-| 500 / 503 / timeout | Retryable | Let the bounded queue retry policy apply. |
+| 500 / 503 / 504 / timeout | Retryable | Let the bounded queue retry policy resume the same durable run. |
 
 **Implemented**: `Retry-After` delta-seconds and HTTP-date values are parsed
 without storing headers. **Policy**: the current minimal telemetry design keeps

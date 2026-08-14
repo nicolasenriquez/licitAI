@@ -28,19 +28,94 @@ all retained V2 evidence counts are zero.
 | V2 cohort | `0` |
 | V2 source watermark | no row for `api-v2-compra-agil` / `global` |
 
-This is valid zero-state evidence. It is not G3 operational proof. Stop any
-cutover attempt until deployment has applied G3 schema and an assigned operator
-has produced a terminal V2 SyncRun with its command, attempt, and audit rows.
+This is valid zero-state evidence. It is not publication-window proof. Stop
+task 2.6 until the existing backend publication-window runner produces terminal
+V2 SyncRuns for both requested source-date windows.
+
+## Task 2.6 Attempt
+
+- Attempted at: `2026-08-13T23:50:58Z`
+- Requested source window: `2026-08-12T00:00:00Z` through
+  `2026-08-12T23:59:59Z`
+- Requested page size: `50`
+- Entry point: existing `mercado-publico:run` command with
+  `api-v2-compra-agil-by-publication-window`
+- Result: failed. The command retry policy produced four failed SyncRuns:
+  `511b490f-15e3-4a0f-ac8a-6429bf626849`,
+  `e1432033-3af8-4da0-9b3d-4a8701b13eb4`,
+  `ca487b7e-c2f8-4adc-8e3a-52ebeb82eab6`, and
+  `0a012902-182c-44c0-b3b3-3763cfda8563`.
+- Observed before failure: each run discovered `45` records and checkpointed
+  page `1`; the checkpoint reports `5200` total provider results. No run
+  hydrated or projected a record, and no source watermark was written.
+- Root cause: deployed worker called `UPDATE mp.sync_run SET heartbeat_at = now()`
+  but this runtime lacked `mp.sync_run.heartbeat_at`.
+
+## G3 Schema Patch
+
+- Applied at: `2026-08-13T23:58Z`
+- Entry point: existing `run-instance-commands --force` command in the active
+  server container.
+- Result: `MpV2SyncOperationsFastInstanceCommand` executed successfully.
+- Verified: six `mp.sync_run` G3 columns, four G3 control tables, and three G3
+  indexes now exist. No direct database schema write was used.
+
+## Task 2.6 Retry
+
+- Attempted 12 August window again at: `2026-08-14T00:00:03Z`
+- Full discovery evidence: SyncRun `920d80c2-9cf1-4ccb-afc3-330310609175`
+  checkpointed all `104` pages and discovered `2598` cohort records.
+- Terminal result: failed in hydration. Five detail requests were soft misses;
+  subsequent provider detail request returned `504`, recorded durably as
+  `hard_fail: provider: provider_error`. Automatic retries ended with
+  SyncRun `1e42093f-7b30-423e-9856-6a18f3a56d61`, also a provider `504` during
+  discovery.
+- No record projected and no watermark advanced. Do not enqueue the 13 August
+  window or authorize G5 until the 12 August window reaches terminal success.
+
+## Task 2.6 Full-Window Retry
+
+- Attempted 12 August window at: `2026-08-14T00:40:02Z`
+- Requested source window: `2026-08-12T00:00:00Z` through
+  `2026-08-12T23:59:59Z`
+- Requested page size: `50`
+- SyncRun: `e510d181-3721-4e3f-b5cb-6f0025ee565b`
+- Result: terminal failure during discovery after checkpointing `38` of `104`
+  pages. It retained `2598` discovered cohort records, but no hydration,
+  projection, or watermark occurred. Durable error summary:
+  `hard_fail: durable discovering failed`.
+- Stop condition remains active. The 13 August window was not enqueued.
+
+## Hydration Recovery Patch
+
+- Implemented in source only: `MpV2DurableHydrationRecoveryFastInstanceCommand`
+  adds SyncRun execution identity and frozen hydration-decision metadata. It has
+  not been applied to this runtime.
+- The backend now persists every detail response before recording a soft miss,
+  refreshes heartbeat after every provider attempt, makes retryable failures
+  terminal-resumable, and stops a detail pass after a retryable provider result.
+- New generic queue jobs receive a stable execution key. Their retries resume
+  the existing durable SyncRun instead of creating another run that conflicts
+  with the active-run index.
+- Hydration skips only a list-confirmed unchanged current detail. Cohort items
+  without fresh list evidence remain detail-hydrated. List data is not projected
+  as a substitute for the detail contract.
+- Validation: focused durable-sync, persistence, command, and instance-command
+  Jest suites pass locally. No instance command, runtime image, queue, existing
+  SyncRun, or provider request changed during this source patch.
+- Required before another task 2.6 attempt: deploy the new instance command and
+  source image, then run a small bounded publication window. Do not enqueue the
+  13 August window until the 12 August window reaches terminal success.
 
 ## Stable Evidence Locations
 
 | Evidence | Canonical location |
 | --- | --- |
-| Baseline and before/after state | This file and `evidence/<run-id>/state-before.txt`, `state-after.txt`, and `state-diff.txt` |
-| Route and browser proof | `evidence/<run-id>/playwright/`; copy screenshots, traces, console, and network output from `packages/twenty-e2e-testing/run_results/` before cleanup |
-| G3 durable records | Read-only PostgreSQL query output in `evidence/<run-id>/state-before.txt` and `state-after.txt` |
-| Deployment identity | `evidence/<run-id>/deployment.txt`, containing Git commit, image digest, build flag, deploy time, and operator |
-| Human visual decision | `evidence/<run-id>/visual-review.md` |
+| Baseline and before/after state | This file and `packages/twenty-e2e-testing/run_results/cutover-evidence/{before,after-disabled,after-reenabled}-state.json` |
+| Route and browser proof | `packages/twenty-e2e-testing/run_results/cutover-evidence/<phase>/playwright/`; copy screenshot, trace, console, and network artifacts to `evidence/<run-id>/playwright/` before the next harness run |
+| G3 durable records | Read-only PostgreSQL output in the three local state files and copied `evidence/<run-id>/state-*.json` files |
+| Deployment identity | `packages/twenty-e2e-testing/run_results/cutover-evidence/<phase>-deployment.txt`; add operator identity when copying to `evidence/<run-id>/deployment.txt` |
+| Human visual decision | `evidence/<run-id>/visual-review.md`, using the release-gate template |
 | Final G4 decision and G5 rollback reference | G4 task 4.2 release record in this change directory |
 
 `<run-id>` is `YYYYMMDDTHHMMSS-<enabled|disabled|reenabled>`. Evidence files
@@ -121,30 +196,38 @@ V1/CSV fields.
 
 ## Enabled-To-Disabled-To-Enabled Runbook
 
-1. Stop unless G3 schema exists, current source revision is recorded, no
-   command is `pending` or `claimed`, and no V2 SyncRun is in `queued`,
-   `discovering`, `hydrating`, `projecting`, or `reconciling`.
-2. Deploy complete build with `REACT_APP_MERCADO_PUBLICO_V2_ENABLED=true`.
-   Record build flag, Git commit, image digest, deploy timestamp, and operator
-   in `evidence/<run-id>/deployment.txt`.
-3. Capture pre-cutover state. Run enabled canonical V2 smoke and private legacy
-   alias smoke. Preserve browser evidence. Do not use browser provider calls.
-4. Deploy complete build with `REACT_APP_MERCADO_PUBLICO_V2_ENABLED=false`.
-   Do not run migrations, alter `mp` data, transform V1/CSV, or delete evidence,
-   SyncRuns, commands, attempts, or audit records.
-5. Run disabled canonical legacy smoke and private alias smoke. Capture state
-   again and diff it against the pre-disabled capture. Stop and escalate if any
-   durable row differs.
-6. Deploy complete build with `REACT_APP_MERCADO_PUBLICO_V2_ENABLED=true`.
-   Run canonical V2 and private alias smoke. Capture state a final time and
-   diff it against the pre-cutover capture.
-7. Stop release authorization on failed smoke, changed durable evidence, mixed
-   route composition, active control state, missing browser artifact, missing
-   human visual decision, or missing deployment identity.
+1. Run `node scripts/run-mercado-publico-cutover.mjs --dry-run` from
+   `packages/twenty-e2e-testing`. Stop unless it identifies the isolated
+   `twenty-mp-e2e` Compose project. Do not use the normal `twenty` project.
+2. Stop unless G3 schema exists, current source revision is recorded, no
+    command is `pending` or `claimed`, and no V2 SyncRun is in `queued`,
+    `discovering`, `hydrating`, `projecting`, or `reconciling`.
+3. Run `npx nx run twenty-e2e-testing:test:mercado-publico:cutover` from the
+   repository root. It provisions the existing G3 fixture once, then deploys
+   complete frontend builds with `REACT_APP_MERCADO_PUBLICO_V2_ENABLED=true`,
+   `false`, and `true` in that order. It does not seed projections directly.
+4. For a deployment outside the local harness, deploy complete build with
+   `REACT_APP_MERCADO_PUBLICO_V2_ENABLED=true`.
+    Record build flag, Git commit, image digest, deploy timestamp, and operator
+    in `evidence/<run-id>/deployment.txt`.
+5. Capture pre-cutover state. Run enabled canonical V2 smoke and private legacy
+    alias smoke. Preserve browser evidence. Do not use browser provider calls.
+6. Deploy complete build with `REACT_APP_MERCADO_PUBLICO_V2_ENABLED=false`.
+    Do not run migrations, alter `mp` data, transform V1/CSV, or delete evidence,
+    SyncRuns, commands, attempts, or audit records.
+7. Run disabled canonical legacy smoke and private alias smoke. Capture state
+    again and diff it against the pre-disabled capture. Stop and escalate if any
+    durable row differs.
+8. Deploy complete build with `REACT_APP_MERCADO_PUBLICO_V2_ENABLED=true`.
+    Run canonical V2 and private alias smoke. Capture state a final time and
+    diff it against the pre-cutover capture.
+9. Stop release authorization on failed smoke, changed durable evidence, mixed
+    route composition, active control state, missing browser artifact, missing
+    human visual decision, or missing deployment identity.
 
-Task 1.2 owns automated route-matrix coverage. Task 2.4 owns operator-facing
-documentation. This runbook defines their immutable evidence and deployment
-boundary only.
+Task 1.2 owns automated route-matrix coverage. This runbook owns the operator
+procedure and evidence retention. G5 retirement is prohibited throughout G4,
+including after a successful local cutover run.
 
 ## G5 Rollback Release Tag
 
@@ -154,3 +237,6 @@ final release record only after all G4 gates pass, substitutes the full approved
 commit SHA, and records the tag and immutable image digest. The tag must not be
 force-moved or recreated. Until that final record exists, G5 is prohibited and
 no G4 approval tag exists for current revision.
+
+When G5 begins, rollback deploys this immutable G4-approved tag. It must not
+restore a live legacy alias or alter the retained G4 evidence.

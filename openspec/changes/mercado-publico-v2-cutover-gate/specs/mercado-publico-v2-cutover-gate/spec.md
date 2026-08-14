@@ -59,16 +59,17 @@ evidence, projections, SyncRuns, commands, attempts, or audit records.
 The system SHALL not authorize G5 retirement until local evidence records:
 authenticated parity smoke; complete local harness passing lifecycle, evidence,
 analytics, security, navigation, and cutover gates; rollback demonstration; two
-consecutive correct daily V2 cycles; and human review of every visual-baseline
-change. Cloud smoke SHALL run only with explicit URL, identity, authorization,
-and allowed data.
+correct V2 publication-window cycles for 12 and 13 August 2026 with requested
+page size 50; and human review of every visual-baseline change. Cloud smoke
+SHALL run only with explicit URL, identity, authorization, and allowed data.
 
-#### Scenario: Daily observation gate completes
-- **WHEN** one correct V2 cycle completes on each of two consecutive
-  `America/Santiago` calendar dates with correct cohort,
-checkpoint, projection, and watermark evidence and all local gates pass
+#### Scenario: Publication-window observation gate completes
+- **WHEN** one correct V2 publication-window cycle completes for each of
+  12 and 13 August 2026 with `tamano_pagina: 50`, correct cohort, checkpoint,
+  projection, and watermark evidence, and all local gates pass
 - **THEN** the release record contains sufficient evidence to approve or reject
-G5 retirement without claiming cloud validation
+  G5 retirement without claiming cloud validation or exactly 50 returned
+  records per request
 
 ### Requirement: G5 rollback uses the approved G4 release reference
 The final G4 release record SHALL identify one immutable approved release tag.

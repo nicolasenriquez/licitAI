@@ -62,23 +62,25 @@
   browser provider calls.
   Traceability: Group G4; Slice S2; Issue 30; Acceptance AC 30.2, AC 30.3, AC 30.4.
 
-- [ ] 2.4 Document exact local cutover, rollback, re-enable, evidence-retention,
+- [x] 2.4 Document exact local cutover, rollback, re-enable, evidence-retention,
   and stop conditions. Keep G5 retirement explicitly prohibited during G4. State
   that G5 rollback deploys the immutable G4-approved release tag.
   Traceability: Group G4; Slice S2; Issue 30; Acceptance AC 30.4, AC 30.5.
 
 ### Operational gate
 
-- [ ] 2.5 Add release-gate evidence manifest and runner that invokes existing
+- [x] 2.5 Add release-gate evidence manifest and runner that invokes existing
   focused lifecycle, evidence, analytics, security, navigation, and cutover
   checks without duplicating their product assertions. Include visual-baseline
   review record format and cloud-smoke precondition check.
   Traceability: Group G4; Slice S3; Issue 31; Acceptance AC 31.2, AC 31.3, AC 31.4, AC 31.6.
 
-- [ ] 2.6 Run and record one correct V2 cycle on each of two consecutive
-  `America/Santiago` calendar dates through existing G3 SyncRun control. For
-  each, retain cohort, checkpoint, projection, watermark, command, attempt, and
-  audit evidence; reject G5 authorization on any failed or incomplete cycle.
+- [ ] 2.6 Run and record two correct V2 publication-window cycles through the
+  existing backend runner: one for `2026-08-12` and one for `2026-08-13`, each
+  with `tamano_pagina: 50`. For each, retain the requested window, SyncRun,
+  cohort, checkpoint, projection, and watermark evidence. `tamano_pagina` is a
+  provider page-size request, not a claim that exactly 50 records are returned.
+  Reject G5 authorization on any failed or incomplete cycle.
   Traceability: Group G4; Slice S3; Issue 31; Acceptance AC 31.1, AC 31.5.
 
 ## 3. Verification
@@ -141,6 +143,11 @@
 
 ## Progress
 
+- 2026-08-13: Started tasks 3.1, 3.2, and 3.3. Running focused route and
+  restored-legacy checks first, then isolated browser evidence and required
+  package validation. Full browser proof remains subject to the existing
+  isolated Compose preflight; cloud smoke remains excluded without authority
+  inputs.
 - 2026-08-13: Started task 0.1. Inspecting G3 Issue 29 evidence, current route composition, and historical retained-module dependency closure.
 - 2026-08-13: Completed task 0.1. G3 Issue 29 is done: all five acceptance
   criteria pass in `.scratch/mercado-publico-v2-reconstruction/issues/29-operar-cancelacion-y-exclusion-mutua.md`;
@@ -230,3 +237,98 @@
   Node test is red as intended because the release-gate runner is absent;
   direct `oxlint`, formatting, and `git diff --check` pass. No existing product
   assertion or runtime state changed.
+- 2026-08-13: Started task 2.3. Extending the isolated fixture harness for one
+  seeded database, three frontend deployment phases, authenticated route smoke,
+  and read-only before/after durable-state evidence.
+- 2026-08-13: Task 2.3 implementation is ready in
+  `packages/twenty-e2e-testing/scripts/run-mercado-publico-cutover.mjs` and the
+  `test:mercado-publico:cutover` target. It provisions once through the existing
+  durable SyncRun fixture, rebuilds only the frontend for enabled, disabled, and
+  re-enabled phases, preserves the isolated database, captures read-only V2/G3
+  durable state, and rejects any state difference. Per-phase Playwright output
+  includes trace, screenshot, console, and network attachments. Dry-run, syntax,
+  Playwright discovery, direct `oxlint`, formatting, `git diff --check`, and
+  isolation preflight pass. Full execution is blocked: a pre-existing
+  `twenty-mp-e2e` server is running. It was not stopped or modified without
+  authorization, so task 2.3 remains unchecked pending an isolated full run.
+- 2026-08-13: Started task 2.5. Adding the release-gate manifest and runner to
+  invoke existing lifecycle, evidence, analytics, security, navigation, and
+  cutover owner checks without adding assertions.
+- 2026-08-13: Completed task 2.5. Added
+  `packages/twenty-e2e-testing/scripts/mercado-publico-release-gate.mjs` and
+  `test:mercado-publico:release-gate`. The manifest invokes each of the six
+  existing owner commands once, writes a human visual-baseline review record,
+  and blocks `--cloud-smoke` unless URL, identity, authorization, and allowed
+  data inputs exist. `node --test scripts/mercado-publico-release-gate.test.mjs`,
+  `npx oxlint scripts/mercado-publico-release-gate.mjs scripts/mercado-publico-release-gate.test.mjs`,
+  `npx oxfmt --check scripts/mercado-publico-release-gate.mjs scripts/mercado-publico-release-gate.test.mjs project.json`,
+  cloud-smoke dry runs, and `git diff --check` pass. The package has no
+  `lint:diff-with-main` target.
+- 2026-08-13: Started task 2.4. Making the existing pre-cutover evidence record
+  the exact local cutover, rollback, re-enable, evidence-retention, and stop
+  procedure without creating a duplicate operator document.
+- 2026-08-13: Completed task 2.4. Updated `pre-cutover-evidence.md` with the
+  isolated local harness dry run and command, exact enabled-disabled-reenabled
+  build flags, local state/deployment/browser artifact locations, durable-state
+  stop conditions, G4-wide G5 prohibition, and immutable approved-tag G5
+  rollback rule. `node scripts/run-mercado-publico-cutover.mjs --dry-run` proves
+  the documented isolated three-phase sequence; `git diff --check` passes.
+- 2026-08-13: Started task 2.6. Checking the canonical runtime and existing G3
+  control evidence before any daily-cycle action. Two real consecutive
+  `America/Santiago` dates are required; no synthetic timestamp or direct data
+  write is permitted.
+- 2026-08-13: Task 2.6 blocked. `just runtime-check` confirms canonical Compose
+  health at revision `02b7a283908ede74c6ca04f58fea039cd51dd7fc`; read-only
+  PostgreSQL inspection at `2026-08-13 America/Santiago` finds
+  `mp.sync_run`, `mp.v2_cohort`, `mp.gold_detected_process`, and
+  `mp.source_watermark`, but not G3 `mp.sync_command`, `mp.sync_run_attempt`,
+  or `mp.sync_run_audit`. All current V2 counts are zero. This runtime cannot
+  prove an existing G3-controlled cycle, and a second real Santiago date has
+  not elapsed. G5 authorization is rejected. Deploy G3 schema, use an assigned
+  operator to run one terminal V2 cycle on each of two consecutive local dates,
+  then retain the required evidence before retrying this task.
+- 2026-08-13: Preserved cutover evidence across harness runs. The harness now
+  writes each run under `cutover-evidence/<run-id>` and rejects unsafe explicit
+  run IDs instead of deleting the evidence root. The task 2.3 full run remains
+  blocked by the existing isolated E2E server.
+- 2026-08-13: Retried task 2.6 with a read-only healthy-runtime preflight.
+  `just runtime-check` passes. At `2026-08-13 19:39 America/Santiago`, only
+  `mp.sync_run`, `mp.v2_cohort`, `mp.gold_detected_process`, and
+  `mp.source_watermark` exist; G3 `mp.sync_operator`, `mp.sync_command`,
+  `mp.sync_run_attempt`, and `mp.sync_run_audit` remain absent. No V2 SyncRun,
+  cohort, projection, or watermark exists. Therefore no G3-controlled cycle
+  can be started, no two-date evidence can be retained, and G5 remains
+  rejected. No migration, direct database write, synthetic cycle, or cloud
+  smoke ran; cloud smoke correctly rejected missing authority inputs.
+- 2026-08-13: Revised task 2.6 to verify two real V2 publication windows rather
+  than fabricate execution dates. The existing runner only supports page sizes
+  through `50`, so proof requests `tamano_pagina: 50`, not `100`. The 12 August
+  window was submitted through `mercado-publico:run`. Its configured retry policy
+  produced four failed runs; each discovered 45 records and checkpointed page 1,
+  then failed because deployed worker code writes `mp.sync_run.heartbeat_at` while
+  the runtime has not applied G3 schema. The 13 August window was not submitted.
+  Evidence is in `pre-cutover-evidence.md`; task 2.6 remains unchecked and G5
+  remains rejected until G3 deployment and two terminal successful windows.
+- 2026-08-14: Applied existing additive
+  `MpV2SyncOperationsFastInstanceCommand` through the standard
+  `run-instance-commands --force` path. Runtime verification confirms G3
+  columns, control tables, and indexes. Retried the 12 August window. SyncRun
+  `920d80c2-9cf1-4ccb-afc3-330310609175` completed all 104 discovery pages and
+  discovered 2598 cohort records, then hydration encountered five soft misses
+  followed by provider HTTP 504. Queue retries terminated with another provider
+  504 SyncRun. No projection or watermark exists; the 13 August window was not
+  submitted. Task 2.6 remains unchecked and G5 remains rejected.
+- 2026-08-14: Retried the full 12 August publication window through the
+  standard backend runner with `tamano_pagina: 50`. SyncRun
+  `e510d181-3721-4e3f-b5cb-6f0025ee565b` reached discovery checkpoint 38 of
+  104 with 2598 cohort records, then failed terminally with
+  `hard_fail: durable discovering failed`. It made no hydration, projection,
+  or watermark progress. Stop condition prevented 13 August submission; task
+  2.6 remains unchecked and G5 remains rejected.
+- 2026-08-13: Implemented source-only hydration recovery after provider failure
+  investigation. New durable metadata preserves generic queue execution
+  ownership and frozen hydration decisions; detail responses now persist before
+  soft-miss handling; retryable failures become terminal-resumable; provider
+  attempts refresh heartbeat; and hydration skips only list-confirmed unchanged
+  detail. Focused server Jest passes. Required instance command and source image
+  are not deployed, so task 2.6 remains unchecked and G5 remains rejected.
