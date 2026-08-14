@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 import { Logger } from '@nestjs/common';
 
 import { Command, CommandRunner, Option } from 'nest-commander';
@@ -49,6 +51,7 @@ export class MercadoPublicoRunCommand extends CommandRunner {
       {
         jobName: options.jobName,
         payload,
+        executionKey: crypto.randomUUID(),
         requestedAt: new Date().toISOString(),
         requestedBy: 'command',
       },

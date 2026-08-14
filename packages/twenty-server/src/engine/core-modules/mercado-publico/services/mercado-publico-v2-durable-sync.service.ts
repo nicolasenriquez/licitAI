@@ -12,6 +12,7 @@ import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers
 import {
   type MercadoPublicoV2LifecycleClassification,
   classifyV2CompraAgilLifecycle,
+  getV2CompraAgilProviderOrderId,
 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
 import { createJsonSha256 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/create-json-sha256.util';
 import { extractV2CompraAgilListRecords } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
@@ -23,6 +24,7 @@ import {
   type MercadoPublicoJobName,
 } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
+import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 import { MercadoPublicoV2ProjectionService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-projection.service';
 import { type CompraAgilListParams } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/validate-compra-agil-params.util';
 
@@ -64,6 +66,25 @@ type SyncRunItem = {
   status: 'pending' | 'processing' | 'succeeded' | 'terminal';
 };
 
+type CurrentDetailRow = {
+  codigo: string;
+  provider_changed_at: Date | string | null;
+  state_id: string | null;
+  state_code: string | null;
+  id_orden_compra: string | null;
+};
+
+type HydrationPlan = {
+  required: boolean;
+  reason:
+    | 'missing_detail_observation'
+    | 'provider_change'
+    | 'state_drift'
+    | 'order_linkage_drift'
+    | 'unchanged_detail'
+    | 'frozen_active_cohort';
+};
+
 type SyncRunRow = {
   id: string;
   intent: MercadoPublicoV2SyncIntent;
@@ -71,6 +92,7 @@ type SyncRunRow = {
   request_params: Record<string, unknown>;
   watermark_before: Date | null;
   error_stage: string | null;
+  error_retryable: boolean | null;
   status: string;
   cancellation_requested_at: Date | null;
 };
@@ -112,7 +134,34 @@ export class MercadoPublicoV2DurableSyncService {
     intent: MercadoPublicoV2SyncIntent = 'scheduled',
     jobName: MercadoPublicoJobName = 'api-v2-compra-agil-incremental',
   ): Promise<MercadoPublicoV2DurableSyncResult> {
-    const context = await this.createSyncRun(intent, payload);
+    return this.startNewRun(payload, intent, jobName);
+  }
+
+  async startOrResume(
+    payload: Record<string, unknown>,
+    intent: MercadoPublicoV2SyncIntent,
+    jobName: MercadoPublicoJobName,
+    executionKey?: string,
+  ): Promise<MercadoPublicoV2DurableSyncResult> {
+    const existingSyncRunId =
+      executionKey === undefined
+        ? null
+        : await this.findSyncRunByExecutionKey(executionKey);
+
+    if (existingSyncRunId !== null) {
+      return this.executeExistingRun(existingSyncRunId);
+    }
+
+    return this.startNewRun(payload, intent, jobName, executionKey);
+  }
+
+  private async startNewRun(
+    payload: Record<string, unknown>,
+    intent: MercadoPublicoV2SyncIntent,
+    jobName: MercadoPublicoJobName,
+    executionKey?: string,
+  ): Promise<MercadoPublicoV2DurableSyncResult> {
+    const context = await this.createSyncRun(intent, payload, executionKey);
     const jobRunRecord =
       await this.mercadoPublicoPersistenceService.createJobRun(jobName);
     let stage: 'discovering' | 'hydrating' = 'discovering';
@@ -140,7 +189,20 @@ export class MercadoPublicoV2DurableSyncService {
       return this.getCancelledRunResult(context);
     }
 
-    if (context.error_stage === 'discovering') {
+    if (
+      context.status === 'queued' ||
+      context.status === 'discovering' ||
+      (context.status === 'partial_failed' &&
+        context.error_stage === 'discovering' &&
+        context.error_retryable)
+    ) {
+      return this.executeExistingRun(syncRunId);
+    }
+
+    if (
+      context.error_stage === 'discovering' &&
+      !(context.status === 'partial_failed' && context.error_retryable)
+    ) {
       throw new Error(
         `Mercado Publico V2 sync run ${syncRunId} failed during discovery and must be rediscovered`,
       );
@@ -229,10 +291,16 @@ export class MercadoPublicoV2DurableSyncService {
 
         await this.updateSyncRunStatus(syncRunId, 'hydrating');
 
-        return this.hydrateOrFinish(context, jobRunRecord.id);
+        return await this.hydrateOrFinish(context, jobRunRecord.id);
       }
 
-      if (context.status === 'discovering') {
+      if (
+        context.status === 'discovering' ||
+        (context.status === 'partial_failed' &&
+          context.error_stage === 'discovering' &&
+          context.error_retryable)
+      ) {
+        await this.updateSyncRunStatus(syncRunId, 'discovering');
         const nextPage = await this.getNextDiscoveryPage(syncRunId);
         const discovery = await this.discover(
           context,
@@ -246,16 +314,20 @@ export class MercadoPublicoV2DurableSyncService {
 
         await this.updateSyncRunStatus(syncRunId, 'hydrating');
 
-        return this.hydrateOrFinish(context, jobRunRecord.id);
+        return await this.hydrateOrFinish(context, jobRunRecord.id);
       }
 
       await this.resetProcessingItems(syncRunId);
       await this.updateSyncRunStatus(syncRunId, 'hydrating');
 
-      return this.hydrateOrFinish(context, jobRunRecord.id);
+      return await this.hydrateOrFinish(context, jobRunRecord.id);
     } catch (error) {
       const stage =
-        context.status === 'queued' || context.status === 'discovering'
+        context.status === 'queued' ||
+        context.status === 'discovering' ||
+        (context.status === 'partial_failed' &&
+          context.error_stage === 'discovering' &&
+          context.error_retryable)
           ? 'discovering'
           : 'hydrating';
 
@@ -328,6 +400,7 @@ export class MercadoPublicoV2DurableSyncService {
   private async createSyncRun(
     intent: MercadoPublicoV2SyncIntent,
     payload: Record<string, unknown>,
+    executionKey?: string,
   ): Promise<SyncRunContext> {
     const scope = getNonEmptyString(payload.scope) ?? 'global';
     const watermarkBefore = await this.readWatermark(scope);
@@ -335,9 +408,10 @@ export class MercadoPublicoV2DurableSyncService {
     const rows = await this.coreDataSource.query<{ id: string }[]>(
       `
         INSERT INTO mp.sync_run (
-          intent, source, scope, status, request_params, watermark_before
+          intent, source, scope, status, request_params, watermark_before,
+          execution_key
         )
-        VALUES ($1, $2, $3, 'queued', $4::jsonb, $5)
+        VALUES ($1, $2, $3, 'queued', $4::jsonb, $5, $6::uuid)
         RETURNING id
       `,
       [
@@ -346,6 +420,7 @@ export class MercadoPublicoV2DurableSyncService {
         scope,
         JSON.stringify(requestParams),
         watermarkBefore,
+        executionKey ?? null,
       ],
     );
 
@@ -357,6 +432,23 @@ export class MercadoPublicoV2DurableSyncService {
       status: 'queued',
       cancellationRequestedAt: null,
     };
+  }
+
+  private async findSyncRunByExecutionKey(
+    executionKey: string,
+  ): Promise<string | null> {
+    const rows = await this.coreDataSource.query<{ id: string }[]>(
+      `
+        SELECT id
+        FROM mp.sync_run
+        WHERE execution_key = $1::uuid
+        ORDER BY created_at DESC
+        LIMIT 1
+      `,
+      [executionKey],
+    );
+
+    return rows[0]?.id ?? null;
   }
 
   private buildRequestParams(
@@ -459,7 +551,7 @@ export class MercadoPublicoV2DurableSyncService {
     const rows = await this.coreDataSource.query<SyncRunRow[]>(
       `
         SELECT id, intent, scope, request_params, watermark_before, error_stage,
-               status, cancellation_requested_at
+                error_retryable, status, cancellation_requested_at
         FROM mp.sync_run
         WHERE id = $1
       `,
@@ -502,9 +594,11 @@ export class MercadoPublicoV2DurableSyncService {
     await this.coreDataSource.query(
       `
         INSERT INTO mp.sync_run_item (
-          sync_run_id, codigo, discovery_page, payload_checksum, status
+          sync_run_id, codigo, discovery_page, payload_checksum, status,
+          hydration_required, hydration_reason
         )
-        SELECT $1, codigo, 0, 'cohort-freeze', 'pending'
+        SELECT $1, codigo, 0, 'cohort-freeze', 'pending', true,
+               'frozen_active_cohort'
         FROM mp.v2_cohort
         WHERE source = $2
           AND scope = $3
@@ -528,15 +622,24 @@ export class MercadoPublicoV2DurableSyncService {
     let pageNumber = startPageNumber;
 
     while (true) {
-      const response =
-        await this.mercadoPublicoApiV2CompraAgilClientService.getList({
-          ...context.requestParams,
-          numero_pagina: pageNumber,
-        });
+      let response: MercadoPublicoApiV2CompraAgilListResponse;
+
+      try {
+        response =
+          await this.mercadoPublicoApiV2CompraAgilClientService.getList({
+            ...context.requestParams,
+            numero_pagina: pageNumber,
+          });
+      } finally {
+        await this.touchHeartbeat(context.syncRunId);
+      }
 
       if (response.errorSummary !== undefined) {
         await this.persistApiFailure(jobRunRecordId, response);
-        throw new Error(this.buildProviderError(response, 'discovering'));
+        throw new MercadoPublicoRecordedJobFailureError(
+          this.buildProviderError(response, 'discovering'),
+          response.errorSummary === 'retryable_failed',
+        );
       }
 
       const persistenceResult =
@@ -553,8 +656,6 @@ export class MercadoPublicoV2DurableSyncService {
         response,
         persistenceResult.rawApiPayloadId,
       );
-      await this.touchHeartbeat(context.syncRunId);
-
       const pagination = response.pagination;
       const hasNextPage =
         pagination?.hasNextPage === true && response.compraAgil.length > 0;
@@ -601,6 +702,7 @@ export class MercadoPublicoV2DurableSyncService {
   ): Promise<void> {
     const codes = response.compraAgil.map((record) => record.codigo);
     const knownCodes = await this.readActiveCohortCodes(context, codes);
+    const currentDetailsByCode = await this.readCurrentDetailsByCode(codes);
     const pageNumber = response.pagination?.pageNumber ?? 1;
     const pageSize =
       response.pagination?.pageSize ?? response.compraAgil.length;
@@ -656,19 +758,31 @@ export class MercadoPublicoV2DurableSyncService {
         }
 
         const normalized = normalizeV2CompraAgilRecord(record);
+        const hydrationPlan = this.getHydrationPlan(
+          record,
+          currentDetailsByCode.get(record.codigo),
+        );
 
         await entityManager.query(
           `
             INSERT INTO mp.sync_run_item (
               sync_run_id, codigo, discovery_page, raw_api_payload_id,
               payload_checksum, state_id, state_code, state_label,
-              provider_changed_at_raw, provider_changed_at, status
+              provider_changed_at_raw, provider_changed_at, status,
+              hydration_required, hydration_reason
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending')
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', $11, $12)
             ON CONFLICT (sync_run_id, codigo) DO UPDATE SET
               discovery_page = EXCLUDED.discovery_page,
               raw_api_payload_id = EXCLUDED.raw_api_payload_id,
-              payload_checksum = EXCLUDED.payload_checksum
+              payload_checksum = EXCLUDED.payload_checksum,
+              state_id = EXCLUDED.state_id,
+              state_code = EXCLUDED.state_code,
+              state_label = EXCLUDED.state_label,
+              provider_changed_at_raw = EXCLUDED.provider_changed_at_raw,
+              provider_changed_at = EXCLUDED.provider_changed_at,
+              hydration_required = EXCLUDED.hydration_required,
+              hydration_reason = EXCLUDED.hydration_reason
           `,
           [
             context.syncRunId,
@@ -681,12 +795,72 @@ export class MercadoPublicoV2DurableSyncService {
             normalized.stateLabel,
             normalized.providerChangedAtRaw,
             normalized.providerChangedAt,
+            hydrationPlan.required,
+            hydrationPlan.reason,
           ],
         );
       }
     });
 
     await this.updateSyncRunCounters(context.syncRunId);
+  }
+
+  private async readCurrentDetailsByCode(
+    codes: string[],
+  ): Promise<Map<string, CurrentDetailRow>> {
+    if (codes.length === 0) {
+      return new Map();
+    }
+
+    const rows = await this.coreDataSource.query<CurrentDetailRow[]>(
+      `
+        SELECT c.codigo, c.provider_changed_at, c.state_id, c.state_code,
+               c.id_orden_compra
+        FROM mp.compra_agil c
+        INNER JOIN mp.v2_observation o ON o.id = c.observation_id
+        WHERE c.codigo = ANY($1::text[])
+          AND o.snapshot_kind = 'detail'
+      `,
+      [codes],
+    );
+
+    return new Map(rows.map((row) => [row.codigo, row]));
+  }
+
+  private getHydrationPlan(
+    record: MercadoPublicoApiV2CompraAgilRecord,
+    currentDetail: CurrentDetailRow | undefined,
+  ): HydrationPlan {
+    const normalized = normalizeV2CompraAgilRecord(record);
+
+    if (currentDetail === undefined) {
+      return { required: true, reason: 'missing_detail_observation' };
+    }
+
+    const currentChangedAt = getDate(currentDetail.provider_changed_at);
+
+    if (
+      normalized.providerChangedAt === null ||
+      currentChangedAt === null ||
+      normalized.providerChangedAt.getTime() !== currentChangedAt.getTime()
+    ) {
+      return { required: true, reason: 'provider_change' };
+    }
+
+    if (
+      normalized.stateId !== currentDetail.state_id ||
+      normalized.stateCode !== currentDetail.state_code
+    ) {
+      return { required: true, reason: 'state_drift' };
+    }
+
+    if (
+      getV2CompraAgilProviderOrderId(record) !== currentDetail.id_orden_compra
+    ) {
+      return { required: true, reason: 'order_linkage_drift' };
+    }
+
+    return { required: false, reason: 'unchanged_detail' };
   }
 
   private async readActiveCohortCodes(
@@ -716,17 +890,18 @@ export class MercadoPublicoV2DurableSyncService {
     context: SyncRunContext,
     jobRunRecordId: string,
   ): Promise<'completed' | 'cancelled'> {
+    await this.completeCarryForwardItems(context.syncRunId);
     const items = await this.coreDataSource.query<SyncRunItem[]>(
       `
         SELECT id, codigo, status
         FROM mp.sync_run_item
-        WHERE sync_run_id = $1 AND status = 'pending'
-        ORDER BY discovery_page ASC, id ASC
+        WHERE sync_run_id = $1
+          AND status = 'pending'
+          AND hydration_required = true
+        ORDER BY attempts ASC, discovery_page ASC, id ASC
       `,
       [context.syncRunId],
     );
-    let successfulDetails = 0;
-    let retryableRequestFailures = 0;
     let isFirstItem = true;
 
     for (const item of items) {
@@ -760,10 +935,6 @@ export class MercadoPublicoV2DurableSyncService {
           throw error;
         }
 
-        if (failure === 'retryable_failed') {
-          retryableRequestFailures += 1;
-        }
-
         await this.markItemPending(
           item.id,
           `${failure}: detail request failed`,
@@ -771,35 +942,17 @@ export class MercadoPublicoV2DurableSyncService {
         );
 
         await this.updateSyncRunCounters(context.syncRunId);
-        continue;
-      }
 
-      if (
-        response.errorSummary !== undefined ||
-        response.compraAgil.length === 0
-      ) {
-        if (response.errorSummary !== undefined) {
-          await this.persistApiFailure(jobRunRecordId, response);
-
-          if (
-            response.errorSummary === 'hard_fail' ||
-            response.errorSummary === 'param_error'
-          ) {
-            throw new Error('systemic detail configuration failure');
-          }
-
-          if (response.errorSummary === 'retryable_failed') {
-            retryableRequestFailures += 1;
-          }
+        if (failure === 'retryable_failed') {
+          throw new MercadoPublicoRecordedJobFailureError(
+            'retryable detail request failed',
+            true,
+          );
         }
 
-        await this.markItemPending(
-          item.id,
-          response.errorSummary ?? 'soft_miss',
-          'hydrating',
-        );
-        await this.updateSyncRunCounters(context.syncRunId);
         continue;
+      } finally {
+        await this.touchHeartbeat(context.syncRunId);
       }
 
       const persistenceResult =
@@ -808,8 +961,43 @@ export class MercadoPublicoV2DurableSyncService {
             jobRunRecordId,
             apiResponse: response,
             snapshotKind: 'detail',
+            errorSummaryText:
+              response.errorSummary === undefined
+                ? undefined
+                : this.buildProviderError(response, 'provider'),
           },
         );
+
+      if (
+        response.errorSummary !== undefined ||
+        response.compraAgil.length === 0
+      ) {
+        if (response.errorSummary !== undefined) {
+          if (
+            response.errorSummary === 'hard_fail' ||
+            response.errorSummary === 'param_error'
+          ) {
+            throw new Error('systemic detail configuration failure');
+          }
+        }
+
+        await this.markItemPending(
+          item.id,
+          response.errorSummary ?? 'soft_miss',
+          'hydrating',
+          persistenceResult.rawApiPayloadId,
+        );
+        await this.updateSyncRunCounters(context.syncRunId);
+
+        if (response.errorSummary === 'retryable_failed') {
+          throw new MercadoPublicoRecordedJobFailureError(
+            'retryable detail response',
+            true,
+          );
+        }
+
+        continue;
+      }
 
       const detailRecord = response.compraAgil.find(
         (record) => record.codigo === item.codigo,
@@ -820,6 +1008,7 @@ export class MercadoPublicoV2DurableSyncService {
           item.id,
           'detail_codigo_mismatch',
           'hydrating',
+          persistenceResult.rawApiPayloadId,
         );
         await this.updateSyncRunCounters(context.syncRunId);
         continue;
@@ -834,8 +1023,6 @@ export class MercadoPublicoV2DurableSyncService {
       );
       const lifecycle = classifyV2CompraAgilLifecycle(detailRecord, true);
       const terminal = lifecycle.terminal;
-      successfulDetails += 1;
-
       await this.markItemSucceeded(
         item.id,
         persistenceResult.rawApiPayloadId,
@@ -849,18 +1036,33 @@ export class MercadoPublicoV2DurableSyncService {
       }
 
       await this.updateSyncRunCounters(context.syncRunId);
-      await this.touchHeartbeat(context.syncRunId);
-    }
-
-    if (
-      items.length > 0 &&
-      successfulDetails === 0 &&
-      retryableRequestFailures === items.length
-    ) {
-      throw new Error('all detail requests failed');
     }
 
     return 'completed';
+  }
+
+  private async completeCarryForwardItems(syncRunId: string): Promise<void> {
+    await this.coreDataSource.query(
+      `
+        UPDATE mp.sync_run_item item
+        SET status = 'succeeded',
+            raw_api_payload_id = observation.raw_api_payload_id,
+            observation_id = observation.id,
+            error_stage = NULL,
+            error_summary = NULL,
+            updated_at = now()
+        FROM mp.compra_agil current
+        INNER JOIN mp.v2_observation observation
+          ON observation.id = current.observation_id
+        WHERE item.sync_run_id = $1
+          AND item.status = 'pending'
+          AND item.hydration_required = false
+          AND item.codigo = current.codigo
+          AND observation.snapshot_kind = 'detail'
+      `,
+      [syncRunId],
+    );
+    await this.updateSyncRunCounters(syncRunId);
   }
 
   private async projectPendingItems(
@@ -1012,14 +1214,19 @@ export class MercadoPublicoV2DurableSyncService {
     itemId: string,
     errorSummary: string,
     errorStage: 'hydrating' | 'projecting',
+    rawApiPayloadId?: string,
   ): Promise<void> {
     await this.coreDataSource.query(
       `
         UPDATE mp.sync_run_item
-        SET status = 'pending', error_stage = $2, error_summary = $3, updated_at = now()
+        SET status = 'pending',
+            error_stage = $2,
+            error_summary = $3,
+            raw_api_payload_id = COALESCE($4, raw_api_payload_id),
+            updated_at = now()
         WHERE id = $1
       `,
-      [itemId, errorStage, errorSummary],
+      [itemId, errorStage, errorSummary, rawApiPayloadId ?? null],
     );
   }
 
@@ -1116,11 +1323,13 @@ export class MercadoPublicoV2DurableSyncService {
         records_discovered?: string;
         records_hydrated?: string;
         records_failed?: string;
+        records_projected?: string;
         pages_checkpointed?: string;
       }[]
     >(
       `
-        SELECT records_discovered, records_hydrated, records_failed, pages_checkpointed
+        SELECT records_discovered, records_hydrated, records_failed,
+               records_projected, pages_checkpointed
         FROM mp.sync_run
         WHERE id = $1
       `,
@@ -1148,7 +1357,7 @@ export class MercadoPublicoV2DurableSyncService {
       pagesCheckpointed: Number(count.pages_checkpointed ?? 0),
       watermarkAfter: null,
       observationIds: [],
-      recordsProjected: Number(count.records_hydrated ?? 0),
+      recordsProjected: Number(count.records_projected ?? 0),
     };
   }
 
@@ -1160,11 +1369,13 @@ export class MercadoPublicoV2DurableSyncService {
         records_discovered: string;
         records_hydrated: string;
         records_failed: string;
+        records_projected: string;
         pages_checkpointed: string;
       }[]
     >(
       `
-        SELECT records_discovered, records_hydrated, records_failed, pages_checkpointed
+        SELECT records_discovered, records_hydrated, records_failed,
+               records_projected, pages_checkpointed
         FROM mp.sync_run
         WHERE id = $1
       `,
@@ -1181,7 +1392,7 @@ export class MercadoPublicoV2DurableSyncService {
       pagesCheckpointed: Number(count.pages_checkpointed ?? 0),
       watermarkAfter: null,
       observationIds: [],
-      recordsProjected: Number(count.records_hydrated ?? 0),
+      recordsProjected: Number(count.records_projected ?? 0),
     };
   }
 
@@ -1190,11 +1401,12 @@ export class MercadoPublicoV2DurableSyncService {
       `
         UPDATE mp.sync_run
         SET records_discovered = (
-              SELECT COUNT(*) FROM mp.sync_run_item WHERE sync_run_id = $1
+              SELECT COUNT(*) FROM mp.sync_run_item
+              WHERE sync_run_id = $1 AND discovery_page > 0
             ),
             records_hydrated = (
               SELECT COUNT(*) FROM mp.sync_run_item
-              WHERE sync_run_id = $1 AND status IN ('succeeded', 'terminal')
+              WHERE sync_run_id = $1 AND hydrated_at IS NOT NULL
             ),
             records_failed = (
               SELECT COUNT(*) FROM mp.sync_run_item
@@ -1202,7 +1414,7 @@ export class MercadoPublicoV2DurableSyncService {
             ),
             records_projected = (
               SELECT COUNT(*) FROM mp.sync_run_item
-              WHERE sync_run_id = $1 AND status IN ('succeeded', 'terminal')
+              WHERE sync_run_id = $1 AND observation_id IS NOT NULL
             ),
             pages_discovered = (
               SELECT COUNT(*) FROM mp.sync_run_page WHERE sync_run_id = $1
@@ -1228,11 +1440,13 @@ export class MercadoPublicoV2DurableSyncService {
         records_discovered: string;
         records_hydrated: string;
         records_failed: string;
+        records_projected: string;
         pages_checkpointed: string;
       }[]
     >(
       `
-        SELECT records_discovered, records_hydrated, records_failed, pages_checkpointed
+        SELECT records_discovered, records_hydrated, records_failed,
+               records_projected, pages_checkpointed
         FROM mp.sync_run
         WHERE id = $1
       `,
@@ -1294,7 +1508,7 @@ export class MercadoPublicoV2DurableSyncService {
       pagesCheckpointed: Number(count.pages_checkpointed),
       watermarkAfter,
       observationIds: observationRows.map((row) => row.observation_id),
-      recordsProjected: Number(count.records_hydrated),
+      recordsProjected: Number(count.records_projected ?? 0),
     };
   }
 
@@ -1341,20 +1555,29 @@ export class MercadoPublicoV2DurableSyncService {
     error: unknown,
     stage: 'discovering' | 'hydrating' | 'projecting',
   ): Promise<void> {
-    const errorSummary = `${classifyFailure(error)}: durable ${stage} failed`;
+    const retryable =
+      error instanceof MercadoPublicoRecordedJobFailureError
+        ? error.retryable
+        : classifyFailure(error) === 'retryable_failed';
+    const errorSummary = `${
+      retryable ? 'retryable_failed' : classifyFailure(error)
+    }: durable ${stage} failed`;
 
     await this.coreDataSource.query(
       `
         UPDATE mp.sync_run
-        SET status = 'failed', error_stage = $2, error_retryable = $3,
-            error_summary = $4, finished_at = now(), updated_at = now()
+        SET status = CASE WHEN $3 THEN 'partial_failed' ELSE 'failed' END,
+            error_stage = $2, error_retryable = $3,
+            error_summary = $4,
+            finished_at = now(),
+            updated_at = now()
         WHERE id = $1
       `,
-      [context.syncRunId, stage, false, errorSummary],
+      [context.syncRunId, stage, retryable, errorSummary],
     );
     await this.mercadoPublicoPersistenceService.finalizeJobRun({
       jobRunRecordId,
-      status: 'failed',
+      status: retryable ? 'retryable_failed' : 'failed',
       finishedAt: new Date(),
       errorSummary,
       recordsFailed: 1,

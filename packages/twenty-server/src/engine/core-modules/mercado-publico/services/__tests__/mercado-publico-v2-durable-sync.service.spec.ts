@@ -21,6 +21,7 @@ describe('MercadoPublicoV2DurableSyncService', () => {
             records_discovered: '1',
             records_hydrated: '1',
             records_failed: '0',
+            records_projected: '1',
             pages_checkpointed: '1',
           },
         ]);
@@ -107,6 +108,63 @@ describe('MercadoPublicoV2DurableSyncService', () => {
         'CA-TERMINAL-001',
         'terminal_cancelled',
       ],
+    );
+  });
+
+  it('persists an empty detail payload before retaining the item for review', async () => {
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('SELECT id, codigo, status')) {
+        return Promise.resolve([
+          { id: 'item-1', codigo: 'FIXTURE-CA-001', status: 'pending' },
+        ]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const persistV2CompraAgilSnapshot = jest.fn().mockResolvedValue({
+      rawApiPayloadId: 'raw-empty-detail',
+    });
+    const response = {
+      endpoint: 'detail',
+      source: 'api-v2-compra-agil',
+      requestParams: { id: 'FIXTURE-CA-001' },
+      requestFingerprint: 'detail-fingerprint',
+      payloadChecksum: 'detail-checksum',
+      schemaFingerprint: 'detail-schema',
+      httpStatus: 200,
+      fetchedAt: new Date('2026-08-12T00:00:00Z'),
+      rawPayload: { data: [] },
+      compraAgil: [],
+    };
+    const service = new MercadoPublicoV2DurableSyncService(
+      {
+        getByCodigo: jest.fn().mockResolvedValue(response),
+      } as unknown as MercadoPublicoApiV2CompraAgilClientService,
+      {
+        persistV2CompraAgilSnapshot,
+      } as unknown as MercadoPublicoPersistenceService,
+      { query } as never,
+      {} as MercadoPublicoV2ProjectionService,
+    );
+
+    await (
+      service as unknown as {
+        hydrate: (
+          context: { syncRunId: string },
+          jobRunRecordId: string,
+        ) => Promise<unknown>;
+      }
+    ).hydrate({ syncRunId: 'sync-run-1' }, 'job-run-1');
+
+    expect(persistV2CompraAgilSnapshot).toHaveBeenCalledWith({
+      jobRunRecordId: 'job-run-1',
+      apiResponse: response,
+      snapshotKind: 'detail',
+      errorSummaryText: undefined,
+    });
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('raw_api_payload_id = COALESCE($4'),
+      ['item-1', 'hydrating', 'soft_miss', 'raw-empty-detail'],
     );
   });
 

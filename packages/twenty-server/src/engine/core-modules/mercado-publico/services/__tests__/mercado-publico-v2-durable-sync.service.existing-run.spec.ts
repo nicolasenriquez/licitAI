@@ -62,6 +62,7 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
       persistV2CompraAgilSnapshot: jest.fn().mockResolvedValue({
         rawApiPayloadId: 'raw-payload-1',
       }),
+      persistApiFailure: jest.fn().mockResolvedValue(undefined),
       finalizeJobRun: jest.fn(),
     } as unknown as jest.Mocked<MercadoPublicoPersistenceService>;
     const transaction = jest.fn(
@@ -136,6 +137,56 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
     );
 
     expect(runInserts).toHaveLength(0);
+  });
+
+  it('resumes the run already owned by an execution key', async () => {
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('WHERE execution_key')) {
+        return Promise.resolve([{ id: 'run-1' }]);
+      }
+      if (sql.includes('records_discovered')) {
+        return Promise.resolve([
+          {
+            records_discovered: '1',
+            records_hydrated: '1',
+            records_failed: '0',
+            records_projected: '1',
+            pages_checkpointed: '1',
+          },
+        ]);
+      }
+      if (sql.includes('SELECT id, codigo, status')) {
+        return Promise.resolve([]);
+      }
+      if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
+        return Promise.resolve([
+          buildRunRow({ error_stage: 'hydrating', status: 'partial_failed' }),
+        ]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const service = buildService({
+      query,
+      entityManagerQuery: jest.fn().mockResolvedValue([]),
+      getList: jest.fn(),
+      getByCodigo: jest.fn(),
+    });
+
+    await expect(
+      service.startOrResume(
+        {},
+        'manual',
+        'api-v2-compra-agil-by-publication-window',
+        '4a88c929-8420-4a9e-8b78-c11a90ee0bd9',
+      ),
+    ).resolves.toMatchObject({ syncRunId: 'run-1', status: 'succeeded' });
+
+    expect(
+      query.mock.calls.filter(([sql]) =>
+        sql.includes('INSERT INTO mp.sync_run'),
+      ),
+    ).toHaveLength(0);
   });
 
   it('cancels cooperatively after the current page and keeps its checkpoint', async () => {
@@ -271,5 +322,146 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
     await expect(service.executeExistingRun('run-1')).rejects.toThrow(
       /resume|terminal/i,
     );
+  });
+
+  it('keeps a retryable discovery failure resumable from the failed page', async () => {
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run_page')) {
+        return Promise.resolve([{ max_page: '1' }]);
+      }
+      if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
+        return Promise.resolve([
+          buildRunRow({
+            status: 'partial_failed',
+            error_stage: 'discovering',
+            error_retryable: true,
+          }),
+        ]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const getList = jest.fn().mockResolvedValueOnce({
+      ...buildListResponse(false),
+      httpStatus: 504,
+      errorSummary: 'retryable_failed',
+      compraAgil: [],
+    });
+    const service = buildService({
+      query,
+      entityManagerQuery: jest.fn().mockResolvedValue([]),
+      getList,
+      getByCodigo: jest.fn(),
+    });
+
+    await expect(service.executeExistingRun('run-1')).rejects.toThrow(
+      /retryable_failed/,
+    );
+
+    expect(getList).toHaveBeenCalledWith(
+      expect.objectContaining({ numero_pagina: 2 }),
+    );
+    const failUpdate = query.mock.calls.find(([sql]) =>
+      sql.includes(
+        "status = CASE WHEN $3 THEN 'partial_failed' ELSE 'failed' END",
+      ),
+    );
+
+    expect(failUpdate).toBeDefined();
+    expect(failUpdate[1]).toEqual([
+      'run-1',
+      'discovering',
+      true,
+      'retryable_failed: durable discovering failed',
+    ]);
+  });
+
+  it('keeps an all-retryable hydration failure resumable', async () => {
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('SELECT id, codigo, status')) {
+        return Promise.resolve([
+          { id: 'item-1', codigo: 'FIXTURE-CA-001', status: 'pending' },
+        ]);
+      }
+      if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
+        return Promise.resolve([
+          buildRunRow({ error_stage: 'hydrating', status: 'partial_failed' }),
+        ]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const getByCodigo = jest.fn().mockResolvedValue({
+      ...buildListResponse(false),
+      httpStatus: 504,
+      errorSummary: 'retryable_failed',
+      compraAgil: [],
+    });
+    const service = buildService({
+      query,
+      entityManagerQuery: jest.fn().mockResolvedValue([]),
+      getList: jest.fn(),
+      getByCodigo,
+    });
+
+    await expect(service.executeExistingRun('run-1')).rejects.toThrow(
+      /retryable detail response/,
+    );
+
+    const hydrationItemsQuery = query.mock.calls.find(([sql]) =>
+      sql.includes('hydration_required = true'),
+    );
+
+    expect(hydrationItemsQuery?.[0]).toContain('ORDER BY attempts ASC');
+
+    const failUpdate = query.mock.calls.find(([sql]) =>
+      sql.includes('error_retryable = $3'),
+    );
+
+    expect(failUpdate).toBeDefined();
+    expect(failUpdate[1]).toEqual([
+      'run-1',
+      'hydrating',
+      true,
+      'retryable_failed: durable hydrating failed',
+    ]);
+  });
+
+  it('fails terminally on a non-retryable discovery failure', async () => {
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
+        return Promise.resolve([buildRunRow({ status: 'discovering' })]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const getList = jest.fn().mockResolvedValue({
+      ...buildListResponse(false),
+      httpStatus: 400,
+      errorSummary: 'param_error',
+      compraAgil: [],
+    });
+    const service = buildService({
+      query,
+      entityManagerQuery: jest.fn().mockResolvedValue([]),
+      getList,
+      getByCodigo: jest.fn(),
+    });
+
+    await expect(service.executeExistingRun('run-1')).rejects.toThrow(
+      /param_error/,
+    );
+
+    const failUpdate = query.mock.calls.find(([sql]) =>
+      sql.includes('error_retryable = $3'),
+    );
+
+    expect(failUpdate).toBeDefined();
+    expect(failUpdate[1]).toEqual([
+      'run-1',
+      'discovering',
+      false,
+      'hard_fail: durable discovering failed',
+    ]);
   });
 });

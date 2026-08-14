@@ -12,6 +12,7 @@ describe('MercadoPublicoJobOrchestratorService', () => {
     };
     const noopService = { run: jest.fn() };
     const incrementalService = { run: jest.fn() };
+    const publicationWindowService = { run: jest.fn() };
     const stagingProjectionService = { run: jest.fn() };
     const canonicalRefreshService = {
       refreshCanonicalFromCsvSnapshot: jest.fn().mockResolvedValue({
@@ -52,7 +53,7 @@ describe('MercadoPublicoJobOrchestratorService', () => {
         noopService as never,
         noopService as never,
         incrementalService as never,
-        noopService as never,
+        publicationWindowService as never,
         noopService as never,
         noopService as never,
         noopService as never,
@@ -63,6 +64,7 @@ describe('MercadoPublicoJobOrchestratorService', () => {
         reconciliationService as never,
       ),
       incrementalService,
+      publicationWindowService,
     };
   };
 
@@ -83,7 +85,29 @@ describe('MercadoPublicoJobOrchestratorService', () => {
 
     await service.run('api-v2-compra-agil-incremental', incrementalPayload);
 
-    expect(incrementalService.run).toHaveBeenCalledWith(incrementalPayload);
+    expect(incrementalService.run).toHaveBeenCalledWith(
+      incrementalPayload,
+      undefined,
+    );
+  });
+
+  it('forwards execution key to durable publication-window ingestion', async () => {
+    const { service, publicationWindowService } = createService();
+    const publicationWindowPayload = {
+      publicado_desde: '2026-08-12T00:00:00Z',
+      publicado_hasta: '2026-08-12T23:59:59Z',
+    };
+
+    await service.run(
+      'api-v2-compra-agil-by-publication-window',
+      publicationWindowPayload,
+      'recovery-execution-key',
+    );
+
+    expect(publicationWindowService.run).toHaveBeenCalledWith(
+      publicationWindowPayload,
+      'recovery-execution-key',
+    );
   });
 
   it('routes csv-canonical-refresh to canonical rerun and logs counts', async () => {

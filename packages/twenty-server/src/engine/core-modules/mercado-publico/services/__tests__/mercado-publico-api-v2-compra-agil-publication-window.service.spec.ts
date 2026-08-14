@@ -10,6 +10,7 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
   beforeEach(() => {
     durableSyncService = {
       start: jest.fn().mockResolvedValue({ status: 'succeeded' }),
+      resume: jest.fn().mockResolvedValue({ status: 'succeeded' }),
     } as unknown as jest.Mocked<MercadoPublicoV2DurableSyncService>;
     service = new MercadoPublicoApiV2CompraAgilPublicationWindowService(
       durableSyncService,
@@ -45,6 +46,15 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
       'manual',
       'api-v2-compra-agil-by-publication-window',
     );
+  });
+
+  it('resumes an explicit durable sync run without validating a new window', async () => {
+    await service.run({ sync_run_id: '234e9e80-0ac9-4fea-a23d-74c52d27a6ad' });
+
+    expect(durableSyncService.resume).toHaveBeenCalledWith(
+      '234e9e80-0ac9-4fea-a23d-74c52d27a6ad',
+    );
+    expect(durableSyncService.start).not.toHaveBeenCalled();
   });
 
   it('rejects the undocumented orden parameter', async () => {

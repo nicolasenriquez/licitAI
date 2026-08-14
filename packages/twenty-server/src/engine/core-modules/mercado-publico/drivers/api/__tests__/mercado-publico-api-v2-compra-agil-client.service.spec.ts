@@ -138,6 +138,17 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       expect(result.errorSummary).toBe('retryable_failed');
     });
 
+    it('should classify 504 as retryable_failed', async () => {
+      mockHttpClient.get.mockResolvedValue({
+        status: 504,
+        data: {},
+      });
+
+      const result = await service.getList({});
+
+      expect(result.errorSummary).toBe('retryable_failed');
+    });
+
     it('should resolve normally when quota settings lookup throws during 429 tracking', async () => {
       mockHttpClient.get.mockResolvedValue({
         status: 429,

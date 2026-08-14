@@ -60,6 +60,9 @@ describe('MercadoPublicoRunCommand', () => {
       expect.objectContaining({
         jobName: 'api-v1-licitaciones-by-date',
         payload: { fecha: '01012026' },
+        executionKey: expect.stringMatching(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+        ),
       }),
       {
         retryLimit: 3,

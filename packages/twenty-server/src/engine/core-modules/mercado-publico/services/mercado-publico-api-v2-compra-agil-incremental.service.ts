@@ -22,12 +22,26 @@ export class MercadoPublicoApiV2CompraAgilIncrementalService {
     private readonly mercadoPublicoV2DurableSyncService: MercadoPublicoV2DurableSyncService,
   ) {}
 
-  async run(payload: Record<string, unknown>): Promise<void> {
+  async run(
+    payload: Record<string, unknown>,
+    executionKey?: string,
+  ): Promise<void> {
     const parsedPayload = this.parsePayload(payload);
 
-    await this.mercadoPublicoV2DurableSyncService.start(
+    if (executionKey === undefined) {
+      await this.mercadoPublicoV2DurableSyncService.start(
+        parsedPayload,
+        'scheduled',
+      );
+
+      return;
+    }
+
+    await this.mercadoPublicoV2DurableSyncService.startOrResume(
       parsedPayload,
       'scheduled',
+      'api-v2-compra-agil-incremental',
+      executionKey,
     );
   }
 

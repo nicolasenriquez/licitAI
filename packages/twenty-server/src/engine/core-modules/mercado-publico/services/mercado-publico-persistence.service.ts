@@ -84,6 +84,7 @@ type PersistMercadoPublicoV2CompraAgilSnapshotInput = {
   jobRunRecordId: string;
   apiResponse: MercadoPublicoApiV2CompraAgilListResponse;
   snapshotKind: SnapshotKind;
+  errorSummaryText?: string;
 };
 
 type PersistMercadoPublicoV2CompraAgilSnapshotResult = {
@@ -680,6 +681,7 @@ export class MercadoPublicoPersistenceService {
         fetchedAt: input.apiResponse.fetchedAt,
         rawPayload: input.apiResponse.rawPayload,
         schemaFingerprint: input.apiResponse.schemaFingerprint,
+        errorSummary: input.errorSummaryText,
         recordsFetched: input.apiResponse.compraAgil.length,
       });
 

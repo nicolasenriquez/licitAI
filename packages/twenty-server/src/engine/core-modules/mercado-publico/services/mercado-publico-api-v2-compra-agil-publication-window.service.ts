@@ -21,13 +21,35 @@ export class MercadoPublicoApiV2CompraAgilPublicationWindowService {
     private readonly mercadoPublicoV2DurableSyncService: MercadoPublicoV2DurableSyncService,
   ) {}
 
-  async run(payload: Record<string, unknown>): Promise<void> {
+  async run(
+    payload: Record<string, unknown>,
+    executionKey?: string,
+  ): Promise<void> {
+    if (isNonEmptyString(payload.sync_run_id)) {
+      await this.mercadoPublicoV2DurableSyncService.resume(
+        payload.sync_run_id,
+      );
+
+      return;
+    }
+
     const parsedPayload = this.parsePayload(payload);
 
-    await this.mercadoPublicoV2DurableSyncService.start(
+    if (executionKey === undefined) {
+      await this.mercadoPublicoV2DurableSyncService.start(
+        parsedPayload,
+        'manual',
+        'api-v2-compra-agil-by-publication-window',
+      );
+
+      return;
+    }
+
+    await this.mercadoPublicoV2DurableSyncService.startOrResume(
       parsedPayload,
       'manual',
       'api-v2-compra-agil-by-publication-window',
+      executionKey,
     );
   }
 
