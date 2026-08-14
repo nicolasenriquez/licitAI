@@ -8,5 +8,8 @@ export default defineConfig({
     ...playwrightConfig.webServer,
     command: 'npx nx run twenty-front:preview --watch=false --open=false',
   },
-  globalTeardown: './scripts/cleanup-mercado-publico-e2e.mjs',
+  globalTeardown:
+    process.env.MERCADO_PUBLICO_V2_KEEP_E2E_ENV === 'true'
+      ? undefined
+      : './scripts/cleanup-mercado-publico-e2e.mjs',
 });

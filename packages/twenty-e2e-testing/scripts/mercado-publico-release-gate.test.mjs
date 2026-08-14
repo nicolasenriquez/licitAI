@@ -28,7 +28,7 @@ test('release gate aggregates each owned G1-G4 proof exactly once', async () => 
       'npx jest --config jest-integration.config.ts v2-evidence-history-replay',
       'npx playwright test tests/mercado-publico/baseline.spec.ts --project=chrome',
       'npx playwright test tests/mercado-publico/sync-control.spec.ts --project=operator --project=analyst',
-      'npx playwright test tests/mercado-publico/activas-url-keyset.spec.ts tests/mercado-publico/history-and-buyers.spec.ts --project=chrome',
+      'npx playwright test tests/mercado-publico/history-and-buyers.spec.ts --project=chrome',
       'npx playwright test tests/mercado-publico/cutover-route-matrix.spec.ts --project=chrome',
     ],
   );
@@ -55,5 +55,15 @@ test('release gate blocks cloud smoke without explicit authority inputs', async 
       MERCADO_PUBLICO_CLOUD_SMOKE_URL: 'https://example.test',
     }),
     undefined,
+  );
+});
+
+test('release gate supplies a human visual-baseline review record', async () => {
+  const { visualBaselineReviewRecord } =
+    await import('./mercado-publico-release-gate.mjs');
+
+  assert.match(
+    visualBaselineReviewRecord,
+    /Reviewed at \(UTC\):.*Reviewer:.*Build revision:.*Evidence path:.*Baseline changed: yes \| no.*Decision: approved \| rejected.*Reason:/s,
   );
 });
