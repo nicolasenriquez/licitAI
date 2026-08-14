@@ -5,6 +5,7 @@ import { type MercadoPublicoErrorSummary } from 'src/engine/core-modules/mercado
 const RETRYABLE_HTTP_STATUS_CODES = new Set([429, 500, 503, 504]);
 const RETRYABLE_ERROR_CODES = new Set([
   'ECONNABORTED',
+  'ECONNRESET',
   'ERR_NETWORK',
   'ETIMEDOUT',
 ]);

@@ -68,6 +68,30 @@ describe('MercadoPublicoV2DetailReadService', () => {
     });
   });
 
+  it('derives freshness from the latest relevant sync item', async () => {
+    const query = jest.fn().mockResolvedValueOnce([detailRow]);
+    const service = new MercadoPublicoV2DetailReadService({
+      query,
+    } as unknown as DataSource);
+
+    await service.getOpportunityDetail('CA-1');
+
+    const [sql] = query.mock.calls[0];
+    const latestDetailItemSubquery = sql.slice(
+      sql.indexOf('LEFT JOIN LATERAL'),
+    );
+
+    expect(sql).toContain('INNER JOIN mp.sync_run AS run');
+    expect(sql).toContain("run.source = 'api-v2-compra-agil'");
+    expect(sql).toContain('ORDER BY item.updated_at DESC NULLS LAST');
+    expect(latestDetailItemSubquery).not.toContain(
+      'item.sync_run_id = observation.sync_run_id',
+    );
+    expect(latestDetailItemSubquery).not.toContain(
+      'item.error_summary IS NOT NULL',
+    );
+  });
+
   it('uses independent relation cursors and preserves zero availability', async () => {
     const query = jest
       .fn()

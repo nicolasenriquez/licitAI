@@ -1,5 +1,7 @@
 import { useQuery } from '@apollo/client/react';
 
+import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
+
 import {
   GetMercadoPublicoProcessDetailDocument,
   type GetMercadoPublicoProcessDetailQuery,
@@ -9,10 +11,12 @@ import {
 export const useMercadoPublicoProcessDetail = (
   variables: GetMercadoPublicoProcessDetailQueryVariables,
 ) => {
+  const apolloCoreClient = useApolloCoreClient();
   const { data, previousData, loading, error, refetch } = useQuery<
     GetMercadoPublicoProcessDetailQuery,
     GetMercadoPublicoProcessDetailQueryVariables
   >(GetMercadoPublicoProcessDetailDocument, {
+    client: apolloCoreClient,
     variables,
     notifyOnNetworkStatusChange: true,
   });

@@ -1,5 +1,7 @@
 import { useQuery } from '@apollo/client/react';
 
+import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
+
 import {
   GetMercadoPublicoJobRunsDocument,
   type GetMercadoPublicoJobRunsQuery,
@@ -28,6 +30,7 @@ export const useMercadoPublicoJobRuns = (
   variables: UseMercadoPublicoJobRunsVariables = {},
   options: UseMercadoPublicoJobRunsOptions = {},
 ) => {
+  const apolloCoreClient = useApolloCoreClient();
   const serializedVariables =
     omitUndefinedMercadoPublicoVariables<GetMercadoPublicoJobRunsQueryVariables>(
       {
@@ -41,6 +44,7 @@ export const useMercadoPublicoJobRuns = (
     GetMercadoPublicoJobRunsQuery,
     GetMercadoPublicoJobRunsQueryVariables
   >(GetMercadoPublicoJobRunsDocument, {
+    client: apolloCoreClient,
     variables: serializedVariables,
     fetchPolicy: 'network-only',
     notifyOnNetworkStatusChange: true,

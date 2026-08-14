@@ -67,6 +67,12 @@ describe('classifyFailure', () => {
     );
   });
 
+  it('should classify ECONNRESET as retryable_failed', () => {
+    expect(classifyFailure(createAxiosCodeError('ECONNRESET'))).toBe(
+      'retryable_failed',
+    );
+  });
+
   it('should classify ERR_NETWORK as retryable_failed', () => {
     expect(classifyFailure(createAxiosCodeError('ERR_NETWORK'))).toBe(
       'retryable_failed',

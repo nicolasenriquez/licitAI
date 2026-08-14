@@ -29,7 +29,7 @@ test('release gate aggregates each owned G1-G4 proof exactly once', async () => 
       'npx playwright test tests/mercado-publico/baseline.spec.ts --project=chrome',
       'npx playwright test tests/mercado-publico/sync-control.spec.ts --project=operator --project=analyst',
       'npx playwright test tests/mercado-publico/history-and-buyers.spec.ts --project=chrome',
-      'npx playwright test tests/mercado-publico/cutover-route-matrix.spec.ts --project=chrome',
+      'node scripts/run-mercado-publico-cutover.mjs',
     ],
   );
 });

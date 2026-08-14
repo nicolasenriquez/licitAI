@@ -75,9 +75,10 @@
   review record format and cloud-smoke precondition check.
   Traceability: Group G4; Slice S3; Issue 31; Acceptance AC 31.2, AC 31.3, AC 31.4, AC 31.6.
 
-- [ ] 2.6 Run and record two correct V2 publication-window cycles through the
-  existing backend runner: one for `2026-08-12` and one for `2026-08-13`, each
-  with `tamano_pagina: 50`. For each, retain the requested window, SyncRun,
+- [ ] 2.6 Run and record two bounded representative V2 publication-window cycles
+  through the existing backend runner: one for `2026-08-12` and one for
+  `2026-08-13`, each with `tamano_pagina: 50`, `max_pages: 3`, and
+  `bounded_window: true`. For each, retain the requested window, SyncRun,
   cohort, checkpoint, projection, and watermark evidence. `tamano_pagina` is a
   provider page-size request, not a claim that exactly 50 records are returned.
   Reject G5 authorization on any failed or incomplete cycle.
@@ -332,3 +333,18 @@
   attempts refresh heartbeat; and hydration skips only list-confirmed unchanged
   detail. Focused server Jest passes. Required instance command and source image
   are not deployed, so task 2.6 remains unchecked and G5 remains rejected.
+- 2026-08-14: Updated the publication-window runner to pass explicit
+  `max_pages` and `bounded_window` payload fields. A bounded run terminalizes
+  through the existing success and watermark path after its configured page
+  budget; existing resumable `max_pages` behavior remains unchanged. Focused
+  Jest, server typecheck, task-file formatting, and `git diff --check` pass.
+  Full server diff lint finds only pre-existing format drift in two unrelated
+  files.
+- 2026-08-14: Rebuilt `twentycrm/twenty:mp-local`, recreated canonical server
+  and worker, and verified hydration-recovery columns plus deployed bounded
+  runner code. Submitted the bounded 12 August window. SyncRun
+  `ce9edf06-6fc1-4384-b5cf-9af6f216ba49` checkpointed two of three allowed
+  pages and discovered 89 items, then exhausted retryable provider discovery
+  attempts. It ended `partial_failed` with no hydration, projection, or
+  watermark; only 3 cohort rows were admitted. Stop condition blocks the 13
+  August window. Task 2.6 remains unchecked and G5 remains rejected.

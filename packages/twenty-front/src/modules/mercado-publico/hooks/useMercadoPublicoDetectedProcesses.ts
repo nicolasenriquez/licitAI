@@ -1,5 +1,7 @@
 import { useQuery } from '@apollo/client/react';
 
+import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
+
 import {
   GetMercadoPublicoDetectedProcessesDocument,
   type GetMercadoPublicoDetectedProcessesQuery,
@@ -24,6 +26,7 @@ export type UseMercadoPublicoDetectedProcessesVariables = Omit<
 export const useMercadoPublicoDetectedProcesses = (
   variables: UseMercadoPublicoDetectedProcessesVariables = {},
 ) => {
+  const apolloCoreClient = useApolloCoreClient();
   const serializedVariables =
     omitUndefinedMercadoPublicoVariables<GetMercadoPublicoDetectedProcessesQueryVariables>(
       {
@@ -38,6 +41,7 @@ export const useMercadoPublicoDetectedProcesses = (
     GetMercadoPublicoDetectedProcessesQuery,
     GetMercadoPublicoDetectedProcessesQueryVariables
   >(GetMercadoPublicoDetectedProcessesDocument, {
+    client: apolloCoreClient,
     variables: serializedVariables,
     notifyOnNetworkStatusChange: true,
   });

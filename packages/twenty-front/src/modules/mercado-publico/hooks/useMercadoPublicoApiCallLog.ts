@@ -1,5 +1,7 @@
 import { useQuery } from '@apollo/client/react';
 
+import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
+
 import {
   GetMercadoPublicoApiCallLogDocument,
   type GetMercadoPublicoApiCallLogQuery,
@@ -14,10 +16,12 @@ export const useMercadoPublicoApiCallLog = (
   variables: GetMercadoPublicoApiCallLogQueryVariables = {},
   options: UseMercadoPublicoApiCallLogOptions = {},
 ) => {
+  const apolloCoreClient = useApolloCoreClient();
   const { data, previousData, loading, error, refetch } = useQuery<
     GetMercadoPublicoApiCallLogQuery,
     GetMercadoPublicoApiCallLogQueryVariables
   >(GetMercadoPublicoApiCallLogDocument, {
+    client: apolloCoreClient,
     variables,
     fetchPolicy: 'network-only',
     notifyOnNetworkStatusChange: true,

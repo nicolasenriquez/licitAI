@@ -69,6 +69,91 @@ describe('MercadoPublicoV2SyncControlService', () => {
     );
   });
 
+  it('offers resume for a discovery cancellation and restores the discovery stage', async () => {
+    const latestRunQuery = jest
+      .fn()
+      .mockResolvedValueOnce([
+        {
+          id: 'run-1',
+          status: 'cancelled',
+          error_stage: 'discovering',
+          records_discovered: '1',
+          records_hydrated: '0',
+          records_failed: '0',
+          created_at: null,
+          updated_at: null,
+        },
+      ])
+      .mockResolvedValueOnce([]);
+    const latestRunService = new MercadoPublicoV2SyncControlService(
+      { query: latestRunQuery } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+    );
+
+    await expect(
+      latestRunService.getLatestRun('workspace-1'),
+    ).resolves.toMatchObject({
+      canResume: true,
+    });
+
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('INSERT INTO mp.sync_command')) {
+        return Promise.resolve([{ id: 'command-1' }]);
+      }
+      if (sql.includes('WITH resumable_run')) {
+        return Promise.resolve([{ id: 'run-1' }]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const service = new MercadoPublicoV2SyncControlService(
+      { query, transaction: transactionUsing(query) } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+    );
+
+    await expect(
+      service.submitCommand(
+        buildInput({ action: 'resume', confirmed: undefined }),
+      ),
+    ).resolves.toMatchObject({ state: 'queued', syncRunId: 'run-1' });
+
+    const resumeUpdate = query.mock.calls.find(([sql]) =>
+      sql.includes('WITH resumable_run'),
+    );
+
+    expect(resumeUpdate?.[0]).toContain(
+      "WHEN r.error_stage = 'discovering' THEN 'discovering'",
+    );
+  });
+
+  it('persists the selected page budget with a new run', async () => {
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('INSERT INTO mp.sync_command')) {
+        return Promise.resolve([{ id: 'command-1' }]);
+      }
+      if (sql.includes('INSERT INTO mp.sync_run (')) {
+        return Promise.resolve([{ id: 'run-1' }]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const service = new MercadoPublicoV2SyncControlService(
+      { query, transaction: transactionUsing(query) } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+    );
+
+    await service.submitCommand(buildInput({ maxPages: 2 }));
+
+    const runInsert = query.mock.calls.find(([sql]) =>
+      sql.includes('INSERT INTO mp.sync_run ('),
+    );
+
+    expect(runInsert?.[1]).toContain(JSON.stringify({ max_pages: 2 }));
+  });
+
   it('returns the saved result when an operator replays the same key and request', async () => {
     const savedResult = { state: 'queued', syncRunId: 'run-1' };
     const existingCommand = {
@@ -263,6 +348,84 @@ describe('MercadoPublicoV2SyncControlService', () => {
 
     expect(commandFailedCalls).toHaveLength(0);
     expect(result).not.toHaveProperty('error');
+  });
+
+  it('claims a command, creates its attempt, and writes its heartbeat in one transaction', async () => {
+    const managerQuery = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('SELECT id, workspace_id, action, state, sync_run_id')) {
+        return Promise.resolve([
+          {
+            id: 'command-1',
+            workspace_id: 'workspace-1',
+            action: 'start',
+            state: 'pending',
+            sync_run_id: 'run-1',
+          },
+        ]);
+      }
+      if (sql.includes("SET state = 'claimed'")) {
+        return Promise.resolve([{ id: 'command-1' }]);
+      }
+      if (sql.includes('COALESCE(MAX(attempt_number)')) {
+        return Promise.resolve([{ next_attempt: '1' }]);
+      }
+      if (sql.includes('INSERT INTO mp.sync_run_attempt')) {
+        return Promise.resolve([{ id: 'attempt-1' }]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const coreQuery = jest.fn(() => {
+      throw new Error('claim must use the transaction manager');
+    });
+    const transaction = transactionUsing(managerQuery);
+    const service = new MercadoPublicoV2SyncControlService(
+      { query: coreQuery, transaction } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+    );
+
+    await expect(
+      service.claimCommand('command-1', 'worker-1'),
+    ).resolves.toMatchObject({
+      kind: 'claimed',
+      attemptId: 'attempt-1',
+    });
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(coreQuery).not.toHaveBeenCalled();
+    expect(
+      managerQuery.mock.calls.some(([sql]) =>
+        sql.includes('SET heartbeat_at = now()'),
+      ),
+    ).toBe(true);
+  });
+
+  it('keeps retryable provider failures terminal after the worker attempt', async () => {
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('UPDATE mp.sync_command')) {
+        return Promise.resolve([
+          { workspace_id: 'workspace-1', sync_run_id: 'run-1' },
+        ]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const service = new MercadoPublicoV2SyncControlService(
+      { query, transaction: transactionUsing(query) } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+    );
+
+    await service.finalizeCommand({
+      commandId: 'command-1',
+      attemptId: 'attempt-1',
+      status: 'retryable_failed',
+    });
+
+    const commandUpdate = query.mock.calls.find(([sql]) =>
+      sql.includes('UPDATE mp.sync_command'),
+    );
+    expect(commandUpdate?.[1]).toEqual(['command-1', 'failed', null]);
   });
 
   it('appends audit events and never mutates existing audit rows', async () => {

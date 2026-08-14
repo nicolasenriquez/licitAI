@@ -35,6 +35,8 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
       publicado_desde: '2026-06-01T00:00:00Z',
       publicado_hasta: '2026-06-30T23:59:59Z',
       ordenar_por: 'FechaPublicacion',
+      max_pages: 3,
+      bounded_window: true,
     });
 
     expect(durableSyncService.start).toHaveBeenCalledWith(
@@ -42,6 +44,8 @@ describe('MercadoPublicoApiV2CompraAgilPublicationWindowService', () => {
         publicado_desde: '2026-06-01T00:00:00Z',
         publicado_hasta: '2026-06-30T23:59:59Z',
         ordenar_por: 'FechaPublicacion',
+        max_pages: 3,
+        bounded_window: true,
       }),
       'manual',
       'api-v2-compra-agil-by-publication-window',

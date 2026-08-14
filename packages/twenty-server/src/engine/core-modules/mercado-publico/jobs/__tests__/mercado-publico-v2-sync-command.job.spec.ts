@@ -126,13 +126,12 @@ describe('MercadoPublicoV2SyncCommandJob', () => {
     expect(controlService.finalizeCommand).toHaveBeenCalledWith({
       commandId: 'command-1',
       attemptId: 'attempt-1',
-      attemptNumber: 1,
       status: 'failed',
       errorSummary: 'failed',
     });
   });
 
-  it('releases a retryable command for its next queue attempt', async () => {
+  it('records a retryable provider failure as terminal', async () => {
     const controlService = buildControlService({
       kind: 'claimed',
       syncRunId: 'run-1',
@@ -155,7 +154,6 @@ describe('MercadoPublicoV2SyncCommandJob', () => {
     expect(controlService.finalizeCommand).toHaveBeenCalledWith({
       commandId: 'command-1',
       attemptId: 'attempt-1',
-      attemptNumber: 1,
       status: 'retryable_failed',
       errorSummary: 'provider unavailable',
     });

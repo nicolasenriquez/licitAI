@@ -19,6 +19,12 @@ describe('validateCompraAgilListParams', () => {
     expect(errors).toEqual([]);
   });
 
+  it('should accept a one-record smoke-test page', () => {
+    expect(
+      validateCompraAgilListParams({ tamano_pagina: 1, numero_pagina: 1 }),
+    ).toEqual([]);
+  });
+
   it('should return error when tamano_pagina exceeds 50', () => {
     const errors = validateCompraAgilListParams({
       tamano_pagina: 51,

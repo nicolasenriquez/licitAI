@@ -46,11 +46,7 @@ dev-up: _ensure-env-file
     @echo === Stack ready. Migrations applied, server healthy. ===
 
 # Start full app stack, rebuilding the image first (slow, ~10-20 min)
-dev-up-build: _ensure-env-file
-    docker compose --env-file {{ENV_FILE}} -f {{COMPOSE_APP}} up --build -d
-    @echo === Waiting for server (migrations run on boot, up to 300s) ===
-    npx wait-on http://localhost:3000/healthz --timeout 300000 --interval 5000
-    @echo === Stack ready. Migrations applied, server healthy. ===
+dev-up-build: _ensure-env-file prod-build dev-up
 
 # Stop app stack
 dev-down:
@@ -328,4 +324,4 @@ _ensure-ci-prerequisites: _ensure-pg _ensure-redis _ensure-clickhouse _ensure-se
 # ═════════════════════════════════════════════════════════════════════════════
 
 prod-build:
-    docker build --target twenty -f ./packages/twenty-docker/twenty/Dockerfile --platform {{PLATFORM}} --tag twenty:{{TAG}} .
+    docker build --target twenty -f ./packages/twenty-docker/twenty/Dockerfile --platform {{PLATFORM}} --tag twentycrm/twenty:{{TAG}} .

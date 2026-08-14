@@ -33,6 +33,7 @@ import { type CompraAgilListParams } from 'src/engine/core-modules/mercado-publi
 
 const WATERMARK_OVERLAP_MS = 5 * 60 * 1000;
 const DEFAULT_PAGE_SIZE = 50;
+const DEFAULT_MAX_PAGES = 50;
 const HYDRATION_BATCH_SIZE = 100;
 
 export type MercadoPublicoV2SyncIntent =
@@ -59,6 +60,7 @@ type SyncRunContext = {
   syncRunId: string;
   scope: string;
   requestParams: CompraAgilListParams;
+  maxPages: number;
   watermarkBefore: Date | null;
   status: string;
   cancellationRequestedAt: Date | null;
@@ -122,6 +124,25 @@ const getDate = (value: unknown): Date | null => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
+const getMaxPages = (value: unknown): number => {
+  if (value === undefined) {
+    return DEFAULT_MAX_PAGES;
+  }
+
+  if (
+    typeof value !== 'number' ||
+    !Number.isInteger(value) ||
+    value < 1 ||
+    value > DEFAULT_MAX_PAGES
+  ) {
+    throw new Error(
+      `Mercado Publico V2 max pages must be an integer between 1 and ${DEFAULT_MAX_PAGES}`,
+    );
+  }
+
+  return value;
+};
+
 @Injectable()
 export class MercadoPublicoV2DurableSyncService {
   private readonly logger = new Logger(MercadoPublicoV2DurableSyncService.name);
@@ -174,13 +195,32 @@ export class MercadoPublicoV2DurableSyncService {
 
     try {
       await this.updateSyncRunStatus(context.syncRunId, 'discovering');
+      context.status = 'discovering';
+      const discovery = await this.discover(context, jobRunRecord.id);
+
+      if (discovery === 'cancelled') {
+        return this.cancelRun(context, jobRunRecord.id, 'discovering');
+      }
+
+      if (discovery === 'page_budget_reached') {
+        stage = 'hydrating';
+        await this.updateSyncRunStatus(context.syncRunId, 'hydrating');
+        context.status = 'hydrating';
+        const hydration = await this.hydrate(context, jobRunRecord.id);
+
+        if (hydration === 'cancelled') {
+          return this.cancelRun(context, jobRunRecord.id, 'hydrating');
+        }
+
+        return this.pauseRun(context, jobRunRecord.id);
+      }
+
       await this.freezeActiveCohort(context);
-      await this.discover(context, jobRunRecord.id);
       stage = 'hydrating';
       await this.updateSyncRunStatus(context.syncRunId, 'hydrating');
-      await this.hydrate(context, jobRunRecord.id);
+      context.status = 'hydrating';
 
-      return this.finishRun(context, jobRunRecord.id);
+      return this.hydrateOrFinish(context, jobRunRecord.id);
     } catch (error) {
       await this.failRun(context, jobRunRecord.id, error, stage);
 
@@ -229,9 +269,8 @@ export class MercadoPublicoV2DurableSyncService {
         [syncRunId],
       );
       await this.updateSyncRunStatus(syncRunId, 'hydrating');
-      await this.hydrate(context, jobRunRecord.id);
-
-      return this.finishRun(context, jobRunRecord.id);
+      context.status = 'hydrating';
+      return this.hydrateOrFinish(context, jobRunRecord.id);
     } catch (error) {
       await this.failRun(context, jobRunRecord.id, error, 'hydrating');
 
@@ -288,14 +327,28 @@ export class MercadoPublicoV2DurableSyncService {
     try {
       if (context.status === 'queued') {
         await this.updateSyncRunStatus(syncRunId, 'discovering');
-        await this.freezeActiveCohort(context);
+        context.status = 'discovering';
         const discovery = await this.discover(context, jobRunRecord.id);
 
         if (discovery === 'cancelled') {
           return this.cancelRun(context, jobRunRecord.id, 'discovering');
         }
 
+        if (discovery === 'page_budget_reached') {
+          await this.updateSyncRunStatus(syncRunId, 'hydrating');
+          context.status = 'hydrating';
+          const hydration = await this.hydrate(context, jobRunRecord.id);
+
+          if (hydration === 'cancelled') {
+            return this.cancelRun(context, jobRunRecord.id, 'hydrating');
+          }
+
+          return this.pauseRun(context, jobRunRecord.id);
+        }
+
+        await this.freezeActiveCohort(context);
         await this.updateSyncRunStatus(syncRunId, 'hydrating');
+        context.status = 'hydrating';
 
         return await this.hydrateOrFinish(context, jobRunRecord.id);
       }
@@ -307,6 +360,7 @@ export class MercadoPublicoV2DurableSyncService {
           context.error_retryable)
       ) {
         await this.updateSyncRunStatus(syncRunId, 'discovering');
+        context.status = 'discovering';
         const nextPage = await this.getNextDiscoveryPage(syncRunId);
         const discovery = await this.discover(
           context,
@@ -318,24 +372,33 @@ export class MercadoPublicoV2DurableSyncService {
           return this.cancelRun(context, jobRunRecord.id, 'discovering');
         }
 
+        if (discovery === 'page_budget_reached') {
+          await this.updateSyncRunStatus(syncRunId, 'hydrating');
+          context.status = 'hydrating';
+          const hydration = await this.hydrate(context, jobRunRecord.id);
+
+          if (hydration === 'cancelled') {
+            return this.cancelRun(context, jobRunRecord.id, 'hydrating');
+          }
+
+          return this.pauseRun(context, jobRunRecord.id);
+        }
+
+        await this.freezeActiveCohort(context);
         await this.updateSyncRunStatus(syncRunId, 'hydrating');
+        context.status = 'hydrating';
 
         return await this.hydrateOrFinish(context, jobRunRecord.id);
       }
 
       await this.resetProcessingItems(syncRunId);
       await this.updateSyncRunStatus(syncRunId, 'hydrating');
+      context.status = 'hydrating';
 
       return await this.hydrateOrFinish(context, jobRunRecord.id);
     } catch (error) {
       const stage =
-        context.status === 'queued' ||
-        context.status === 'discovering' ||
-        (context.status === 'partial_failed' &&
-          context.error_stage === 'discovering' &&
-          context.error_retryable)
-          ? 'discovering'
-          : 'hydrating';
+        context.status === 'hydrating' ? 'hydrating' : 'discovering';
 
       await this.failRun(context, jobRunRecord.id, error, stage);
 
@@ -411,6 +474,7 @@ export class MercadoPublicoV2DurableSyncService {
     const scope = getNonEmptyString(payload.scope) ?? 'global';
     const watermarkBefore = await this.readWatermark(scope);
     const requestParams = this.buildRequestParams(payload, watermarkBefore);
+    const maxPages = getMaxPages(payload.max_pages ?? payload.maxPages);
     const rows = await this.coreDataSource.query<{ id: string }[]>(
       `
         INSERT INTO mp.sync_run (
@@ -424,7 +488,10 @@ export class MercadoPublicoV2DurableSyncService {
         intent,
         MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
         scope,
-        JSON.stringify(requestParams),
+        JSON.stringify({
+          ...requestParams,
+          max_pages: maxPages,
+        }),
         watermarkBefore,
         executionKey ?? null,
       ],
@@ -434,6 +501,7 @@ export class MercadoPublicoV2DurableSyncService {
       syncRunId: rows[0].id,
       scope,
       requestParams,
+      maxPages,
       watermarkBefore,
       status: 'queued',
       cancellationRequestedAt: null,
@@ -504,7 +572,7 @@ export class MercadoPublicoV2DurableSyncService {
         ? payload.tamano_pagina
         : DEFAULT_PAGE_SIZE;
 
-    if (pageSize < 1 || pageSize > 50) {
+    if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50) {
       throw new Error(
         'Mercado Publico V2 durable page size must be between 1 and 50',
       );
@@ -530,7 +598,8 @@ export class MercadoPublicoV2DurableSyncService {
       region: typeof payload.region === 'number' ? payload.region : undefined,
       id: getNonEmptyString(payload.id),
       q: getNonEmptyString(payload.q),
-      ordenar_por: getNonEmptyString(payload.ordenar_por),
+      ordenar_por:
+        getNonEmptyString(payload.ordenar_por) ?? 'FechaUltimaModificacion',
       tamano_pagina: pageSize,
       numero_pagina: 1,
     };
@@ -574,6 +643,7 @@ export class MercadoPublicoV2DurableSyncService {
       ...row,
       syncRunId: row.id,
       requestParams: this.toCompraAgilListParams(row.request_params),
+      maxPages: getMaxPages(row.request_params.max_pages),
       watermarkBefore: getDate(row.watermark_before),
       cancellationRequestedAt: getDate(row.cancellation_requested_at),
     };
@@ -582,8 +652,15 @@ export class MercadoPublicoV2DurableSyncService {
   private toCompraAgilListParams(
     value: Record<string, unknown>,
   ): CompraAgilListParams {
+    const {
+      max_pages: _maxPages,
+      maxPages: _legacyMaxPages,
+      bounded_window: _boundedWindow,
+      ...requestParams
+    } = value;
+
     return {
-      ...value,
+      ...requestParams,
       tamano_pagina:
         typeof value.tamano_pagina === 'number'
           ? value.tamano_pagina
@@ -623,7 +700,7 @@ export class MercadoPublicoV2DurableSyncService {
     context: SyncRunContext,
     jobRunRecordId: string,
     startPageNumber = 1,
-  ): Promise<'completed' | 'cancelled'> {
+  ): Promise<'completed' | 'cancelled' | 'page_budget_reached'> {
     const pageSize = context.requestParams.tamano_pagina ?? DEFAULT_PAGE_SIZE;
     let pageNumber = startPageNumber;
 
@@ -665,6 +742,7 @@ export class MercadoPublicoV2DurableSyncService {
         response,
         persistenceResult.rawApiPayloadId,
       );
+
       const pagination = response.pagination;
       const hasNextPage =
         pagination?.hasNextPage === true && response.compraAgil.length > 0;
@@ -680,6 +758,10 @@ export class MercadoPublicoV2DurableSyncService {
 
       if (!hasNextPage) {
         break;
+      }
+
+      if (pageNumber - startPageNumber + 1 >= context.maxPages) {
+        return 'page_budget_reached';
       }
 
       pageNumber += 1;
@@ -823,8 +905,8 @@ export class MercadoPublicoV2DurableSyncService {
 
     const rows = await this.coreDataSource.query<CurrentDetailRow[]>(
       `
-        SELECT c.codigo, c.provider_changed_at, c.state_id, c.state_code,
-               c.id_orden_compra
+        SELECT c.codigo, c.provider_changed_at, c.state_id,
+               c.estado AS state_code, c.id_orden_compra
         FROM mp.compra_agil c
         INNER JOIN mp.v2_observation o ON o.id = c.observation_id
         WHERE c.codigo = ANY($1::text[])
@@ -1416,6 +1498,69 @@ export class MercadoPublicoV2DurableSyncService {
     return {
       syncRunId: context.syncRunId,
       status: 'cancelled',
+      recordsDiscovered: Number(count.records_discovered ?? 0),
+      recordsHydrated: Number(count.records_hydrated ?? 0),
+      recordsFailed: Number(count.records_failed ?? 0),
+      pagesCheckpointed: Number(count.pages_checkpointed ?? 0),
+      watermarkAfter: null,
+      observationIds: [],
+      recordsProjected: Number(count.records_projected ?? 0),
+    };
+  }
+
+  private async pauseRun(
+    context: SyncRunContext,
+    jobRunRecordId: string,
+  ): Promise<MercadoPublicoV2DurableSyncResult> {
+    await this.updateSyncRunCounters(context.syncRunId);
+    await this.coreDataSource.query(
+      `
+        UPDATE mp.sync_run
+        SET status = 'partial_failed',
+            error_stage = 'discovering',
+            error_retryable = true,
+            error_summary = 'page_budget_reached',
+            finished_at = now(),
+            updated_at = now()
+        WHERE id = $1
+      `,
+      [context.syncRunId],
+    );
+    const counts = await this.coreDataSource.query<
+      {
+        records_discovered?: string;
+        records_hydrated?: string;
+        records_failed?: string;
+        records_projected?: string;
+        pages_checkpointed?: string;
+      }[]
+    >(
+      `
+        SELECT records_discovered, records_hydrated, records_failed,
+               records_projected, pages_checkpointed
+        FROM mp.sync_run
+        WHERE id = $1
+      `,
+      [context.syncRunId],
+    );
+    const count = counts[0] ?? {};
+
+    await this.mercadoPublicoPersistenceService.finalizeJobRun({
+      jobRunRecordId,
+      status: 'failed',
+      finishedAt: new Date(),
+      errorSummary: 'page_budget_reached',
+      recordsFetched: Number(count.records_discovered ?? 0),
+      recordsCanonicalized: Number(count.records_hydrated ?? 0),
+      recordsFailed: Number(count.records_failed ?? 0),
+    });
+    this.logger.log(
+      `Mercado Publico V2 sync ${context.syncRunId} paused at its page budget`,
+    );
+
+    return {
+      syncRunId: context.syncRunId,
+      status: 'partial_failed',
       recordsDiscovered: Number(count.records_discovered ?? 0),
       recordsHydrated: Number(count.records_hydrated ?? 0),
       recordsFailed: Number(count.records_failed ?? 0),

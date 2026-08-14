@@ -2,7 +2,7 @@ import { gql } from '@apollo/client';
 import { useMutation, useQuery } from '@apollo/client/react';
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 import { Loader } from 'twenty-ui/feedback';
 import { Button } from 'twenty-ui/input';
@@ -134,6 +134,12 @@ const StyledDialogActions = styled.div`
   justify-content: flex-end;
 `;
 
+const StyledPageLimit = styled.label`
+  display: flex;
+  flex-direction: column;
+  gap: ${themeCssVariables.spacing[1]};
+`;
+
 const getEventLabel = (eventType: string): string => {
   const labels: Record<string, string> = {
     command_created: 'Comando creado',
@@ -205,15 +211,16 @@ type MercadoPublicoV2ResumeSyncMutation = {
 export const MercadoPublicoV2SyncControlPage = () => {
   const { t } = useLingui();
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [maxPages, setMaxPages] = useState(50);
   const apolloCoreClient = useApolloCoreClient();
-  const { data, loading, error, refetch } =
+  const { data, loading, error, refetch, startPolling, stopPolling } =
     useQuery<MercadoPublicoV2SyncControlLatestRunQuery>(
       MERCADO_PUBLICO_V2_SYNC_CONTROL_LATEST_RUN_QUERY,
       { client: apolloCoreClient },
     );
   const [startSync] = useMutation<
     MercadoPublicoV2StartSyncMutation,
-    { input: { idempotencyKey: string; confirmed: boolean } }
+    { input: { idempotencyKey: string; confirmed: boolean; maxPages: number } }
   >(MERCADO_PUBLICO_V2_START_SYNC_MUTATION, { client: apolloCoreClient });
   const [cancelSync] = useMutation<
     MercadoPublicoV2CancelSyncMutation,
@@ -232,6 +239,16 @@ export const MercadoPublicoV2SyncControlPage = () => {
   const isResumable =
     latestRun !== null && latestRun !== undefined && latestRun.canResume;
 
+  useEffect(() => {
+    if (isActive) {
+      startPolling(3000);
+    } else {
+      stopPolling();
+    }
+
+    return () => stopPolling();
+  }, [isActive, startPolling, stopPolling]);
+
   const runAction = async () => {
     if (pendingAction === null) {
       return;
@@ -241,7 +258,7 @@ export const MercadoPublicoV2SyncControlPage = () => {
 
     if (pendingAction === 'start') {
       await startSync({
-        variables: { input: { idempotencyKey, confirmed: true } },
+        variables: { input: { idempotencyKey, confirmed: true, maxPages } },
       });
     } else if (pendingAction === 'cancel') {
       await cancelSync({
@@ -308,6 +325,19 @@ export const MercadoPublicoV2SyncControlPage = () => {
                   </StyledStatusLine>
                 </>
               )}
+              <StyledPageLimit>
+                {t`Páginas por ejecución`}
+                <select
+                  value={maxPages}
+                  onChange={(event) => setMaxPages(Number(event.target.value))}
+                  disabled={isActive}
+                >
+                  <option value={1}>{t`1 página (smoke test)`}</option>
+                  <option value={2}>{t`2 páginas`}</option>
+                  <option value={10}>{t`10 páginas`}</option>
+                  <option value={50}>{t`50 páginas`}</option>
+                </select>
+              </StyledPageLimit>
               <StyledDialogActions>
                 <Button
                   title={t`Iniciar`}

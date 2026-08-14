@@ -57,7 +57,6 @@ export class MercadoPublicoV2SyncCommandJob {
         commandId: data.commandId,
         attemptId: claim.attemptId,
         status: retryable ? 'retryable_failed' : 'failed',
-        attemptNumber: claim.attemptNumber,
         errorSummary:
           error instanceof Error
             ? error.message

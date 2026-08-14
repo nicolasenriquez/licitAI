@@ -36,6 +36,7 @@ export type MercadoPublicoV2SubmitCommandInput = {
   action: MercadoPublicoV2SyncControlAction;
   idempotencyKey: string;
   confirmed?: boolean;
+  maxPages?: number;
 };
 
 export type MercadoPublicoV2SubmitCommandResult = {
@@ -59,9 +60,16 @@ export type MercadoPublicoV2LatestRun = {
   }[];
 };
 
-const getMercadoPublicoV2SyncSafeSummary = (status: string): string | null => {
+const getMercadoPublicoV2SyncSafeSummary = (
+  status: string,
+  errorStage: string | null,
+): string | null => {
   if (status === 'cancelled') {
     return 'La ejecución fue cancelada.';
+  }
+
+  if (status === 'partial_failed' && errorStage === 'discovering') {
+    return 'La ejecución quedó pausada antes de terminar el descubrimiento. Puedes reanudarla.';
   }
 
   if (status === 'partial_failed' || status === 'failed') {
@@ -87,12 +95,34 @@ const MERCADO_PUBLICO_V2_SYNC_ACTIVE_RUN_STATUSES = [
   'reconciling',
 ] as const;
 
+const DEFAULT_MAX_PAGES = 50;
+
+const getMaxPages = (value: number | undefined): number => {
+  const maxPages = value ?? DEFAULT_MAX_PAGES;
+
+  if (
+    !Number.isInteger(maxPages) ||
+    maxPages < 1 ||
+    maxPages > DEFAULT_MAX_PAGES
+  ) {
+    throw new Error(
+      `Mercado Publico V2 max pages must be an integer between 1 and ${DEFAULT_MAX_PAGES}`,
+    );
+  }
+
+  return maxPages;
+};
+
 export const buildMercadoPublicoV2SyncCommandFingerprint = (
-  input: Pick<MercadoPublicoV2SubmitCommandInput, 'action' | 'confirmed'>,
+  input: Pick<
+    MercadoPublicoV2SubmitCommandInput,
+    'action' | 'confirmed' | 'maxPages'
+  >,
 ): string =>
   JSON.stringify({
     action: input.action,
     confirmed: input.action === 'resume' ? undefined : input.confirmed,
+    maxPages: input.action === 'start' ? input.maxPages : undefined,
   });
 
 @Injectable()
@@ -134,6 +164,10 @@ export class MercadoPublicoV2SyncControlService {
       throw new Error(
         'Confirmation required for Mercado Publico V2 start and cancel commands',
       );
+    }
+
+    if (input.action === 'start') {
+      getMaxPages(input.maxPages);
     }
 
     const fingerprint = buildMercadoPublicoV2SyncCommandFingerprint(input);
@@ -237,94 +271,96 @@ export class MercadoPublicoV2SyncControlService {
     commandId: string,
     workerId: string,
   ): Promise<MercadoPublicoV2ClaimCommandResult> {
-    const commandRows = await this.coreDataSource.query<
-      {
-        id: string;
-        workspace_id: string;
-        action: string;
-        state: string;
-        sync_run_id: string | null;
-      }[]
-    >(
-      `
+    return this.coreDataSource.transaction(async (entityManager) => {
+      const commandRows = await entityManager.query<
+        {
+          id: string;
+          workspace_id: string;
+          action: string;
+          state: string;
+          sync_run_id: string | null;
+        }[]
+      >(
+        `
         SELECT id, workspace_id, action, state, sync_run_id
         FROM mp.sync_command
         WHERE id = $1
       `,
-      [commandId],
-    );
-    const command = commandRows[0];
+        [commandId],
+      );
+      const command = commandRows[0];
 
-    if (command === undefined) {
-      return { kind: 'noop', reason: 'unknown_command' };
-    }
+      if (command === undefined) {
+        return { kind: 'noop', reason: 'unknown_command' };
+      }
 
-    if (command.sync_run_id === null) {
-      return { kind: 'noop', reason: 'missing_sync_run' };
-    }
+      if (command.sync_run_id === null) {
+        return { kind: 'noop', reason: 'missing_sync_run' };
+      }
 
-    const claimedRows = await this.coreDataSource.query<{ id: string }[]>(
-      `
+      const claimedRows = await entityManager.query<{ id: string }[]>(
+        `
         UPDATE mp.sync_command
         SET state = 'claimed', claimed_at = now(), updated_at = now()
         WHERE id = $1 AND state = 'pending'
         RETURNING id
       `,
-      [commandId],
-    );
+        [commandId],
+      );
 
-    if (claimedRows.length === 0) {
-      return { kind: 'noop', reason: 'already_terminal' };
-    }
+      if (claimedRows.length === 0) {
+        return { kind: 'noop', reason: 'already_terminal' };
+      }
 
-    const attemptNumberRows = await this.coreDataSource.query<
-      { next_attempt: string }[]
-    >(
-      `
+      const attemptNumberRows = await entityManager.query<
+        { next_attempt: string }[]
+      >(
+        `
         SELECT COALESCE(MAX(attempt_number), 0) + 1 AS next_attempt
         FROM mp.sync_run_attempt
         WHERE sync_command_id = $1
       `,
-      [commandId],
-    );
-    const attemptRows = await this.coreDataSource.query<{ id: string }[]>(
-      `
+        [commandId],
+      );
+      const attemptRows = await entityManager.query<{ id: string }[]>(
+        `
         INSERT INTO mp.sync_run_attempt (
           sync_run_id, sync_command_id, attempt_number, worker_id, state, heartbeat_at
         )
         VALUES ($1, $2, $3, $4, 'running', now())
         RETURNING id
       `,
-      [
-        command.sync_run_id,
-        commandId,
-        Number(attemptNumberRows[0]?.next_attempt ?? 1),
-        workerId,
-      ],
-    );
+        [
+          command.sync_run_id,
+          commandId,
+          Number(attemptNumberRows[0]?.next_attempt ?? 1),
+          workerId,
+        ],
+      );
 
-    await this.coreDataSource.query(
-      `
+      await entityManager.query(
+        `
         UPDATE mp.sync_run
         SET heartbeat_at = now(), heartbeat_worker_id = $2, updated_at = now()
         WHERE id = $1
       `,
-      [command.sync_run_id, workerId],
-    );
-    await this.appendAudit(this.coreDataSource, {
-      workspaceId: command.workspace_id,
-      syncRunId: command.sync_run_id,
-      syncCommandId: commandId,
-      eventType: 'claimed',
-      eventData: { workerId, attemptId: attemptRows[0].id },
-    });
+        [command.sync_run_id, workerId],
+      );
+      await this.appendAudit(entityManager, {
+        workspaceId: command.workspace_id,
+        syncRunId: command.sync_run_id,
+        syncCommandId: commandId,
+        eventType: 'claimed',
+        eventData: { workerId, attemptId: attemptRows[0].id },
+      });
 
-    return {
-      kind: 'claimed',
-      syncRunId: command.sync_run_id,
-      attemptId: attemptRows[0].id,
-      attemptNumber: Number(attemptNumberRows[0]?.next_attempt ?? 1),
-    };
+      return {
+        kind: 'claimed',
+        syncRunId: command.sync_run_id,
+        attemptId: attemptRows[0].id,
+        attemptNumber: Number(attemptNumberRows[0]?.next_attempt ?? 1),
+      };
+    });
   }
 
   async finalizeCommand({
@@ -332,7 +368,6 @@ export class MercadoPublicoV2SyncControlService {
     attemptId,
     status,
     errorSummary,
-    attemptNumber,
   }: {
     commandId: string;
     attemptId: string;
@@ -343,21 +378,14 @@ export class MercadoPublicoV2SyncControlService {
       | 'failed'
       | 'cancelled';
     errorSummary?: string;
-    attemptNumber?: number;
   }): Promise<void> {
-    const retryable =
-      status === 'retryable_failed' &&
-      attemptNumber !== undefined &&
-      attemptNumber <=
-        this.mercadoPublicoConfigService.getSettings().httpMaxRetries;
-    const commandState = retryable
-      ? 'pending'
-      : status === 'succeeded'
+    const commandState =
+      status === 'succeeded'
         ? 'succeeded'
         : status === 'cancelled'
           ? 'cancelled'
           : 'failed';
-    const attemptState = retryable ? 'failed' : commandState;
+    const attemptState = commandState;
 
     await this.coreDataSource.transaction(async (entityManager) => {
       const commands = await entityManager.query<
@@ -367,12 +395,12 @@ export class MercadoPublicoV2SyncControlService {
             UPDATE mp.sync_command
             SET state = $2,
                 error_summary = $3,
-                finished_at = CASE WHEN $4 THEN NULL ELSE now() END,
+                finished_at = now(),
                 updated_at = now()
             WHERE id = $1 AND state = 'claimed'
             RETURNING workspace_id, sync_run_id
           `,
-        [commandId, commandState, errorSummary ?? null, retryable],
+        [commandId, commandState, errorSummary ?? null],
       );
       const command = commands[0];
 
@@ -411,8 +439,13 @@ export class MercadoPublicoV2SyncControlService {
         FROM mp.sync_command c
         JOIN mp.sync_run r ON r.id = c.sync_run_id
         WHERE c.state = 'claimed'
-          AND r.heartbeat_at IS NOT NULL
-          AND r.heartbeat_at < now() - make_interval(secs => $1)
+          AND (
+            r.heartbeat_at < now() - make_interval(secs => $1)
+            OR (
+              r.heartbeat_at IS NULL
+              AND c.claimed_at < now() - make_interval(secs => $1)
+            )
+          )
       `,
       [staleHeartbeatMarginSeconds],
     );
@@ -549,10 +582,15 @@ export class MercadoPublicoV2SyncControlService {
 
     return {
       safeStatus: row.status,
-      safeSummary: getMercadoPublicoV2SyncSafeSummary(row.status),
+      safeSummary: getMercadoPublicoV2SyncSafeSummary(
+        row.status,
+        row.error_stage,
+      ),
       canResume:
         row.status === 'partial_failed' ||
-        (row.status === 'cancelled' && row.error_stage === 'hydrating'),
+        (row.status === 'cancelled' &&
+          (row.error_stage === 'discovering' ||
+            row.error_stage === 'hydrating')),
       recordsDiscovered: Number(row.records_discovered ?? 0),
       recordsHydrated: Number(row.records_hydrated ?? 0),
       recordsFailed: Number(row.records_failed ?? 0),
@@ -578,14 +616,17 @@ export class MercadoPublicoV2SyncControlService {
           WHERE control_workspace_id = $1
             AND (
               status = 'partial_failed'
-              OR (status = 'cancelled' AND error_stage = 'hydrating')
+              OR (status = 'cancelled' AND error_stage IN ('discovering', 'hydrating'))
             )
           ORDER BY created_at DESC
           LIMIT 1
           FOR UPDATE
         )
         UPDATE mp.sync_run r
-        SET status = 'hydrating',
+        SET status = CASE
+              WHEN r.error_stage = 'discovering' THEN 'discovering'
+              ELSE 'hydrating'
+            END,
             cancellation_requested_at = NULL,
             cancellation_requested_by_user_workspace_id = NULL,
             error_stage = NULL,
@@ -689,15 +730,16 @@ export class MercadoPublicoV2SyncControlService {
     const rows = await entityManager.query<{ id: string }[]>(
       `
         INSERT INTO mp.sync_run (
-          intent, source, scope, status,
+          intent, source, scope, status, request_params,
           control_workspace_id, control_user_workspace_id
         )
-        VALUES ('incremental', $1, 'global', 'queued', $2, $3)
+        VALUES ('incremental', $1, 'global', 'queued', $2::jsonb, $3, $4)
         ON CONFLICT DO NOTHING
         RETURNING id
       `,
       [
         MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
+        JSON.stringify({ max_pages: getMaxPages(input.maxPages) }),
         input.workspaceId,
         input.actorUserWorkspaceId,
       ],

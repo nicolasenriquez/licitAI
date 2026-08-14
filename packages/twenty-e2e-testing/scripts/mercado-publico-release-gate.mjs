@@ -41,8 +41,7 @@ export const mercadoPublicoReleaseGateManifest = {
     },
     {
       id: 'cutover',
-      command:
-        'npx playwright test tests/mercado-publico/cutover-route-matrix.spec.ts --project=chrome',
+      command: 'node scripts/run-mercado-publico-cutover.mjs',
       cwd: packageDirectory,
     },
   ],

@@ -107,6 +107,28 @@ V2 SyncRuns for both requested source-date windows.
   source image, then run a small bounded publication window. Do not enqueue the
   13 August window until the 12 August window reaches terminal success.
 
+## Bounded 12 August Attempt
+
+- Submitted at: `2026-08-14T16:11:18.452Z`
+- Requested source window: `2026-08-12T00:00:00Z` through
+  `2026-08-12T23:59:59Z`
+- Requested page size: `50`; bounded discovery budget: `3` pages.
+- Entry point: existing `mercado-publico:run` command with
+  `api-v2-compra-agil-by-publication-window`, `max_pages: 3`, and
+  `bounded_window: true`.
+- Runtime deployment: rebuilt local `twentycrm/twenty:mp-local` image, recreated
+  canonical server and worker, and verified deployed bounded-runner code plus
+  `execution_key`, `hydration_required`, and `hydration_reason` recovery schema
+  columns.
+- SyncRun: `ce9edf06-6fc1-4384-b5cf-9af6f216ba49`.
+- Result: `partial_failed` at `2026-08-14T16:14:21.152Z` after retryable provider
+  discovery failures. The run checkpointed pages 1 and 2 of the provider's 104
+  pages, with `89` discovered pending items and `3` admitted cohort rows. No
+  item hydrated or projected, no observation exists, and no source watermark was
+  written.
+- Stop condition: task 2.6 requires terminal success with all required evidence.
+  Do not enqueue the 13 August bounded window or authorize G5.
+
 ## Stable Evidence Locations
 
 | Evidence | Canonical location |

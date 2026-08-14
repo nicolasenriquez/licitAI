@@ -204,6 +204,46 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
     ).toHaveLength(0);
   });
 
+  it('preserves cancellation while resuming hydration', async () => {
+    const service = buildService({
+      query: jest.fn().mockImplementation((sql: string) => {
+        if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
+          return Promise.resolve([
+            buildRunRow({ error_stage: 'hydrating', status: 'partial_failed' }),
+          ]);
+        }
+
+        return Promise.resolve([]);
+      }),
+      entityManagerQuery: jest.fn().mockResolvedValue([]),
+      getList: jest.fn(),
+      getByCodigo: jest.fn(),
+    });
+    const syncService = service as unknown as {
+      hydrate: jest.Mock;
+      cancelRun: jest.Mock;
+      finishRun: jest.Mock;
+    };
+
+    jest.spyOn(syncService, 'hydrate').mockResolvedValue('cancelled');
+    jest.spyOn(syncService, 'cancelRun').mockResolvedValue({
+      status: 'cancelled',
+    });
+    jest.spyOn(syncService, 'finishRun').mockResolvedValue({
+      status: 'succeeded',
+    });
+
+    await expect(service.resume('run-1')).resolves.toMatchObject({
+      status: 'cancelled',
+    });
+    expect(syncService.cancelRun).toHaveBeenCalledWith(
+      expect.objectContaining({ syncRunId: 'run-1' }),
+      'job-run-1',
+      'hydrating',
+    );
+    expect(syncService.finishRun).not.toHaveBeenCalled();
+  });
+
   it('cancels cooperatively after the current page and keeps its checkpoint', async () => {
     let runRowCalls = 0;
     const query = jest.fn().mockImplementation((sql: string) => {
@@ -244,6 +284,87 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
     );
 
     expect(cancelledUpdates.length).toBeGreaterThan(0);
+  });
+
+  it('checkpoints only the configured page budget before pausing discovery', async () => {
+    const getList = jest.fn().mockResolvedValue(buildListResponse(true));
+    const service = buildService({
+      query: jest.fn().mockResolvedValue([]),
+      entityManagerQuery: jest.fn().mockResolvedValue([]),
+      getList,
+      getByCodigo: jest.fn(),
+    });
+
+    await expect(
+      (
+        service as unknown as {
+          discover: (
+            context: {
+              syncRunId: string;
+              scope: string;
+              requestParams: { tamano_pagina: number };
+              maxPages: number;
+            },
+            jobRunRecordId: string,
+          ) => Promise<unknown>;
+        }
+      ).discover(
+        {
+          syncRunId: 'run-1',
+          scope: 'global',
+          requestParams: { tamano_pagina: 50 },
+          maxPages: 1,
+        },
+        'job-run-1',
+      ),
+    ).resolves.toBe('page_budget_reached');
+
+    expect(getList).toHaveBeenCalledTimes(1);
+    expect(getList).toHaveBeenCalledWith(
+      expect.objectContaining({ numero_pagina: 1 }),
+    );
+  });
+
+  it('pauses an unfinished bounded window when its page budget is reached', async () => {
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
+        return Promise.resolve([
+          buildRunRow({
+            request_params: {
+              tamano_pagina: 50,
+              max_pages: 3,
+              bounded_window: true,
+            },
+          }),
+        ]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const service = buildService({
+      query,
+      entityManagerQuery: jest.fn().mockResolvedValue([]),
+      getList: jest.fn(),
+      getByCodigo: jest.fn(),
+    });
+    const syncService = service as unknown as {
+      discover: jest.Mock;
+      hydrate: jest.Mock;
+      pauseRun: jest.Mock;
+    };
+
+    jest
+      .spyOn(syncService, 'discover')
+      .mockResolvedValue('page_budget_reached');
+    jest.spyOn(syncService, 'hydrate').mockResolvedValue('completed');
+    jest.spyOn(syncService, 'pauseRun').mockResolvedValue({
+      status: 'partial_failed',
+    });
+
+    await expect(service.executeExistingRun('run-1')).resolves.toMatchObject({
+      status: 'partial_failed',
+    });
+    expect(syncService.pauseRun).toHaveBeenCalled();
   });
 
   it('resumes only a discovery-complete run', async () => {

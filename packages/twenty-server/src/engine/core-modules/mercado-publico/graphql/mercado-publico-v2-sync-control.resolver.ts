@@ -78,6 +78,9 @@ export class MercadoPublicoV2StartSyncInput {
 
   @Field()
   confirmed!: boolean;
+
+  @Field(() => Int, { nullable: true })
+  maxPages?: number;
 }
 
 @InputType()
@@ -154,6 +157,7 @@ export class MercadoPublicoV2SyncControlNamespaceResolver {
       action: 'start',
       idempotencyKey: input.idempotencyKey,
       confirmed: input.confirmed,
+      maxPages: input.maxPages,
     });
 
     return { state: result.state };

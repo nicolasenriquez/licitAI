@@ -427,10 +427,10 @@ export class MercadoPublicoV2DetailReadService {
           observation.provider_changed_at,
           CASE
             WHEN gold.observation_id IS NULL THEN 'unavailable'
-            WHEN detail_error.error_summary IS NOT NULL THEN 'stale'
+            WHEN latest_detail_item.error_summary IS NOT NULL THEN 'stale'
             ELSE 'fresh'
           END AS freshness_status,
-          detail_error.error_summary AS freshness_error,
+          latest_detail_item.error_summary AS freshness_error,
           COALESCE(observation.observed_at, gold.observed_at) AS freshness_as_of
         FROM mp.gold_detected_process AS gold
         LEFT JOIN mp.v2_observation AS observation
@@ -442,12 +442,13 @@ export class MercadoPublicoV2DetailReadService {
         LEFT JOIN LATERAL (
           SELECT item.error_summary
           FROM mp.sync_run_item AS item
-          WHERE item.sync_run_id = observation.sync_run_id
-            AND item.codigo = gold.process_code
-            AND item.error_summary IS NOT NULL
-          ORDER BY item.updated_at DESC NULLS LAST
+          INNER JOIN mp.sync_run AS run ON run.id = item.sync_run_id
+          WHERE item.codigo = gold.process_code
+            AND run.source = 'api-v2-compra-agil'
+            AND run.scope = 'global'
+          ORDER BY item.updated_at DESC NULLS LAST, run.created_at DESC, item.id DESC
           LIMIT 1
-        ) AS detail_error ON TRUE
+        ) AS latest_detail_item ON TRUE
         WHERE gold.process_type = 'compra_agil'
           AND gold.process_code = $1
       `,

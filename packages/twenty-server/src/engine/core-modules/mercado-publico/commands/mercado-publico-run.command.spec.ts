@@ -70,4 +70,21 @@ describe('MercadoPublicoRunCommand', () => {
       },
     );
   });
+
+  it('reuses an explicit execution key and validates its format', async () => {
+    const executionKey = '4a88c929-8420-4a9e-8b78-c11a90ee0bd9';
+
+    await command.run([], {
+      jobName: 'api-v1-licitaciones-by-date',
+      executionKey,
+    });
+
+    expect(mockAdd).toHaveBeenLastCalledWith(
+      'MercadoPublicoJob',
+      expect.objectContaining({ executionKey }),
+      expect.anything(),
+    );
+    expect(command.parseExecutionKey(executionKey)).toBe(executionKey);
+    expect(() => command.parseExecutionKey('not-a-uuid')).toThrow(/uuid/i);
+  });
 });

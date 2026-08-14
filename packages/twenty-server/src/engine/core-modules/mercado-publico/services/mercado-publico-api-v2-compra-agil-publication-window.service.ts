@@ -8,6 +8,8 @@ type MercadoPublicoApiV2CompraAgilPublicationWindowPayload = {
   publicado_desde?: string;
   publicado_hasta?: string;
   tamano_pagina?: number;
+  max_pages?: number;
+  bounded_window?: boolean;
   id?: string;
   q?: string;
   estado?: string;
@@ -82,6 +84,12 @@ export class MercadoPublicoApiV2CompraAgilPublicationWindowService {
       tamano_pagina:
         typeof payload.tamano_pagina === 'number'
           ? payload.tamano_pagina
+          : undefined,
+      max_pages:
+        typeof payload.max_pages === 'number' ? payload.max_pages : undefined,
+      bounded_window:
+        typeof payload.bounded_window === 'boolean'
+          ? payload.bounded_window
           : undefined,
       id: isNonEmptyString(payload.id) ? (payload.id as string) : undefined,
       q: isNonEmptyString(payload.q) ? (payload.q as string) : undefined,

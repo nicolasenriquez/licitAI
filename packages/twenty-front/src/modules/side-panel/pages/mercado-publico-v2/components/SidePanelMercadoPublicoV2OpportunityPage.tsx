@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppPath } from 'twenty-shared/types';
 
+import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
 import { SidePanelPageComponentInstanceContext } from '@/side-panel/states/contexts/SidePanelPageComponentInstanceContext';
 import { useComponentInstanceStateContext } from '@/ui/utilities/state/component-state/hooks/useComponentInstanceStateContext';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
@@ -560,6 +561,7 @@ const RelationSection = ({
 
 export const SidePanelMercadoPublicoV2OpportunityPage = () => {
   const { t } = useLingui();
+  const apolloCoreClient = useApolloCoreClient();
   const context = useComponentInstanceStateContext(
     SidePanelPageComponentInstanceContext,
   );
@@ -574,7 +576,11 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
   const payloadButtonRef = useRef<HTMLButtonElement>(null);
   const { data, error, loading } = useQuery<DetailQuery>(
     MERCADO_PUBLICO_V2_OPPORTUNITY_QUERY,
-    { variables: { codigo }, skip: codigo.length === 0 },
+    {
+      client: apolloCoreClient,
+      variables: { codigo },
+      skip: codigo.length === 0,
+    },
   );
   const opportunity = data?.mercadoPublicoV2.opportunity;
   const observationId = opportunity?.observationId ?? undefined;
@@ -586,27 +592,32 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
   const documents = useQuery<RelationQuery>(
     MERCADO_PUBLICO_V2_DOCUMENTS_QUERY,
     {
+      client: apolloCoreClient,
       variables: { ...relationVariables, after: documentAfter },
       skip: codigo.length === 0,
     },
   );
   const items = useQuery<RelationQuery>(MERCADO_PUBLICO_V2_ITEMS_QUERY, {
+    client: apolloCoreClient,
     variables: { ...relationVariables, after: itemAfter },
     skip: codigo.length === 0,
   });
   const offers = useQuery<RelationQuery>(MERCADO_PUBLICO_V2_OFFERS_QUERY, {
+    client: apolloCoreClient,
     variables: { ...relationVariables, after: offerAfter },
     skip: codigo.length === 0,
   });
   const quotedProducts = useQuery<RelationQuery>(
     MERCADO_PUBLICO_V2_QUOTED_PRODUCTS_QUERY,
     {
+      client: apolloCoreClient,
       variables: { ...relationVariables, after: quotedProductAfter },
       skip: codigo.length === 0,
     },
   );
   const [loadPayload, payloadQuery] = useLazyQuery<PayloadQuery>(
     MERCADO_PUBLICO_V2_RAW_PAYLOAD_QUERY,
+    { client: apolloCoreClient },
   );
 
   useEffect(() => {
