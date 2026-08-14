@@ -1,4 +1,4 @@
-import { test as base } from '../../lib/fixtures/screenshot';
+import { test as base } from '@playwright/test';
 import { ConfirmationModal } from '../../lib/pom/helper/confirmationModal';
 import { LeftMenu } from '../../lib/pom/leftMenu';
 import { LoginPage } from '../../lib/pom/loginPage';

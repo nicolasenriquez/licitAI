@@ -1,0 +1,33 @@
+services:
+  server:
+    build:
+      context: ../../
+      dockerfile: ./packages/twenty-docker/twenty/Dockerfile
+      target: twenty
+      args:
+        APP_VERSION: ${APP_VERSION:-0.0.0-e2e}
+    image: twenty-mp-e2e:${GIT_SHA:-local-source}
+    ports: !override
+      - target: 3000
+        host_ip: 127.0.0.1
+    restart: 'no'
+    environment:
+      DISABLE_DB_MIGRATIONS: 'false'
+      DISABLE_CRON_JOBS_REGISTRATION: 'true'
+      SIGN_IN_PREFILLED: 'true'
+      MERCADO_PUBLICO_V2_E2E_FIXTURE_ENABLED: 'true'
+      MERCADO_PUBLICO_V2_E2E_FIXTURE_SCOPE: 'isolated'
+    volumes:
+      - mp-e2e-server-local-data:/app/packages/twenty-server/.local-storage
+
+  worker:
+    profiles:
+      - worker
+
+  db:
+    volumes:
+      - mp-e2e-db-data:/var/lib/postgresql/data
+
+volumes:
+  mp-e2e-db-data:
+  mp-e2e-server-local-data:

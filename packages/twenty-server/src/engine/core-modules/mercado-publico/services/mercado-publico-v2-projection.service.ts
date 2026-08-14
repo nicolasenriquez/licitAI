@@ -166,28 +166,6 @@ export class MercadoPublicoV2ProjectionService {
     });
   }
 
-  async reproject(
-    observationId: string,
-    context: MercadoPublicoV2ProjectionContext,
-  ): Promise<MercadoPublicoV2ProjectionResult> {
-    const normalized = normalizeV2CompraAgilRecord(context.record);
-    const semanticPayload = buildSemanticPayload(
-      context.record.codigo,
-      normalized,
-    );
-    const semanticFingerprint = createJsonSha256(semanticPayload);
-
-    return this.coreDataSource.transaction(async (entityManager) =>
-      this.project(
-        entityManager,
-        observationId,
-        context,
-        semanticPayload,
-        semanticFingerprint,
-      ),
-    );
-  }
-
   async rebuild(
     reprojections: MercadoPublicoV2Reprojection[],
   ): Promise<MercadoPublicoV2ProjectionResult[]> {
@@ -437,7 +415,7 @@ export class MercadoPublicoV2ProjectionService {
         observationId,
         semanticFingerprint,
       );
-      await this.projectChildren(entityManager, observationId, context.record);
+      await this.projectChildren(entityManager, observationId, context);
       await entityManager.query(
         `
           UPDATE mp.stg_api_v2_compra_agil
@@ -479,11 +457,17 @@ export class MercadoPublicoV2ProjectionService {
           provider_schema_fingerprint, availability, source_priority,
           provider_changed_at_raw, provider_changed_at, observed_at,
           last_seen_at, semantic_fingerprint, persisted_at, created_at,
-          updated_at
+          updated_at, description, delivery_address, delivery_days,
+          cancellation_at, call_description, call_first_closing_at,
+          call_second_closing_at, budget_type, budget_estimate,
+          budget_currency, cancel_motive, deserted_motive, selection_motive,
+          total_offers, total_demands, fine_penalty
         )
         VALUES ('compra_agil', $1, $2, $3, $3, $4, $5, $6, $7, $8, $9,
           $10, $11, $12, $13, $14, $15, $16, $17, $18, 'available', 'api-v2',
-          $19, $20, $21, $21, $22, now(), now(), now())
+          $19, $20, $21, $21, $22, now(), now(), now(),
+          $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35,
+          $36, $37, $38)
         ON CONFLICT (process_type, process_code) DO UPDATE SET
           title = EXCLUDED.title,
           canonical_state = EXCLUDED.canonical_state,
@@ -509,6 +493,22 @@ export class MercadoPublicoV2ProjectionService {
           persisted_at = now(),
           last_seen_at = GREATEST(mp.gold_detected_process.last_seen_at, EXCLUDED.last_seen_at),
           semantic_fingerprint = EXCLUDED.semantic_fingerprint,
+          description = EXCLUDED.description,
+          delivery_address = EXCLUDED.delivery_address,
+          delivery_days = EXCLUDED.delivery_days,
+          cancellation_at = EXCLUDED.cancellation_at,
+          call_description = EXCLUDED.call_description,
+          call_first_closing_at = EXCLUDED.call_first_closing_at,
+          call_second_closing_at = EXCLUDED.call_second_closing_at,
+          budget_type = EXCLUDED.budget_type,
+          budget_estimate = EXCLUDED.budget_estimate,
+          budget_currency = EXCLUDED.budget_currency,
+          cancel_motive = EXCLUDED.cancel_motive,
+          deserted_motive = EXCLUDED.deserted_motive,
+          selection_motive = EXCLUDED.selection_motive,
+          total_offers = EXCLUDED.total_offers,
+          total_demands = EXCLUDED.total_demands,
+          fine_penalty = EXCLUDED.fine_penalty,
           updated_at = now()
       `,
       [
@@ -534,6 +534,22 @@ export class MercadoPublicoV2ProjectionService {
         normalized.providerChangedAt,
         observedAt,
         semanticFingerprint,
+        normalized.description,
+        normalized.deliveryAddress,
+        normalized.deliveryDays,
+        normalized.cancellationAt,
+        normalized.callDescription,
+        normalized.callFirstClosingAt,
+        normalized.callSecondClosingAt,
+        normalized.budgetType,
+        normalized.budgetEstimate,
+        normalized.budgetCurrency,
+        normalized.cancelMotive,
+        normalized.desertedMotive,
+        normalized.selectionMotive,
+        normalized.totalOffers,
+        normalized.totalDemands,
+        normalized.finePenalty,
       ],
     );
   }
@@ -541,8 +557,9 @@ export class MercadoPublicoV2ProjectionService {
   private async projectChildren(
     entityManager: EntityManager,
     observationId: string,
-    record: MercadoPublicoApiV2CompraAgilRecord,
+    context: MercadoPublicoV2ProjectionContext,
   ): Promise<void> {
+    const { record } = context;
     const children: Array<{
       arrayName: string;
       providerKey: string | null;
@@ -589,7 +606,10 @@ export class MercadoPublicoV2ProjectionService {
     );
 
     if (Array.isArray(record.proveedores_cotizando)) {
-      for (const [providerOrdinal, provider] of record.proveedores_cotizando.entries()) {
+      for (const [
+        providerOrdinal,
+        provider,
+      ] of record.proveedores_cotizando.entries()) {
         if (!Array.isArray(provider.productos_cotizados)) {
           continue;
         }
@@ -598,7 +618,10 @@ export class MercadoPublicoV2ProjectionService {
           provider.id_cotizacion,
         );
 
-        for (const [productOrdinal, product] of provider.productos_cotizados.entries()) {
+        for (const [
+          productOrdinal,
+          product,
+        ] of provider.productos_cotizados.entries()) {
           const productIdentifier = coerceToNullableString(
             product.codigo_producto,
           );
@@ -609,6 +632,8 @@ export class MercadoPublicoV2ProjectionService {
       }
     }
 
+    await this.projectRelationSnapshots(entityManager, observationId, context);
+
     if (children.length === 0) {
       return;
     }
@@ -618,8 +643,13 @@ export class MercadoPublicoV2ProjectionService {
     let paramIndex = 1;
 
     for (const child of children) {
+      const parentProviderKey =
+        child.arrayName === 'productos_cotizados'
+          ? (child.providerKey?.split(':', 1)[0] ?? null)
+          : null;
+
       placeholders.push(
-        `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6})`,
+        `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7})`,
       );
       params.push(
         observationId,
@@ -629,18 +659,114 @@ export class MercadoPublicoV2ProjectionService {
         child.ordinal,
         createJsonSha256(child.element),
         JSON.stringify(child.element),
+        parentProviderKey,
       );
-      paramIndex += 7;
+      paramIndex += 8;
     }
 
     await entityManager.query(
       `
         INSERT INTO mp.v2_child_evidence (
           observation_id, codigo, array_name, provider_key, ordinal,
-          element_checksum, element_json
+          element_checksum, element_json, parent_provider_key
         )
         VALUES ${placeholders.join(', ')}
         ON CONFLICT (observation_id, array_name, ordinal) DO NOTHING
+      `,
+      params,
+    );
+  }
+
+  private async projectRelationSnapshots(
+    entityManager: EntityManager,
+    observationId: string,
+    context: MercadoPublicoV2ProjectionContext,
+  ): Promise<void> {
+    const { record } = context;
+    const nestedProductTotal = Array.isArray(record.proveedores_cotizando)
+      ? record.proveedores_cotizando.reduce(
+          (total, provider) =>
+            total +
+            (Array.isArray(provider.productos_cotizados)
+              ? provider.productos_cotizados.length
+              : 0),
+          0,
+        )
+      : 0;
+    const nestedProductPresent = Array.isArray(record.proveedores_cotizando)
+      ? record.proveedores_cotizando.some((provider) =>
+          Array.isArray(provider.productos_cotizados),
+        )
+      : false;
+    const snapshots: Array<{
+      relation: string;
+      availability: 'available' | 'unavailable';
+      totalCount: number;
+    }> = [
+      {
+        relation: 'documentos',
+        availability: Array.isArray(record.documentos)
+          ? 'available'
+          : 'unavailable',
+        totalCount: Array.isArray(record.documentos)
+          ? record.documentos.length
+          : 0,
+      },
+      {
+        relation: 'productos_solicitados',
+        availability: Array.isArray(record.productos_solicitados)
+          ? 'available'
+          : 'unavailable',
+        totalCount: Array.isArray(record.productos_solicitados)
+          ? record.productos_solicitados.length
+          : 0,
+      },
+      {
+        relation: 'proveedores_cotizando',
+        availability: Array.isArray(record.proveedores_cotizando)
+          ? 'available'
+          : 'unavailable',
+        totalCount: Array.isArray(record.proveedores_cotizando)
+          ? record.proveedores_cotizando.length
+          : 0,
+      },
+      {
+        relation: 'productos_cotizados',
+        availability: nestedProductPresent ? 'available' : 'unavailable',
+        totalCount: nestedProductPresent ? nestedProductTotal : 0,
+      },
+    ];
+    const placeholders: string[] = [];
+    const params: unknown[] = [];
+    let paramIndex = 1;
+
+    for (const snapshot of snapshots) {
+      placeholders.push(
+        `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5})`,
+      );
+      params.push(
+        observationId,
+        record.codigo,
+        snapshot.relation,
+        snapshot.availability,
+        snapshot.totalCount,
+        context.snapshotKind,
+      );
+      paramIndex += 6;
+    }
+
+    await entityManager.query(
+      `
+        INSERT INTO mp.v2_relation_snapshot (
+          observation_id, codigo, relation, availability, total_count,
+          source_kind
+        )
+        VALUES ${placeholders.join(', ')}
+        ON CONFLICT (observation_id, relation) DO UPDATE SET
+          availability = EXCLUDED.availability,
+          total_count = EXCLUDED.total_count,
+          source_kind = EXCLUDED.source_kind,
+          projected_at = now()
       `,
       params,
     );

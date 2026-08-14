@@ -3,13 +3,15 @@ import { join } from 'path';
 
 import { TWENTY_CURRENT_VERSION } from 'src/engine/core-modules/upgrade/constants/twenty-current-version.constant';
 
+const serverSourceRootPath = join(__dirname, '../../..');
+
 const readServerSource = (...segments: string[]) => {
-  return readFileSync(join(process.cwd(), 'src', ...segments), 'utf8');
+  return readFileSync(join(serverSourceRootPath, ...segments), 'utf8');
 };
 
 describe('MercadoPublico runtime exposure', () => {
   it('exposes MercadoPublicoModule in the app and worker composition roots', () => {
-    expect(TWENTY_CURRENT_VERSION).toBe('2.15.0');
+    expect(TWENTY_CURRENT_VERSION).toBe('2.16.0');
 
     const coreEngineModuleSource = readServerSource(
       'engine',

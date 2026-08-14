@@ -13,7 +13,7 @@ Define how the Twenty CRM monorepo expects humans and AI agents to collaborate s
 AI agents (Claude Code, Codex, Cursor), engineers, and reviewers working on the Twenty codebase.
 
 ## Executive Summary
-AI-assisted delivery is an explicit operating assumption for Twenty. The repository provides enough context — through `CLAUDE.md`, `docs/`, ADRs, and `.cursor/rules/` — that an AI agent can plan, implement, and explain changes without silently inventing domain facts, business rules, or shared defaults. Humans remain accountable for final review and business decisions.
+AI-assisted delivery is an explicit operating assumption for Twenty. The repository provides enough context — through `AGENTS.md`, `index.md`, `docs/`, ADRs, and `.cursor/rules/` — that an AI agent can plan, implement, and explain changes without silently inventing domain facts, business rules, or shared defaults. Humans remain accountable for final review and business decisions.
 
 ## Core Operating Assumptions
 
@@ -21,23 +21,16 @@ AI-assisted delivery is an explicit operating assumption for Twenty. The reposit
 - Humans retain accountability for business decisions and final review.
 - Shared context must live in files (docs, ADRs, code comments), not only in chat or memory.
 - The repository optimizes for a small engineering team augmented by AI.
+- Agents follow `docs/governance/ai-context-management.md` when session context
+  grows or work crosses session boundaries.
 
 ## Required Reading Order For AI Agents
 
-Before making any code change, an AI agent must read:
+Before making a code change, an AI agent must:
 
-1. `CLAUDE.md` — Fast operational rules. Dev workflow, testing, lint commands.
-2. `docs/README.md` — Documentation index and reading paths.
-3. `docs/architecture/current-state.md` — What Twenty is today (packages, stack, architecture).
-4. `docs/architecture/reference-architecture.md` — System diagram and integration rules.
-5. `docs/architecture/repository-strategy.md` — Monorepo layout, build order, package rules.
-6. **Context-specific docs**: read the architecture doc relevant to the change area:
-   - Data model changes → `docs/architecture/data-model.md`
-   - Auth/security changes → `docs/architecture/security-and-identity.md`
-   - Frontend/UI changes → `docs/design/design-system.md`
-   - Operations changes → `docs/operations/command-surface.md`, `docs/operations/local-development.md`, `docs/operations/data-operations.md`
-7. **Relevant ADRs**: read any ADR that covers the decision space being modified.
-8. **`.cursor/rules/`**: read the technology-specific rule file for the language/framework being changed.
+1. Read `AGENTS.md`, then `index.md`.
+2. Read the selected surface contract and context.
+3. Read the smallest set of task-specific documents, ADRs, and technology rules.
 
 ## Agent Guardrails
 
@@ -59,7 +52,7 @@ Before making any code change, an AI agent must read:
 | 1. Understand context | Read relevant docs. Identify current state, target state, and open decisions. |
 | 2. Verify baseline | Run `lint:diff-with-main` and `typecheck` on the unchanged code to confirm a clean baseline. |
 | 3. Plan the change | Identify what files change, what tests are needed, and whether an instance command or ADR is required. |
-| 4. Implement | Write code following code style rules (`CLAUDE.md:119-154`). Preserve existing patterns. |
+| 4. Implement | Write code following the selected surface rules. Preserve existing patterns. |
 | 5. Verify | Run `lint:diff-with-main`, `typecheck`, and relevant tests. Generate instance command if entity changed. |
 | 6. Review self-check | Verify no secrets committed, no hardcoded assumptions, docs consistent with change. |
 | 7. Submit PR | Explain what changed, why, what was tested, and what remains uncertain. |

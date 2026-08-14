@@ -60,11 +60,31 @@ describe('MercadoPublicoRunCommand', () => {
       expect.objectContaining({
         jobName: 'api-v1-licitaciones-by-date',
         payload: { fecha: '01012026' },
+        executionKey: expect.stringMatching(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+        ),
       }),
       {
         retryLimit: 3,
         backoff: { type: 'fixed', delay: 5000 },
       },
     );
+  });
+
+  it('reuses an explicit execution key and validates its format', async () => {
+    const executionKey = '4a88c929-8420-4a9e-8b78-c11a90ee0bd9';
+
+    await command.run([], {
+      jobName: 'api-v1-licitaciones-by-date',
+      executionKey,
+    });
+
+    expect(mockAdd).toHaveBeenLastCalledWith(
+      'MercadoPublicoJob',
+      expect.objectContaining({ executionKey }),
+      expect.anything(),
+    );
+    expect(command.parseExecutionKey(executionKey)).toBe(executionKey);
+    expect(() => command.parseExecutionKey('not-a-uuid')).toThrow(/uuid/i);
   });
 });

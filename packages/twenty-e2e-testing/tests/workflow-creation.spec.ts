@@ -1,11 +1,13 @@
-import { expect, test } from '../lib/fixtures/screenshot';
+import { randomUUID } from 'node:crypto';
+
+import { expect, test } from '@playwright/test';
 import { deleteWorkflow } from '../lib/requests/delete-workflow';
 import { destroyWorkflow } from '../lib/requests/destroy-workflow';
 
 test('Create workflow', async ({ page }) => {
-  const NEW_WORKFLOW_NAME = 'Test Workflow';
+  const workflowName = `E2E workflow ${randomUUID()}`;
 
-  await page.goto(process.env.LINK);
+  await page.goto('/');
 
   const workflowsFolder = page.getByRole('button', { name: 'Workflows' });
   await workflowsFolder.click();
@@ -34,7 +36,7 @@ test('Create workflow', async ({ page }) => {
 
   const recordName = page.getByTestId('top-bar-title').getByPlaceholder('Name');
   await expect(recordName).toBeVisible();
-  await recordName.fill(NEW_WORKFLOW_NAME);
+  await recordName.fill(workflowName);
 
   const workflowDiagramContainer = page.locator('.react-flow__renderer');
   await workflowDiagramContainer.click();
@@ -43,13 +45,13 @@ test('Create workflow', async ({ page }) => {
   const newWorkflowId = body.data.createWorkflow.id;
 
   try {
-    const workflowName = page
+    const workflowNameLocator = page
       .getByTestId('top-bar-title')
-      .getByText(NEW_WORKFLOW_NAME);
+      .getByText(workflowName);
 
     // Wait for the name to be visible and not hidden
-    await workflowName.waitFor({ state: 'visible' });
-    await expect(workflowName).toBeVisible();
+    await workflowNameLocator.waitFor({ state: 'visible' });
+    await expect(workflowNameLocator).toBeVisible();
 
     await expect(page).toHaveURL(`/object/workflow/${newWorkflowId}`);
   } finally {

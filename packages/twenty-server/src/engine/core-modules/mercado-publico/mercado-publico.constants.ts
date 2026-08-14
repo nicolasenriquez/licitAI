@@ -40,10 +40,7 @@ export type MercadoPublicoReconciliationExactMatchType =
   (typeof MERCADO_PUBLICO_RECONCILIATION_EXACT_MATCH_TYPES)[number];
 
 export const MERCADO_PUBLICO_RECONCILIATION_MATCH_TYPES_THAT_SUPPRESS_UNMATCHED =
-  [
-    ...MERCADO_PUBLICO_RECONCILIATION_EXACT_MATCH_TYPES,
-    'unmatched',
-  ] as const;
+  [...MERCADO_PUBLICO_RECONCILIATION_EXACT_MATCH_TYPES, 'unmatched'] as const;
 
 export const MERCADO_PUBLICO_RECONCILIATION_MATCH_CONFIDENCE = 'high' as const;
 export const MERCADO_PUBLICO_RECONCILIATION_MATCH_CONFIDENCE_MEDIUM =
@@ -114,6 +111,9 @@ export const MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE = 'api-v2-compra-agil';
 export const MERCADO_PUBLICO_API_V2_COMPRA_AGIL_LIST_ENDPOINT = 'list';
 export const MERCADO_PUBLICO_API_V2_COMPRA_AGIL_DETAIL_BY_CODIGO_ENDPOINT =
   'detail-by-codigo';
+
+export const MERCADO_PUBLICO_V2_SYNC_COMMAND_JOB_NAME =
+  'mercado-publico-v2-sync-command';
 
 export const MERCADO_PUBLICO_ERROR_SUMMARIES = [
   'param_error',

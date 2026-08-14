@@ -84,6 +84,7 @@ type PersistMercadoPublicoV2CompraAgilSnapshotInput = {
   jobRunRecordId: string;
   apiResponse: MercadoPublicoApiV2CompraAgilListResponse;
   snapshotKind: SnapshotKind;
+  errorSummaryText?: string;
 };
 
 type PersistMercadoPublicoV2CompraAgilSnapshotResult = {
@@ -142,6 +143,7 @@ type RawCsvFileMeta = {
   source_period: string;
   source_modality: string | null;
   source_file_name: string;
+  file_checksum: string;
   detected_encoding: string;
   detected_delimiter: string;
   quotechar: string | null;
@@ -679,6 +681,7 @@ export class MercadoPublicoPersistenceService {
         fetchedAt: input.apiResponse.fetchedAt,
         rawPayload: input.apiResponse.rawPayload,
         schemaFingerprint: input.apiResponse.schemaFingerprint,
+        errorSummary: input.errorSummaryText,
         recordsFetched: input.apiResponse.compraAgil.length,
       });
 
@@ -965,6 +968,7 @@ export class MercadoPublicoPersistenceService {
           source_period,
           source_modality,
           source_file_name,
+          file_checksum,
           detected_encoding,
           detected_delimiter,
           quotechar

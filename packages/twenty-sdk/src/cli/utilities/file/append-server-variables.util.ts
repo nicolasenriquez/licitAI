@@ -1,4 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 import { pathExists } from '@/cli/utilities/file/fs-utils';
 
@@ -106,7 +107,7 @@ const findAppConfigPath = async (
   projectRoot: string,
 ): Promise<string | null> => {
   for (const candidate of APP_CONFIG_CANDIDATES) {
-    const absolute = `${projectRoot}/${candidate}`;
+    const absolute = join(projectRoot, candidate);
 
     if (await pathExists(absolute)) {
       return absolute;

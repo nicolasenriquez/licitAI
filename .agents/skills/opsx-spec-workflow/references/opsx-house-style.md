@@ -90,6 +90,18 @@ Use them this way:
 - `Traceability:` explains why the task exists
 - `Notes:` records concise execution evidence or outcome
 
+When task source includes `implementation-sdlc-map.md`, preserve this additive
+notation in the same `Traceability:` line:
+
+```text
+Traceability: Group G1; Slice S1; Issue 18; Acceptance AC 18.1, AC 18.2.
+```
+
+`Group`, `Slice`, and `Issue` identify the handoff. `Acceptance` identifies
+criteria by ordinal within the source issue. Use `Scope` instead of
+`Acceptance` for investigation or other tasks that do not own an acceptance
+criterion.
+
 Do not use diary-style progress logs.
 Do not paste long command output into task notes.
 
@@ -145,6 +157,9 @@ A spec is `Implementation Ready` only when:
   pass artifact validation
 - the canonical phase order is present
 - every task has `Traceability:`
+- when an implementation SDLC map is used, every mapped implementation issue is
+  represented in task traceability and every acceptance identifier resolves to
+  its source issue
 - phase `1` is present when runtime behavior, contract, persistence, integration, UI behavior, or regression risk changes
 - if phase `1` is omitted, `proposal.md` explicitly justifies why fail-first coverage is not required
 - implementation tasks are minimal safe slices

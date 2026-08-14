@@ -31,6 +31,12 @@ The repository exposes a structured command surface through Docker Compose, Nx t
 | `yarn start` | Advanced host-source runtime | Legacy host-local Nx path; not the default local runtime. Use only when explicitly required. |
 | `just ci-infra-up` | Legacy alternate CI infrastructure | Blocked by default because it creates a second Compose/ClickHouse stack. Requires `ALLOW_EXTRA_CONTAINERS=1` and explicit human authorization. |
 
+Mercado Publico fixture tests use only project `twenty-mp-e2e`, provisioned by
+`packages/twenty-e2e-testing/scripts/provision-baseline.mjs`. The provisioner
+rejects the canonical project and an active E2E server before cleanup. Use
+`docker compose exec` for commands in an active service; do not use
+`docker compose run`, which creates a one-off container.
+
 Run `just runtime-check` before any runtime, API, or integration diagnosis. If it
 fails, report the existing stack's state; do not silently switch to host-local
 services, `docker-compose.dev.yml`, `docker run`, or a new Compose project.
@@ -92,6 +98,10 @@ the local `mp-local` tag.
 | `npx nx run twenty-front:graphql:generate` | Generate core GraphQL types | Generates typed hooks and fragments from core schema (`/graphql`) into `generated/`. |
 | `npx nx run twenty-front:graphql:generate --configuration=metadata` | Generate metadata GraphQL types | Generates typed hooks from metadata schema (`/metadata`) into `generated-metadata/`. |
 | `npx nx run twenty-front:graphql:generate --configuration=admin` | Generate admin GraphQL types | Generates typed hooks from admin schema (`/admin-panel`) into `generated-admin/`. |
+
+Set `CODEGEN_SERVER_BASE_URL` only when core codegen must use a source server
+that differs from the frontend or E2E runtime URL. The variable has priority
+over `REACT_APP_SERVER_BASE_URL` for this command only.
 
 ### Documentation Commands
 

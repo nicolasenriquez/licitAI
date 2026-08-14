@@ -43,7 +43,7 @@ twenty/
 │   ├── twenty-claude-skills/           # Claude Code skills
 │   └── create-twenty-app/              # App scaffolding CLI
 ├── docs/                               # Internal documentation baseline (this harness)
-├── .github/                            # CI/CD workflows (40+), actions (8)
+├── .github/                            # CI/CD workflows (22), actions (8)
 ├── .claude/                            # Claude Code settings
 ├── .cursor/                            # Cursor IDE rules (16 .mdc files), skills
 ├── .vscode/                            # VS Code settings

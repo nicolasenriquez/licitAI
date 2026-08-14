@@ -38,7 +38,6 @@ Current major indexes:
 
 - `/index.md`
 - `docs/index.md`
-- `openspec/index.md`
 - `packages/index.md`
 - `.agents/index.md`
 
@@ -48,7 +47,7 @@ Current major indexes:
 | --- | --- | --- |
 | Root | Entry and routing | Root operational and overview docs |
 | `docs/` | Durable repository documentation | Architecture, business, governance, operations, standards, decisions |
-| `openspec/` | Active change definitions | Proposal, design, tasks, specs, validation artifacts |
+| `openspec/` | User tooling (optional, not part of the OKF bundle) | OpenSpec workflow artifacts when the user chooses it |
 | `packages/` | Package-selection layer | Mapped package surfaces and package-local durable docs |
 | `.agents/` | Repo-local shared workflow docs | Skills, references, scripts |
 

@@ -9,6 +9,7 @@ import { MercadoPublicoJobOrchestratorService } from 'src/engine/core-modules/me
 export type MercadoPublicoJobData = {
   jobName: MercadoPublicoJobName;
   payload: Record<string, unknown>;
+  executionKey?: string;
   requestedAt: string;
   requestedBy: 'command';
 };
@@ -30,6 +31,7 @@ export class MercadoPublicoJob {
     await this.mercadoPublicoJobOrchestratorService.run(
       data.jobName,
       data.payload,
+      data.executionKey,
     );
   }
 }

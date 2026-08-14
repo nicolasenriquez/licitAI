@@ -1,4 +1,6 @@
-import { expect, test } from '../lib/fixtures/screenshot';
+import { randomUUID } from 'node:crypto';
+
+import { expect, test } from '@playwright/test';
 import { backendGraphQLUrl } from '../lib/requests/backend';
 import { getAccessAuthToken } from '../lib/utils/getAccessAuthToken';
 
@@ -48,12 +50,12 @@ const query = `query FindOnePerson($objectRecordId: UUID!) {
   }
 }`
 
-test('Create and update record', async ({ page }) => {
+test('creates, reloads, and removes a person', async ({ page }) => {
     await page.goto('/objects/people');
     await page.getByRole('button', { name: 'Create new Person' }).click();
 
     // Generate a random email for testing
-    const randomEmail = `testuser_${Math.random().toString(36).substring(2, 10)}@example.com`;
+    const randomEmail = `e2e-${randomUUID()}@example.com`;
     // Fill first name and last name
     const firstNameInput = page.getByRole('textbox', { name: 'F‌‌irst name' })
     await expect(firstNameInput).toBeFocused();
@@ -118,7 +120,8 @@ test('Create and update record', async ({ page }) => {
     await page.waitForURL(/\/object\/person\//);
     const newPersonId = page.url().match(/\/object\/person\/([a-f0-9-]+)/)?.[1];
 
-    // Check data was saved
+    // Check data was saved. GraphQL is only used for cleanup after the UI
+    // confirms the persisted record.
     const { authToken } = await getAccessAuthToken(page);
     const findOnePersonResponse = await page.request.post(backendGraphQLUrl, {
       headers: {
@@ -142,5 +145,19 @@ test('Create and update record', async ({ page }) => {
     expect(findOnePersonReponseBody.data.person.linkedinLink.primaryLinkUrl).toBe('linkedin.com/johndoe');
     expect(findOnePersonReponseBody.data.person.phones.primaryPhoneNumber).toBe('611223344');
     expect(findOnePersonReponseBody.data.person.workPreference).toEqual(['HYBRID']);
+
+    await page.reload();
+    await expect(page.getByText(randomEmail)).toBeVisible();
+
+    const destroyResponse = await page.request.post(backendGraphQLUrl, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: {
+        operationName: 'DestroyPerson',
+        query: 'mutation DestroyPerson($id: UUID!) { destroyPerson(id: $id) { id } }',
+        variables: { id: newPersonId },
+      },
+    });
+
+    expect(destroyResponse.ok()).toBeTruthy();
 
 });

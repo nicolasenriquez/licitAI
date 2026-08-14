@@ -57,6 +57,7 @@ export class MercadoPublicoJobOrchestratorService {
   async run(
     jobName: MercadoPublicoJobName,
     payload: Record<string, unknown>,
+    executionKey?: string,
   ): Promise<void> {
     if (!isMercadoPublicoJobName(jobName)) {
       throw new BadRequestException(
@@ -109,7 +110,10 @@ export class MercadoPublicoJobOrchestratorService {
     }
 
     if (jobName === 'api-v2-compra-agil-incremental') {
-      await this.mercadoPublicoApiV2CompraAgilIncrementalService.run(payload);
+      await this.mercadoPublicoApiV2CompraAgilIncrementalService.run(
+        payload,
+        executionKey,
+      );
 
       return;
     }
@@ -117,6 +121,7 @@ export class MercadoPublicoJobOrchestratorService {
     if (jobName === 'api-v2-compra-agil-by-publication-window') {
       await this.mercadoPublicoApiV2CompraAgilPublicationWindowService.run(
         payload,
+        executionKey,
       );
 
       return;

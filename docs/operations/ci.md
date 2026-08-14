@@ -293,6 +293,24 @@ command dependency tree:
 | Rebuild app | `just dev-up-build` | Several minutes; no cold-build benchmark is recorded yet |
 | Stop app | `just dev-down` | 5s |
 
+### Full local CI requires CI mode
+
+`just ci-full` checks its prerequisites before it runs the static suite. It
+does not start or stop containers. Run it only when the application Compose
+stack is not using the CI ports.
+
+```text
+Terminal 1
+set ALLOW_EXTRA_CONTAINERS=1 && just ci-infra-up
+npx nx start:ci twenty-server
+
+Terminal 2
+just ci-full
+```
+
+The server in Terminal 1 must run from the current source. The application
+Compose image cannot provide the GraphQL schema used by local code generation.
+
 ### Observed local startup timings
 
 The timings below are observations, not a service-level objective. They were
@@ -342,7 +360,7 @@ docker compose exec server yarn database:migrate:prod
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `Port 3000 in use` | The canonical app Compose is already running. | Run `just runtime-check`; do not tear it down for a different local stack. |
+| `Port 3000 in use` | The canonical app Compose is already running. | Run `just runtime-check`; do not tear it down for a different local stack. See [local port ownership](local-development.md#local-port-ownership). |
 | `Redis not reachable on :6379` | The canonical Redis is internal to the app Compose network. | Use runtime/API checks through the server; request alternate CI infrastructure only if the test genuinely requires host Redis. |
 | `node_modules not found` | `yarn install` never run or `git clean` was used. | `yarn install` |
 | `lint:diff-with-main` fails with "unknown revision" | Local `main` branch stale. | `git fetch origin main` |
@@ -353,6 +371,7 @@ docker compose exec server yarn database:migrate:prod
 | `Server did not become healthy` | Compose failed to start or migrations failed. | `just dev-logs` to inspect. |
 | CI integration tests fail locally but pass in GHA | The local runtime and GHA service topology differ. | Keep local diagnostics on the canonical Compose; use the gated alternate CI infrastructure only with explicit authorization. |
 | `graphql:generate` fails with "No schema found" | Codegen introspects the running server. Requires CURRENT SOURCE server, not the `dev-up` Docker image (stale code). | Start source server in a second terminal: `npx nx start:ci twenty-server` |
+| `yarn npm audit` reports `UNABLE_TO_VERIFY_LEAF_SIGNATURE` | Node does not trust the local system CA chain. | `ci-security` uses Node 24 `--use-system-ca`; for a manual audit, set `NODE_OPTIONS=--use-system-ca` first. |
 | `ci-gate` fails with YN0028 or YN0028 | `yarn.lock` is stale (e.g., after switching branches or rebasing). | Run `yarn install` to regenerate the lockfile. |
 
 ## 8. What Is Not Covered Locally

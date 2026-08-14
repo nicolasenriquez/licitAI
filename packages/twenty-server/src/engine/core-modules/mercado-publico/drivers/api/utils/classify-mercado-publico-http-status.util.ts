@@ -15,7 +15,12 @@ export const classifyMercadoPublicoHttpStatus = (
     return 'soft_miss';
   }
 
-  if (httpStatus === 429 || httpStatus === 500 || httpStatus === 503) {
+  if (
+    httpStatus === 429 ||
+    httpStatus === 500 ||
+    httpStatus === 503 ||
+    httpStatus === 504
+  ) {
     return 'retryable_failed';
   }
 

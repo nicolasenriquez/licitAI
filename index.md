@@ -27,14 +27,13 @@ Start at the repository root:
 | File | Role |
 | --- | --- |
 | `AGENTS.md` | Canonical operational entrypoint |
-| `CLAUDE.md` | Lightweight shim into the same root contract |
 | `index.md` | Canonical routing map for progressive disclosure |
 
 ## Mapped Surfaces
 
 | Surface | Routing Files | Use When |
 | --- | --- | --- |
-| `openspec/` | `openspec/AGENTS.md`, `openspec/CONTEXT.md`, `openspec/index.md` | Active OpenSpec changes, proposal/design/tasks/spec work, apply/archive/sync work |
+| `openspec/` | `openspec/AGENTS.md`, `openspec/CONTEXT.md`, `openspec/index.md` | Optional user-selected workflow. Route here only when the user explicitly invokes OpenSpec work. |
 | `docs/` | `docs/AGENTS.md`, `docs/CONTEXT.md`, `docs/index.md` | Durable repository architecture, governance, operations, standards, business context, ADRs |
 | `packages/` | `packages/AGENTS.md`, `packages/CONTEXT.md`, `packages/index.md` | Package selection, package-scoped code, package-scoped docs, mapped leaf-package routing |
 | `.agents/` | `.agents/AGENTS.md`, `.agents/CONTEXT.md`, `.agents/index.md` | Repo-local skills and shared workflow assets |
@@ -62,7 +61,8 @@ Mapped leaf-package surfaces currently include:
 
 1. Start at the repository root.
 2. Read `index.md` before selecting a mapped surface.
-3. Choose `openspec/` for active change artifacts and change-driven execution.
+3. Choose `openspec/` only when the user explicitly selects the OpenSpec
+   workflow. It is user tooling, not the repository documentation standard.
 4. Choose `docs/` for durable repository documentation outside an active
    change artifact.
 5. Choose `packages/` for package-scoped work or package ownership/routing.

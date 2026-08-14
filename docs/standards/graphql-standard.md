@@ -129,7 +129,7 @@ const { data, loading, error } = useGetCompaniesQuery({
 
 ## References
 
-- `CLAUDE.md` — GraphQL codegen commands.
+- `AGENTS.md` — Root command routing. Read `docs/operations/command-surface.md` for GraphQL codegen commands.
 - `docs/architecture/current-state.md` — GraphQL API overview.
 - `docs/architecture/data-model.md` — Metadata-driven schema generation.
 - `packages/twenty-front/codegen.cjs` — Core codegen configuration.

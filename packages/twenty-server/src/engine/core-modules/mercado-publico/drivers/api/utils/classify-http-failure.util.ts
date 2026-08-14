@@ -2,16 +2,15 @@ import axios from 'axios';
 
 import { type MercadoPublicoErrorSummary } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 
-const RETRYABLE_HTTP_STATUS_CODES = new Set([429, 500, 503]);
+const RETRYABLE_HTTP_STATUS_CODES = new Set([429, 500, 503, 504]);
 const RETRYABLE_ERROR_CODES = new Set([
   'ECONNABORTED',
+  'ECONNRESET',
   'ERR_NETWORK',
   'ETIMEDOUT',
 ]);
 
-export const classifyFailure = (
-  error: unknown,
-): MercadoPublicoErrorSummary => {
+export const classifyFailure = (error: unknown): MercadoPublicoErrorSummary => {
   if (!axios.isAxiosError(error)) {
     return 'hard_fail';
   }

@@ -46,11 +46,7 @@ dev-up: _ensure-env-file
     @echo === Stack ready. Migrations applied, server healthy. ===
 
 # Start full app stack, rebuilding the image first (slow, ~10-20 min)
-dev-up-build: _ensure-env-file
-    docker compose --env-file {{ENV_FILE}} -f {{COMPOSE_APP}} up --build -d
-    @echo === Waiting for server (migrations run on boot, up to 300s) ===
-    npx wait-on http://localhost:3000/healthz --timeout 300000 --interval 5000
-    @echo === Stack ready. Migrations applied, server healthy. ===
+dev-up-build: _ensure-env-file prod-build dev-up
 
 # Stop app stack
 dev-down:
@@ -86,8 +82,9 @@ ci-prepush: ci-gate ci-check ci-build ci-test
 # Standard local CI pipeline (commit-build: no server needed)
 ci: ci-check ci-build ci-test
 
-# Full CI including validate + security + integration (integration infra is gated)
-ci-full: ci ci-validate ci-security ci-integration
+# Full CI including validate + security + integration. Fail before CI work when
+# the explicitly started CI infrastructure or source server is missing.
+ci-full: _ensure-installed _ensure-ci-prerequisites ci ci-validate ci-security ci-integration
 
 # All static checks across packages
 ci-check: _ensure-installed ci-server-lint ci-front-lint ci-front-typecheck ci-shared ci-ui ci-sdk ci-docs
@@ -251,7 +248,7 @@ ci-validate: _ensure-installed _ensure-server-healthy
 
 ci-security:
     @echo === yarn npm audit (HIGH/CRITICAL) ===
-    yarn npm audit --severity high
+    cmd /C "set NODE_OPTIONS=--use-system-ca&& yarn npm audit --severity high"
     @echo === Secret scan of staged changes ===
     docker run --rm --platform {{PLATFORM}} --mount type=bind,source=%CD%,target=/repo,readonly -w /repo ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f git --pre-commit --redact --staged --verbose
     @echo === SBOM ===
@@ -320,42 +317,11 @@ _ensure-server-healthy:
     @npx wait-on http://localhost:3000/healthz --timeout 5000 2>nul || (echo ERROR: No healthy server on :3000. Start one in another terminal: npx nx start:ci twenty-server & exit 1)
 
 [private]
-_docker-network:
-    @-docker network create {{DOCKER_NETWORK}}
+_ensure-ci-prerequisites: _ensure-pg _ensure-redis _ensure-clickhouse _ensure-server-healthy
 
 # ═════════════════════════════════════════════════════════════════════════════
-# DOCKER HELPERS (preserved from original justfile)
+# DOCKER BUILD
 # ═════════════════════════════════════════════════════════════════════════════
 
 prod-build:
-    docker build --target twenty -f ./packages/twenty-docker/twenty/Dockerfile --platform {{PLATFORM}} --tag twenty:{{TAG}} .
-
-prod-run:
-    docker run -d -p 3000:3000 --name twenty twenty:{{TAG}}
-
-prod-postgres-run:
-    docker run -d -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres --name twenty-postgres twenty-postgres:{{TAG}}
-
-postgres-on-docker: _docker-network
-    @-docker rm -f twenty_pg
-    docker run -d --network {{DOCKER_NETWORK}} --name twenty_pg -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e ALLOW_NOSSL=true -v twenty_db_data:/var/lib/postgresql/data -p 5432:5432 postgres:16
-    @echo Waiting for PostgreSQL (10s)...
-    @timeout /T 10 /NOBREAK >nul
-    docker exec twenty_pg psql -U postgres -d postgres -c "CREATE DATABASE \"default\" WITH OWNER postgres;"
-    docker exec twenty_pg psql -U postgres -d postgres -c "CREATE DATABASE \"test\" WITH OWNER postgres;"
-
-redis-on-docker: _docker-network
-    @-docker rm -f twenty_redis
-    docker run -d --network {{DOCKER_NETWORK}} --name twenty_redis -p 6379:6379 redis:7 redis-server --maxmemory-policy noeviction
-
-clickhouse-on-docker: _docker-network
-    @-docker rm -f twenty_clickhouse
-    docker run -d --network {{DOCKER_NETWORK}} --name twenty_clickhouse -p 8123:8123 -p 9000:9000 -e CLICKHOUSE_PASSWORD=devPassword clickhouse/clickhouse-server:latest
-
-grafana-on-docker: _docker-network
-    @-docker rm -f twenty_grafana
-    docker run -d --network {{DOCKER_NETWORK}} --name twenty_grafana -p 4000:3000 -e GF_SECURITY_ADMIN_USER=admin -e GF_SECURITY_ADMIN_PASSWORD=admin -e GF_INSTALL_PLUGINS=grafana-clickhouse-datasource -v "{{justfile_directory()}}/packages/twenty-docker/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources" grafana/grafana-oss:latest
-
-opentelemetry-collector-on-docker: _docker-network
-    @-docker rm -f twenty_otlp_collector
-    docker run -d --network {{DOCKER_NETWORK}} --name twenty_otlp_collector -p 4317:4317 -p 4318:4318 -p 13133:13133 -v "{{justfile_directory()}}/packages/twenty-docker/otel-collector/otel-collector-config.yaml:/etc/otel-collector-config.yaml" otel/opentelemetry-collector-contrib:latest --config /etc/otel-collector-config.yaml
+    docker build --target twenty -f ./packages/twenty-docker/twenty/Dockerfile --platform {{PLATFORM}} --tag twentycrm/twenty:{{TAG}} .

@@ -51,6 +51,10 @@ describe('classifyFailure', () => {
     expect(classifyFailure(createAxiosError(503))).toBe('retryable_failed');
   });
 
+  it('should classify 504 as retryable_failed', () => {
+    expect(classifyFailure(createAxiosError(504))).toBe('retryable_failed');
+  });
+
   it('should classify ETIMEDOUT as retryable_failed', () => {
     expect(classifyFailure(createAxiosCodeError('ETIMEDOUT'))).toBe(
       'retryable_failed',
@@ -59,6 +63,12 @@ describe('classifyFailure', () => {
 
   it('should classify ECONNABORTED as retryable_failed', () => {
     expect(classifyFailure(createAxiosCodeError('ECONNABORTED'))).toBe(
+      'retryable_failed',
+    );
+  });
+
+  it('should classify ECONNRESET as retryable_failed', () => {
+    expect(classifyFailure(createAxiosCodeError('ECONNRESET'))).toBe(
       'retryable_failed',
     );
   });

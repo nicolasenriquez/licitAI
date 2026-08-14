@@ -27,7 +27,7 @@ Twenty operates with explicit ownership boundaries defined by package structure 
 | Code style | Shared | Naming conventions, import order, lint rules are shared. Component implementation is local. |
 | UI components | Shared at `twenty-ui` | Features in `twenty-front` are package-local. |
 | Infrastructure (Docker, K8s) | Shared | `twenty-docker` defines the canonical deployment. |
-| Documentation | Shared | `docs/`, `CLAUDE.md`, ADRs are shared. Internal module docs are local. |
+| Documentation | Shared | `docs/`, `AGENTS.md`, and ADRs are shared. Internal module docs are local. |
 
 ## Ownership Model
 
@@ -59,7 +59,7 @@ Every significant capability in the monorepo must document:
 
 Capabilities are documented in:
 - `docs/` for shared architecture, governance, operations, and decisions.
-- `CLAUDE.md` for fast operational rules.
+- `AGENTS.md` and `index.md` for root operational rules and routing.
 - `.cursor/rules/` for IDE-specific development rules.
 - Package-level docs for package-local concerns.
 
@@ -67,7 +67,7 @@ Capabilities are documented in:
 
 | Artifact | Role | Authority Level |
 | --- | --- | --- |
-| `CLAUDE.md` | Fast operational rules for AI agents and engineers. | Primary for dev workflow. References `docs/` for depth. |
+| `AGENTS.md` and `index.md` | Root operational entrypoint and routing map for agents and engineers. | Primary for routing. References local contracts and `docs/` for depth. |
 | `docs/` | Durable repository context and operating baseline. | Authoritative for architecture, governance, operations. |
 | `docs/decisions/` | Traceable long-lived decisions with rationale and alternatives. | Authoritative for architectural decisions. |
 | `.cursor/rules/` | IDE-specific development rules. 16 `.mdc` files. | Indexes referencing `docs/standards/`. |

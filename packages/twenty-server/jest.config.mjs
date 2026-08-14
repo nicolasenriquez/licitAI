@@ -7,8 +7,6 @@ const jestConfig = {
   // For more information please have a look to official docs https://jestjs.io/docs/configuration/#prettierpath-string
   // Prettier v3 should be supported in jest v30 https://github.com/jestjs/jest/releases/tag/v30.0.0-alpha.1
   prettierPath: null,
-  // to enable logs, comment out the following line
-  silent: true,
   ...(isCI && { reporters: ['./jest-failures-only-reporter.js'] }),
   errorOnDeprecated: true,
   clearMocks: true,
@@ -23,6 +21,7 @@ const jestConfig = {
     '/node_modules/(?!(file-type|@file-type|strtok3|token-types|@borewit|@tokenizer|uint8array-extras|read-next-line|digest-fetch|md5|js-sha256|js-sha512|base-64|charenc|crypt|email-reply-parser|jsdom|html-encoding-sniffer|whatwg-encoding|@exodus|parse5|entities|tough-cookie|@csstools|@asamuzakjp|graphql-upload|fs-capacitor)/)',
   ],
   testRegex: '.*\\.spec\\.ts$',
+  testPathIgnorePatterns: ['<rootDir>/test/integration/'],
   transform: {
     // include .mjs so swc transforms ESM-only deps (e.g. jsdom's @csstools/* .mjs)
     '^.+\\.(t|j|mj)s$': [

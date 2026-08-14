@@ -185,6 +185,6 @@ describe('WorkspaceResolver (integration)', () => {
 ## References
 
 - `.cursor/rules/testing-guidelines.mdc` — IDE-specific testing rules.
-- `CLAUDE.md` — Testing commands and strategy.
+- `AGENTS.md` — Root command routing. Read `docs/operations/command-surface.md` for testing commands and strategy.
 - `jest.preset.js` — Shared Jest configuration.
 - `playwright.config.ts` — Playwright E2E configuration.

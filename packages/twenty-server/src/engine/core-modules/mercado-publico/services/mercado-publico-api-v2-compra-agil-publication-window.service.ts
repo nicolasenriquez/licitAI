@@ -8,6 +8,8 @@ type MercadoPublicoApiV2CompraAgilPublicationWindowPayload = {
   publicado_desde?: string;
   publicado_hasta?: string;
   tamano_pagina?: number;
+  max_pages?: number;
+  bounded_window?: boolean;
   id?: string;
   q?: string;
   estado?: string;
@@ -21,13 +23,33 @@ export class MercadoPublicoApiV2CompraAgilPublicationWindowService {
     private readonly mercadoPublicoV2DurableSyncService: MercadoPublicoV2DurableSyncService,
   ) {}
 
-  async run(payload: Record<string, unknown>): Promise<void> {
+  async run(
+    payload: Record<string, unknown>,
+    executionKey?: string,
+  ): Promise<void> {
+    if (isNonEmptyString(payload.sync_run_id)) {
+      await this.mercadoPublicoV2DurableSyncService.resume(payload.sync_run_id);
+
+      return;
+    }
+
     const parsedPayload = this.parsePayload(payload);
 
-    await this.mercadoPublicoV2DurableSyncService.start(
+    if (executionKey === undefined) {
+      await this.mercadoPublicoV2DurableSyncService.start(
+        parsedPayload,
+        'manual',
+        'api-v2-compra-agil-by-publication-window',
+      );
+
+      return;
+    }
+
+    await this.mercadoPublicoV2DurableSyncService.startOrResume(
       parsedPayload,
       'manual',
       'api-v2-compra-agil-by-publication-window',
+      executionKey,
     );
   }
 
@@ -62,6 +84,12 @@ export class MercadoPublicoApiV2CompraAgilPublicationWindowService {
       tamano_pagina:
         typeof payload.tamano_pagina === 'number'
           ? payload.tamano_pagina
+          : undefined,
+      max_pages:
+        typeof payload.max_pages === 'number' ? payload.max_pages : undefined,
+      bounded_window:
+        typeof payload.bounded_window === 'boolean'
+          ? payload.bounded_window
           : undefined,
       id: isNonEmptyString(payload.id) ? (payload.id as string) : undefined,
       q: isNonEmptyString(payload.q) ? (payload.q as string) : undefined,

@@ -25,7 +25,8 @@ Describe the role of `openspec/` in this repository during the workspace routing
 
 ## Current Routing Status
 
-- `openspec/` is a validated pilot surface (wave 0).
+- `openspec/` is optional user-selected tooling. Its artifacts are not the
+  repository documentation standard (that is the OKF bundle under `docs/`).
 
 ## How To Use This Surface
 

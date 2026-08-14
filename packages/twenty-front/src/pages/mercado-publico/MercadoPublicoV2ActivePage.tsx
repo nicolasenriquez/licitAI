@@ -21,6 +21,7 @@ import {
   MercadoPublicoV2FilterBar,
   type MercadoPublicoV2FilterBarProps,
 } from '@/mercado-publico/components/MercadoPublicoV2FilterBar';
+import { MercadoPublicoV2Nav } from '@/mercado-publico/components/MercadoPublicoV2Nav';
 import {
   useMercadoPublicoV2UrlState,
   type MercadoPublicoV2Filters,
@@ -29,6 +30,7 @@ import {
 import { useNavigateSidePanel } from '@/side-panel/hooks/useNavigateSidePanel';
 import { useSidePanelMenu } from '@/side-panel/hooks/useSidePanelMenu';
 import { isSidePanelOpenedState } from '@/side-panel/states/isSidePanelOpenedState';
+import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
 
 const MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY = gql`
   query MercadoPublicoV2ActiveOpportunities(
@@ -668,14 +670,8 @@ export const MercadoPublicoV2ActivePage = () => {
   const { closeSidePanelMenu } = useSidePanelMenu();
   const isSidePanelOpened = useAtomValue(isSidePanelOpenedState.atom);
   const [searchParams, setSearchParams] = useSearchParams();
-  const {
-    state,
-    setSearchInput,
-    applyFilters,
-    clearFilters,
-    setSort,
-    setAfter,
-  } = useMercadoPublicoV2UrlState();
+  const { state, applyFilters, clearFilters, setSort, setAfter } =
+    useMercadoPublicoV2UrlState();
   const [notice, setNotice] = useState<string | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const [openingOpportunityCode, setOpeningOpportunityCode] = useState<
@@ -687,6 +683,7 @@ export const MercadoPublicoV2ActivePage = () => {
   }, []);
 
   const queryFilter = useMemo(() => toQueryFilter(state), [state]);
+  const apolloCoreClient = useApolloCoreClient();
 
   const {
     data,
@@ -697,6 +694,7 @@ export const MercadoPublicoV2ActivePage = () => {
     MercadoPublicoV2ActiveQuery,
     MercadoPublicoV2ActiveQueryVariables
   >(MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY, {
+    client: apolloCoreClient,
     variables: {
       filter: queryFilter,
       after: state.after,
@@ -712,6 +710,7 @@ export const MercadoPublicoV2ActivePage = () => {
     MercadoPublicoV2AnalyticsQuery,
     Pick<MercadoPublicoV2ActiveQueryVariables, 'filter'>
   >(MERCADO_PUBLICO_V2_ANALYTICS_QUERY, {
+    client: apolloCoreClient,
     variables: { filter: queryFilter },
   });
 
@@ -855,6 +854,7 @@ export const MercadoPublicoV2ActivePage = () => {
     <StyledPage>
       <StyledHeader>
         <StyledHeading>{t`Activas`}</StyledHeading>
+        <MercadoPublicoV2Nav />
         {opportunities && (
           <StyledCount>{t`${opportunities.totalCount} oportunidades`}</StyledCount>
         )}
@@ -865,7 +865,6 @@ export const MercadoPublicoV2ActivePage = () => {
         sort={state.sort}
         notice={notice}
         noticeId={FILTER_NOTICE_ID}
-        onSearchChange={setSearchInput}
         onApply={handleApplyFilters}
         onClear={handleClearFilters}
         onSortChange={handleSortChange}

@@ -15,17 +15,20 @@ if (envResult.error) {
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
-export default defineConfig({
+export const playwrightConfig = {
   testDir: './tests',
-  outputDir: 'run_results/', // directory for screenshots and videos
-  snapshotPathTemplate: '{testDir}/__screenshots__/{testFilePath}/{arg}{ext}', // just in case, do not delete it
+  testIgnore:
+    /.*(external-integrations|key-features-gated|mercado-publico-contract).*/,
+  outputDir: 'run_results/',
+  snapshotPathTemplate: '{testDir}/__screenshots__/{testFilePath}/{arg}{ext}',
   fullyParallel: false, // parallelization of tests will be done later in the future
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1, // 1 worker = 1 test at the time, tests can't be parallelized
   timeout: 30 * 1000, // timeout can be changed
   webServer: {
-    command: 'npx nx run twenty-front:preview --watch=false --open=false',
+    command:
+      'npx nx build twenty-front --skip-nx-cache && npx nx run twenty-front:preview --watch=false --open=false',
     cwd: path.resolve(__dirname, '../..'),
     url: 'http://localhost:3001',
     timeout: 300 * 1000,
@@ -34,7 +37,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.FRONTEND_BASE_URL || 'http://localhost:3001',
     trace: 'retain-on-failure', // trace takes EVERYTHING from page source, records every single step, should be used only when normal debugging won't work
-    screenshot: 'on', // either 'on' here or in different method in modules, if 'on' all screenshots are overwritten each time the test is run
+    screenshot: 'only-on-failure',
     headless: true, // instead of changing it to false, run 'yarn test:e2e:debug' or 'yarn test:e2e:ui'
     testIdAttribute: 'data-testid', // taken from Twenty source
   },
@@ -47,17 +50,48 @@ export default defineConfig({
   ],
   projects: [
     {
-      name: 'setup',
-      testMatch: /.*\.setup\.ts/,
+      name: 'setup-team',
+      testMatch: /login\.setup\.ts/,
     },
     {
       name: 'chrome',
+      testIgnore: /.*sync-control.*/,
       use: {
         ...devices['Desktop Chrome'],
         permissions: ['clipboard-read', 'clipboard-write'],
         storageState: path.resolve(__dirname, '.auth', 'user.json'), // takes saved cookies from directory
       },
-      dependencies: ['setup'],
+      dependencies: ['setup-team'],
+    },
+    {
+      name: 'setup-operator',
+      testMatch: /operator\.setup\.ts/,
+    },
+    {
+      name: 'operator',
+      testMatch: /.*sync-control.*/,
+      grep: /@operator/,
+      use: {
+        ...devices['Desktop Chrome'],
+        permissions: ['clipboard-read', 'clipboard-write'],
+        storageState: path.resolve(__dirname, '.auth', 'operator.json'),
+      },
+      dependencies: ['setup-operator'],
+    },
+    {
+      name: 'setup-analyst',
+      testMatch: /analyst\.setup\.ts/,
+    },
+    {
+      name: 'analyst',
+      testMatch: /.*sync-control.*/,
+      grep: /@analyst/,
+      use: {
+        ...devices['Desktop Chrome'],
+        permissions: ['clipboard-read', 'clipboard-write'],
+        storageState: path.resolve(__dirname, '.auth', 'analyst.json'),
+      },
+      dependencies: ['setup-analyst'],
     },
 
     //{
@@ -85,4 +119,6 @@ export default defineConfig({
     //  use: { ...devices['Desktop Chrome'], channel: 'chrome' },
     //},
   ],
-});
+};
+
+export default defineConfig(playwrightConfig);

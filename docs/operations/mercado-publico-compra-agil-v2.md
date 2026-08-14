@@ -1,5 +1,5 @@
 ---
-type: runbook
+type: operations-guide
 title: Compra Agil V2 operator guide
 description: Safe manual execution contract for the Mercado Publico Compra Agil V2 backbone.
 ---
@@ -52,6 +52,10 @@ payload: {"publicado_desde":"2026-08-10T00:00:00Z","publicado_hasta":"2026-08-10
   from its safe error classification, then use a new run.
 - **Policy**: do not paste response bodies, full headers, or tickets into logs,
   issues, fixtures, or chat. Persisted raw evidence stays in the audited store.
+- **Implemented**: a command-enqueued V2 run has one durable execution key.
+  Bounded queue retries resume that run from its checkpoint instead of creating
+  another SyncRun. Existing queued jobs without an execution key resume only a
+  matching active run with the same request parameters.
 
 ## Watermark and Pagination
 
@@ -64,17 +68,96 @@ payload: {"publicado_desde":"2026-08-10T00:00:00Z","publicado_hasta":"2026-08-10
 - **Policy**: resume or rediscover a failed durable run; do not recreate it
   with a subtly different partial window.
 
+## Detail Hydration Recovery
+
+- **Implemented**: every received detail response, including HTTP `200` with no
+  Compra Agil record, is persisted as raw audited evidence before the item stays
+  pending. Do not infer provider meaning from an empty response without that
+  evidence.
+- **Implemented**: detail hydration skips a request only when fresh list data
+  matches a current detail observation by provider change time, state, and OC
+  linkage. A frozen cohort item without fresh list evidence still requests
+  detail.
+- **Implemented**: each list and detail attempt refreshes the SyncRun heartbeat.
+  A retryable detail response stops the current pass, stores a terminal
+  resumable `partial_failed` run, and lets bounded queue retry resume it.
+- **Policy**: do not cancel a retryable run to make room for another run. Apply
+  the required instance command, then let the existing command retry or use the
+  authorized resume path.
+
+## Sync Operator Deployment
+
+The V2 sync control boundary accepts only explicit human operators. An
+operator assignment is a row in `mp.sync_operator` with a `workspace_id` and a
+`user_workspace_id`. The schema ships through the additive fast instance
+command `MpV2SyncOperationsFastInstanceCommand`; standard deployment applies
+it with `npx nx run twenty-server:database:migrate:prod`.
+
+The durable hydration-recovery schema ships through the additive fast instance
+command `MpV2DurableHydrationRecoveryFastInstanceCommand`. It adds only
+execution and hydration-decision metadata. Deploy it before enqueuing a new V2
+manual run that must resume through the generic queue.
+
+Manage assignments with the `mercado-publico:sync-operator` command through
+the existing server command surface.
+
+```text
+# assign (idempotent, refreshes assignment metadata)
+mercado-publico:sync-operator -w <workspace_id> -u <user_workspace_id> -a <assigned_by_user_workspace_id>
+
+# remove
+mercado-publico:sync-operator -w <workspace_id> -u <user_workspace_id> --remove
+```
+
+- **Policy**: assign only workspace members who operate the sync.
+- **Policy**: no workspace administrator receives implicit sync control.
+- **Policy**: remove the assignment when an operator leaves the workspace.
+
+## Sync Control
+
+An assigned operator uses Centro de control to start, resume, or cancel the
+global incremental V2 sync. Start and cancel require confirmation. Resume does
+not require confirmation and continues only an eligible run from its saved
+checkpoints.
+
+The latest-run view shows status, stored discovered, hydrated, and failed
+counts, plus a safe summary. It does not show internal IDs, idempotency keys,
+payloads, or technical error causes.
+
 ## Error Matrix
 
 | Signal | Classification | Operator action |
 | --- | --- | --- |
 | 400 | Parameter error | Stop; correct the local payload once. |
 | 401 / 403 | Hard failure | Verify managed ticket configuration without printing it. |
-| 404 | Soft miss | Record the outcome; do not treat it as a transport retry. |
-| 429 | Retryable | Respect `Retry-After` when the provider supplies it; quota telemetry records the event. |
-| 500 / 503 / timeout | Retryable | Let the bounded queue retry policy apply. |
+| 404 | Soft miss | Persist provider evidence and terminalize item. Do not retry transport. |
+| 429 | Retryable | Respect `Retry-After`; retain item pending until its item retry limit. |
+| 500 / 503 / 504 / timeout | Retryable | Retry item without aborting remaining hydration items. |
 
-**Implemented**: `Retry-After` delta-seconds and HTTP-date values are parsed
-without storing headers. **Policy**: the current minimal telemetry design keeps
-existing checkpoints and raw audit trails; it does not add a duplicate manifest
-or database column for this header.
+`Retry-After` delta-seconds and HTTP-date values are parsed without storing
+headers. A provider response waits for this delay before next retry; otherwise
+the configured fixed backoff applies.
+
+## Hydration Completion
+
+Hydration reads pending items in serial batches of 100. Provider retryable
+responses affect only their item. Each item has
+`MERCADO_PUBLICO_HTTP_MAX_RETRIES + 1` total attempts.
+
+Soft misses, detail-code mismatches, and exhausted retryable requests become
+terminal items with an error summary. Lifecycle-terminal provider records are
+also terminal, but have no error summary. The run `records_failed` count
+contains only terminal items with an error summary.
+
+The worker completes after no pending hydration item remains. A run with one or
+more terminal error items ends as `partial_failed` and does not advance its
+watermark. Serial requests protect provider quota. Add bounded concurrency only
+after a successful run exceeds its agreed duration SLO and quota telemetry
+shows available capacity.
+
+## Command Retries
+
+V2 control commands use configured fixed BullMQ retry settings. On a retryable
+failure, command state returns to `pending` before BullMQ retries it. The final
+allowed attempt records `failed`; recovery does not retry it forever. Each
+attempt resumes the same durable run and its saved checkpoints.

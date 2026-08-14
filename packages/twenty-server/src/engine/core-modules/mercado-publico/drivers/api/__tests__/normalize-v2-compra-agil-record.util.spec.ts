@@ -36,4 +36,93 @@ describe('normalizeV2CompraAgilRecord', () => {
     expect(cancelled.proveedores_cotizando).toEqual([]);
     expect(cancelled.motivos?.motivo_cancelacion).toBe('[string]');
   });
+
+  it('normalizes detail fields from the confirmed contract', () => {
+    const normalized = normalizeV2CompraAgilRecord(fixture.samples[0]);
+
+    expect(normalized).toMatchObject({
+      description: '[string]',
+      deliveryAddress: '[string]',
+      deliveryDays: 1,
+      cancellationAt: null,
+      callDescription: '[string]',
+      callFirstClosingAt: new Date('2026-01-02T03:04:05Z'),
+      callSecondClosingAt: null,
+      budgetType: '[string]',
+      budgetEstimate: '1',
+      budgetCurrency: '[string]',
+      cancelMotive: null,
+      desertedMotive: '[string]',
+      selectionMotive: null,
+      totalOffers: 1,
+      totalDemands: 0,
+      finePenalty: '1',
+    });
+  });
+
+  it('keeps absent detail sections null instead of inventing values', () => {
+    const normalized = normalizeV2CompraAgilRecord(fixture.samples[1]);
+
+    expect(normalized).toMatchObject({
+      description: null,
+      deliveryAddress: null,
+      deliveryDays: null,
+      cancellationAt: null,
+      callFirstClosingAt: new Date('2026-01-02T03:04:05Z'),
+      callSecondClosingAt: new Date('2026-01-02T03:04:05Z'),
+      budgetType: null,
+      budgetEstimate: null,
+      totalDemands: null,
+      finePenalty: null,
+    });
+    expect(normalized.documentCount).toBe(0);
+  });
+
+  it('normalizes cancellation lifecycle fields when present', () => {
+    const normalized = normalizeV2CompraAgilRecord(fixture.samples[2]);
+
+    expect(normalized).toMatchObject({
+      cancellationAt: new Date('2026-01-02T03:04:05Z'),
+      cancelMotive: '[string]',
+      desertedMotive: null,
+      totalOffers: 0,
+      totalDemands: 0,
+      finePenalty: '1',
+    });
+  });
+
+  it('does not invent unavailable fields', () => {
+    expect(normalizeV2CompraAgilRecord({ codigo: 'CA-1' })).toEqual({
+      title: null,
+      stateCode: null,
+      stateLabel: null,
+      buyerCode: null,
+      buyerName: null,
+      region: null,
+      publishedAt: null,
+      closingAt: null,
+      providerChangedAt: null,
+      providerChangedAtRaw: null,
+      stateId: null,
+      amount: null,
+      currency: null,
+      documentCount: null,
+      description: null,
+      deliveryAddress: null,
+      deliveryDays: null,
+      cancellationAt: null,
+      callDescription: null,
+      callFirstClosingAt: null,
+      callSecondClosingAt: null,
+      budgetType: null,
+      budgetEstimate: null,
+      budgetCurrency: null,
+      cancelMotive: null,
+      desertedMotive: null,
+      selectionMotive: null,
+      totalOffers: null,
+      totalDemands: null,
+      finePenalty: null,
+    });
+  });
 });

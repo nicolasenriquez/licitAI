@@ -4,6 +4,9 @@
   "author": "",
   "private": true,
   "license": "AGPL-3.0",
+  "scripts": {
+    "test:e2e-compose-preflight": "node --test scripts/e2e-compose-preflight.test.mjs"
+  },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.60.0",

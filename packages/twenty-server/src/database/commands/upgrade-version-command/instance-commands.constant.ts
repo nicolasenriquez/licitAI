@@ -99,6 +99,11 @@ import { MpV2CohortFastInstanceCommand } from 'src/database/commands/upgrade-ver
 import { MpV2EvidenceHistoryReplayFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1787000000000-mp-v2-evidence-history-replay';
 import { MpV2EvidenceRollbackCompatibilityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1788000000000-mp-v2-evidence-rollback-compatibility';
 import { MpV2ActivasFiltersFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1789000000000-mp-v2-activas-filters';
+import { MpV2DetailContractFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1790000000000-mp-v2-detail-contract';
+import { MpV2SyncOperationsPreflightFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1790999999999-mp-v2-sync-operations-preflight';
+import { MpV2SyncOperationsFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1791000000000-mp-v2-sync-operations';
+import { MpV2SyncOperationsAttemptTimestampFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1791000000001-mp-v2-sync-operations-attempt-timestamp';
+import { MpV2DurableHydrationRecoveryFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1792000000000-mp-v2-durable-hydration-recovery';
 import { MpStgJobRunRawCsvFileLinkSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1782340007930-mp-stg-job-run-raw-csv-file-link';
 import { DropRawCsvFileIngestionJobIdSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1783191615515-drop-raw-csv-file-ingestion-job-id';
 
@@ -202,6 +207,11 @@ export const INSTANCE_COMMANDS = [
   MpV2EvidenceHistoryReplayFastInstanceCommand,
   MpV2EvidenceRollbackCompatibilityFastInstanceCommand,
   MpV2ActivasFiltersFastInstanceCommand,
+  MpV2DetailContractFastInstanceCommand,
+  MpV2SyncOperationsPreflightFastInstanceCommand,
+  MpV2SyncOperationsFastInstanceCommand,
+  MpV2SyncOperationsAttemptTimestampFastInstanceCommand,
+  MpV2DurableHydrationRecoveryFastInstanceCommand,
   MpStgJobRunRawCsvFileLinkSlowInstanceCommand,
   DropRawCsvFileIngestionJobIdSlowInstanceCommand,
 ];

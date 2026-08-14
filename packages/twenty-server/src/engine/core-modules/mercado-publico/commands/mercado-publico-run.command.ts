@@ -1,6 +1,10 @@
+import crypto from 'crypto';
+
 import { Logger } from '@nestjs/common';
 
 import { Command, CommandRunner, Option } from 'nest-commander';
+
+import { isValidUuid } from 'twenty-shared/utils';
 
 import {
   MERCADO_PUBLICO_SUPPORTED_JOB_NAMES_TEXT,
@@ -19,6 +23,7 @@ import { MessageQueueService } from 'src/engine/core-modules/message-queue/servi
 type MercadoPublicoRunCommandOptions = {
   jobName: MercadoPublicoJobName;
   payload?: Record<string, unknown>;
+  executionKey?: string;
 };
 
 @Command({
@@ -49,6 +54,7 @@ export class MercadoPublicoRunCommand extends CommandRunner {
       {
         jobName: options.jobName,
         payload,
+        executionKey: options.executionKey ?? crypto.randomUUID(),
         requestedAt: new Date().toISOString(),
         requestedBy: 'command',
       },
@@ -99,5 +105,19 @@ export class MercadoPublicoRunCommand extends CommandRunner {
     }
 
     return parsedValue as Record<string, unknown>;
+  }
+
+  @Option({
+    flags: '--execution-key [uuid]',
+    description:
+      'Optional stable UUID. Reuse it to resume the same Mercado Publico V2 run.',
+    required: false,
+  })
+  parseExecutionKey(value: string): string {
+    if (!isValidUuid(value)) {
+      throw new Error('Mercado Publico execution key must be a valid UUID');
+    }
+
+    return value;
   }
 }

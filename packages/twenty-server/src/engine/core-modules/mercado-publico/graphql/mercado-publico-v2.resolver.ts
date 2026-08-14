@@ -2,6 +2,7 @@ import { UseGuards } from '@nestjs/common';
 import {
   Args,
   Field,
+  Float,
   GraphQLISODateTime,
   InputType,
   Int,
@@ -9,9 +10,17 @@ import {
   Query,
   registerEnumType,
   ResolveField,
-  Resolver,
 } from '@nestjs/graphql';
 
+import { CoreResolver } from 'src/engine/api/graphql/graphql-config/decorators/core-resolver.decorator';
+import {
+  MercadoPublicoV2BuyersReadService,
+  type MercadoPublicoV2BuyerAggregate,
+} from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-buyers-read.service';
+import {
+  MercadoPublicoV2HistoryReadService,
+  type MercadoPublicoV2HistoryEvent,
+} from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-history-read.service';
 import {
   encodeMercadoPublicoV2OpportunityCursor,
   MercadoPublicoV2ReadService,
@@ -80,6 +89,45 @@ export class MercadoPublicoV2OpportunityFilterInput {
 }
 
 @ObjectType()
+export class MercadoPublicoV2DetailFreshnessDTO {
+  @Field()
+  status!: string;
+
+  @Field(() => String, { nullable: true })
+  lastError!: string | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  asOf!: Date | null;
+}
+
+@ObjectType()
+export class MercadoPublicoV2DetailProvenanceDTO {
+  @Field(() => String, { nullable: true })
+  observationId!: string | null;
+
+  @Field(() => String, { nullable: true })
+  normalizerVersion!: string | null;
+
+  @Field(() => String, { nullable: true })
+  providerSchemaFingerprint!: string | null;
+
+  @Field(() => String, { nullable: true })
+  snapshotKind!: string | null;
+
+  @Field(() => String, { nullable: true })
+  source!: string | null;
+
+  @Field(() => String, { nullable: true })
+  endpoint!: string | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  observedAt!: Date | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  providerChangedAt!: Date | null;
+}
+
+@ObjectType()
 export class MercadoPublicoV2OpportunityDTO {
   @Field()
   codigo!: string;
@@ -125,6 +173,63 @@ export class MercadoPublicoV2OpportunityDTO {
 
   @Field()
   availability!: string;
+
+  @Field(() => String, { nullable: true })
+  description!: string | null;
+
+  @Field(() => String, { nullable: true })
+  deliveryAddress!: string | null;
+
+  @Field(() => Int, { nullable: true })
+  deliveryDays!: number | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  cancellationAt!: Date | null;
+
+  @Field(() => String, { nullable: true })
+  callDescription!: string | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  callFirstClosingAt!: Date | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  callSecondClosingAt!: Date | null;
+
+  @Field(() => String, { nullable: true })
+  budgetType!: string | null;
+
+  @Field(() => String, { nullable: true })
+  budgetEstimate!: string | null;
+
+  @Field(() => String, { nullable: true })
+  budgetCurrency!: string | null;
+
+  @Field(() => String, { nullable: true })
+  cancelMotive!: string | null;
+
+  @Field(() => String, { nullable: true })
+  desertedMotive!: string | null;
+
+  @Field(() => String, { nullable: true })
+  selectionMotive!: string | null;
+
+  @Field(() => Int, { nullable: true })
+  totalOffers!: number | null;
+
+  @Field(() => Int, { nullable: true })
+  totalDemands!: number | null;
+
+  @Field(() => String, { nullable: true })
+  finePenalty!: string | null;
+
+  @Field(() => String, { nullable: true })
+  lifecycleReason!: string | null;
+
+  @Field(() => MercadoPublicoV2DetailFreshnessDTO, { nullable: true })
+  detailFreshness!: MercadoPublicoV2DetailFreshnessDTO | null;
+
+  @Field(() => MercadoPublicoV2DetailProvenanceDTO, { nullable: true })
+  provenance!: MercadoPublicoV2DetailProvenanceDTO | null;
 }
 
 @ObjectType()
@@ -244,6 +349,111 @@ export class MercadoPublicoV2AnalyticsDTO {
 @ObjectType()
 export class MercadoPublicoV2NamespaceDTO {}
 
+@ObjectType()
+export class MercadoPublicoV2HistoryEventDTO {
+  @Field()
+  id!: string;
+
+  @Field()
+  codigo!: string;
+
+  @Field(() => [String])
+  changedFields!: string[];
+
+  @Field(() => String, { nullable: true })
+  previousObservationId!: string | null;
+
+  @Field(() => String, { nullable: true })
+  newObservationId!: string | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  providerChangedAt!: Date | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  observedAt!: Date | null;
+
+  @Field(() => String, { nullable: true })
+  normalizerVersion!: string | null;
+
+  @Field(() => String, { nullable: true })
+  providerSchemaFingerprint!: string | null;
+
+  @Field(() => String, { nullable: true })
+  source!: string | null;
+
+  @Field(() => String, { nullable: true })
+  endpoint!: string | null;
+
+  @Field(() => String, { nullable: true })
+  snapshotKind!: string | null;
+
+  @Field(() => GraphQLISODateTime)
+  createdAt!: Date;
+}
+
+@ObjectType()
+export class MercadoPublicoV2HistoryEdgeDTO {
+  @Field()
+  cursor!: string;
+
+  @Field(() => MercadoPublicoV2HistoryEventDTO)
+  node!: MercadoPublicoV2HistoryEventDTO;
+}
+
+@ObjectType()
+export class MercadoPublicoV2HistoryConnectionDTO {
+  @Field(() => [MercadoPublicoV2HistoryEdgeDTO])
+  edges!: MercadoPublicoV2HistoryEdgeDTO[];
+
+  @Field(() => MercadoPublicoV2PageInfoDTO)
+  pageInfo!: MercadoPublicoV2PageInfoDTO;
+}
+
+@ObjectType()
+export class MercadoPublicoV2BuyerDTO {
+  @Field()
+  buyerCode!: string;
+
+  @Field(() => String, { nullable: true })
+  buyerName!: string | null;
+
+  @Field(() => Int)
+  opportunityCount!: number;
+
+  @Field(() => Float)
+  buyerCoverage!: number;
+
+  @Field(() => Float)
+  amountCoverage!: number;
+
+  @Field()
+  availability!: string;
+
+  @Field()
+  completeness!: string;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  asOf!: Date | null;
+}
+
+@ObjectType()
+export class MercadoPublicoV2BuyerEdgeDTO {
+  @Field()
+  cursor!: string;
+
+  @Field(() => MercadoPublicoV2BuyerDTO)
+  node!: MercadoPublicoV2BuyerDTO;
+}
+
+@ObjectType()
+export class MercadoPublicoV2BuyerConnectionDTO {
+  @Field(() => [MercadoPublicoV2BuyerEdgeDTO])
+  edges!: MercadoPublicoV2BuyerEdgeDTO[];
+
+  @Field(() => MercadoPublicoV2PageInfoDTO)
+  pageInfo!: MercadoPublicoV2PageInfoDTO;
+}
+
 const toOpportunityDTO = (
   row: MercadoPublicoV2OpportunityRow,
 ): MercadoPublicoV2OpportunityDTO => ({
@@ -262,6 +472,25 @@ const toOpportunityDTO = (
   normalizerVersion: row.normalizer_version,
   providerSchemaFingerprint: row.provider_schema_fingerprint,
   availability: row.availability,
+  description: null,
+  deliveryAddress: null,
+  deliveryDays: null,
+  cancellationAt: null,
+  callDescription: null,
+  callFirstClosingAt: null,
+  callSecondClosingAt: null,
+  budgetType: null,
+  budgetEstimate: null,
+  budgetCurrency: null,
+  cancelMotive: null,
+  desertedMotive: null,
+  selectionMotive: null,
+  totalOffers: null,
+  totalDemands: null,
+  finePenalty: null,
+  lifecycleReason: null,
+  detailFreshness: null,
+  provenance: null,
 });
 
 const toAnalyticsBucketDTO = (
@@ -289,8 +518,39 @@ const toAnalyticsDTO = (
   llamadoBuckets: analytics.llamadoBuckets.map(toAnalyticsBucketDTO),
 });
 
+const toHistoryEventDTO = (
+  event: MercadoPublicoV2HistoryEvent,
+): MercadoPublicoV2HistoryEventDTO => ({
+  id: event.id,
+  codigo: event.codigo,
+  changedFields: event.changedFields,
+  previousObservationId: event.previousObservationId,
+  newObservationId: event.newObservationId,
+  providerChangedAt: event.providerChangedAt,
+  observedAt: event.observedAt,
+  normalizerVersion: event.normalizerVersion,
+  providerSchemaFingerprint: event.providerSchemaFingerprint,
+  source: event.source,
+  endpoint: event.endpoint,
+  snapshotKind: event.snapshotKind,
+  createdAt: event.createdAt,
+});
+
+const toBuyerDTO = (
+  buyer: MercadoPublicoV2BuyerAggregate,
+): MercadoPublicoV2BuyerDTO => ({
+  buyerCode: buyer.buyerCode,
+  buyerName: buyer.buyerName,
+  opportunityCount: buyer.opportunityCount,
+  buyerCoverage: buyer.buyerCoverage,
+  amountCoverage: buyer.amountCoverage,
+  availability: buyer.availability,
+  completeness: buyer.completeness,
+  asOf: buyer.asOf,
+});
+
 @UseGuards(WorkspaceAuthGuard, NoPermissionGuard)
-@Resolver()
+@CoreResolver()
 export class MercadoPublicoV2Resolver {
   @Query(() => MercadoPublicoV2NamespaceDTO)
   mercadoPublicoV2(): MercadoPublicoV2NamespaceDTO {
@@ -299,10 +559,12 @@ export class MercadoPublicoV2Resolver {
 }
 
 @UseGuards(WorkspaceAuthGuard, NoPermissionGuard)
-@Resolver(() => MercadoPublicoV2NamespaceDTO)
+@CoreResolver(() => MercadoPublicoV2NamespaceDTO)
 export class MercadoPublicoV2NamespaceResolver {
   constructor(
     private readonly mercadoPublicoV2ReadService: MercadoPublicoV2ReadService,
+    private readonly mercadoPublicoV2HistoryReadService: MercadoPublicoV2HistoryReadService,
+    private readonly mercadoPublicoV2BuyersReadService: MercadoPublicoV2BuyersReadService,
   ) {}
 
   @ResolveField(() => MercadoPublicoV2OpportunityConnectionDTO)
@@ -325,8 +587,9 @@ export class MercadoPublicoV2NamespaceResolver {
   ): Promise<MercadoPublicoV2OpportunityConnectionDTO> {
     const resolvedSort =
       sort ?? MercadoPublicoV2OpportunitySortEnum.CLOSING_AT_DESC;
+    const resolvedFilter = (filter ?? {}) as MercadoPublicoV2OpportunityFilter;
     const result = await this.mercadoPublicoV2ReadService.listOpportunities(
-      filter as MercadoPublicoV2OpportunityFilter,
+      resolvedFilter,
       after,
       first,
       resolvedSort as MercadoPublicoV2OpportunitySort,
@@ -360,18 +623,70 @@ export class MercadoPublicoV2NamespaceResolver {
     filter?: MercadoPublicoV2OpportunityFilterInput,
   ): Promise<MercadoPublicoV2AnalyticsDTO> {
     const result = await this.mercadoPublicoV2ReadService.getAnalytics(
-      filter as MercadoPublicoV2OpportunityFilter,
+      (filter ?? {}) as MercadoPublicoV2OpportunityFilter,
     );
 
     return toAnalyticsDTO(result);
   }
 
-  @ResolveField(() => MercadoPublicoV2OpportunityDTO, { nullable: true })
-  async opportunity(
-    @Args('codigo') codigo: string,
-  ): Promise<MercadoPublicoV2OpportunityDTO | null> {
-    const row = await this.mercadoPublicoV2ReadService.getOpportunity(codigo);
+  @ResolveField(() => MercadoPublicoV2HistoryConnectionDTO)
+  async history(
+    @Args('codigo', { type: () => String })
+    codigo: string,
+    @Args('after', { type: () => String, nullable: true })
+    after?: string | null,
+    @Args('first', { type: () => Int, nullable: true, defaultValue: 50 })
+    first?: number,
+  ): Promise<MercadoPublicoV2HistoryConnectionDTO> {
+    const result = await this.mercadoPublicoV2HistoryReadService.listHistory(
+      codigo,
+      after,
+      first,
+    );
 
-    return row ? toOpportunityDTO(row) : null;
+    return {
+      edges: result.rows.map((event) => ({
+        cursor: event.cursor,
+        node: toHistoryEventDTO(event),
+      })),
+      pageInfo: {
+        hasNextPage: result.hasNextPage,
+        hasPreviousPage: after != null,
+        startCursor: result.startCursor,
+        endCursor: result.endCursor,
+      },
+    };
+  }
+
+  @ResolveField(() => MercadoPublicoV2BuyerConnectionDTO)
+  async buyers(
+    @Args('filter', {
+      type: () => MercadoPublicoV2OpportunityFilterInput,
+      nullable: true,
+    })
+    filter?: MercadoPublicoV2OpportunityFilterInput,
+    @Args('after', { type: () => String, nullable: true })
+    after?: string | null,
+    @Args('first', { type: () => Int, nullable: true, defaultValue: 50 })
+    first?: number,
+  ): Promise<MercadoPublicoV2BuyerConnectionDTO> {
+    const result = await this.mercadoPublicoV2BuyersReadService.listBuyers(
+      (filter ?? {}) as MercadoPublicoV2OpportunityFilter,
+      after,
+      first,
+    );
+
+    return {
+      edges: result.rows.map((row) => ({
+        cursor: row.cursor ?? result.startCursor ?? '',
+        node: toBuyerDTO(row),
+      })),
+      pageInfo: {
+        hasNextPage: result.hasNextPage,
+        hasPreviousPage: after != null,
+        startCursor: result.startCursor,
+        endCursor: result.endCursor,
+      },
+    };
   }
 }

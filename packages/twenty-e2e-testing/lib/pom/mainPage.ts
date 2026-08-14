@@ -69,7 +69,7 @@ export class MainPage {
     this.deletedRecordsButton = page
       .getByTestId('tooltip')
       .filter({ hasText: /^Deleted */ });
-    this.createNewRecordButton = page.getByTestId('add-button');
+    this.createNewRecordButton = page.getByRole('button', { name: /^New / });
     this.addToFavoritesButton = page.getByText('Add to favorites');
     this.deleteFromFavoritesButton = page.getByText('Delete from favorites');
     this.deleteRecordsButton = page.getByText('Delete');
