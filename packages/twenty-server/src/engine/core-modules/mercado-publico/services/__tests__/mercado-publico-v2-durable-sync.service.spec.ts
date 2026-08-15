@@ -1,4 +1,6 @@
 import fixture from 'src/engine/core-modules/mercado-publico/drivers/api/__tests__/fixtures/v2-compra-agil-list.json';
+import axios from 'axios';
+
 import { MercadoPublicoApiV2CompraAgilClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
@@ -278,5 +280,177 @@ describe('MercadoPublicoV2DurableSyncService', () => {
         cambio_desde: '2026-06-01T00:00:00Z',
       }),
     ).rejects.toThrow('requires both cambio_desde and cambio_hasta');
+  });
+
+  it('freezes the active cohort only for reconcile intents', async () => {
+    const query = jest.fn().mockResolvedValue([]);
+    const service = new MercadoPublicoV2DurableSyncService(
+      {} as MercadoPublicoApiV2CompraAgilClientService,
+      syncConfig as never,
+      {} as MercadoPublicoPersistenceService,
+      { query } as never,
+      {} as MercadoPublicoV2ProjectionService,
+    );
+    const invoke = (intent: string) =>
+      (
+        service as unknown as {
+          freezeActiveCohort: (context: {
+            syncRunId: string;
+            intent: string;
+            scope: string;
+            requestParams: Record<string, unknown>;
+          }) => Promise<void>;
+        }
+      ).freezeActiveCohort({
+        syncRunId: 'sync-run-1',
+        intent,
+        scope: 'global',
+        requestParams: {},
+      });
+
+    await invoke('manual');
+
+    expect(
+      query.mock.calls.filter(([sql]: [string]) =>
+        sql.includes('INSERT INTO mp.sync_run_item'),
+      ),
+    ).toHaveLength(0);
+
+    await invoke('reconcile');
+
+    expect(
+      query.mock.calls.filter(([sql]: [string]) =>
+        sql.includes('INSERT INTO mp.sync_run_item'),
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('defers a 429 without Retry-After until the quota reset', async () => {
+    let pendingItemReads = 0;
+    const resetAt = new Date('2026-08-15T04:00:00.000Z');
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('SELECT id, codigo')) {
+        pendingItemReads += 1;
+
+        return Promise.resolve(
+          pendingItemReads === 1
+            ? [
+                {
+                  id: 'item-1',
+                  codigo: 'FIXTURE-CA-001',
+                  attempts: 0,
+                  status: 'pending',
+                },
+              ]
+            : [],
+        );
+      }
+      if (sql.includes('FROM mp.gold_api_quota_usage')) {
+        return Promise.resolve([{ reset_at: resetAt }]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const persistV2CompraAgilSnapshot = jest.fn().mockResolvedValue({
+      rawApiPayloadId: 'raw-429',
+    });
+    const response = {
+      endpoint: 'detail',
+      source: 'api-v2-compra-agil',
+      requestParams: { codigo: 'FIXTURE-CA-001' },
+      requestFingerprint: 'fingerprint-429',
+      payloadChecksum: 'checksum-429',
+      schemaFingerprint: 'schema-429',
+      httpStatus: 429,
+      fetchedAt: new Date('2026-08-12T00:00:00Z'),
+      rawPayload: { status: 429 },
+      compraAgil: [],
+      errorSummary: 'retryable_failed',
+    };
+    const service = new MercadoPublicoV2DurableSyncService(
+      {
+        getByCodigo: jest.fn().mockResolvedValue(response),
+      } as unknown as MercadoPublicoApiV2CompraAgilClientService,
+      syncConfig as never,
+      {
+        persistV2CompraAgilSnapshot,
+      } as unknown as MercadoPublicoPersistenceService,
+      { query } as never,
+      {} as MercadoPublicoV2ProjectionService,
+    );
+
+    await expect(
+      (
+        service as unknown as {
+          hydrate: (
+            context: { syncRunId: string },
+            jobRunRecordId: string,
+          ) => Promise<unknown>;
+        }
+      ).hydrate({ syncRunId: 'sync-run-1' }, 'job-run-1'),
+    ).rejects.toMatchObject({ retryable: true, retryAt: resetAt });
+
+    expect(persistV2CompraAgilSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({ snapshotKind: 'detail' }),
+    );
+  });
+
+  it('preserves the transport error code when a detail request fails', async () => {
+    let pendingItemReads = 0;
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('SELECT id, codigo')) {
+        pendingItemReads += 1;
+
+        return Promise.resolve(
+          pendingItemReads === 1
+            ? [
+                {
+                  id: 'item-1',
+                  codigo: 'FIXTURE-CA-001',
+                  attempts: 0,
+                  status: 'pending',
+                },
+              ]
+            : [],
+        );
+      }
+
+      return Promise.resolve([]);
+    });
+    const axiosError = new axios.AxiosError('timeout of 1000ms exceeded');
+    axiosError.code = 'ECONNABORTED';
+    const service = new MercadoPublicoV2DurableSyncService(
+      {
+        getByCodigo: jest.fn().mockRejectedValue(axiosError),
+      } as unknown as MercadoPublicoApiV2CompraAgilClientService,
+      syncConfig as never,
+      {} as MercadoPublicoPersistenceService,
+      { query } as never,
+      {} as MercadoPublicoV2ProjectionService,
+    );
+
+    await expect(
+      (
+        service as unknown as {
+          hydrate: (
+            context: { syncRunId: string },
+            jobRunRecordId: string,
+          ) => Promise<unknown>;
+        }
+      ).hydrate({ syncRunId: 'sync-run-1' }, 'job-run-1'),
+    ).resolves.toBe('completed');
+
+    const pendingUpdate = query.mock.calls.find(
+      ([sql]: [string]) =>
+        sql.includes('error_summary = $3') &&
+        sql.includes("status = 'pending'"),
+    );
+
+    expect(pendingUpdate?.[1]).toEqual([
+      'item-1',
+      'hydrating',
+      'retryable_failed: detail request failed: ECONNABORTED',
+      null,
+    ]);
   });
 });

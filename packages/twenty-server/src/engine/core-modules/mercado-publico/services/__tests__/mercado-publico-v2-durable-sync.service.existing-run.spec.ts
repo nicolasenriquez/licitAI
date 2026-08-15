@@ -325,17 +325,98 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
     );
   });
 
-  it('pauses an unfinished bounded window when its page budget is reached', async () => {
+  it('advances the watermark on a first unfiltered global run without a change window', async () => {
     const query = jest.fn().mockImplementation((sql: string) => {
-      if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
+      if (sql.includes('records_discovered')) {
+        return Promise.resolve([
+          {
+            records_discovered: '1',
+            records_hydrated: '1',
+            records_failed: '0',
+            records_projected: '1',
+            pages_checkpointed: '1',
+          },
+        ]);
+      }
+      if (sql.includes('MAX(provider_changed_at)')) {
+        return Promise.resolve([
+          { max_provider_changed_at: new Date('2026-08-14T12:00:00.000Z') },
+        ]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const service = buildService({
+      query,
+      entityManagerQuery: jest.fn().mockResolvedValue([]),
+      getList: jest.fn(),
+      getByCodigo: jest.fn(),
+    });
+
+    await expect(
+      (
+        service as unknown as {
+          finishRun: (
+            context: {
+              syncRunId: string;
+              intent: string;
+              scope: string;
+              requestParams: Record<string, unknown>;
+              maxPages: undefined;
+              watermarkBefore: null;
+              status: string;
+              cancellationRequestedAt: null;
+            },
+            jobRunRecordId: string,
+          ) => Promise<{ status: string; watermarkAfter: Date | null }>;
+        }
+      ).finishRun(
+        {
+          syncRunId: 'run-1',
+          intent: 'scheduled',
+          scope: 'global',
+          requestParams: { tamano_pagina: 50, numero_pagina: 1 },
+          maxPages: undefined,
+          watermarkBefore: null,
+          status: 'hydrating',
+          cancellationRequestedAt: null,
+        },
+        'job-run-1',
+      ),
+    ).resolves.toMatchObject({
+      status: 'succeeded',
+      watermarkAfter: new Date('2026-08-14T12:00:00.000Z'),
+    });
+
+    expect(
+      query.mock.calls.some(([sql]: [string]) =>
+        sql.includes('INSERT INTO mp.source_watermark'),
+      ),
+    ).toBe(true);
+  });
+
+  it('hydrates and finishes a bounded window when its page budget is reached', async () => {
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('SELECT id, intent, scope, request_params')) {
         return Promise.resolve([
           buildRunRow({
             request_params: {
               tamano_pagina: 50,
               max_pages: 3,
-              bounded_window: true,
             },
+            status: 'queued',
           }),
+        ]);
+      }
+      if (sql.includes('records_discovered')) {
+        return Promise.resolve([
+          {
+            records_discovered: '0',
+            records_hydrated: '0',
+            records_failed: '0',
+            records_projected: '0',
+            pages_checkpointed: '1',
+          },
         ]);
       }
 
@@ -350,21 +431,18 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
     const syncService = service as unknown as {
       discover: jest.Mock;
       hydrate: jest.Mock;
-      pauseRun: jest.Mock;
     };
 
     jest
       .spyOn(syncService, 'discover')
       .mockResolvedValue('page_budget_reached');
     jest.spyOn(syncService, 'hydrate').mockResolvedValue('completed');
-    jest.spyOn(syncService, 'pauseRun').mockResolvedValue({
-      status: 'partial_failed',
-    });
 
     await expect(service.executeExistingRun('run-1')).resolves.toMatchObject({
-      status: 'partial_failed',
+      status: 'succeeded',
+      watermarkAfter: null,
     });
-    expect(syncService.pauseRun).toHaveBeenCalled();
+    expect(syncService.hydrate).toHaveBeenCalled();
   });
 
   it('resumes only a discovery-complete run', async () => {

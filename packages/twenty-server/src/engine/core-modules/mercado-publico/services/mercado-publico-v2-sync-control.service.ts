@@ -14,6 +14,7 @@ import {
   MERCADO_PUBLICO_V2_SYNC_COMMAND_JOB_NAME,
 } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
+import { buildCompraAgilRequestParams } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
 
 export type MercadoPublicoV2SyncControlAction = 'start' | 'resume' | 'cancel';
 
@@ -100,13 +101,14 @@ const MERCADO_PUBLICO_V2_SYNC_ACTIVE_RUN_STATUSES = [
 
 const DEFAULT_MAX_PAGES = 50;
 
-const getMaxPages = (value: number | undefined): number => {
-  const maxPages = value ?? DEFAULT_MAX_PAGES;
+const getMaxPages = (value: number | undefined): number | undefined => {
+  const maxPages = value;
 
   if (
-    !Number.isInteger(maxPages) ||
-    maxPages < 1 ||
-    maxPages > DEFAULT_MAX_PAGES
+    maxPages !== undefined &&
+    (!Number.isInteger(maxPages) ||
+      maxPages < 1 ||
+      maxPages > DEFAULT_MAX_PAGES)
   ) {
     throw new Error(
       `Mercado Publico V2 max pages must be an integer between 1 and ${DEFAULT_MAX_PAGES}`,
@@ -375,11 +377,13 @@ export class MercadoPublicoV2SyncControlService {
   async finalizeCommand({
     commandId,
     attemptId,
+    attemptNumber,
     status,
     errorSummary,
   }: {
     commandId: string;
     attemptId: string;
+    attemptNumber: number;
     status:
       | 'succeeded'
       | 'partial_failed'
@@ -388,13 +392,23 @@ export class MercadoPublicoV2SyncControlService {
       | 'cancelled';
     errorSummary?: string;
   }): Promise<void> {
-    const commandState =
+    const retryLimit =
+      this.mercadoPublicoConfigService.getSettings().httpMaxRetries;
+    const canRetry =
+      status === 'retryable_failed' && attemptNumber <= retryLimit;
+    const commandState = canRetry
+      ? 'pending'
+      : status === 'succeeded'
+        ? 'succeeded'
+        : status === 'cancelled'
+          ? 'cancelled'
+          : 'failed';
+    const attemptState =
       status === 'succeeded'
         ? 'succeeded'
         : status === 'cancelled'
           ? 'cancelled'
           : 'failed';
-    const attemptState = commandState;
 
     await this.coreDataSource.transaction(async (entityManager) => {
       const commands = await entityManager.query<
@@ -404,7 +418,8 @@ export class MercadoPublicoV2SyncControlService {
             UPDATE mp.sync_command
             SET state = $2,
                 error_summary = $3,
-                finished_at = now(),
+                claimed_at = CASE WHEN $2 = 'pending' THEN NULL ELSE claimed_at END,
+                finished_at = CASE WHEN $2 = 'pending' THEN NULL ELSE now() END,
                 updated_at = now()
             WHERE id = $1 AND state = 'claimed'
             RETURNING workspace_id, sync_run_id
@@ -436,6 +451,67 @@ export class MercadoPublicoV2SyncControlService {
         eventType: `run_${status}`,
         eventData: {},
       });
+    });
+  }
+
+  async deferCommand({
+    commandId,
+    attemptId,
+    retryAt,
+  }: {
+    commandId: string;
+    attemptId: string;
+    retryAt: Date;
+  }): Promise<void> {
+    const delayMs = Math.max(0, retryAt.getTime() - Date.now());
+    const errorSummary = 'retryable_failed: provider rate limit reset required';
+
+    const commands = await this.coreDataSource.query<
+      { workspace_id: string; sync_run_id: string }[]
+    >(
+      `
+        UPDATE mp.sync_command
+        SET state = 'pending',
+            claimed_at = NULL,
+            error_summary = $2,
+            finished_at = NULL,
+            dispatched_at = $3,
+            dispatch_attempts = dispatch_attempts + 1,
+            updated_at = now()
+        WHERE id = $1 AND state = 'claimed'
+        RETURNING workspace_id, sync_run_id
+      `,
+      [commandId, errorSummary, retryAt],
+    );
+    const command = commands[0];
+
+    if (command === undefined) {
+      return;
+    }
+
+    await this.coreDataSource.query(
+      `
+        UPDATE mp.sync_run_attempt
+        SET state = 'failed',
+            error_summary = $2,
+            finished_at = now(),
+            updated_at = now()
+        WHERE id = $1 AND state = 'running'
+      `,
+      [attemptId, errorSummary],
+    );
+    await this.messageQueueService.add(
+      MERCADO_PUBLICO_V2_SYNC_COMMAND_JOB_NAME,
+      { commandId },
+      { delay: delayMs, retryLimit: 0 },
+    );
+    await this.appendAudit(this.coreDataSource, {
+      workspaceId: command.workspace_id,
+      syncRunId: command.sync_run_id,
+      syncCommandId: commandId,
+      syncRunAttemptId: attemptId,
+      eventType: 'run_deferred_rate_limit',
+      eventData: { retryAt: retryAt.toISOString() },
     });
   }
 
@@ -749,19 +825,26 @@ export class MercadoPublicoV2SyncControlService {
     input: MercadoPublicoV2SubmitCommandInput,
     commandId: string,
   ): Promise<MercadoPublicoV2SubmitCommandResult> {
+    const watermarkBefore = await this.readWatermark(entityManager, 'global');
+    const requestParams = buildCompraAgilRequestParams({}, watermarkBefore);
+    const maxPages = getMaxPages(input.maxPages);
     const rows = await entityManager.query<{ id: string }[]>(
       `
         INSERT INTO mp.sync_run (
-          intent, source, scope, status, request_params,
+          intent, source, scope, status, request_params, watermark_before,
           control_workspace_id, control_user_workspace_id
         )
-        VALUES ('incremental', $1, 'global', 'queued', $2::jsonb, $3, $4)
+        VALUES ('incremental', $1, 'global', 'queued', $2::jsonb, $3, $4, $5)
         ON CONFLICT DO NOTHING
         RETURNING id
       `,
       [
         MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
-        JSON.stringify({ max_pages: getMaxPages(input.maxPages) }),
+        JSON.stringify({
+          ...requestParams,
+          ...(maxPages === undefined ? {} : { max_pages: maxPages }),
+        }),
+        watermarkBefore,
         input.workspaceId,
         input.actorUserWorkspaceId,
       ],
@@ -811,6 +894,22 @@ export class MercadoPublicoV2SyncControlService {
     return isSameWorkspace
       ? { state: 'reused', syncRunId: activeRun.id }
       : { state: 'global_sync_active' };
+  }
+
+  private async readWatermark(
+    entityManager: EntityManager,
+    scope: string,
+  ): Promise<Date | null> {
+    const rows = await entityManager.query<{ watermark_at: Date | null }[]>(
+      `
+        SELECT watermark_at
+        FROM mp.source_watermark
+        WHERE source = $1 AND scope = $2
+      `,
+      [MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE, scope],
+    );
+
+    return rows[0]?.watermark_at ?? null;
   }
 
   private async findActiveRun(

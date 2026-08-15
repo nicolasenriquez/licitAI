@@ -3,6 +3,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 
+import axios from 'axios';
 import { DataSource } from 'typeorm';
 
 import {
@@ -14,7 +15,6 @@ import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers
 import {
   type MercadoPublicoV2LifecycleClassification,
   classifyV2CompraAgilLifecycle,
-  getV2CompraAgilProviderOrderId,
 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
 import { createJsonSha256 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/create-json-sha256.util';
 import { extractV2CompraAgilListRecords } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
@@ -33,7 +33,7 @@ import { type CompraAgilListParams } from 'src/engine/core-modules/mercado-publi
 
 const WATERMARK_OVERLAP_MS = 5 * 60 * 1000;
 const DEFAULT_PAGE_SIZE = 50;
-const DEFAULT_MAX_PAGES = 50;
+const MAX_BOUNDED_PAGES = 50;
 const HYDRATION_BATCH_SIZE = 100;
 
 export type MercadoPublicoV2SyncIntent =
@@ -58,9 +58,10 @@ export type MercadoPublicoV2DurableSyncResult = {
 
 type SyncRunContext = {
   syncRunId: string;
+  intent: MercadoPublicoV2SyncIntent;
   scope: string;
   requestParams: CompraAgilListParams;
-  maxPages: number;
+  maxPages: number | undefined;
   watermarkBefore: Date | null;
   status: string;
   cancellationRequestedAt: Date | null;
@@ -78,7 +79,6 @@ type CurrentDetailRow = {
   provider_changed_at: Date | string | null;
   state_id: string | null;
   state_code: string | null;
-  id_orden_compra: string | null;
 };
 
 type HydrationPlan = {
@@ -87,7 +87,6 @@ type HydrationPlan = {
     | 'missing_detail_observation'
     | 'provider_change'
     | 'state_drift'
-    | 'order_linkage_drift'
     | 'unchanged_detail'
     | 'frozen_active_cohort';
 };
@@ -124,23 +123,110 @@ const getDate = (value: unknown): Date | null => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
-const getMaxPages = (value: unknown): number => {
+const getMaxPages = (value: unknown): number | undefined => {
   if (value === undefined) {
-    return DEFAULT_MAX_PAGES;
+    return undefined;
   }
 
   if (
     typeof value !== 'number' ||
     !Number.isInteger(value) ||
     value < 1 ||
-    value > DEFAULT_MAX_PAGES
+    value > MAX_BOUNDED_PAGES
   ) {
     throw new Error(
-      `Mercado Publico V2 max pages must be an integer between 1 and ${DEFAULT_MAX_PAGES}`,
+      `Mercado Publico V2 max pages must be an integer between 1 and ${MAX_BOUNDED_PAGES}`,
     );
   }
 
   return value;
+};
+
+const isGlobalIncrementalWindow = (params: CompraAgilListParams): boolean =>
+  (params.cambio_desde === undefined) === (params.cambio_hasta === undefined) &&
+  params.id === undefined &&
+  params.q === undefined &&
+  params.estado === undefined &&
+  params.region === undefined &&
+  params.publicado_desde === undefined &&
+  params.publicado_hasta === undefined;
+
+export const buildCompraAgilRequestParams = (
+  payload: Record<string, unknown>,
+  watermarkBefore: Date | null,
+): CompraAgilListParams => {
+  const hasExplicitId = getNonEmptyString(payload.id) !== undefined;
+  const explicitChangeStart = getNonEmptyString(payload.cambio_desde);
+  const explicitChangeEnd = getNonEmptyString(payload.cambio_hasta);
+  const explicitPublicationStart = getNonEmptyString(payload.publicado_desde);
+  const explicitPublicationEnd = getNonEmptyString(payload.publicado_hasta);
+
+  if (payload.orden !== undefined) {
+    throw new Error('Mercado Publico V2 durable sync does not support "orden"');
+  }
+
+  if (
+    (explicitChangeStart === undefined) !==
+    (explicitChangeEnd === undefined)
+  ) {
+    throw new Error(
+      'Mercado Publico V2 durable sync requires both cambio_desde and cambio_hasta when either is provided',
+    );
+  }
+
+  if (
+    (explicitPublicationStart === undefined) !==
+    (explicitPublicationEnd === undefined)
+  ) {
+    throw new Error(
+      'Mercado Publico V2 durable sync requires both publicado_desde and publicado_hasta when either is provided',
+    );
+  }
+
+  const executionStartedAt = new Date().toISOString();
+  const derivedChangeStart =
+    explicitChangeStart ??
+    (hasExplicitId || watermarkBefore === null
+      ? undefined
+      : new Date(
+          watermarkBefore.getTime() - WATERMARK_OVERLAP_MS,
+        ).toISOString());
+  const pageSize =
+    typeof payload.tamano_pagina === 'number'
+      ? payload.tamano_pagina
+      : DEFAULT_PAGE_SIZE;
+
+  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50) {
+    throw new Error(
+      'Mercado Publico V2 durable page size must be between 1 and 50',
+    );
+  }
+
+  const usesWatermarkWindow =
+    !hasExplicitId &&
+    explicitChangeStart === undefined &&
+    watermarkBefore !== null;
+
+  return {
+    cambio_desde: derivedChangeStart,
+    cambio_hasta:
+      explicitChangeEnd ??
+      (usesWatermarkWindow ? executionStartedAt : undefined),
+    ttl_cambio_ms:
+      !usesWatermarkWindow && typeof payload.ttl_cambio_ms === 'number'
+        ? payload.ttl_cambio_ms
+        : undefined,
+    publicado_desde: explicitPublicationStart,
+    publicado_hasta: explicitPublicationEnd,
+    estado: getNonEmptyString(payload.estado),
+    region: typeof payload.region === 'number' ? payload.region : undefined,
+    id: getNonEmptyString(payload.id),
+    q: getNonEmptyString(payload.q),
+    ordenar_por:
+      getNonEmptyString(payload.ordenar_por) ?? 'FechaUltimaModificacion',
+    tamano_pagina: pageSize,
+    numero_pagina: 1,
+  };
 };
 
 @Injectable()
@@ -203,16 +289,10 @@ export class MercadoPublicoV2DurableSyncService {
       }
 
       if (discovery === 'page_budget_reached') {
-        stage = 'hydrating';
         await this.updateSyncRunStatus(context.syncRunId, 'hydrating');
         context.status = 'hydrating';
-        const hydration = await this.hydrate(context, jobRunRecord.id);
 
-        if (hydration === 'cancelled') {
-          return this.cancelRun(context, jobRunRecord.id, 'hydrating');
-        }
-
-        return this.pauseRun(context, jobRunRecord.id);
+        return this.hydrateOrFinish(context, jobRunRecord.id);
       }
 
       await this.freezeActiveCohort(context);
@@ -337,13 +417,8 @@ export class MercadoPublicoV2DurableSyncService {
         if (discovery === 'page_budget_reached') {
           await this.updateSyncRunStatus(syncRunId, 'hydrating');
           context.status = 'hydrating';
-          const hydration = await this.hydrate(context, jobRunRecord.id);
 
-          if (hydration === 'cancelled') {
-            return this.cancelRun(context, jobRunRecord.id, 'hydrating');
-          }
-
-          return this.pauseRun(context, jobRunRecord.id);
+          return await this.hydrateOrFinish(context, jobRunRecord.id);
         }
 
         await this.freezeActiveCohort(context);
@@ -375,13 +450,8 @@ export class MercadoPublicoV2DurableSyncService {
         if (discovery === 'page_budget_reached') {
           await this.updateSyncRunStatus(syncRunId, 'hydrating');
           context.status = 'hydrating';
-          const hydration = await this.hydrate(context, jobRunRecord.id);
 
-          if (hydration === 'cancelled') {
-            return this.cancelRun(context, jobRunRecord.id, 'hydrating');
-          }
-
-          return this.pauseRun(context, jobRunRecord.id);
+          return await this.hydrateOrFinish(context, jobRunRecord.id);
         }
 
         await this.freezeActiveCohort(context);
@@ -473,7 +543,10 @@ export class MercadoPublicoV2DurableSyncService {
   ): Promise<SyncRunContext> {
     const scope = getNonEmptyString(payload.scope) ?? 'global';
     const watermarkBefore = await this.readWatermark(scope);
-    const requestParams = this.buildRequestParams(payload, watermarkBefore);
+    const requestParams = buildCompraAgilRequestParams(
+      payload,
+      watermarkBefore,
+    );
     const maxPages = getMaxPages(payload.max_pages ?? payload.maxPages);
     const rows = await this.coreDataSource.query<{ id: string }[]>(
       `
@@ -490,7 +563,7 @@ export class MercadoPublicoV2DurableSyncService {
         scope,
         JSON.stringify({
           ...requestParams,
-          max_pages: maxPages,
+          ...(maxPages === undefined ? {} : { max_pages: maxPages }),
         }),
         watermarkBefore,
         executionKey ?? null,
@@ -499,6 +572,7 @@ export class MercadoPublicoV2DurableSyncService {
 
     return {
       syncRunId: rows[0].id,
+      intent,
       scope,
       requestParams,
       maxPages,
@@ -525,86 +599,6 @@ export class MercadoPublicoV2DurableSyncService {
     return rows[0]?.id ?? null;
   }
 
-  private buildRequestParams(
-    payload: Record<string, unknown>,
-    watermarkBefore: Date | null,
-  ): CompraAgilListParams {
-    const hasExplicitId = getNonEmptyString(payload.id) !== undefined;
-    const explicitChangeStart = getNonEmptyString(payload.cambio_desde);
-    const explicitChangeEnd = getNonEmptyString(payload.cambio_hasta);
-    const explicitPublicationStart = getNonEmptyString(payload.publicado_desde);
-    const explicitPublicationEnd = getNonEmptyString(payload.publicado_hasta);
-
-    if (payload.orden !== undefined) {
-      throw new Error(
-        'Mercado Publico V2 durable sync does not support "orden"',
-      );
-    }
-
-    if (
-      (explicitChangeStart === undefined) !==
-      (explicitChangeEnd === undefined)
-    ) {
-      throw new Error(
-        'Mercado Publico V2 durable sync requires both cambio_desde and cambio_hasta when either is provided',
-      );
-    }
-
-    if (
-      (explicitPublicationStart === undefined) !==
-      (explicitPublicationEnd === undefined)
-    ) {
-      throw new Error(
-        'Mercado Publico V2 durable sync requires both publicado_desde and publicado_hasta when either is provided',
-      );
-    }
-
-    const executionStartedAt = new Date().toISOString();
-    const derivedChangeStart =
-      explicitChangeStart ??
-      (hasExplicitId || watermarkBefore === null
-        ? undefined
-        : new Date(
-            watermarkBefore.getTime() - WATERMARK_OVERLAP_MS,
-          ).toISOString());
-    const pageSize =
-      typeof payload.tamano_pagina === 'number'
-        ? payload.tamano_pagina
-        : DEFAULT_PAGE_SIZE;
-
-    if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50) {
-      throw new Error(
-        'Mercado Publico V2 durable page size must be between 1 and 50',
-      );
-    }
-
-    const usesWatermarkWindow =
-      !hasExplicitId &&
-      explicitChangeStart === undefined &&
-      watermarkBefore !== null;
-
-    return {
-      cambio_desde: derivedChangeStart,
-      cambio_hasta:
-        explicitChangeEnd ??
-        (usesWatermarkWindow ? executionStartedAt : undefined),
-      ttl_cambio_ms:
-        !usesWatermarkWindow && typeof payload.ttl_cambio_ms === 'number'
-          ? payload.ttl_cambio_ms
-          : undefined,
-      publicado_desde: explicitPublicationStart,
-      publicado_hasta: explicitPublicationEnd,
-      estado: getNonEmptyString(payload.estado),
-      region: typeof payload.region === 'number' ? payload.region : undefined,
-      id: getNonEmptyString(payload.id),
-      q: getNonEmptyString(payload.q),
-      ordenar_por:
-        getNonEmptyString(payload.ordenar_por) ?? 'FechaUltimaModificacion',
-      tamano_pagina: pageSize,
-      numero_pagina: 1,
-    };
-  }
-
   private async readWatermark(scope: string): Promise<Date | null> {
     const rows = await this.coreDataSource.query<
       { watermark_at: Date | null }[]
@@ -618,6 +612,19 @@ export class MercadoPublicoV2DurableSyncService {
     );
 
     return getDate(rows[0]?.watermark_at);
+  }
+
+  private async readQuotaResetAt(): Promise<Date | null> {
+    const rows = await this.coreDataSource.query<{ reset_at: Date | null }[]>(
+      `
+        SELECT reset_at
+        FROM mp.gold_api_quota_usage
+        WHERE source = $1
+      `,
+      [MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE],
+    );
+
+    return getDate(rows[0]?.reset_at);
   }
 
   private async loadSyncRun(
@@ -642,6 +649,7 @@ export class MercadoPublicoV2DurableSyncService {
     return {
       ...row,
       syncRunId: row.id,
+      intent: row.intent,
       requestParams: this.toCompraAgilListParams(row.request_params),
       maxPages: getMaxPages(row.request_params.max_pages),
       watermarkBefore: getDate(row.watermark_before),
@@ -670,7 +678,10 @@ export class MercadoPublicoV2DurableSyncService {
   }
 
   private async freezeActiveCohort(context: SyncRunContext): Promise<void> {
-    if (context.requestParams.id !== undefined) {
+    if (
+      context.intent !== 'reconcile' ||
+      context.requestParams.id !== undefined
+    ) {
       return;
     }
 
@@ -719,6 +730,19 @@ export class MercadoPublicoV2DurableSyncService {
 
       if (response.errorSummary !== undefined) {
         await this.persistApiFailure(jobRunRecordId, response);
+
+        if (
+          response.errorSummary === 'retryable_failed' &&
+          response.httpStatus === 429 &&
+          response.retryAfterSeconds === undefined
+        ) {
+          throw new MercadoPublicoRecordedJobFailureError(
+            this.buildProviderError(response, 'discovering'),
+            true,
+            await this.readQuotaResetAt(),
+          );
+        }
+
         if (response.errorSummary === 'retryable_failed') {
           await this.waitBeforeRetry(response.retryAfterSeconds);
         }
@@ -760,7 +784,10 @@ export class MercadoPublicoV2DurableSyncService {
         break;
       }
 
-      if (pageNumber - startPageNumber + 1 >= context.maxPages) {
+      if (
+        context.maxPages !== undefined &&
+        pageNumber - startPageNumber + 1 >= context.maxPages
+      ) {
         return 'page_budget_reached';
       }
 
@@ -906,7 +933,7 @@ export class MercadoPublicoV2DurableSyncService {
     const rows = await this.coreDataSource.query<CurrentDetailRow[]>(
       `
         SELECT c.codigo, c.provider_changed_at, c.state_id,
-               c.estado AS state_code, c.id_orden_compra
+               c.estado AS state_code
         FROM mp.compra_agil c
         INNER JOIN mp.v2_observation o ON o.id = c.observation_id
         WHERE c.codigo = ANY($1::text[])
@@ -943,12 +970,6 @@ export class MercadoPublicoV2DurableSyncService {
       normalized.stateCode !== currentDetail.state_code
     ) {
       return { required: true, reason: 'state_drift' };
-    }
-
-    if (
-      getV2CompraAgilProviderOrderId(record) !== currentDetail.id_orden_compra
-    ) {
-      return { required: true, reason: 'order_linkage_drift' };
     }
 
     return { required: false, reason: 'unchanged_detail' };
@@ -1037,6 +1058,9 @@ export class MercadoPublicoV2DurableSyncService {
             );
         } catch (error) {
           const failure = classifyFailure(error);
+          const transportCode = axios.isAxiosError(error)
+            ? (error.code ?? 'unknown')
+            : 'unknown';
 
           if (failure === 'hard_fail' || failure === 'param_error') {
             throw error;
@@ -1048,14 +1072,14 @@ export class MercadoPublicoV2DurableSyncService {
           ) {
             await this.markItemPending(
               item.id,
-              'retryable_failed: detail request failed',
+              `retryable_failed: detail request failed: ${transportCode}`,
               'hydrating',
             );
             await this.waitBeforeRetry();
           } else {
             await this.markItemTerminal(
               item.id,
-              `${failure}: detail request failed`,
+              `${failure}: detail request failed: ${transportCode}`,
             );
           }
           await this.updateSyncRunCounters(context.syncRunId);
@@ -1098,6 +1122,18 @@ export class MercadoPublicoV2DurableSyncService {
               'hydrating',
               persistenceResult.rawApiPayloadId,
             );
+
+            if (
+              response.httpStatus === 429 &&
+              response.retryAfterSeconds === undefined
+            ) {
+              throw new MercadoPublicoRecordedJobFailureError(
+                'retryable_failed: provider rate limit reset required',
+                true,
+                await this.readQuotaResetAt(),
+              );
+            }
+
             await this.waitBeforeRetry(response.retryAfterSeconds);
           } else {
             await this.markItemTerminal(
@@ -1138,7 +1174,6 @@ export class MercadoPublicoV2DurableSyncService {
           persistenceResult.rawApiPayloadId,
           observationId,
           terminal,
-          detailRecord,
         );
 
         if (terminal) {
@@ -1238,7 +1273,6 @@ export class MercadoPublicoV2DurableSyncService {
         rawApiPayloadId,
         observationId,
         false,
-        record,
       );
     }
   }
@@ -1294,21 +1328,13 @@ export class MercadoPublicoV2DurableSyncService {
     rawApiPayloadId: string,
     observationId: string,
     terminal: boolean,
-    record: MercadoPublicoApiV2CompraAgilRecord,
   ): Promise<void> {
-    const normalized = normalizeV2CompraAgilRecord(record);
-
     await this.coreDataSource.query(
       `
         UPDATE mp.sync_run_item
         SET status = $2,
             raw_api_payload_id = $3,
             observation_id = $4,
-            state_id = $5,
-            state_code = $6,
-            state_label = $7,
-            provider_changed_at_raw = $8,
-            provider_changed_at = $9,
             error_stage = NULL,
             error_summary = NULL,
             hydrated_at = now(),
@@ -1320,11 +1346,6 @@ export class MercadoPublicoV2DurableSyncService {
         terminal ? 'terminal' : 'succeeded',
         rawApiPayloadId,
         observationId,
-        normalized.stateId,
-        normalized.stateCode,
-        normalized.stateLabel,
-        normalized.providerChangedAtRaw,
-        normalized.providerChangedAt,
       ],
     );
   }
@@ -1508,69 +1529,6 @@ export class MercadoPublicoV2DurableSyncService {
     };
   }
 
-  private async pauseRun(
-    context: SyncRunContext,
-    jobRunRecordId: string,
-  ): Promise<MercadoPublicoV2DurableSyncResult> {
-    await this.updateSyncRunCounters(context.syncRunId);
-    await this.coreDataSource.query(
-      `
-        UPDATE mp.sync_run
-        SET status = 'partial_failed',
-            error_stage = 'discovering',
-            error_retryable = true,
-            error_summary = 'page_budget_reached',
-            finished_at = now(),
-            updated_at = now()
-        WHERE id = $1
-      `,
-      [context.syncRunId],
-    );
-    const counts = await this.coreDataSource.query<
-      {
-        records_discovered?: string;
-        records_hydrated?: string;
-        records_failed?: string;
-        records_projected?: string;
-        pages_checkpointed?: string;
-      }[]
-    >(
-      `
-        SELECT records_discovered, records_hydrated, records_failed,
-               records_projected, pages_checkpointed
-        FROM mp.sync_run
-        WHERE id = $1
-      `,
-      [context.syncRunId],
-    );
-    const count = counts[0] ?? {};
-
-    await this.mercadoPublicoPersistenceService.finalizeJobRun({
-      jobRunRecordId,
-      status: 'failed',
-      finishedAt: new Date(),
-      errorSummary: 'page_budget_reached',
-      recordsFetched: Number(count.records_discovered ?? 0),
-      recordsCanonicalized: Number(count.records_hydrated ?? 0),
-      recordsFailed: Number(count.records_failed ?? 0),
-    });
-    this.logger.log(
-      `Mercado Publico V2 sync ${context.syncRunId} paused at its page budget`,
-    );
-
-    return {
-      syncRunId: context.syncRunId,
-      status: 'partial_failed',
-      recordsDiscovered: Number(count.records_discovered ?? 0),
-      recordsHydrated: Number(count.records_hydrated ?? 0),
-      recordsFailed: Number(count.records_failed ?? 0),
-      pagesCheckpointed: Number(count.pages_checkpointed ?? 0),
-      watermarkAfter: null,
-      observationIds: [],
-      recordsProjected: Number(count.records_projected ?? 0),
-    };
-  }
-
   private async getCancelledRunResult(
     context: SyncRunContext,
   ): Promise<MercadoPublicoV2DurableSyncResult> {
@@ -1668,7 +1626,9 @@ export class MercadoPublicoV2DurableSyncService {
     const recordsFailed = Number(count.records_failed);
     const status = recordsFailed > 0 ? 'partial_failed' : 'succeeded';
     const watermarkAfter =
-      status === 'succeeded' && context.requestParams.id === undefined
+      status === 'succeeded' &&
+      context.maxPages === undefined &&
+      isGlobalIncrementalWindow(context.requestParams)
         ? await this.advanceWatermark(context)
         : null;
 
@@ -1734,6 +1694,7 @@ export class MercadoPublicoV2DurableSyncService {
         SELECT MAX(provider_changed_at) AS max_provider_changed_at
         FROM mp.sync_run_item
         WHERE sync_run_id = $1
+          AND discovery_page > 0
       `,
       [context.syncRunId],
     );

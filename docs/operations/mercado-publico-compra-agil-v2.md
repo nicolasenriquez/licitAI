@@ -67,11 +67,16 @@ never sent to ChileCompra.
 payload: {"publicado_desde":"2026-08-12T00:00:00Z","publicado_hasta":"2026-08-12T23:59:59Z","tamano_pagina":50,"max_pages":3,"ordenar_por":"FechaUltimaModificacion"}
 ```
 
-- **Implemented**: a bounded run checkpoints and processes at most three pages.
+- **Implemented**: `max_pages` deliberately limits a bounded run to that many
+  pages per discovery pass. A bounded run checkpoints and hydrates what it
+  discovered, then finishes. Reaching the budget is normal completion, not a
+  failure.
 - **Implemented**: a bounded run never advances the global source watermark.
+  Only a successful, exhaustive, unfiltered global change-window run can
+  advance it.
 - **Policy**: do not treat a bounded run as one-day coverage.
-- Omit `max_pages` for the final full-day run. Only a successful exhaustive run
-  can advance the global watermark.
+- Omit `max_pages` for the final full-day run. Without `max_pages`, discovery
+  paginates exhaustively.
 
 ## Watermark and Pagination
 
@@ -94,16 +99,16 @@ payload: {"sync_run_id":"<failed-sync-run-id>"}
 ## Detail Hydration Recovery
 
 - **Implemented**: every received detail response, including HTTP `200` with no
-  Compra Agil record, is persisted as raw audited evidence before the item stays
-  pending. Do not infer provider meaning from an empty response without that
-  evidence.
+  Compra Agil record, is persisted as raw audited evidence before the item
+  terminalizes as a soft miss. Do not infer provider meaning from an empty
+  response without that evidence.
 - **Implemented**: detail hydration skips a request only when fresh list data
-  matches a current detail observation by provider change time, state, and OC
-  linkage. A frozen cohort item without fresh list evidence still requests
-  detail.
+  matches a current detail observation by provider change time and state. A
+  frozen cohort item without fresh list evidence still requests detail.
 - **Implemented**: each list and detail attempt refreshes the SyncRun heartbeat.
-  A retryable detail response stops the current pass, stores a terminal
-  resumable `partial_failed` run, and lets bounded queue retry resume it.
+  A retryable detail response affects only its item while attempts remain;
+  remaining items continue. A systemic retryable failure leaves the same
+  SyncRun resumable through the queue or the authorized resume path.
 - **Policy**: do not cancel a retryable run to make room for another run. Apply
   the required instance command, then let the existing command retry or use the
   authorized resume path.
@@ -181,13 +186,15 @@ shows available capacity.
 ## Command Retries
 
 V2 control commands use configured fixed BullMQ retry settings. On a retryable
-failure, command state returns to `pending` before BullMQ retries it. The final
-allowed attempt records `failed`; recovery does not retry it forever. Each
+failure, command state returns to `pending` while queue attempts remain. The
+final allowed attempt records `failed`; recovery does not retry it forever. Each
 attempt resumes the same durable run and its saved checkpoints.
 
 **Official**: ChileCompra directs clients to respect `Retry-After` for 429.
-**Policy**: wait for the provider reset window when 429 has no usable
-`Retry-After`; do not burn fixed-delay retries against a daily quota.
+**Policy**: when 429 has no usable `Retry-After`, the run stays resumable and
+the command retries only after the provider quota reset recorded in
+`mp.gold_api_quota_usage.reset_at`; do not burn fixed-delay retries against a
+daily quota.
 
 **Policy**: 504 is retryable because the provider has returned endpoint timeout
 responses in retained runtime evidence. It is not listed in the published error

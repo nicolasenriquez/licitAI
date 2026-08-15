@@ -176,7 +176,53 @@ describe('MercadoPublicoV2SyncControlService', () => {
       sql.includes('INSERT INTO mp.sync_run ('),
     );
 
-    expect(runInsert?.[1]).toContain(JSON.stringify({ max_pages: 2 }));
+    const storedParams = JSON.parse(runInsert?.[1][1] as string) as Record<
+      string,
+      unknown
+    >;
+
+    expect(storedParams).toMatchObject({ max_pages: 2 });
+  });
+
+  it('persists a frozen watermark window when an operator starts without a page budget', async () => {
+    const watermarkAt = new Date('2026-08-14T12:00:00.000Z');
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('INSERT INTO mp.sync_command')) {
+        return Promise.resolve([{ id: 'command-1' }]);
+      }
+      if (sql.includes('INSERT INTO mp.sync_run (')) {
+        return Promise.resolve([{ id: 'run-1' }]);
+      }
+      if (sql.includes('FROM mp.source_watermark')) {
+        return Promise.resolve([{ watermark_at: watermarkAt }]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const service = new MercadoPublicoV2SyncControlService(
+      { query, transaction: transactionUsing(query) } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+    );
+
+    await service.submitCommand(buildInput());
+
+    const runInsert = query.mock.calls.find(([sql]) =>
+      sql.includes('INSERT INTO mp.sync_run ('),
+    );
+
+    const storedParams = JSON.parse(runInsert?.[1][1] as string) as Record<
+      string,
+      unknown
+    >;
+
+    expect(storedParams).toMatchObject({
+      cambio_desde: expect.any(String),
+      cambio_hasta: expect.any(String),
+    });
+    expect(storedParams).not.toHaveProperty('max_pages');
+    expect(storedParams.cambio_desde).not.toBe(storedParams.cambio_hasta);
+    expect(runInsert?.[1][2]).toEqual(watermarkAt);
   });
 
   it('returns the saved result when an operator replays the same key and request', async () => {
@@ -425,7 +471,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
     ).toBe(true);
   });
 
-  it('keeps retryable provider failures terminal after the worker attempt', async () => {
+  it('keeps the command pending while queue attempts remain and fails on the final attempt', async () => {
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('UPDATE mp.sync_command')) {
         return Promise.resolve([
@@ -444,13 +490,75 @@ describe('MercadoPublicoV2SyncControlService', () => {
     await service.finalizeCommand({
       commandId: 'command-1',
       attemptId: 'attempt-1',
+      attemptNumber: 2,
       status: 'retryable_failed',
     });
 
-    const commandUpdate = query.mock.calls.find(([sql]) =>
+    const pendingUpdate = query.mock.calls.find(([sql]) =>
       sql.includes('UPDATE mp.sync_command'),
     );
-    expect(commandUpdate?.[1]).toEqual(['command-1', 'failed', null]);
+
+    expect(pendingUpdate?.[1]).toEqual(['command-1', 'pending', null]);
+    expect(pendingUpdate?.[0]).toContain(
+      "finished_at = CASE WHEN $2 = 'pending' THEN NULL ELSE now() END",
+    );
+
+    await service.finalizeCommand({
+      commandId: 'command-1',
+      attemptId: 'attempt-2',
+      attemptNumber: 4,
+      status: 'retryable_failed',
+    });
+
+    const commandUpdates = query.mock.calls.filter(([sql]: [string]) =>
+      sql.includes('UPDATE mp.sync_command'),
+    );
+    const failedUpdate = commandUpdates[commandUpdates.length - 1];
+
+    expect(failedUpdate?.[1]).toEqual(['command-1', 'failed', null]);
+  });
+
+  it('defers a rate-limited command until the provider quota reset', async () => {
+    const retryAt = new Date('2026-08-15T04:00:00.000Z');
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('UPDATE mp.sync_command')) {
+        return Promise.resolve([
+          { workspace_id: 'workspace-1', sync_run_id: 'run-1' },
+        ]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const add = jest.fn().mockResolvedValue({});
+    const service = new MercadoPublicoV2SyncControlService(
+      { query, transaction: transactionUsing(query) } as never,
+      { add } as unknown as MessageQueueService,
+      queueConfig as never,
+    );
+
+    await service.deferCommand({
+      commandId: 'command-1',
+      attemptId: 'attempt-1',
+      retryAt,
+    });
+
+    expect(add).toHaveBeenCalledWith(
+      'mercado-publico-v2-sync-command',
+      { commandId: 'command-1' },
+      expect.objectContaining({ retryLimit: 0 }),
+    );
+    const deferredDelay = add.mock.calls[0]?.[2]?.delay as number;
+
+    expect(deferredDelay).toBeGreaterThanOrEqual(0);
+    expect(deferredDelay).toBeLessThanOrEqual(
+      retryAt.getTime() - Date.now() + 1000,
+    );
+    const attemptUpdate = query.mock.calls.find(([sql]) =>
+      sql.includes('UPDATE mp.sync_run_attempt'),
+    );
+
+    expect(attemptUpdate?.[0]).toContain("state = 'failed'");
+    expect(attemptUpdate?.[1]).toContain('attempt-1');
   });
 
   it('appends audit events and never mutates existing audit rows', async () => {

@@ -1,4 +1,7 @@
-import { classifyV2CompraAgilLifecycle } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
+import {
+  classifyV2CompraAgilLifecycle,
+  getV2CompraAgilStateLabel,
+} from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
 
 describe('classifyV2CompraAgilLifecycle', () => {
   it('only discovers a new published record', () => {
@@ -83,6 +86,25 @@ describe('classifyV2CompraAgilLifecycle', () => {
         },
         true,
       ).terminal,
+    ).toBe(true);
+  });
+
+  it('keeps explicit null states observable without crashing', () => {
+    expect(getV2CompraAgilStateLabel({ codigo: 'CA-1', estado: null })).toBeNull();
+    expect(
+      getV2CompraAgilStateLabel({
+        codigo: 'CA-2',
+        estado: { codigo: null, glosa: null },
+      }),
+    ).toBeNull();
+    expect(
+      classifyV2CompraAgilLifecycle({ codigo: 'CA-3', estado: null }, false),
+    ).toMatchObject({ includeInCohort: false, terminal: false });
+    expect(
+      classifyV2CompraAgilLifecycle(
+        { codigo: 'CA-3', estado: null },
+        true,
+      ).includeInCohort,
     ).toBe(true);
   });
 

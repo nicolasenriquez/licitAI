@@ -46,9 +46,24 @@ export class MercadoPublicoV2SyncCommandJob {
       await this.mercadoPublicoV2SyncControlService.finalizeCommand({
         commandId: data.commandId,
         attemptId: claim.attemptId,
+        attemptNumber: claim.attemptNumber,
         status: result.status,
       });
     } catch (error) {
+      if (
+        error instanceof MercadoPublicoRecordedJobFailureError &&
+        error.retryable &&
+        error.retryAt !== null
+      ) {
+        await this.mercadoPublicoV2SyncControlService.deferCommand({
+          commandId: data.commandId,
+          attemptId: claim.attemptId,
+          retryAt: error.retryAt,
+        });
+
+        return;
+      }
+
       const retryable =
         error instanceof MercadoPublicoRecordedJobFailureError
           ? error.retryable
@@ -56,6 +71,7 @@ export class MercadoPublicoV2SyncCommandJob {
       await this.mercadoPublicoV2SyncControlService.finalizeCommand({
         commandId: data.commandId,
         attemptId: claim.attemptId,
+        attemptNumber: claim.attemptNumber,
         status: retryable ? 'retryable_failed' : 'failed',
         errorSummary:
           error instanceof Error

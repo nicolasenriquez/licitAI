@@ -129,6 +129,70 @@ V2 SyncRuns for both requested source-date windows.
 - Stop condition: task 2.6 requires terminal success with all required evidence.
   Do not enqueue the 13 August bounded window or authorize G5.
 
+## Bounded 12 August Attempt 2026-08-14 (Second)
+
+- Submitted at: `2026-08-14T23:33:48Z` (enqueue)
+- Authorized scope: 12 August bounded window only. The 13 August window was
+  not submitted.
+- Requested source window: `2026-08-12T00:00:00Z` through
+  `2026-08-12T23:59:59Z`
+- Requested page size: `50`; bounded discovery budget: `3` pages;
+  `bounded_window: true`.
+- Entry point: existing `mercado-publico:run` command with
+  `api-v2-compra-agil-by-publication-window`.
+- Preflight: `just runtime-check` healthy; pre-run durable state read-only:
+  latest SyncRun `ce9edf06-6fc1-4384-b5cf-9af6f216ba49` (`partial_failed`),
+  no active run, `156` observations, `2616` cohort rows, `0` global watermark
+  rows.
+
+### SyncRun evidence
+
+- SyncRun: `8b024d10-f25f-4154-84ad-cde07703a0fa`
+- Requested window, persisted verbatim in `mp.sync_run.request_params`:
+  `{"max_pages": 3, "ordenar_por": "FechaUltimaModificacion", "numero_pagina": 1, "tamano_pagina": 50, "bounded_window": true, "publicado_desde": "2026-08-12T00:00:00Z", "publicado_hasta": "2026-08-12T23:59:59Z"}`
+- Started `2026-08-14T23:33:49.027758Z`; finished `2026-08-15T00:02:27.490372Z`
+- Result: `partial_failed`
+- Counters: `records_discovered = 144`, `pages_discovered = 3`,
+  `pages_checkpointed = 3` (budget fully consumed, normal bounded stop),
+  `records_hydrated = 140`, `records_projected = 140`,
+  `records_failed = 4`
+- Item outcomes: `130` succeeded, `10` terminal without error summary
+  (lifecycle-terminal), `4` terminal with `retryable_failed`
+- Watermark: `watermark_before` and `watermark_after` both null; global
+  `api-v2-compra-agil` watermark rows remain `0`
+- Cohort: `3` rows admitted by this SyncRun
+- Projection: `140` observations written by this SyncRun
+
+### Decision
+
+The cycle is terminal `partial_failed`, which is a failed cycle under task
+2.6. The 13 August bounded window was not submitted. G5 authorization remains
+rejected and task 2.6 remains unchecked.
+
+## Targeted Detail Retry for the Four Failed Codigos
+
+- Authorized scope: retry only the four `retryable_failed` codigos from
+  SyncRun `8b024d10-f25f-4154-84ad-cde07703a0fa`, via the same
+  `mercado-publico:run` entry point with `id`-filtered payloads
+  (`tamano_pagina: 50`, `max_pages: 3`, `bounded_window: true`).
+- The full bounded 12 August window was retried first as SyncRun
+  `4691a855-1281-40eb-b284-68876f84c962`: `132` discovered, `129` hydrated
+  and projected, `3` failed. `5251-747-COT26` succeeded in that run.
+- Targeted results (one isolated run per codigo, sequential):
+
+| Codigo | Result | attempts | error_summary |
+| --- | --- | --- | --- |
+| 2721-365-COT26 | partial_failed | 4 | retryable_failed |
+| 1221016-161-COT26 | partial_failed | 4 | retryable_failed |
+| 2281-1456-COT26 | partial_failed | 4 | retryable_failed |
+
+- Each targeted run discovered `1` item (list endpoint healthy) and failed
+  all `4` detail attempts with a retryable provider result. No observation or
+  projection was written. This confirms provider-side per-record detail
+  failure for these three codigos, not an empty response and not a local
+  pipeline failure.
+- G5 authorization remains rejected and task 2.6 remains unchecked.
+
 ## Stable Evidence Locations
 
 | Evidence | Canonical location |

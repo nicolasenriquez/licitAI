@@ -5,10 +5,11 @@ export type MercadoPublicoApiV2CompraAgilRecord = {
   estado?:
     | string
     | {
-        id_estado?: number | string;
-        codigo?: string;
-        glosa?: string;
-      };
+        id_estado?: number | string | null;
+        codigo?: string | null;
+        glosa?: string | null;
+      }
+    | null;
   region?: number;
   institucion?: {
     rut?: string;

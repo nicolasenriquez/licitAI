@@ -162,7 +162,7 @@ export const getV2CompraAgilStateCode = (
 export const getV2CompraAgilStateLabel = (
   record: MercadoPublicoApiV2CompraAgilRecord,
 ): string | null => {
-  return typeof record.estado === 'object'
+  return record.estado !== null && typeof record.estado === 'object'
     ? coerceToNullableString(record.estado.glosa)
     : coerceToNullableString(record.estado);
 };

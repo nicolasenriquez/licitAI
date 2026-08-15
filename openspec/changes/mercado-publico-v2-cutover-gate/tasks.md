@@ -348,3 +348,23 @@
   attempts. It ended `partial_failed` with no hydration, projection, or
   watermark; only 3 cohort rows were admitted. Stop condition blocks the 13
   August window. Task 2.6 remains unchecked and G5 remains rejected.
+- 2026-08-14: Retried the bounded 12 August window (authorized scope: 12
+  August only). Preflight `just runtime-check` healthy with no active run.
+  SyncRun `8b024d10-f25f-4154-84ad-cde07703a0fa` consumed all 3 allowed pages,
+  discovered 144 items, hydrated and projected 140, and ended
+  `partial_failed` with 4 `retryable_failed` terminal items. Watermark
+  unchanged (0 global rows). The 13 August window was not submitted. The cycle
+  is terminal failure, so G5 authorization remains rejected and task 2.6
+  remains unchecked. Evidence recorded in `pre-cutover-evidence.md`.
+- 2026-08-14: Diagnosed the four failed items: each had 4 attempts with
+  `retryable_failed` at the detail endpoint while sibling items succeeded;
+  two of them were `soft_miss` in an earlier run. This is provider-side
+  per-record failure, not empty responses and not a pipeline failure.
+- 2026-08-14: Retried the bounded 12 August window again as SyncRun
+  `4691a855-1281-40eb-b284-68876f84c962`: `132` discovered, `129` hydrated
+  and projected, `3` failed (`5251-747-COT26` recovered). Then ran one
+  isolated `id`-filtered run per remaining codigo
+  (`2721-365-COT26`, `1221016-161-COT26`, `2281-1456-COT26`): each discovered
+  1 item and failed all 4 detail attempts with `retryable_failed`. Provider
+  detail failure is confirmed per record. G5 authorization remains rejected
+  and task 2.6 remains unchecked. Evidence in `pre-cutover-evidence.md`.
