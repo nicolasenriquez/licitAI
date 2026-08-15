@@ -452,5 +452,111 @@ describe('MercadoPublicoV2DurableSyncService', () => {
       'retryable_failed: detail request failed: ECONNABORTED',
       null,
     ]);
+
+    const attemptInsert = query.mock.calls.find(([sql]: [string]) =>
+      sql.includes('INSERT INTO mp.sync_run_item_attempt'),
+    );
+
+    expect(attemptInsert?.[1]).toEqual([
+      'sync-run-1',
+      'item-1',
+      1,
+      'detail-by-codigo',
+      expect.any(Date),
+      expect.any(Date),
+      expect.any(Number),
+      null,
+      'ECONNABORTED',
+      null,
+      null,
+      'retryable_failed',
+      true,
+      null,
+      null,
+    ]);
+  });
+
+  it('persists an append-only attempt row for a retryable detail response', async () => {
+    let pendingItemReads = 0;
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('SELECT id, codigo')) {
+        pendingItemReads += 1;
+
+        return Promise.resolve(
+          pendingItemReads === 1
+            ? [
+                {
+                  id: 'item-1',
+                  codigo: 'FIXTURE-CA-001',
+                  attempts: 0,
+                  status: 'pending',
+                },
+              ]
+            : [],
+        );
+      }
+
+      return Promise.resolve([]);
+    });
+    const persistV2CompraAgilSnapshot = jest.fn().mockResolvedValue({
+      rawApiPayloadId: 'raw-503',
+    });
+    const response = {
+      endpoint: 'detail-by-codigo',
+      source: 'api-v2-compra-agil',
+      requestParams: { codigo: 'FIXTURE-CA-001' },
+      requestFingerprint: 'fingerprint-503',
+      payloadChecksum: 'checksum-503',
+      schemaFingerprint: 'schema-503',
+      httpStatus: 503,
+      fetchedAt: new Date('2026-08-12T00:00:00Z'),
+      rawPayload: { status: 503 },
+      compraAgil: [],
+      errorSummary: 'retryable_failed',
+    };
+    const service = new MercadoPublicoV2DurableSyncService(
+      {
+        getByCodigo: jest.fn().mockResolvedValue(response),
+      } as unknown as MercadoPublicoApiV2CompraAgilClientService,
+      syncConfig as never,
+      {
+        persistV2CompraAgilSnapshot,
+      } as unknown as MercadoPublicoPersistenceService,
+      { query } as never,
+      {} as MercadoPublicoV2ProjectionService,
+    );
+
+    await expect(
+      (
+        service as unknown as {
+          hydrate: (
+            context: { syncRunId: string },
+            jobRunRecordId: string,
+          ) => Promise<unknown>;
+        }
+      ).hydrate({ syncRunId: 'sync-run-1' }, 'job-run-1'),
+    ).resolves.toBe('completed');
+
+    const attemptInsert = query.mock.calls.find(([sql]: [string]) =>
+      sql.includes('INSERT INTO mp.sync_run_item_attempt'),
+    );
+
+    expect(attemptInsert?.[1]).toEqual([
+      'sync-run-1',
+      'item-1',
+      1,
+      'detail-by-codigo',
+      expect.any(Date),
+      expect.any(Date),
+      expect.any(Number),
+      503,
+      null,
+      null,
+      null,
+      'retryable_failed',
+      true,
+      null,
+      'raw-503',
+    ]);
   });
 });

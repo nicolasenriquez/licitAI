@@ -21,6 +21,7 @@ import { extractV2CompraAgilListRecords } from 'src/engine/core-modules/mercado-
 import { extractV2CompraAgilPagination } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-pagination.util';
 import { normalizeV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/normalize-v2-compra-agil-record.util';
 import {
+  MERCADO_PUBLICO_API_V2_COMPRA_AGIL_DETAIL_BY_CODIGO_ENDPOINT,
   MERCADO_PUBLICO_API_V2_COMPRA_AGIL_LIST_ENDPOINT,
   MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
   type MercadoPublicoJobName,
@@ -788,6 +789,8 @@ export class MercadoPublicoV2DurableSyncService {
         context.maxPages !== undefined &&
         pageNumber - startPageNumber + 1 >= context.maxPages
       ) {
+        await this.completeDiscovery(context.syncRunId, 'page_budget_reached');
+
         return 'page_budget_reached';
       }
 
@@ -810,6 +813,8 @@ export class MercadoPublicoV2DurableSyncService {
       }
     }
 
+    await this.completeDiscovery(context.syncRunId, 'exhausted');
+
     return 'completed';
   }
 
@@ -830,9 +835,10 @@ export class MercadoPublicoV2DurableSyncService {
         `
           INSERT INTO mp.sync_run_page (
             sync_run_id, page_number, page_size, total_pages, total_results,
-            request_params, raw_api_payload_id, status, completed_at
+            records_returned, request_params, raw_api_payload_id, status,
+            completed_at
           )
-          VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, 'checkpointed', now())
+          VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, 'checkpointed', now())
           ON CONFLICT (sync_run_id, page_number) DO NOTHING
         `,
         [
@@ -841,6 +847,7 @@ export class MercadoPublicoV2DurableSyncService {
           pageSize,
           response.pagination?.totalPages ?? null,
           response.pagination?.totalResults ?? null,
+          response.compraAgil.length,
           JSON.stringify(response.requestParams),
           rawApiPayloadId,
         ],
@@ -1049,6 +1056,8 @@ export class MercadoPublicoV2DurableSyncService {
           [item.id],
         );
 
+        const attemptNumber = item.attempts + 1;
+        const requestStartedAt = new Date();
         let response: MercadoPublicoApiV2CompraAgilListResponse;
 
         try {
@@ -1061,6 +1070,19 @@ export class MercadoPublicoV2DurableSyncService {
           const transportCode = axios.isAxiosError(error)
             ? (error.code ?? 'unknown')
             : 'unknown';
+
+          await this.recordItemAttempt({
+            context,
+            item,
+            attemptNumber,
+            requestStartedAt,
+            httpStatus: axios.isAxiosError(error)
+              ? (error.response?.status ?? null)
+              : null,
+            transportErrorCode: transportCode,
+            failureClass: failure,
+            retryable: failure === 'retryable_failed',
+          });
 
           if (failure === 'hard_fail' || failure === 'param_error') {
             throw error;
@@ -1100,6 +1122,20 @@ export class MercadoPublicoV2DurableSyncService {
                   : this.buildProviderError(response, 'provider'),
             },
           );
+
+        await this.recordItemAttempt({
+          context,
+          item,
+          attemptNumber,
+          requestStartedAt,
+          httpStatus: response.httpStatus,
+          providerErrorCode: response.errorCode,
+          providerErrorMessage: response.errorMessage,
+          failureClass: response.errorSummary,
+          retryable: response.errorSummary === 'retryable_failed',
+          retryAfterSeconds: response.retryAfterSeconds,
+          rawApiPayloadId: persistenceResult.rawApiPayloadId,
+        });
 
         if (
           response.errorSummary !== undefined ||
@@ -1389,6 +1425,80 @@ export class MercadoPublicoV2DurableSyncService {
     );
   }
 
+  private async recordItemAttempt(input: {
+    context: SyncRunContext;
+    item: SyncRunItem;
+    attemptNumber: number;
+    requestStartedAt: Date;
+    httpStatus: number | null;
+    transportErrorCode?: string;
+    providerErrorCode?: string;
+    providerErrorMessage?: string;
+    failureClass?: string;
+    retryable: boolean;
+    retryAfterSeconds?: number;
+    rawApiPayloadId?: string | null;
+  }): Promise<void> {
+    try {
+      const requestFinishedAt = new Date();
+      const latencyMs = Math.max(
+        0,
+        requestFinishedAt.getTime() - input.requestStartedAt.getTime(),
+      );
+
+      await this.coreDataSource.query(
+        `
+          INSERT INTO mp.sync_run_item_attempt (
+            sync_run_id, sync_run_item_id, attempt_number, endpoint,
+            request_started_at, request_finished_at, latency_ms,
+            http_status, transport_error_code, provider_error_code,
+            provider_error_message, failure_class, retryable,
+            retry_after_seconds, raw_api_payload_id
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        `,
+        [
+          input.context.syncRunId,
+          input.item.id,
+          input.attemptNumber,
+          MERCADO_PUBLICO_API_V2_COMPRA_AGIL_DETAIL_BY_CODIGO_ENDPOINT,
+          input.requestStartedAt,
+          requestFinishedAt,
+          latencyMs,
+          input.httpStatus ?? null,
+          input.transportErrorCode ?? null,
+          input.providerErrorCode ?? null,
+          input.providerErrorMessage ?? null,
+          input.failureClass ?? null,
+          input.retryable,
+          input.retryAfterSeconds ?? null,
+          input.rawApiPayloadId ?? null,
+        ],
+      );
+    } catch (error) {
+      // ponytail: attempt telemetry is observability, not a hard dependency
+      this.logger.warn(
+        `Failed to record attempt ${input.attemptNumber} for Mercado Publico V2 item ${input.item.codigo}: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  private async completeDiscovery(
+    syncRunId: string,
+    completionReason: 'exhausted' | 'page_budget_reached',
+  ): Promise<void> {
+    await this.coreDataSource.query(
+      `
+        UPDATE mp.sync_run
+        SET discovery_complete = $3,
+            completion_reason = $2,
+            updated_at = now()
+        WHERE id = $1
+      `,
+      [syncRunId, completionReason, completionReason === 'exhausted'],
+    );
+  }
+
   private async updateSyncRunStatus(
     syncRunId: string,
     status: 'discovering' | 'hydrating' | 'projecting',
@@ -1571,6 +1681,19 @@ export class MercadoPublicoV2DurableSyncService {
         SET records_discovered = (
               SELECT COUNT(*) FROM mp.sync_run_item
               WHERE sync_run_id = $1 AND discovery_page > 0
+            ),
+            provider_records_seen = (
+              SELECT COALESCE(SUM(records_returned), 0)
+              FROM mp.sync_run_page
+              WHERE sync_run_id = $1
+            ),
+            records_hydration_required = (
+              SELECT COUNT(*) FROM mp.sync_run_item
+              WHERE sync_run_id = $1 AND hydration_required = true
+            ),
+            records_hydration_skipped = (
+              SELECT COUNT(*) FROM mp.sync_run_item
+              WHERE sync_run_id = $1 AND hydration_required = false
             ),
             records_hydrated = (
               SELECT COUNT(*) FROM mp.sync_run_item

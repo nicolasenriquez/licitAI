@@ -368,3 +368,12 @@
   1 item and failed all 4 detail attempts with `retryable_failed`. Provider
   detail failure is confirmed per record. G5 authorization remains rejected
   and task 2.6 remains unchecked. Evidence in `pre-cutover-evidence.md`.
+- 2026-08-14: Submitted the bounded 13 August window (authorized scope: 13
+  August only). SyncRun `85e5dfff-a55f-4713-8975-d068594e934b` succeeded:
+  3 pages, `12` discovered, hydrated, and projected, `0` failed, `12` cohort
+  admissions, `12` observations. The deployed image still advances the
+  watermark on bounded runs (source and runbook forbid it); global watermark
+  is now `2026-08-15T00:35:00+00`. The 12 August cycle remains failed, so
+  task 2.6 remains unchecked and G5 authorization remains rejected until a
+  correct 12 August cycle exists and the watermark deviation is resolved.
+  Evidence in `pre-cutover-evidence.md`.

@@ -193,6 +193,32 @@ rejected and task 2.6 remains unchecked.
   pipeline failure.
 - G5 authorization remains rejected and task 2.6 remains unchecked.
 
+## Bounded 13 August Attempt 2026-08-15
+
+- Authorized scope: 13 August bounded window, same runner contract
+  (`tamano_pagina: 50`, `max_pages: 3`, `bounded_window: true`).
+- Submitted at: `2026-08-15T00:42:51Z`.
+- SyncRun: `85e5dfff-a55f-4713-8975-d068594e934b`.
+- Result: `succeeded` at `2026-08-15T00:44:37.808372Z`.
+- Counters: `records_discovered = 12`, `pages_discovered = 3`,
+  `pages_checkpointed = 3`, `records_hydrated = 12`,
+  `records_projected = 12`, `records_failed = 0`.
+- Items: `12` succeeded on first attempt; no terminal or soft-miss items.
+- Cohort: `12` rows admitted by this SyncRun.
+- Projection: `12` observations written by this SyncRun.
+- Watermark: before null; after `2026-08-15T00:35:00+00`; global
+  `api-v2-compra-agil` watermark rows went from `0` to `1`.
+- Deviation: the deployed `mp-local` image (built `2026-08-14T16:11Z`)
+  advances the watermark on a bounded run. Current source and the operator
+  runbook forbid this: only a successful, exhaustive, unfiltered global
+  change-window run may advance it. Do not start a global incremental run
+  until the image is rebuilt from current source and the watermark state
+  decision is recorded.
+- Gate status: the 13 August cycle succeeded but the 12 August cycle remains
+  failed (`partial_failed` with three provider-failed codigos). Task 2.6
+  requires both windows correct, so task 2.6 remains unchecked and G5
+  authorization remains rejected.
+
 ## Stable Evidence Locations
 
 | Evidence | Canonical location |

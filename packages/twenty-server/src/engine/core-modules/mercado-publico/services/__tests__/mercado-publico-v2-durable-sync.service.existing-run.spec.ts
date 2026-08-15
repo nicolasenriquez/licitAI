@@ -148,7 +148,7 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
 
     expect(getByCodigo).toHaveBeenCalledWith('FIXTURE-CA-001');
     const runInserts = query.mock.calls.filter(([sql]) =>
-      sql.includes('INSERT INTO mp.sync_run'),
+      sql.includes('INSERT INTO mp.sync_run ('),
     );
 
     expect(runInserts).toHaveLength(0);
