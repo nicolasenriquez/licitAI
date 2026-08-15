@@ -26,6 +26,8 @@ repeating a failed run from page one.
 - **Official**: [API Compra Agil V2 guide](https://www.chilecompra.cl/wp-content/uploads/2026/05/Documentacion_API_Compra_Agil-2-1.pdf)
   defines the V2 endpoint, request parameters, response envelope, pagination,
   daily quota, and error contract.
+- **Official**: [Compra Agil API examples](https://www.chilecompra.cl/wp-content/uploads/2026/05/Documentacion_API_Compra_Agil-3-1.pdf)
+  is the official examples guide. It is not a V3 API version.
 - **Implemented**: V2 requests use `GET /v2/compra-agil` and send the secret
   in the `ticket` header. The ticket must come only from managed configuration.
 - **Implemented**: `tamano_pagina` is an integer from 1 through 50,
@@ -84,6 +86,9 @@ payload: {"publicado_desde":"2026-08-12T00:00:00Z","publicado_hasta":"2026-08-12
   `cambio_desde` to five minutes before that watermark and freezes
   `cambio_hasta` to the UTC instant at run start. Every page therefore shares
   one complete change window.
+- **Implemented**: a successful, exhaustive, unfiltered global change-window
+  run advances the watermark when discovery completes, independently of later
+  hydration failures. A bounded run never advances the watermark.
 - **Implemented**: a relative `ttl_cambio_ms` is used only when no watermark
   window is derived.
 - **Implemented**: a retryable discovery failure resumes from the first page
@@ -126,6 +131,12 @@ command `MpV2DurableHydrationRecoveryFastInstanceCommand`. It adds only
 execution and hydration-decision metadata. Deploy it before enqueuing a new V2
 manual run that must resume through the generic queue.
 
+The item lifecycle statuses (`failed`, `deferred`, `lifecycle_terminal`) and
+the `records_deferred` counter ship through the slow instance command
+`MpV2ItemLifecycleStatusSlowInstanceCommand`. Its data migration backfills
+legacy `terminal` rows before restoring the status check. Deploy it before
+starting the debt recovery cron.
+
 Manage assignments with the `mercado-publico:sync-operator` command through
 the existing server command surface.
 
@@ -158,7 +169,7 @@ payloads, or technical error causes.
 | --- | --- | --- |
 | 400 | Parameter error | Stop; correct the local payload once. |
 | 401 / 403 | Hard failure | Verify managed ticket configuration without printing it. |
-| 404 | Soft miss | Persist provider evidence and terminalize item. Do not retry transport. |
+| 404 | Soft miss | Persist provider evidence and fail the item. Do not retry transport. |
 | 429 | Retryable | Respect `Retry-After`; retain item pending until its item retry limit. |
 | 500 / 503 / 504 / timeout | Retryable | Retry item without aborting remaining hydration items. |
 
@@ -172,16 +183,31 @@ Hydration reads pending items in serial batches of 100. Provider retryable
 responses affect only their item. Each item has
 `MERCADO_PUBLICO_HTTP_MAX_RETRIES + 1` total attempts.
 
-Soft misses, detail-code mismatches, and exhausted retryable requests become
-terminal items with an error summary. Lifecycle-terminal provider records are
-also terminal, but have no error summary. The run `records_failed` count
-contains only terminal items with an error summary.
+Item terminal states are split:
+
+- `failed`: soft misses, detail-code mismatches, and hard provider failures.
+  Counted in `records_failed`. Never retried automatically.
+- `deferred`: retryable requests whose attempts were exhausted. Counted in
+  `records_deferred`. Retried by the debt recovery cron, not by resume.
+- `lifecycle_terminal`: the provider record reached a verified terminal
+  business state. Has an observation, no error summary, and is not a failure.
 
 The worker completes after no pending hydration item remains. A run with one or
-more terminal error items ends as `partial_failed` and does not advance its
-watermark. Serial requests protect provider quota. Add bounded concurrency only
-after a successful run exceeds its agreed duration SLO and quota telemetry
-shows available capacity.
+more failed or deferred items ends as `partial_failed`. Deferred items no longer
+block the discovery watermark. Serial requests protect provider quota. Add
+bounded concurrency only after a successful run exceeds its agreed duration SLO
+and quota telemetry shows available capacity.
+
+## Deferred Hydration Debt Recovery
+
+- **Implemented**: the one-minute `MercadoPublicoV2DebtRecoveryCronJob`
+  selects due `deferred` items with exponential backoff derived from their
+  attempt count and dispatches a focused `id`-scoped recovery run per item.
+- **Implemented**: an item is skipped once a fresher detail observation exists
+  for its code. Dispatch is claimed atomically per item, so concurrent cron
+  ticks cannot double-dispatch.
+- **Policy**: do not resume an old run to clear deferred debt; let the debt
+  recovery cron or the authorized resume path handle it.
 
 ## Command Retries
 
@@ -192,9 +218,10 @@ attempt resumes the same durable run and its saved checkpoints.
 
 **Official**: ChileCompra directs clients to respect `Retry-After` for 429.
 **Policy**: when 429 has no usable `Retry-After`, the run stays resumable and
-the command retries only after the provider quota reset recorded in
-`mp.gold_api_quota_usage.reset_at`; do not burn fixed-delay retries against a
-daily quota.
+the command retries only after the provider quota reset. The reset comes from
+`mp.gold_api_quota_usage.reset_at` when recorded; otherwise it is computed from
+the configured quota timezone. Do not burn fixed-delay retries against a daily
+quota.
 
 **Policy**: 504 is retryable because the provider has returned endpoint timeout
 responses in retained runtime evidence. It is not listed in the published error

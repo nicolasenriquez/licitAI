@@ -1,4 +1,6 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { resolve } from 'node:path';
+import AxeBuilder from '@axe-core/playwright';
 
 const CANONICAL_PATH = '/mercado-publico';
 const LEGACY_PATH = '/mercado-publico/legacy';
@@ -7,6 +9,17 @@ const legacyProcessCode =
   process.env.MERCADO_PUBLICO_LEGACY_E2E_PROCESS_CODE ?? 'FIXTURE-CA-001';
 
 test.use({ trace: 'on' });
+
+const roles = [
+  { name: 'operator', tag: '@operator' },
+  { name: 'analyst', tag: '@analyst' },
+];
+
+const viewports = [
+  { name: 'desktop-1440', width: 1440, height: 900 },
+  { name: 'laptop-1280', width: 1280, height: 720 },
+  { name: 'mobile-390', width: 390, height: 844 },
+];
 
 const allowedExternalHosts = new Set([
   'fonts.googleapis.com',
@@ -55,7 +68,11 @@ const trackBrowserEvidence = (page: Page) => {
   };
 };
 
-const runLegacyReadOnlyJourney = async (page: Page) => {
+const runLegacyReadOnlyJourney = async (
+  page: Page,
+  testInfo: TestInfo,
+  viewportName: string,
+) => {
   await expect(
     page.getByRole('heading', { name: 'Mercado Público' }),
   ).toBeVisible();
@@ -66,80 +83,132 @@ const runLegacyReadOnlyJourney = async (page: Page) => {
   await expect(processRow).toBeVisible();
   await processRow.click();
   await expect(page.getByRole('dialog')).toBeVisible();
-  await page.getByRole('button', { name: 'Cerrar detalle' }).click();
+
+  await page.getByRole('button', { name: 'Cerrar detalle' }).focus();
+  await page.keyboard.press('Enter');
   await expect(page.getByRole('dialog')).toBeHidden();
   await expect(processRow).toBeVisible();
+
+  const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+
+  await testInfo.attach(`axe-legacy-${viewportName}`, {
+    body: JSON.stringify(accessibilityScanResults, null, 2),
+    contentType: 'application/json',
+  });
+
+  await page.evaluate(() => {
+    document.body.style.zoom = '1.5';
+  });
+  await testInfo.attach(`legacy-zoom-150-${viewportName}`, {
+    body: await page.screenshot({ fullPage: true }),
+    contentType: 'image/png',
+  });
+  await page.evaluate(() => {
+    document.body.style.zoom = '1';
+  });
+
+  await testInfo.attach(`legacy-read-only-journey-${viewportName}`, {
+    body: await page.screenshot({ fullPage: true }),
+    contentType: 'image/png',
+  });
 };
 
-test.describe('Mercado Publico G4 cutover route matrix', () => {
-  test.beforeEach(async ({ page }) => {
-    expect(CUTOVER_PHASE).toMatch(/^(enabled|disabled|reenabled)$/);
-
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-  });
-
-  test('enabled deployment serves canonical V2 and the private legacy alias', async ({
-    page,
-  }, testInfo) => {
-    test.skip(CUTOVER_PHASE !== 'enabled');
-
-    const browserEvidence = trackBrowserEvidence(page);
-
-    await page.goto(CANONICAL_PATH, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: 'Activas' })).toBeVisible();
-
-    await page.goto(LEGACY_PATH, { waitUntil: 'domcontentloaded' });
-    await runLegacyReadOnlyJourney(page);
-    await testInfo.attach('legacy-read-only-journey', {
-      body: await page.screenshot({ fullPage: true }),
-      contentType: 'image/png',
-    });
-    await browserEvidence.attach(testInfo);
-    browserEvidence.assertClean();
-  });
-
-  test('disabled deployment serves canonical legacy without V2 subroutes', async ({
-    page,
-  }, testInfo) => {
-    test.skip(CUTOVER_PHASE !== 'disabled');
-
-    const browserEvidence = trackBrowserEvidence(page);
-
-    await page.goto(CANONICAL_PATH, { waitUntil: 'domcontentloaded' });
-    await runLegacyReadOnlyJourney(page);
-    await testInfo.attach('legacy-read-only-journey', {
-      body: await page.screenshot({ fullPage: true }),
-      contentType: 'image/png',
+for (const role of roles) {
+  test.describe(`Mercado Publico G4 cutover route matrix for ${role.name} ${role.tag}`, () => {
+    test.use({
+      storageState: resolve(process.cwd(), '.auth', `${role.name}.json`),
     });
 
-    await page.goto('/mercado-publico/historial', {
-      waitUntil: 'domcontentloaded',
+    test.beforeEach(async ({ page }) => {
+      expect(CUTOVER_PHASE).toMatch(/^(enabled|disabled|reenabled)$/);
+
+      await page.emulateMedia({ reducedMotion: 'reduce' });
     });
-    await expect(page.getByRole('heading', { name: 'Historial' })).toHaveCount(
-      0,
-    );
-    await browserEvidence.attach(testInfo);
-    browserEvidence.assertClean();
-  });
 
-  test('re-enabled deployment restores canonical V2 and retains the legacy alias', async ({
-    page,
-  }, testInfo) => {
-    test.skip(CUTOVER_PHASE !== 'reenabled');
+    test('enabled deployment serves canonical V2 and the private legacy alias', async ({
+      page,
+    }, testInfo) => {
+      test.skip(CUTOVER_PHASE !== 'enabled');
 
-    const browserEvidence = trackBrowserEvidence(page);
+      const browserEvidence = trackBrowserEvidence(page);
 
-    await page.goto(CANONICAL_PATH, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: 'Activas' })).toBeVisible();
+      await page.goto(CANONICAL_PATH, { waitUntil: 'domcontentloaded' });
+      await expect(
+        page.getByRole('heading', { name: 'Activas' }),
+      ).toBeVisible();
 
-    await page.goto(LEGACY_PATH, { waitUntil: 'domcontentloaded' });
-    await runLegacyReadOnlyJourney(page);
-    await testInfo.attach('legacy-read-only-journey', {
-      body: await page.screenshot({ fullPage: true }),
-      contentType: 'image/png',
+      for (const viewport of viewports) {
+        await test.step(`${viewport.name} viewport`, async () => {
+          await page.setViewportSize({
+            width: viewport.width,
+            height: viewport.height,
+          });
+
+          await page.goto(LEGACY_PATH, { waitUntil: 'domcontentloaded' });
+          await runLegacyReadOnlyJourney(page, testInfo, viewport.name);
+        });
+      }
+
+      await browserEvidence.attach(testInfo);
+      browserEvidence.assertClean();
     });
-    await browserEvidence.attach(testInfo);
-    browserEvidence.assertClean();
+
+    test('disabled deployment serves canonical legacy without V2 subroutes', async ({
+      page,
+    }, testInfo) => {
+      test.skip(CUTOVER_PHASE !== 'disabled');
+
+      const browserEvidence = trackBrowserEvidence(page);
+
+      for (const viewport of viewports) {
+        await test.step(`${viewport.name} viewport`, async () => {
+          await page.setViewportSize({
+            width: viewport.width,
+            height: viewport.height,
+          });
+
+          await page.goto(CANONICAL_PATH, { waitUntil: 'domcontentloaded' });
+          await runLegacyReadOnlyJourney(page, testInfo, viewport.name);
+        });
+      }
+
+      await page.goto('/mercado-publico/historial', {
+        waitUntil: 'domcontentloaded',
+      });
+      await expect(
+        page.getByRole('heading', { name: 'Historial' }),
+      ).toHaveCount(0);
+
+      await browserEvidence.attach(testInfo);
+      browserEvidence.assertClean();
+    });
+
+    test('re-enabled deployment restores canonical V2 and retains the legacy alias', async ({
+      page,
+    }, testInfo) => {
+      test.skip(CUTOVER_PHASE !== 'reenabled');
+
+      const browserEvidence = trackBrowserEvidence(page);
+
+      await page.goto(CANONICAL_PATH, { waitUntil: 'domcontentloaded' });
+      await expect(
+        page.getByRole('heading', { name: 'Activas' }),
+      ).toBeVisible();
+
+      for (const viewport of viewports) {
+        await test.step(`${viewport.name} viewport`, async () => {
+          await page.setViewportSize({
+            width: viewport.width,
+            height: viewport.height,
+          });
+
+          await page.goto(LEGACY_PATH, { waitUntil: 'domcontentloaded' });
+          await runLegacyReadOnlyJourney(page, testInfo, viewport.name);
+        });
+      }
+
+      await browserEvidence.attach(testInfo);
+      browserEvidence.assertClean();
+    });
   });
-});
+}

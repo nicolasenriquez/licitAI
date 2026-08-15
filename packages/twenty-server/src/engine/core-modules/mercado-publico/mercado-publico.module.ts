@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 
+import { MercadoPublicoV2DebtRecoveryCronCommand } from 'src/engine/core-modules/mercado-publico/crons/commands/mercado-publico-v2-debt-recovery.cron.command';
 import { MercadoPublicoV2SyncRecoveryCronCommand } from 'src/engine/core-modules/mercado-publico/crons/commands/mercado-publico-v2-sync-recovery.cron.command';
+import { MercadoPublicoV2DebtRecoveryCronJob } from 'src/engine/core-modules/mercado-publico/crons/jobs/mercado-publico-v2-debt-recovery.cron.job';
 import { MercadoPublicoV2SyncRecoveryCronJob } from 'src/engine/core-modules/mercado-publico/crons/jobs/mercado-publico-v2-sync-recovery.cron.job';
 import { MercadoPublicoRunCommand } from 'src/engine/core-modules/mercado-publico/commands/mercado-publico-run.command';
 import { MercadoPublicoSyncOperatorCommand } from 'src/engine/core-modules/mercado-publico/commands/mercado-publico-sync-operator.command';
@@ -117,6 +119,8 @@ import { MercadoPublicoV2EvidenceReplayService } from 'src/engine/core-modules/m
     MercadoPublicoV2SyncCommandJob,
     MercadoPublicoV2SyncRecoveryCronJob,
     MercadoPublicoV2SyncRecoveryCronCommand,
+    MercadoPublicoV2DebtRecoveryCronJob,
+    MercadoPublicoV2DebtRecoveryCronCommand,
   ],
   exports: [
     MercadoPublicoConfigService,

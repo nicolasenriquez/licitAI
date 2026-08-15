@@ -126,7 +126,7 @@ export class MercadoPublicoV2BuyersReadService {
           SELECT
             buyer_code,
             MAX(buyer_name) AS buyer_name,
-            (SELECT COUNT(*)::text FROM filtered) AS population,
+            (SELECT COUNT(*)::text FROM filtered WHERE buyer_code IS NOT NULL) AS population,
             (SELECT COUNT(buyer_code)::text FROM filtered) AS buyer_count,
             COUNT(*)::text AS opportunity_count,
             COUNT(amount)::text AS amount_count,

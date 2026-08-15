@@ -52,6 +52,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await expect(service.getLatestRun('workspace-1')).resolves.toMatchObject({
@@ -89,6 +90,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query: latestRunQuery } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await expect(
@@ -111,6 +113,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await expect(
@@ -144,6 +147,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await expect(
@@ -168,6 +172,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await service.submitCommand(buildInput({ maxPages: 2 }));
@@ -203,6 +208,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await service.submitCommand(buildInput());
@@ -247,6 +253,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     const result = await service.submitCommand(buildInput());
@@ -277,6 +284,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await expect(
@@ -310,6 +318,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     const result = await service.submitCommand(buildInput());
@@ -347,6 +356,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     const result = await service.submitCommand(buildInput());
@@ -382,6 +392,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await expect(service.submitCommand(buildInput())).resolves.toMatchObject({
@@ -408,6 +419,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       messageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     const result = await service.submitCommand(buildInput());
@@ -454,6 +466,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query: coreQuery, transaction } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await expect(
@@ -485,6 +498,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await service.finalizeCommand({
@@ -498,7 +512,12 @@ describe('MercadoPublicoV2SyncControlService', () => {
       sql.includes('UPDATE mp.sync_command'),
     );
 
-    expect(pendingUpdate?.[1]).toEqual(['command-1', 'pending', null]);
+    expect(pendingUpdate?.[1]).toEqual([
+      'command-1',
+      'pending',
+      null,
+      'attempt-1',
+    ]);
     expect(pendingUpdate?.[0]).toContain(
       "finished_at = CASE WHEN $2 = 'pending' THEN NULL ELSE now() END",
     );
@@ -515,7 +534,12 @@ describe('MercadoPublicoV2SyncControlService', () => {
     );
     const failedUpdate = commandUpdates[commandUpdates.length - 1];
 
-    expect(failedUpdate?.[1]).toEqual(['command-1', 'failed', null]);
+    expect(failedUpdate?.[1]).toEqual([
+      'command-1',
+      'failed',
+      null,
+      'attempt-2',
+    ]);
   });
 
   it('defers a rate-limited command until the provider quota reset', async () => {
@@ -534,6 +558,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await service.deferCommand({
@@ -578,6 +603,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
         add: jest.fn().mockResolvedValue({}),
       } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await service.submitCommand(buildInput());
@@ -593,5 +619,60 @@ describe('MercadoPublicoV2SyncControlService', () => {
         (sql) => sql.includes('UPDATE') || sql.includes('DELETE'),
       ),
     ).toBe(false);
+  });
+
+  it('recovers due deferred items as focused recovery runs', async () => {
+    let claimCalls = 0;
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('ORDER BY updated_at ASC')) {
+        return Promise.resolve([
+          { id: 'item-1', codigo: 'CA-DEFERRED-001' },
+          { id: 'item-2', codigo: 'CA-DEFERRED-002' },
+        ]);
+      }
+      if (sql.includes('RETURNING codigo')) {
+        claimCalls += 1;
+
+        return Promise.resolve([
+          { codigo: claimCalls === 1 ? 'CA-DEFERRED-001' : 'CA-DEFERRED-002' },
+        ]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const start = jest.fn().mockResolvedValue({ status: 'succeeded' });
+    const service = new MercadoPublicoV2SyncControlService(
+      { query } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+      { start } as never,
+    );
+
+    await expect(service.recoverDeferredHydrations()).resolves.toBe(2);
+
+    expect(start).toHaveBeenCalledTimes(2);
+    expect(start).toHaveBeenCalledWith({ id: 'CA-DEFERRED-001' }, 'recovery');
+    expect(start).toHaveBeenCalledWith({ id: 'CA-DEFERRED-002' }, 'recovery');
+    const dueQuery = query.mock.calls.find(([sql]: [string]) =>
+      sql.includes('make_interval(secs => pow(2, LEAST(attempts, 12))'),
+    );
+
+    expect(dueQuery?.[0]).toContain("status = 'deferred'");
+    expect(dueQuery?.[0]).toContain("snapshot_kind = 'detail'");
+  });
+
+  it('does not dispatch a deferred item whose observation is already fresher', async () => {
+    const query = jest.fn().mockResolvedValue([]);
+    const start = jest.fn();
+    const service = new MercadoPublicoV2SyncControlService(
+      { query } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+      { start } as never,
+    );
+
+    await expect(service.recoverDeferredHydrations()).resolves.toBe(0);
+
+    expect(start).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,7 @@
 import {
   classifyV2CompraAgilLifecycle,
   getV2CompraAgilStateLabel,
+  isHistoricalV2CompraAgilSyncIntent,
 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
 
 describe('classifyV2CompraAgilLifecycle', () => {
@@ -90,7 +91,9 @@ describe('classifyV2CompraAgilLifecycle', () => {
   });
 
   it('keeps explicit null states observable without crashing', () => {
-    expect(getV2CompraAgilStateLabel({ codigo: 'CA-1', estado: null })).toBeNull();
+    expect(
+      getV2CompraAgilStateLabel({ codigo: 'CA-1', estado: null }),
+    ).toBeNull();
     expect(
       getV2CompraAgilStateLabel({
         codigo: 'CA-2',
@@ -101,10 +104,8 @@ describe('classifyV2CompraAgilLifecycle', () => {
       classifyV2CompraAgilLifecycle({ codigo: 'CA-3', estado: null }, false),
     ).toMatchObject({ includeInCohort: false, terminal: false });
     expect(
-      classifyV2CompraAgilLifecycle(
-        { codigo: 'CA-3', estado: null },
-        true,
-      ).includeInCohort,
+      classifyV2CompraAgilLifecycle({ codigo: 'CA-3', estado: null }, true)
+        .includeInCohort,
     ).toBe(true);
   });
 
@@ -119,6 +120,7 @@ describe('classifyV2CompraAgilLifecycle', () => {
       ),
     ).toEqual({
       includeInCohort: false,
+      includeInRun: false,
       terminal: false,
       reason: 'unknown_first_seen',
     });
@@ -131,5 +133,47 @@ describe('classifyV2CompraAgilLifecycle', () => {
         true,
       ).includeInCohort,
     ).toBe(true);
+  });
+
+  it('admits historical terminals to backfill and replay runs without the cohort', () => {
+    expect(
+      classifyV2CompraAgilLifecycle(
+        { codigo: 'CA-1', estado: 'cancelada' },
+        false,
+        { includeHistoricalTerminal: true },
+      ),
+    ).toMatchObject({
+      includeInCohort: false,
+      includeInRun: true,
+      terminal: true,
+      reason: 'terminal_cancelled',
+    });
+    expect(
+      classifyV2CompraAgilLifecycle(
+        { codigo: 'CA-2', estado: 'cerrada' },
+        false,
+        { includeHistoricalTerminal: true },
+      ),
+    ).toMatchObject({
+      includeInCohort: false,
+      includeInRun: true,
+      terminal: false,
+      reason: 'unknown_first_seen',
+    });
+  });
+
+  it('keeps unknown historical records out of scheduled runs', () => {
+    expect(
+      classifyV2CompraAgilLifecycle(
+        { codigo: 'CA-1', estado: 'cerrada' },
+        false,
+      ),
+    ).toMatchObject({ includeInRun: false, terminal: false });
+  });
+
+  it('recognizes historical sync intents', () => {
+    expect(isHistoricalV2CompraAgilSyncIntent('backfill')).toBe(true);
+    expect(isHistoricalV2CompraAgilSyncIntent('replay')).toBe(true);
+    expect(isHistoricalV2CompraAgilSyncIntent('scheduled')).toBe(false);
   });
 });

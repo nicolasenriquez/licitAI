@@ -261,6 +261,15 @@ if (fixtureArg === e2eFixture) {
       'server',
       'yarn',
       'command:prod',
+      'run-instance-commands',
+      '--force',
+    ]);
+    run([
+      'exec',
+      '--no-TTY',
+      'server',
+      'yarn',
+      'command:prod',
       'workspace:seed:dev',
       '--light',
     ]);

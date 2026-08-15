@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 
 import { DataSource, EntityManager } from 'typeorm';
@@ -14,7 +14,10 @@ import {
   MERCADO_PUBLICO_V2_SYNC_COMMAND_JOB_NAME,
 } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
-import { buildCompraAgilRequestParams } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
+import {
+  MercadoPublicoV2DurableSyncService,
+  buildCompraAgilRequestParams,
+} from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
 
 export type MercadoPublicoV2SyncControlAction = 'start' | 'resume' | 'cancel';
 
@@ -101,6 +104,8 @@ const MERCADO_PUBLICO_V2_SYNC_ACTIVE_RUN_STATUSES = [
 
 const DEFAULT_MAX_PAGES = 50;
 
+const MERCADO_PUBLICO_V2_DEBT_RECOVERY_BATCH_LIMIT = 10;
+
 const getMaxPages = (value: number | undefined): number | undefined => {
   const maxPages = value;
 
@@ -110,7 +115,7 @@ const getMaxPages = (value: number | undefined): number | undefined => {
       maxPages < 1 ||
       maxPages > DEFAULT_MAX_PAGES)
   ) {
-    throw new Error(
+    throw new UserInputError(
       `Mercado Publico V2 max pages must be an integer between 1 and ${DEFAULT_MAX_PAGES}`,
     );
   }
@@ -140,6 +145,7 @@ export class MercadoPublicoV2SyncControlService {
     @InjectMessageQueue(MessageQueue.mercadoPublicoQueue)
     private readonly messageQueueService: MessageQueueService,
     private readonly mercadoPublicoConfigService: MercadoPublicoConfigService,
+    private readonly mercadoPublicoV2DurableSyncService: MercadoPublicoV2DurableSyncService,
   ) {}
 
   async isOperator({
@@ -192,7 +198,7 @@ export class MercadoPublicoV2SyncControlService {
 
         if (existingCommand !== undefined) {
           if (existingCommand.request_fingerprint !== fingerprint) {
-            throw new Error(
+            throw new ConflictException(
               '409 Conflict: the idempotency key was reused with a different request',
             );
           }
@@ -422,9 +428,16 @@ export class MercadoPublicoV2SyncControlService {
                 finished_at = CASE WHEN $2 = 'pending' THEN NULL ELSE now() END,
                 updated_at = now()
             WHERE id = $1 AND state = 'claimed'
+              AND EXISTS (
+                SELECT 1
+                FROM mp.sync_run_attempt attempt
+                WHERE attempt.id = $4
+                  AND attempt.sync_command_id = id
+                  AND attempt.state = 'running'
+              )
             RETURNING workspace_id, sync_run_id
           `,
-        [commandId, commandState, errorSummary ?? null],
+        [commandId, commandState, errorSummary ?? null, attemptId],
       );
       const command = commands[0];
 
@@ -537,16 +550,7 @@ export class MercadoPublicoV2SyncControlService {
     const staleIds = staleClaimedIds.map((row) => row.id);
 
     if (staleIds.length === 0) {
-      const pendingRows = await this.coreDataSource.query<{ id: string }[]>(
-        `
-          SELECT id
-          FROM mp.sync_command
-          WHERE state = 'pending'
-            AND (dispatched_at IS NULL OR dispatched_at < now() - interval '2 minutes')
-        `,
-      );
-
-      return pendingRows.map((row) => row.id);
+      return this.reclaimPendingCommands();
     }
 
     await this.coreDataSource.query(
@@ -611,6 +615,83 @@ export class MercadoPublicoV2SyncControlService {
       ...recoverableRows.map((row) => row.id),
       ...pendingRows.map((row) => row.id),
     ];
+  }
+
+  private async reclaimPendingCommands(): Promise<string[]> {
+    const rows = await this.coreDataSource.query<{ id: string }[]>(
+      `
+        UPDATE mp.sync_command
+        SET dispatched_at = now(), updated_at = now()
+        WHERE state = 'pending'
+          AND (dispatched_at IS NULL OR dispatched_at < now() - interval '2 minutes')
+        RETURNING id
+      `,
+    );
+
+    return rows.map((row) => row.id);
+  }
+
+  async recoverDeferredHydrations(): Promise<number> {
+    const settings = this.mercadoPublicoConfigService.getSettings();
+    const baseBackoffSeconds = Math.max(
+      1,
+      Math.ceil(settings.httpRetryBackoffMs / 1000),
+    );
+    const dueRows = await this.coreDataSource.query<
+      { id: string; codigo: string }[]
+    >(
+      `
+        SELECT id, codigo
+        FROM mp.sync_run_item
+        WHERE status = 'deferred'
+          AND updated_at <= now() - make_interval(secs => pow(2, LEAST(attempts, 12)) * $1)
+          AND NOT EXISTS (
+            SELECT 1
+            FROM mp.compra_agil current
+            INNER JOIN mp.v2_observation observation
+              ON observation.id = current.observation_id
+            WHERE current.codigo = mp.sync_run_item.codigo
+              AND observation.snapshot_kind = 'detail'
+              AND current.observed_at > mp.sync_run_item.updated_at
+          )
+        ORDER BY updated_at ASC
+        LIMIT $2
+      `,
+      [baseBackoffSeconds, MERCADO_PUBLICO_V2_DEBT_RECOVERY_BATCH_LIMIT],
+    );
+    let dispatched = 0;
+
+    for (const row of dueRows) {
+      const claimed = await this.coreDataSource.query<{ codigo: string }[]>(
+        `
+          UPDATE mp.sync_run_item
+          SET attempts = attempts + 1, updated_at = now()
+          WHERE id = $1
+            AND status = 'deferred'
+            AND updated_at <= now() - make_interval(secs => pow(2, LEAST(attempts, 12)) * $2)
+          RETURNING codigo
+        `,
+        [row.id, baseBackoffSeconds],
+      );
+
+      if (claimed.length === 0) {
+        continue;
+      }
+
+      try {
+        await this.mercadoPublicoV2DurableSyncService.start(
+          { id: claimed[0].codigo },
+          'recovery',
+        );
+        dispatched += 1;
+      } catch (error) {
+        this.logger.warn(
+          `Failed to recover deferred Mercado Publico V2 item ${claimed[0].codigo}: ${(error as Error).message}`,
+        );
+      }
+    }
+
+    return dispatched;
   }
 
   async getLatestRun(
@@ -726,7 +807,7 @@ export class MercadoPublicoV2SyncControlService {
     );
 
     if (rows[0] === undefined) {
-      throw new Error(
+      throw new ConflictException(
         '409 Conflict: the Mercado Publico V2 sync run is not resumable',
       );
     }
@@ -737,7 +818,7 @@ export class MercadoPublicoV2SyncControlService {
         SET status = 'pending', attempts = 0, error_stage = NULL,
             error_summary = NULL, updated_at = now()
         WHERE sync_run_id = $1
-          AND status = 'terminal'
+          AND status IN ('failed', 'deferred')
           AND error_stage = 'hydrating'
           AND (error_summary LIKE 'retryable%' OR error_summary = 'soft_miss')
       `,
@@ -957,7 +1038,7 @@ export class MercadoPublicoV2SyncControlService {
     const run = rows[0];
 
     if (run === undefined) {
-      throw new Error(
+      throw new ConflictException(
         '409 Conflict: there is no active Mercado Publico V2 sync run',
       );
     }

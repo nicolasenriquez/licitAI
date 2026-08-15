@@ -154,6 +154,46 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
     expect(runInserts).toHaveLength(0);
   });
 
+  it('returns the cancelled result without hydrating when a queued run was cancelled', async () => {
+    const runRow = buildRunRow({
+      error_stage: 'queued',
+      status: 'cancelled',
+    });
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('records_discovered')) {
+        return Promise.resolve([
+          {
+            records_discovered: '0',
+            records_hydrated: '0',
+            records_failed: '0',
+            records_projected: '0',
+            pages_checkpointed: '0',
+          },
+        ]);
+      }
+      if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
+        return Promise.resolve([runRow]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const entityManagerQuery = jest.fn().mockResolvedValue([]);
+    const service = buildService({
+      query,
+      entityManagerQuery,
+      getList: jest.fn(),
+      getByCodigo: jest.fn(),
+    });
+
+    await expect(service.executeExistingRun('run-1')).resolves.toMatchObject({
+      syncRunId: 'run-1',
+      status: 'cancelled',
+    });
+    expect(
+      query.mock.calls.some(([sql]) => sql.includes('UPDATE mp.sync_run_item')),
+    ).toBe(false);
+  });
+
   it('resumes the run already owned by an execution key', async () => {
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('WHERE execution_key')) {
@@ -333,8 +373,10 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
             records_discovered: '1',
             records_hydrated: '1',
             records_failed: '0',
+            records_deferred: '0',
             records_projected: '1',
             pages_checkpointed: '1',
+            discovery_complete: true,
           },
         ]);
       }
@@ -602,7 +644,7 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
     ]);
   });
 
-  it('exhausts retryable hydration failures per item', async () => {
+  it('deferred retryable hydration failures exhaust per item', async () => {
     let pendingItemReads = 0;
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('SELECT id, codigo')) {
@@ -656,8 +698,8 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
 
     expect(getByCodigo).toHaveBeenCalledTimes(4);
     expect(query).toHaveBeenCalledWith(
-      expect.stringContaining("SET status = 'terminal'"),
-      ['item-1', 'retryable_failed', 'raw-payload-1'],
+      expect.stringContaining('SET status = $2'),
+      ['item-1', 'deferred', 'retryable_failed', 'raw-payload-1'],
     );
   });
 

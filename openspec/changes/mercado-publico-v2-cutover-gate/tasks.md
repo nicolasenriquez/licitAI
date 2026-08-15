@@ -75,7 +75,7 @@
   review record format and cloud-smoke precondition check.
   Traceability: Group G4; Slice S3; Issue 31; Acceptance AC 31.2, AC 31.3, AC 31.4, AC 31.6.
 
-- [ ] 2.6 Run and record two bounded representative V2 publication-window cycles
+- [x] 2.6 Run and record two bounded representative V2 publication-window cycles
   through the existing backend runner: one for `2026-08-12` and one for
   `2026-08-13`, each with `tamano_pagina: 50`, `max_pages: 3`, and
   `bounded_window: true`. For each, retain the requested window, SyncRun,

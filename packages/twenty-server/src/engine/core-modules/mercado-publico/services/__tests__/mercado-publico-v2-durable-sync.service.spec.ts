@@ -119,7 +119,7 @@ describe('MercadoPublicoV2DurableSyncService', () => {
     );
   });
 
-  it('persists an empty detail payload before terminalizing the item', async () => {
+  it('persists an empty detail payload before failing the item', async () => {
     let pendingItemReads = 0;
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('SELECT id, codigo')) {
@@ -184,8 +184,8 @@ describe('MercadoPublicoV2DurableSyncService', () => {
       errorSummaryText: undefined,
     });
     expect(query).toHaveBeenCalledWith(
-      expect.stringContaining("SET status = 'terminal'"),
-      ['item-1', 'soft_miss', 'raw-empty-detail'],
+      expect.stringContaining('SET status = $2'),
+      ['item-1', 'failed', 'soft_miss', 'raw-empty-detail'],
     );
   });
 

@@ -9,7 +9,7 @@ import {
 const historyRow = (
   overrides: Partial<MercadoPublicoV2HistoryRow> = {},
 ): MercadoPublicoV2HistoryRow => ({
-  id: '00000000-0000-0000-0000-000000000001',
+  id: '11111111-1111-4111-8111-111111111111',
   codigo: 'FIXTURE-CA-001',
   previous_observation_id: '00000000-0000-0000-0000-000000000010',
   new_observation_id: '00000000-0000-0000-0000-000000000011',
