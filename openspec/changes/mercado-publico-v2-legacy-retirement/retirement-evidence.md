@@ -99,6 +99,53 @@ noted. Owner = owning file/registration seam.
 - Orphaned V2 contract specs `tests/mercado-publico-contract/*` — excluded from
   every runner via `GLOBAL_TEST_IGNORE`; leave untouched (not legacy).
 
+## Operational rollback and data-recovery path (2026-08-16)
+
+- Rollback (route/runtime level): deploy G4 gate-close revision
+  `49d115e768` on `feat/mercado-publico-v2-baseline`. That revision contains
+  the legacy command-center route, alias, legacy resolver/read closure, and
+  the full V1/CSV runtime; its G4 runbook (`pre-cutover-evidence.md`,
+  enabled-to-disabled-to-enabled procedure) remains the verified recovery
+  procedure. Nothing G5 removed is required to *execute* rollback: the old
+  revision carries its own code and CLI (`mercado-publico:run`).
+- Data level: all `mp` schema, raw/evidence tables
+  (`raw_api_payload`, `raw_csv_file`, `raw_csv_row`, `stg_*`, canonical,
+  `v2_*` durable evidence, SyncRun/control/audit), and committed 2-16
+  migrations are untouched by G5. Historical V1/CSV data already in those
+  tables remains queryable; no removal deletes rows. New V1/CSV ingestion
+  requires rollback deployment (old runtime) — by design.
+- Stop condition check: the recovery path depends on no removed component.
+  Verified against removed set (S1 + S3 lists).
+
+## Final zero-consumer evidence record (2026-08-16)
+
+- Manifest: this file, v1 — owner, V2 replacement, consumers, batch, rollback
+  constraint per candidate.
+- Graph/search: repo-wide greps (S1 symbols, V1/CSV symbols, constants)
+  show zero runtime/contract consumers; remaining hits are guard-spec
+  assertions, retained suite labels, and committed migrations (retained).
+- Tests: fail-first zero-consumer specs green — front
+  `mercado-publico-retirement-consumers.spec.ts` (9 assertions),
+  `mercado-publico-visual-asset-ownership.spec.ts`; server
+  `mercado-publico-retirement-consumers.spec.ts`,
+  `mercado-publico-visual-asset-retirement.spec.ts`,
+  `mercado-publico-runtime-retirement-consumers.spec.ts`; full mp Jest suites
+  green in twenty-server; focused front suites green.
+- Codegen: legacy generated output removed with source + target; main
+  `generated/graphql.ts` untouched (no legacy ops); regeneration attempt
+  blocked by canonical introspection policy (recorded G4 precedent).
+- Lint/typecheck: `lint:diff-with-main` green both packages (server formatted
+  via fix config), `nx typecheck` green front + server, `git diff --check`
+  clean.
+- G4 approval: gate-close decision 2026-08-16, proposal `## Gate Status`,
+  rollback reference `49d115e768`.
+- PRD: `.scratch/mercado-publico-v2-reconstruction/PRD.md`; source issues
+  32-35 under `.scratch/mercado-publico-v2-reconstruction/issues/`; prior
+  OpenSpec evidence: `mercado-publico-v2-cutover-gate` (tasks + pre-cutover
+  evidence), `mercado-publico-v2-sync-operations` (G3).
+- Human approval: PENDING. Automated evidence above is green; final human
+  approval required before certification completes (task 4.2).
+
 ## Open items
 
 - `reconciliation-refresh` suite: classified S3 at task 1.3 (2026-08-16) —
@@ -107,3 +154,45 @@ noted. Owner = owning file/registration seam.
 - `cutover-route-matrix.spec.ts`: S1 removal done 2026-08-16 with verified
   rollback reference `49d115e768`. Spec retained as non-executable historical
   G4 evidence reference; release-gate `cutover` gate is now historical.
+
+## S2 visual retirement record (2026-08-16)
+
+- Removed: nothing. Inventory proved zero displaced stories, prototypes, or
+  standalone style files. Legacy inline linaria styles retired with their S1
+  components. The 5 CSV licitaciones fixtures are S3 test assets, removed at
+  2.5 with their CSV service.
+- Retained historical/visual evidence: V2 JSON fixtures
+  (`v2-compra-agil-*.json`, `v2-compra-agil-detail-contract.md`), release-gate
+  visual-baseline review template, G4 `cutover-route-matrix` spec and
+  `pre-cutover-evidence.md` (non-executable references), `run_results/`
+  artifacts (untracked).
+- Ownership guards green: `mercado-publico-visual-asset-ownership.spec.ts`
+  (front) proves no local stories/styles/prototypes and V2 components keep
+  twenty-ui shared tokens; server visual-asset spec's CSV-fixture assertion
+  turns green at 2.5.
+
+## S1 Codegen and post-removal evidence (2026-08-16)
+
+- Derived artifacts: the only removed generated file is
+  `packages/twenty-front/src/generated/mercado-publico-legacy.graphql.ts`.
+  Its source documents (7 queries + 7 fragments) and its codegen target
+  (`codegen-mercado-publico-legacy.cjs`, project.json configuration) were
+  removed with it in 2.1; no retained generated file was edited by hand.
+- Main `generated/graphql.ts`: never contained legacy operations (legacy had
+  its own output file). V2 documents unchanged → no regeneration needed for
+  retained source. `npx nx run twenty-front:graphql:generate` re-run attempted:
+  blocked by canonical runtime introspection policy (same outcome G4 recorded
+  on 2026-08-13). Front typecheck against existing generated output passes.
+- Post-removal graph/search proof (repo-wide grep, `*.{ts,tsx,cjs,json,mjs}`):
+  `MercadoPublicoCommandCenterPage`, `MercadoPublicoLegacy`,
+  `mercado-publico-legacy`, `MercadoPublicoQueryResolver`,
+  `mercadoPublicoDetectedProcesses`, `mercadoPublicoCsvFileHealth`,
+  `mercadoPublicoPipelineHealth`, `mercadoPublicoApiQuotaUsage`,
+  `mercadoPublicoApiCallLog`, `mercadoPublicoJobRuns`,
+  `mercadoPublicoProcessDetail` — zero runtime/contract consumers remain;
+  the only hits are the retirement guard specs (assertions, not consumers).
+- Candidate-level proof: front
+  `mercado-publico-retirement-consumers.spec.ts` green (import scan, file
+  absence, AppPath, router composition, V2 intact); server
+  `mercado-publico-retirement-consumers.spec.ts` green (file absence, module
+  registration, V2 resolvers intact).

@@ -33,6 +33,8 @@ describe('MercadoPublico runtime exposure', () => {
 
     expect(coreEngineModuleSource).toContain('MercadoPublicoModule');
     expect(jobsModuleSource).toContain('MercadoPublicoModule');
-    expect(mercadoPublicoModuleSource).toContain('MercadoPublicoRunCommand');
+    expect(mercadoPublicoModuleSource).toContain(
+      'MercadoPublicoSyncOperatorCommand',
+    );
   });
 });

@@ -5,8 +5,6 @@ import { InjectDataSource } from '@nestjs/typeorm';
 
 import { DataSource, type EntityManager } from 'typeorm';
 
-import { type MercadoPublicoApiV1LicitacionesByDateResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-licitaciones-client.service';
-import { type MercadoPublicoApiV1OcByDateResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v1-ordenes-de-compra-client.service';
 import { type MercadoPublicoApiV2CompraAgilListResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { coerceToNullableString } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/coerce-to-nullable-string.util';
 import { getV2CompraAgilOrderReferences } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
@@ -53,32 +51,6 @@ type PersistMercadoPublicoApiFailureInput = {
 };
 
 type SnapshotKind = 'list' | 'detail';
-
-type PersistMercadoPublicoV1LicitacionesSnapshotInput = {
-  jobRunRecordId: string;
-  apiResponse: MercadoPublicoApiV1LicitacionesByDateResponse;
-  snapshotKind: SnapshotKind;
-};
-
-type PersistMercadoPublicoV1LicitacionesSnapshotResult = {
-  rawApiPayloadId: string;
-  recordsFetched: number;
-  recordsStaged: number;
-  recordsCanonicalized: number;
-};
-
-type PersistMercadoPublicoV1OrdenesDeCompraSnapshotInput = {
-  jobRunRecordId: string;
-  apiResponse: MercadoPublicoApiV1OcByDateResponse;
-  snapshotKind: SnapshotKind;
-};
-
-type PersistMercadoPublicoV1OrdenesDeCompraSnapshotResult = {
-  rawApiPayloadId: string;
-  recordsFetched: number;
-  recordsStaged: number;
-  recordsCanonicalized: number;
-};
 
 type PersistMercadoPublicoV2CompraAgilSnapshotInput = {
   jobRunRecordId: string;
@@ -234,7 +206,7 @@ export class MercadoPublicoPersistenceService {
   ) {}
 
   async createJobRun(
-    jobName: MercadoPublicoJobName,
+    jobName: string,
     input: CreateMercadoPublicoJobRunInput = {},
   ): Promise<MercadoPublicoJobRunRecord> {
     const startedAt = new Date();
@@ -351,40 +323,6 @@ export class MercadoPublicoPersistenceService {
     });
   }
 
-  async persistV1LicitacionesSnapshot(
-    input: PersistMercadoPublicoV1LicitacionesSnapshotInput,
-  ): Promise<PersistMercadoPublicoV1LicitacionesSnapshotResult> {
-    return this.coreDataSource.transaction(async (entityManager) => {
-      const rawApiPayloadId = await this.insertRawApiPayload(entityManager, {
-        jobRunRecordId: input.jobRunRecordId,
-        source: input.apiResponse.source,
-        endpoint: input.apiResponse.endpoint,
-        requestFingerprint: input.apiResponse.requestFingerprint,
-        payloadChecksum: input.apiResponse.payloadChecksum,
-        requestParams: input.apiResponse.requestParams,
-        httpStatus: input.apiResponse.httpStatus,
-        fetchedAt: input.apiResponse.fetchedAt,
-        rawPayload: input.apiResponse.rawPayload,
-        schemaFingerprint: input.apiResponse.schemaFingerprint,
-        recordsFetched: input.apiResponse.licitaciones.length,
-      });
-
-      await this.insertV1LicitacionesStagingRows(
-        entityManager,
-        rawApiPayloadId,
-        input.apiResponse,
-        input.snapshotKind,
-      );
-
-      return {
-        rawApiPayloadId,
-        recordsFetched: input.apiResponse.licitaciones.length,
-        recordsStaged: input.apiResponse.licitaciones.length,
-        recordsCanonicalized: 0,
-      };
-    });
-  }
-
   private async insertRawApiPayload(
     entityManager: EntityManager,
     input: {
@@ -484,186 +422,6 @@ export class MercadoPublicoPersistenceService {
     );
 
     return existingRawApiPayloadRows[0].id;
-  }
-
-  private async insertV1LicitacionesStagingRows(
-    entityManager: EntityManager,
-    rawApiPayloadId: string,
-    apiResponse: MercadoPublicoApiV1LicitacionesByDateResponse,
-    snapshotKind: SnapshotKind,
-  ): Promise<void> {
-    const placeholders: string[] = [];
-    const params: unknown[] = [];
-    let paramIndex = 1;
-
-    const flushBatch = async () => {
-      if (placeholders.length === 0) {
-        return;
-      }
-
-      await entityManager.query(
-        `
-          INSERT INTO mp.stg_api_v1_licitacion (
-            raw_api_payload_id,
-            source,
-            snapshot_kind,
-            codigo_externo,
-            codigo,
-            codigo_estado,
-            estado,
-            codigo_tipo,
-            nombre,
-            fecha_publicacion,
-            fecha_cierre,
-            fecha_adjudicacion,
-            codigo_organismo,
-            nombre_organismo,
-            fetched_at
-          )
-          VALUES ${placeholders.join(', ')}
-        `,
-        params,
-      );
-
-      placeholders.length = 0;
-      params.length = 0;
-      paramIndex = 1;
-    };
-
-    for (const licitacion of apiResponse.licitaciones) {
-      placeholders.push(
-        `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12}, $${paramIndex + 13}, $${paramIndex + 14})`,
-      );
-      params.push(
-        rawApiPayloadId,
-        apiResponse.source,
-        snapshotKind,
-        coerceToNullableString(licitacion.CodigoExterno),
-        coerceToNullableString(licitacion.Codigo),
-        coerceToNullableString(licitacion.CodigoEstado),
-        coerceToNullableString(licitacion.Estado),
-        coerceToNullableString(licitacion.CodigoTipo),
-        coerceToNullableString(licitacion.Nombre),
-        coerceToNullableString(licitacion.FechaPublicacion),
-        coerceToNullableString(licitacion.FechaCierre),
-        coerceToNullableString(licitacion.FechaAdjudicacion),
-        coerceToNullableString(licitacion.CodigoOrganismo),
-        coerceToNullableString(licitacion.NombreOrganismo),
-        apiResponse.fetchedAt,
-      );
-      paramIndex += 15;
-
-      if (placeholders.length >= STAGING_INSERT_BATCH_SIZE) {
-        await flushBatch();
-      }
-    }
-
-    await flushBatch();
-  }
-
-  async persistV1OrdenesDeCompraSnapshot(
-    input: PersistMercadoPublicoV1OrdenesDeCompraSnapshotInput,
-  ): Promise<PersistMercadoPublicoV1OrdenesDeCompraSnapshotResult> {
-    return this.coreDataSource.transaction(async (entityManager) => {
-      const rawApiPayloadId = await this.insertRawApiPayload(entityManager, {
-        jobRunRecordId: input.jobRunRecordId,
-        source: input.apiResponse.source,
-        endpoint: input.apiResponse.endpoint,
-        requestFingerprint: input.apiResponse.requestFingerprint,
-        payloadChecksum: input.apiResponse.payloadChecksum,
-        requestParams: input.apiResponse.requestParams,
-        httpStatus: input.apiResponse.httpStatus,
-        fetchedAt: input.apiResponse.fetchedAt,
-        rawPayload: input.apiResponse.rawPayload,
-        schemaFingerprint: input.apiResponse.schemaFingerprint,
-        recordsFetched: input.apiResponse.ordenesDeCompra.length,
-      });
-
-      await this.insertV1OrdenesDeCompraStagingRows(
-        entityManager,
-        rawApiPayloadId,
-        input.apiResponse,
-        input.snapshotKind,
-      );
-
-      return {
-        rawApiPayloadId,
-        recordsFetched: input.apiResponse.ordenesDeCompra.length,
-        recordsStaged: input.apiResponse.ordenesDeCompra.length,
-        recordsCanonicalized: 0,
-      };
-    });
-  }
-
-  private async insertV1OrdenesDeCompraStagingRows(
-    entityManager: EntityManager,
-    rawApiPayloadId: string,
-    apiResponse: MercadoPublicoApiV1OcByDateResponse,
-    snapshotKind: SnapshotKind,
-  ): Promise<void> {
-    const placeholders: string[] = [];
-    const params: unknown[] = [];
-    let paramIndex = 1;
-
-    const flushBatch = async () => {
-      if (placeholders.length === 0) {
-        return;
-      }
-
-      await entityManager.query(
-        `
-          INSERT INTO mp.stg_api_v1_orden_compra (
-            raw_api_payload_id,
-            source,
-            snapshot_kind,
-            codigo,
-            codigo_estado,
-            estado,
-            estado_proveedor,
-            codigo_licitacion,
-            fecha_envio,
-            monto_total_oc,
-            tipo_moneda_oc,
-            nombre_proveedor,
-            fetched_at
-          )
-          VALUES ${placeholders.join(', ')}
-        `,
-        params,
-      );
-
-      placeholders.length = 0;
-      params.length = 0;
-      paramIndex = 1;
-    };
-
-    for (const oc of apiResponse.ordenesDeCompra) {
-      placeholders.push(
-        `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12})`,
-      );
-      params.push(
-        rawApiPayloadId,
-        apiResponse.source,
-        snapshotKind,
-        coerceToNullableString(oc.Codigo),
-        coerceToNullableString(oc.CodigoEstado),
-        coerceToNullableString(oc.Estado),
-        coerceToNullableString(oc.EstadoProveedor),
-        coerceToNullableString(oc.CodigoLicitacion),
-        coerceToNullableString(oc.FechaEnvio),
-        coerceToNullableString(oc.MontoTotalOC),
-        coerceToNullableString(oc.TipoMonedaOC),
-        coerceToNullableString(oc.NombreProveedor),
-        apiResponse.fetchedAt,
-      );
-      paramIndex += 13;
-
-      if (placeholders.length >= STAGING_INSERT_BATCH_SIZE) {
-        await flushBatch();
-      }
-    }
-
-    await flushBatch();
   }
 
   async persistV2CompraAgilSnapshot(

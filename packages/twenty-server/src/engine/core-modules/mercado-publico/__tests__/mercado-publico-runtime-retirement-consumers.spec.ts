@@ -151,7 +151,7 @@ describe('Mercado Publico runtime retirement zero-consumer contract', () => {
     );
   });
 
-  it('prunes V1/CSV constants from the shared constants file', () => {
+  it('prunes V1/CSV dispatch and reconciliation constants, keeping only retained evidence labels', () => {
     const constantsSource = readServerSource(
       'engine',
       'core-modules',
@@ -159,16 +159,15 @@ describe('Mercado Publico runtime retirement zero-consumer contract', () => {
       'mercado-publico.constants.ts',
     );
 
-    expect(constantsSource).not.toMatch(/MERCADO_PUBLICO_API_V1_/);
-    expect(constantsSource).not.toMatch(/MERCADO_PUBLICO_CSV_/);
     expect(constantsSource).not.toMatch(/MERCADO_PUBLICO_RECONCILIATION/);
-    expect(constantsSource).not.toContain('api-v1-licitaciones');
+    expect(constantsSource).not.toContain('api-v1-oc-by-date');
     expect(constantsSource).not.toContain('csv-raw-load');
+    expect(constantsSource).not.toContain('csv-licitaciones-download');
     expect(constantsSource).not.toContain('reconciliation-refresh');
     expect(constantsSource).toContain('mercado-publico-v2-sync-command');
   });
 
-  it('prunes V1/CSV storage branches from the retained persistence unit spec', () => {
+  it('prunes V1 snapshot branches from the retained persistence unit spec', () => {
     const persistenceSpecSource = readServerSource(
       'engine',
       'core-modules',
@@ -179,7 +178,7 @@ describe('Mercado Publico runtime retirement zero-consumer contract', () => {
     );
 
     expect(persistenceSpecSource).not.toMatch(/stg_api_v1_/);
-    expect(persistenceSpecSource).not.toMatch(/stg_csv_/);
+    expect(persistenceSpecSource).not.toMatch(/persistV1/);
   });
 
   it('keeps the accepted V2 runtime surface intact', () => {

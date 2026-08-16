@@ -118,41 +118,90 @@
   oxlint clean, diff-check clean. G4 cutover route-matrix spec left as
   non-executable historical reference (legacy route removed).
 
-- [ ] 2.2 Regenerate derived GraphQL artifacts from retained source and remove
+- [x] 2.2 Regenerate derived GraphQL artifacts from retained source and remove
   no generated file by hand. Record post-removal graph/search evidence for each
   candidate.
   Traceability: Group G5; Slice S1; Issue 32; Acceptance AC 32.3, AC 32.4.
+  Notes: 2026-08-16. Derived-artifact audit: only removed generated file is
+  the legacy output, deleted with its source documents and codegen target; no
+  retained generated file hand-edited. Main `generated/graphql.ts` never held
+  legacy operations and V2 documents are unchanged — nothing to regenerate
+  from retained source. Codegen re-run attempted; blocked by canonical runtime
+  introspection policy (same recorded G4 outcome). Post-removal graph/search
+  evidence per candidate recorded in `retirement-evidence.md` §S1 Codegen and
+  post-removal evidence: repo-wide grep finds legacy names only inside the
+  retirement guard specs.
 
 ### Slice 2 — Visual artifact contraction
 
-- [ ] 2.3 Migrate only still-useful stable story or fixture evidence, then
+- [x] 2.3 Migrate only still-useful stable story or fixture evidence, then
   remove manifest-approved displaced prototypes, stories, styles, and visual
   assets without removing shared Twenty primitives, tokens, or patterns.
   Traceability: Group G5; Slice S2; Issue 33; Acceptance AC 33.2, AC 33.3.
+  Notes: 2026-08-16. Inventory proof: zero mp stories, prototypes, or
+  standalone style files exist (ownership spec green). No stable story/fixture
+  evidence needs migration; V2 JSON fixtures and evidence retained. The only
+  displaced visual-asset candidates are the 5 CSV licitaciones fixtures,
+  classified S3 (test assets of CSV service — removed at 2.5). Nothing
+  removed in this task; shared Twenty primitives/tokens untouched.
 
-- [ ] 2.4 Record retained historical evidence and removed visual artifacts in
+- [x] 2.4 Record retained historical evidence and removed visual artifacts in
   the candidate manifest and post-removal diff summary.
   Traceability: Group G5; Slice S2; Issue 33; Acceptance AC 33.1, AC 33.5.
+  Notes: 2026-08-16. Recorded in `retirement-evidence.md`: S2 removed set is
+  empty (no displaced visual artifacts existed); retained historical evidence
+  includes V2 JSON fixtures, visual review record template, and G4
+  cutover/route-matrix evidence (non-executable). CSV licitaciones fixtures
+  recorded as S3 batch candidates with their removal tracked at 2.5.
 
 ### Slice 3 — V1/CSV runtime contraction
 
-- [ ] 2.5 Remove only manifest-approved V1/CSV provider registrations, drivers,
+- [x] 2.5 Remove only manifest-approved V1/CSV provider registrations, drivers,
   services, jobs, scheduler entries, CLI paths, GraphQL consumers, and their
   now-orphaned tests. Retain each shared service that V2 still consumes. Do not
   alter committed migrations or V2 evidence.
   Traceability: Group G5; Slice S3; Issue 34; Acceptance AC 34.1, AC 34.2, AC 34.3.
+  Notes: 2026-08-16. Removed: run CLI + spec, MercadoPublicoJob, orchestrator,
+  canonical-refresh, reconciliation, 6 V1 services + specs, 2 V1 clients +
+  specs, 2 V1 record types, 7 V1 utils + 6 specs, 3 api-v2 legacy backbone
+  services + specs, 7 CSV services + specs, csv utils dir + 13 specs, 5 CSV
+  licitaciones fixtures, 2 error-summary utils, 3 V1/CSV integration suites.
+  Module registrations/exports pruned. Constants pruned to V2 dispatch names +
+  4 retained evidence labels (raw-layer suite consumers). Persistence: V1
+  snapshot methods + types + imports removed; CSV/raw branches retained
+  (raw-layer-persistence suite + committed migration evidence consume them).
+  Config: csv* + apiV1BaseUrl fields removed. Persistence spec pruned of V1
+  tests. runtime-exposure spec asserts V2 SyncOperatorCommand instead of
+  RunCommand. Runtime-retirement guard spec refined: constants/persistence
+  assertions aligned to retention boundary (reconciliation + displaced job
+  names gone; evidence labels stay). Full mp Jest suites green; typecheck,
+  lint:diff-with-main (fix applied), diff-check green. No migration or V2
+  evidence altered. `reconciliation-refresh` suite removed with its sole
+  consumer (reconciliation service) per task 1.3 classification.
 
-- [ ] 2.6 Document the remaining operational rollback and data-recovery path;
+- [x] 2.6 Document the remaining operational rollback and data-recovery path;
   stop if it depends on a removed component.
   Traceability: Group G5; Slice S3; Issue 34; Acceptance AC 34.5.
+  Notes: 2026-08-16. Documented in `retirement-evidence.md` §Operational
+  rollback and data-recovery path. Rollback = deploy gate-close revision
+  `49d115e768` (carries legacy route + V1/CSV runtime + CLI; G4 runbook is
+  the verified procedure). Data = `mp` schema rows untouched by G5; committed
+  migrations intact. Stop-condition check passed: recovery path depends on no
+  removed component.
 
 ### Slice 4 — Reconstruction certification
 
-- [ ] 2.7 Produce the final zero-consumer evidence record that links the
+- [x] 2.7 Produce the final zero-consumer evidence record that links the
   manifest, graph/search results, tests, codegen, authenticated smoke, visual
   review, G4 approval, PRD, source issues, and prior OpenSpec evidence.
   Record it in `retirement-evidence.md` and leave human approval pending.
   Traceability: Group G5; Slice S4; Issue 35; Acceptance AC 35.1, AC 35.4, AC 35.5, AC 35.6.
+  Notes: 2026-08-16. Final zero-consumer evidence record written in
+  `retirement-evidence.md` §Final zero-consumer evidence record: manifest,
+  graph/search, tests, codegen, lint/typecheck, G4 approval + rollback
+  reference, PRD/source-issue links, prior OpenSpec evidence. Authenticated
+  smoke + visual review recorded as pending-isolated-harness items (3.2/3.3
+  gates); automated evidence green. Human approval left pending.
 
 ## 3. Verification
 
@@ -160,6 +209,14 @@
   compatibility checks, lint, typecheck, authenticated smoke, and post-removal
   graph/search proof.
   Traceability: Group G5; Slice S1; Issue 32; Acceptance AC 32.3, AC 32.4.
+  Notes: 2026-08-16. PARTIAL. Green: focused front jest (9/9 retirement +
+  router + ownership), server mp jest suites, front/server typecheck,
+  lint:diff-with-main both packages (server fix-applied), codegen
+  compatibility audit (2.2 evidence), post-removal graph/search (2.2).
+  BLOCKED: authenticated smoke — `test:mercado-publico` refused: existing
+  `twenty-mp-e2e` isolated env already running; harness requires operator
+  decision to reuse or clean it (same guard G4 recorded). No env touched.
+  Unblock: operator approves reuse or `down --remove-orphans`, then re-run.
 
 - [ ] 3.2 For Slice 2, run focused visual, accessibility, and authenticated
   smoke checks; preserve reviewed screenshots and prove retained fixtures still
