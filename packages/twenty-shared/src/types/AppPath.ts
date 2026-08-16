@@ -26,7 +26,6 @@ export enum AppPath {
   PageLayoutPage = '/page/:pageLayoutId',
 
   MercadoPublico = '/mercado-publico',
-  MercadoPublicoLegacy = '/mercado-publico/legacy',
   MercadoPublicoV2Buyers = '/mercado-publico/compradores',
   MercadoPublicoV2History = '/mercado-publico/historial',
   MercadoPublicoV2SyncControl = '/mercado-publico/centro-de-control',

@@ -62,11 +62,10 @@ const getRouteComponentName = (route: Route | undefined) =>
   route?.element?.props.children?.type?._payload?._result?.toString() ?? '';
 
 describe('useCreateAppRouter Mercado Publico route composition', () => {
-  it('mounts canonical V2, private legacy alias, and V2 subroutes when enabled', () => {
-    const router = useCreateAppRouter(false, false, true);
+  it('mounts only canonical V2 and its subroutes with no legacy alias', () => {
+    const router = useCreateAppRouter(false, false);
     const routes = router.routes as Route[];
     const canonicalRoute = getRoute(routes, AppPath.MercadoPublico);
-    const legacyAliasRoute = getRoute(routes, '/mercado-publico/legacy');
 
     expect(
       getRoutes(routes).filter(
@@ -76,35 +75,9 @@ describe('useCreateAppRouter Mercado Publico route composition', () => {
     expect(getRouteComponentName(canonicalRoute)).toContain(
       'MercadoPublicoV2ActivePage',
     );
-    expect(getRouteComponentName(legacyAliasRoute)).toContain(
-      'MercadoPublicoCommandCenterPage',
-    );
     expect(getRoute(routes, AppPath.MercadoPublicoV2History)).toBeDefined();
     expect(getRoute(routes, AppPath.MercadoPublicoV2Buyers)).toBeDefined();
     expect(getRoute(routes, AppPath.MercadoPublicoV2SyncControl)).toBeDefined();
-  });
-
-  it('mounts canonical legacy and alias without V2 subroutes when disabled', () => {
-    const router = useCreateAppRouter(false, false, false);
-    const routes = router.routes as Route[];
-    const canonicalRoute = getRoute(routes, AppPath.MercadoPublico);
-    const legacyAliasRoute = getRoute(routes, '/mercado-publico/legacy');
-
-    expect(
-      getRoutes(routes).filter(
-        (route) => route.path === AppPath.MercadoPublico,
-      ),
-    ).toHaveLength(1);
-    expect(getRouteComponentName(canonicalRoute)).toContain(
-      'MercadoPublicoCommandCenterPage',
-    );
-    expect(getRouteComponentName(legacyAliasRoute)).toContain(
-      'MercadoPublicoCommandCenterPage',
-    );
-    expect(getRoute(routes, AppPath.MercadoPublicoV2History)).toBeUndefined();
-    expect(getRoute(routes, AppPath.MercadoPublicoV2Buyers)).toBeUndefined();
-    expect(
-      getRoute(routes, AppPath.MercadoPublicoV2SyncControl),
-    ).toBeUndefined();
+    expect(getRoute(routes, '/mercado-publico/legacy')).toBeUndefined();
   });
 });

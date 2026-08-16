@@ -11,7 +11,7 @@ harness therefore provide the highest useful seams for removal proof.
 **Goals**
 - Remove only G4-approved, V2-replaced legacy consumers in dependency-reverse order.
 - Keep each destructive batch independently observable and reversible through
-  the retained release record and version control.
+  the retained rollback reference and version control.
 - End with evidence that no active displaced consumer remains.
 
 **Non-Goals**
@@ -42,8 +42,8 @@ removed only after their replacement and zero-consumer proof pass.
 
 The isolated authenticated harness owns browser-visible proof. The final record
 is `retirement-evidence.md` in this change. It links the candidate manifest,
-tests, graph/search output, codegen, visual evidence, G4 approval and release
-tag, and preserved historical artifacts. A human approves it only after all
+tests, graph/search output, codegen, visual evidence, G4 approval and rollback
+reference, and preserved historical artifacts. A human approves it only after all
 automated evidence is green. It does not assert cloud evidence without the
 required explicit authority.
 
@@ -61,7 +61,7 @@ required explicit authority.
    - Delete V1/CSV services first.
      - Rejected because routes, tests, jobs, and GraphQL can still depend on them.
 
-2. Keep the G4 release record as an external hard gate.
+2. Keep the G4 gate-close decision as an external hard gate.
 
    Rationale: only G4 has authority to prove parity, rollback, daily cycles,
    and human visual review before irreversible retirement.
@@ -128,7 +128,7 @@ required explicit authority.
 
 ### Untouched runtime areas
 - V2 `mp` schema, durable evidence/projections, SyncRun control and audit,
-  provider access policy, committed migrations, and the G4 release record.
+  provider access policy, committed migrations, and the G4 gate-close record.
 
 ## Verification Strategy
 

@@ -16,8 +16,9 @@ costs.
 - The existing V2 Playwright suites and server integration suites are the
   relevant behavior proof. They do not prove that a particular V1/CSV consumer
   is safe to remove.
-- G4 has no completed tasks. Its final release record must explicitly approve
-  G5 before any deletion begins.
+- G4 gate closed on 2026-08-16 per operator decision; the cutover-gate
+  proposal `## Gate Status` section explicitly approves G5. G5 deletion
+  planning is authorized. Rollback reference: gate-close commit `49d115e768`.
 
 ## What Changes
 
@@ -41,7 +42,7 @@ costs.
 
 ## Out Of Scope
 
-- Starting retirement before the G4 final release record approves it.
+- Starting retirement before the G4 gate approves it.
 - Repairing or redesigning V1/CSV behavior to make it removable.
 - Changing V2 ingestion, projections, `mp` evidence, SyncRun, G3 permissions,
   or the G4 route/rollback contract.
@@ -101,8 +102,10 @@ costs.
 - Source map: `.scratch/mercado-publico-v2-reconstruction/implementation-sdlc-map.md`;
   Group: G5.
 - Source implementation issues: 32, 33, 34, and 35.
-- Precondition: G4 Issue 31 final release record explicitly approves G5. Until
-  then, this change is planned but operationally blocked.
+- Precondition: G4 approval of G5. Satisfied on 2026-08-16 by the operator
+  decision recorded in the cutover-gate proposal `## Gate Status` section.
+  No standalone G4 release record or rollback tag exists; the operator
+  decision supersedes both.
 - Boundary: the existing partial umbrella change remains evidence only and is
   not modified, split, superseded, or continued by this change.
 - Human decision: G5 does not split shared services. It removes only unused

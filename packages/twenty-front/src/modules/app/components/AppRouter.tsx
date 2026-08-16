@@ -13,16 +13,9 @@ export const AppRouter = () => {
     (currentUser?.canImpersonate || currentUser?.canAccessFullAdminPanel) ??
     false;
 
-  const isMercadoPublicoV2Enabled =
-    import.meta.env.REACT_APP_MERCADO_PUBLICO_V2_ENABLED === 'true';
-
   return (
     <RouterProvider
-      router={useCreateAppRouter(
-        isFunctionSettingsEnabled,
-        isAdminPageEnabled,
-        isMercadoPublicoV2Enabled,
-      )}
+      router={useCreateAppRouter(isFunctionSettingsEnabled, isAdminPageEnabled)}
     />
   );
 };

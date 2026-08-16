@@ -2,14 +2,14 @@
 
 ### Requirement: Retirement requires explicit G4 authorization and candidate proof
 The system SHALL NOT remove a legacy Mercado Publico candidate until the G4
-Issue 31 final release record explicitly approves G5. For every proposed
+gate-close decision explicitly approves G5. For every proposed
 candidate, the retirement record SHALL identify its owner, accepted V2
 replacement, active consumers, test/evidence consumers, removal batch, and
 rollback constraint. A candidate with an unresolved consumer or replacement
 SHALL remain retained.
 
 #### Scenario: G4 has not approved retirement
-- **WHEN** G4 lacks a completed release record that approves G5
+- **WHEN** G4 lacks a completed gate-close decision that approves G5
 - **THEN** no legacy candidate is removed
 
 #### Scenario: Candidate remains in use
@@ -26,8 +26,8 @@ SHALL remain retained.
 The system SHALL remove only G4-approved displaced UI routes, imports, and
 internal GraphQL consumers that have accepted V2 replacements. It SHALL
 regenerate derived GraphQL artifacts from retained source. It SHALL remove the
-G4 legacy route only after the G4-approved release tag is verified as the G5
-rollback procedure.
+G4 legacy route only after the G4-approved rollback reference is verified as the
+G5 rollback procedure.
 
 #### Scenario: Displaced route and GraphQL consumer are removed
 - **WHEN** a candidate manifest proves the route and GraphQL consumer are
@@ -63,7 +63,7 @@ data-recovery procedure documented and testable.
 The system SHALL publish a final certification record after all approved batches.
 The record SHALL be `retirement-evidence.md` in this change and link graph/search
 results, tests, authenticated smoke, visual evidence, GraphQL/codegen
-compatibility, G4 approval and release tag, PRD, source issues, and prior
+compatibility, G4 approval and rollback reference, PRD, source issues, and prior
 OpenSpec evidence. A human SHALL approve the record after all automated evidence
 is green. A prior OpenSpec SHALL be marked `superseded` only with the required
 human approval.

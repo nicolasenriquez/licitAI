@@ -260,9 +260,6 @@
         "data": {
           "config": "codegen.cjs"
         },
-        "mercado-publico-legacy": {
-          "config": "codegen-mercado-publico-legacy.cjs"
-        },
         "metadata": {
           "config": "codegen-metadata.cjs"
         },
