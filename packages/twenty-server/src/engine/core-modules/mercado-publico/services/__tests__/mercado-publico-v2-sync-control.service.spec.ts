@@ -543,7 +543,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
   });
 
   it('defers a rate-limited command until the provider quota reset', async () => {
-    const retryAt = new Date('2026-08-15T04:00:00.000Z');
+    const retryAt = new Date(Date.now() + 60_000);
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('UPDATE mp.sync_command')) {
         return Promise.resolve([

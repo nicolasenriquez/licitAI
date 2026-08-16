@@ -1,8 +1,3 @@
 import { AppPath } from 'twenty-shared/types';
 
-export const UNTESTED_APP_PATHS = [
-  AppPath.Settings,
-  AppPath.Developers,
-  AppPath.MercadoPublicoV2Baseline,
-  AppPath.MercadoPublico,
-];
+export const UNTESTED_APP_PATHS = [AppPath.Settings, AppPath.Developers];

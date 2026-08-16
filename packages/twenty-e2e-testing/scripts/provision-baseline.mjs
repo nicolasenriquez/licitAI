@@ -263,6 +263,7 @@ if (fixtureArg === e2eFixture) {
       'command:prod',
       'run-instance-commands',
       '--force',
+      '--include-slow',
     ]);
     run([
       'exec',
@@ -288,15 +289,19 @@ if (fixtureArg === e2eFixture) {
   }
 
   const serverPort = getPublishedServerPort();
-  const frontendBuild = spawnSync('yarn', ['nx', 'build', 'twenty-front'], {
-    cwd: repoRoot,
-    env: {
-      ...process.env,
-      REACT_APP_MERCADO_PUBLICO_V2_ENABLED: flagValue,
+  const frontendBuild = spawnSync(
+    'yarn',
+    ['nx', 'build', 'twenty-front', '--skip-nx-cache'],
+    {
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        REACT_APP_MERCADO_PUBLICO_V2_ENABLED: flagValue,
+      },
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
     },
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
-  });
+  );
 
   if (frontendBuild.error || frontendBuild.status !== 0) {
     throw frontendBuild.error ?? new Error('Frontend build failed');

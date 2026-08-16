@@ -104,8 +104,10 @@ import { MpV2SyncOperationsPreflightFastInstanceCommand } from 'src/database/com
 import { MpV2SyncOperationsFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1791000000000-mp-v2-sync-operations';
 import { MpV2SyncOperationsAttemptTimestampFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1791000000001-mp-v2-sync-operations-attempt-timestamp';
 import { MpV2DurableHydrationRecoveryFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1792000000000-mp-v2-durable-hydration-recovery';
+import { MpV2ItemAttemptObservabilityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1793000000000-mp-v2-item-attempt-observability';
 import { MpStgJobRunRawCsvFileLinkSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1782340007930-mp-stg-job-run-raw-csv-file-link';
 import { DropRawCsvFileIngestionJobIdSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1783191615515-drop-raw-csv-file-ingestion-job-id';
+import { MpV2ItemLifecycleStatusSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1794000000000-mp-v2-item-lifecycle-status';
 
 export const INSTANCE_COMMANDS = [
   AddViewFieldGroupIdIndexOnViewFieldFastInstanceCommand,
@@ -212,6 +214,8 @@ export const INSTANCE_COMMANDS = [
   MpV2SyncOperationsFastInstanceCommand,
   MpV2SyncOperationsAttemptTimestampFastInstanceCommand,
   MpV2DurableHydrationRecoveryFastInstanceCommand,
+  MpV2ItemAttemptObservabilityFastInstanceCommand,
   MpStgJobRunRawCsvFileLinkSlowInstanceCommand,
   DropRawCsvFileIngestionJobIdSlowInstanceCommand,
+  MpV2ItemLifecycleStatusSlowInstanceCommand,
 ];

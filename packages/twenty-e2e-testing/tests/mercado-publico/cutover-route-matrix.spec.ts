@@ -1,5 +1,6 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { resolve } from 'node:path';
+import { writeFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 
 const CANONICAL_PATH = '/mercado-publico';
@@ -30,6 +31,18 @@ const isAllowedExternalRequest = (url: URL) =>
   allowedExternalHosts.has(url.hostname) ||
   url.hostname.endsWith('.gstatic.com');
 
+const persistEvidence = (
+  testInfo: TestInfo,
+  name: string,
+  content: string | Buffer,
+  contentType: 'text/plain' | 'image/png' | 'application/json',
+) => {
+  const filePath = testInfo.outputPath(name);
+
+  writeFileSync(filePath, content);
+  testInfo.attach(name, { path: filePath, contentType });
+};
+
 const trackBrowserEvidence = (page: Page) => {
   const consoleErrors: string[] = [];
   const externalRequests: string[] = [];
@@ -56,14 +69,18 @@ const trackBrowserEvidence = (page: Page) => {
       expect(externalRequests).toEqual([]);
     },
     attach: async (testInfo: TestInfo) => {
-      await testInfo.attach('console-errors', {
-        body: consoleErrors.join('\n'),
-        contentType: 'text/plain',
-      });
-      await testInfo.attach('network-requests', {
-        body: externalRequests.join('\n'),
-        contentType: 'text/plain',
-      });
+      persistEvidence(
+        testInfo,
+        'console-errors.txt',
+        consoleErrors.join('\n'),
+        'text/plain',
+      );
+      persistEvidence(
+        testInfo,
+        'network-requests.txt',
+        externalRequests.join('\n'),
+        'text/plain',
+      );
     },
   };
 };
@@ -73,6 +90,17 @@ const runLegacyReadOnlyJourney = async (
   testInfo: TestInfo,
   viewportName: string,
 ) => {
+  persistEvidence(
+    testInfo,
+    `interaction-evidence-${viewportName}.txt`,
+    [
+      'reduced-motion: reduce emulated via page.emulateMedia before every test',
+      'keyboard: Cerrar detalle focused, then Enter pressed to close the dialog',
+      `viewport: ${viewportName}`,
+    ].join('\n'),
+    'text/plain',
+  );
+
   await expect(
     page.getByRole('heading', { name: 'Mercado Público' }),
   ).toBeVisible();
@@ -91,26 +119,36 @@ const runLegacyReadOnlyJourney = async (
 
   const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
 
-  await testInfo.attach(`axe-legacy-${viewportName}`, {
-    body: JSON.stringify(accessibilityScanResults, null, 2),
-    contentType: 'application/json',
-  });
+  persistEvidence(
+    testInfo,
+    `axe-legacy-${viewportName}.json`,
+    JSON.stringify(accessibilityScanResults, null, 2),
+    'application/json',
+  );
 
   await page.evaluate(() => {
     document.body.style.zoom = '1.5';
   });
-  await testInfo.attach(`legacy-zoom-150-${viewportName}`, {
-    body: await page.screenshot({ fullPage: true }),
-    contentType: 'image/png',
-  });
+  const zoomScreenshot = await page.screenshot({ fullPage: true });
+
+  persistEvidence(
+    testInfo,
+    `legacy-zoom-150-${viewportName}.png`,
+    zoomScreenshot,
+    'image/png',
+  );
   await page.evaluate(() => {
     document.body.style.zoom = '1';
   });
 
-  await testInfo.attach(`legacy-read-only-journey-${viewportName}`, {
-    body: await page.screenshot({ fullPage: true }),
-    contentType: 'image/png',
-  });
+  const journeyScreenshot = await page.screenshot({ fullPage: true });
+
+  persistEvidence(
+    testInfo,
+    `legacy-read-only-journey-${viewportName}.png`,
+    journeyScreenshot,
+    'image/png',
+  );
 };
 
 for (const role of roles) {

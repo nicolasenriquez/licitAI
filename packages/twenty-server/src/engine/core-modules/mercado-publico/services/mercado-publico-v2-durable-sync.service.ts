@@ -3,7 +3,6 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 
-import axios from 'axios';
 import { DataSource } from 'typeorm';
 
 import {
@@ -21,6 +20,10 @@ import { createJsonSha256 } from 'src/engine/core-modules/mercado-publico/driver
 import { extractV2CompraAgilListRecords } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
 import { extractV2CompraAgilPagination } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-pagination.util';
 import { getNextQuotaResetAt } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/get-next-quota-reset-at.util';
+import {
+  getHttpFailureStatus,
+  getTransportFailureCode,
+} from 'src/engine/core-modules/mercado-publico/drivers/api/utils/get-transport-failure-metadata.util';
 import { normalizeV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/normalize-v2-compra-agil-record.util';
 import {
   MERCADO_PUBLICO_API_V2_COMPRA_AGIL_DETAIL_BY_CODIGO_ENDPOINT,
@@ -1098,18 +1101,14 @@ export class MercadoPublicoV2DurableSyncService {
             );
         } catch (error) {
           const failure = classifyFailure(error);
-          const transportCode = axios.isAxiosError(error)
-            ? (error.code ?? 'unknown')
-            : 'unknown';
+          const transportCode = getTransportFailureCode(error);
 
           await this.recordItemAttempt({
             context,
             item,
             attemptNumber,
             requestStartedAt,
-            httpStatus: axios.isAxiosError(error)
-              ? (error.response?.status ?? null)
-              : null,
+            httpStatus: getHttpFailureStatus(error),
             transportErrorCode: transportCode,
             failureClass: failure,
             retryable: failure === 'retryable_failed',

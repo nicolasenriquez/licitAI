@@ -18,17 +18,17 @@ describe('MpV2ItemLifecycleStatusSlowInstanceCommand', () => {
     };
   };
 
-  it('drops the legacy status check and adds the deferred counter in the schema phase', async () => {
+  it('adds the deferred counter in the schema phase', async () => {
     const { query, runner } = buildQueryRunner();
 
     await new MpV2ItemLifecycleStatusSlowInstanceCommand().up(runner);
 
     const sql = query.mock.calls.map(([statement]) => statement).join('\n');
 
-    expect(sql).toContain('DROP CONSTRAINT IF EXISTS "ck_mp_sync_run_item_status"');
     expect(sql).toContain(
       'ADD COLUMN IF NOT EXISTS records_deferred integer NOT NULL DEFAULT 0',
     );
+    expect(sql).not.toContain('ck_mp_sync_run_item_status');
     expect(sql).not.toContain('lifecycle_terminal');
   });
 
@@ -48,6 +48,7 @@ describe('MpV2ItemLifecycleStatusSlowInstanceCommand', () => {
       "WHEN error_summary LIKE 'retryable_failed%' THEN 'deferred'",
     );
     expect(sql).toContain("ELSE 'failed'");
+    expect(sql).toContain('DROP CONSTRAINT IF EXISTS "ck_mp_sync_run_item_status"');
     expect(sql).toContain("status IN (\n            'pending',");
     expect(sql).toContain("'lifecycle_terminal',");
     expect(sql).toContain("'deferred'");

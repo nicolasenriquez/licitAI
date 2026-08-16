@@ -1,9 +1,18 @@
 ## 0. Investigation and Scope Lock
 
-- [ ] 0.1 Verify the completed G4 Issue 31 release record explicitly approves G5;
+- [x] 0.1 Verify the completed G4 Issue 31 release record explicitly approves G5;
   otherwise stop with no deletion. Verify that it identifies the immutable G4
   release tag used for G5 rollback.
   Traceability: Group G5; Slice S1; Issue 32; Scope external G4 authorization.
+  Notes: 2026-08-16. Verification FAILED. No G4 release-record file exists in
+  `openspec/changes/mercado-publico-v2-cutover-gate/` (only tasks, proposal,
+  design, spec, pre-cutover-evidence, .openspec.yaml). No git tag matches
+  `mercado-publico-v2-g4-approved-*`; `pre-cutover-evidence.md` still holds the
+  placeholder `<full-g4-commit-sha>` and states "no G4 approval tag exists".
+  G4 task 4.2 is checked only by the 2026-08-16 Progress note ("per operator
+  decision") with no record artifact, and Issue 31 remains `ready-for-human`.
+  STOP: G5 remains blocked, no deletion performed. Unblock when a release
+  record exists that explicitly approves G5 and names the immutable tag.
 
 - [ ] 0.2 Create a versioned candidate manifest that maps each proposed legacy
   route, import, GraphQL operation, provider, job, CLI, test, story, fixture,

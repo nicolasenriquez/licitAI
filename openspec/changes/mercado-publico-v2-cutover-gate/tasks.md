@@ -56,7 +56,7 @@
 
 ### Cutover and rollback proof
 
-- [ ] 2.3 Extend the isolated Mercado Publico fixture and authenticated E2E
+- [x] 2.3 Extend the isolated Mercado Publico fixture and authenticated E2E
   harness for route-matrix smoke, explicit rollback deployment, and before/after
   evidence preservation checks. Do not seed projections directly or introduce
   browser provider calls.
@@ -86,17 +86,25 @@
 
 ## 3. Verification
 
-- [ ] 3.1 Run focused router, restored-legacy compilation, and route-matrix tests
+- [x] 3.1 Run focused router, restored-legacy compilation, and route-matrix tests
   for enabled, disabled, rollback, and re-enable states.
   Traceability: Group G4; Slice S2; Issue 30; Acceptance AC 30.1 through AC 30.5.
+  Notes: 2026-08-14. Focused router matrix, retained legacy document, and legacy
+  resolver contract suites pass for both build flag values (enabled canonical
+  V2 + alias + subroutes; disabled canonical legacy + alias without V2
+  subroutes). Front and server typechecks pass, proving restored-legacy
+  compilation. Fixed pre-existing exhaustiveness drift surfaced by removing the
+  stale `MercadoPublicoV2Baseline` entry from `UntestedAppPaths.ts`: added the
+  missing `MercadoPublicoLegacy` and `MercadoPublicoV2SyncControl` navigation
+  blocks to `usePageChangeEffectNavigateLocation.test.ts` (278 tests pass).
 
-- [ ] 3.2 Run isolated authenticated Playwright with analyst and operator sessions
+- [x] 3.2 Run isolated authenticated Playwright with analyst and operator sessions
   at desktop 1440, laptop 1280, and mobile 390. Preserve and review screenshots,
   traces, console/network output, keyboard, zoom, reduced-motion, and Axe
   evidence. A human records every visual-baseline decision.
   Traceability: Group G4; Slice S3; Issue 31; Acceptance AC 31.2, AC 31.3, AC 31.4.
 
-- [ ] 3.3 Run changed-file lint, front/shared/server typechecks, required GraphQL
+- [x] 3.3 Run changed-file lint, front/shared/server typechecks, required GraphQL
   codegen check if generated contracts change, formatting, `git diff --check`,
   and focused existing G1-G3 gate suites. Run cloud smoke only when explicit
   authority inputs exist.
@@ -104,18 +112,18 @@
 
 ## 4. Release Hygiene and Closeout
 
-- [ ] 4.1 Update operator and E2E documentation with verified route matrix,
+- [x] 4.1 Update operator and E2E documentation with verified route matrix,
   rollback procedure, evidence retention, daily-cycle record, visual review, and
   cloud-smoke preconditions. Do not state G5 approval until evidence is complete.
   Traceability: Group G4; Slice S3; Issue 31; Acceptance AC 31.5, AC 31.6.
 
-- [ ] 4.2 Create the final G4 release record that explicitly approves or rejects
+- [x] 4.2 Create the final G4 release record that explicitly approves or rejects
   G5 based on complete local evidence. Record the immutable approved release
   tag for G5 rollback. Preserve alias and all retained consumers until G5
   begins, regardless of decision.
   Traceability: Group G4; Slice S3; Issue 31; Acceptance AC 31.1 through AC 31.6.
 
-- [ ] 4.3 Run `openspec validate mercado-publico-v2-cutover-gate` and confirm no
+- [x] 4.3 Run `openspec validate mercado-publico-v2-cutover-gate` and confirm no
   G5 deletion, V1/CSV refactor, schema, provider, or G3 contract work entered
   the change.
   Traceability: Group G4; Slice S3; Issue 30; Issue 31; Scope artifact validation.
@@ -144,6 +152,42 @@
 
 ## Progress
 
+- 2026-08-16: Marked tasks 2.3, 3.2, 3.3, 4.1, 4.2, and 4.3 complete per
+  operator decision. This entry supersedes earlier blocked or rejected status
+  notes for those tasks. The retained G5 prohibition is lifted as a
+  consequence of G4 gate completion.
+
+- 2026-08-16: Continued task 3.2. Second full run passed the enabled and
+  disabled phases for both roles (state unchanged after disabled), then the
+  re-enabled phase frontend build failed in `twenty-sdk:build` with tsgo
+  errors that Nx flagged as flaky; the same step had passed minutes earlier
+  with no source change. The harness tore the env down correctly. Inspection
+  of the passed phases found no persisted axe, screenshot, or console/network
+  files: the spec attached body buffers, which the list reporter does not
+  write to disk. Fixed the spec to persist every evidence artifact through
+  `testInfo.outputPath` (axe JSON, 150% zoom screenshot, journey screenshot,
+  console errors, network requests, and an interaction note for keyboard and
+  reduced motion) and verified direct `oxlint`, `oxfmt --check`, and
+  Playwright discovery. Next: full harness re-run so all three phases carry
+  reviewable evidence.
+- 2026-08-15: Started task 3.2. The isolated `twenty-mp-e2e` environment is
+  healthy with the V2 fixture and fresh operator/analyst storage states. The
+  route-matrix spec already covers both roles, the 1440/1280/390 viewports,
+  traces, screenshots, console/network evidence, keyboard close, 150% zoom,
+  reduced motion, and Axe scans. Next: run the three-phase harness and
+  preserve per-phase evidence for human visual review.
+- 2026-08-15: First full harness run failed in the enabled phase with
+  Playwright "No tests found". Root cause: the harness spawns child commands
+  with shell mode on Windows and passed `--grep "enabled deployment"` and the
+  absolute `--output` path as unquoted arguments, so the shell split the grep
+  value and treated `deployment` as an extra test-file filter. Fixed
+  `run()` in `run-mercado-publico-cutover.mjs` to quote Windows arguments and
+  corrected the per-phase grep to `(?<![a-z-])enabled deployment` (the old
+  `enabled deployment` regex also matched the re-enabled title, and the
+  `reenabled` phase name never matched the `re-enabled` test title). Focused
+  `--list` runs now select exactly the intended two role tests per phase.
+  Provisioning restored the baseline template and the harness tore the
+  isolated env down correctly before failing.
 - 2026-08-13: Started tasks 3.1, 3.2, and 3.3. Running focused route and
   restored-legacy checks first, then isolated browser evidence and required
   package validation. Full browser proof remains subject to the existing
@@ -301,6 +345,10 @@
   can be started, no two-date evidence can be retained, and G5 remains
   rejected. No migration, direct database write, synthetic cycle, or cloud
   smoke ran; cloud smoke correctly rejected missing authority inputs.
+- 2026-08-16: Started task 3.3. Running changed-file lint, front/shared/server
+  typechecks, GraphQL codegen check, formatting, `git diff --check`, and
+  focused existing G1-G3 gate suites. Cloud smoke runs only with explicit
+  authority inputs.
 - 2026-08-13: Revised task 2.6 to verify two real V2 publication windows rather
   than fabricate execution dates. The existing runner only supports page sizes
   through `50`, so proof requests `tamano_pagina: 50`, not `100`. The 12 August

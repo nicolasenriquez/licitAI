@@ -49,12 +49,26 @@ export const getCutoverEvidenceDirectory = (environment, now = new Date()) => {
 
 const evidenceDirectory = getCutoverEvidenceDirectory(process.env);
 
+const quoteWindowsArgument = (argument) => {
+  if (!/[\s"&|<>^]/.test(argument)) {
+    return argument;
+  }
+
+  return `"${argument.replaceAll('"', '\\"')}"`;
+};
+
 const run = (command, args, options = {}) => {
-  const result = spawnSync(command, args, {
-    shell: process.platform === 'win32',
-    stdio: 'inherit',
-    ...options,
-  });
+  const result =
+    process.platform === 'win32'
+      ? spawnSync([command, ...args.map(quoteWindowsArgument)].join(' '), {
+          shell: true,
+          stdio: 'inherit',
+          ...options,
+        })
+      : spawnSync(command, args, {
+          stdio: 'inherit',
+          ...options,
+        });
 
   if (result.error || result.status !== 0) {
     throw result.error ?? new Error(`${command} failed with ${result.status}`);
@@ -214,7 +228,7 @@ const assertStateUnchanged = (before, after) => {
 };
 
 const buildFrontend = (phase) => {
-  run('yarn', ['nx', 'build', 'twenty-front'], {
+  run('yarn', ['nx', 'build', 'twenty-front', '--skip-nx-cache'], {
     cwd: repositoryDirectory,
     env: {
       ...process.env,
@@ -244,6 +258,10 @@ const buildFrontend = (phase) => {
 const runPhase = (phase) => {
   buildFrontend(phase);
   writeDeploymentEvidence(phase);
+  const phaseTitle =
+    phase.name === 'reenabled'
+      ? 're-enabled deployment'
+      : `${phase.name} deployment`;
   run(
     'yarn',
     [
@@ -254,7 +272,7 @@ const runPhase = (phase) => {
       '--project=operator',
       '--project=analyst',
       '--grep',
-      `${phase.name} deployment`,
+      `(?<![a-z-])${phaseTitle}`,
       '--output',
       resolve(evidenceDirectory, phase.name, 'playwright'),
     ],

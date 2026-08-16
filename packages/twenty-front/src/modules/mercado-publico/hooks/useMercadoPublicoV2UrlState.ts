@@ -1,23 +1,19 @@
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-export type MercadoPublicoV2Sort =
-  | 'closing_at_desc'
-  | 'closing_at_asc'
-  | 'published_at_desc'
-  | 'published_at_asc'
-  | 'amount_desc'
-  | 'amount_asc';
+import { MercadoPublicoV2OpportunitySort } from '~/generated/graphql';
+
+export type MercadoPublicoV2Sort = MercadoPublicoV2OpportunitySort;
 
 export type MercadoPublicoV2CohortStatus = 'active' | 'terminal';
 
 const MERCADO_PUBLICO_V2_SORT_VALUES: MercadoPublicoV2Sort[] = [
-  'closing_at_desc',
-  'closing_at_asc',
-  'published_at_desc',
-  'published_at_asc',
-  'amount_desc',
-  'amount_asc',
+  MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC,
+  MercadoPublicoV2OpportunitySort.CLOSING_AT_ASC,
+  MercadoPublicoV2OpportunitySort.PUBLISHED_AT_DESC,
+  MercadoPublicoV2OpportunitySort.PUBLISHED_AT_ASC,
+  MercadoPublicoV2OpportunitySort.AMOUNT_DESC,
+  MercadoPublicoV2OpportunitySort.AMOUNT_ASC,
 ];
 
 export type MercadoPublicoV2Filters = {
@@ -85,7 +81,7 @@ const parseSort = (value: string | null): MercadoPublicoV2Sort =>
   value !== null &&
   MERCADO_PUBLICO_V2_SORT_VALUES.includes(value as MercadoPublicoV2Sort)
     ? (value as MercadoPublicoV2Sort)
-    : 'closing_at_desc';
+    : MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC;
 
 const toSearchParams = (params: URLSearchParams): URLSearchParams =>
   new URLSearchParams(params);

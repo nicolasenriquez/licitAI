@@ -4,6 +4,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from 'twenty-ui/theme-constants';
 
+import { MercadoPublicoV2OpportunitySort } from '~/generated/graphql';
 import { MercadoPublicoV2FilterBar } from '@/mercado-publico/components/MercadoPublicoV2FilterBar';
 import { type MercadoPublicoV2Filters } from '@/mercado-publico/hooks/useMercadoPublicoV2UrlState';
 
@@ -33,7 +34,7 @@ describe('MercadoPublicoV2FilterBar', () => {
         <I18nProvider i18n={i18n}>
           <MercadoPublicoV2FilterBar
             filters={filters}
-            sort="closing_at_desc"
+            sort={MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC}
             notice={null}
             noticeId="mercado-publico-v2-filters-notice"
             onApply={onApply}

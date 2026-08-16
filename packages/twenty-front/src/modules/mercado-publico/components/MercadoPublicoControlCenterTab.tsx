@@ -3,6 +3,7 @@ import { useMercadoPublicoApiQuotaUsage } from '@/mercado-publico/hooks/useMerca
 import { useMercadoPublicoCsvFileHealth } from '@/mercado-publico/hooks/useMercadoPublicoCsvFileHealth';
 import { useMercadoPublicoJobRuns } from '@/mercado-publico/hooks/useMercadoPublicoJobRuns';
 import { useMercadoPublicoPipelineHealth } from '@/mercado-publico/hooks/useMercadoPublicoPipelineHealth';
+import type { MercadoPublicoJobRunStatus } from '~/generated/mercado-publico-legacy.graphql';
 import {
   getMercadoPublicoFreshnessLabel,
   getMercadoPublicoStatusColor,
@@ -150,7 +151,9 @@ export const MercadoPublicoControlCenterTab = () => {
   const [jobRunsOffset, setJobRunsOffset] = useState(0);
   const [apiCallLogOffset, setApiCallLogOffset] = useState(0);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  const [jobStatus, setJobStatus] = useState('');
+  const [jobStatus, setJobStatus] = useState<'' | MercadoPublicoJobRunStatus>(
+    '',
+  );
   const [apiSource, setApiSource] = useState('');
   const [apiEndpoint, setApiEndpoint] = useState('');
   const [apiHttpStatus, setApiHttpStatus] = useState('');
@@ -162,7 +165,7 @@ export const MercadoPublicoControlCenterTab = () => {
     {
       limit: INVESTIGATION_LIMIT,
       offset: jobRunsOffset,
-      statuses: jobStatus ? [jobStatus as never] : undefined,
+      statuses: jobStatus ? [jobStatus] : undefined,
     },
     { skip: !isJobRuns },
   );
@@ -382,7 +385,9 @@ export const MercadoPublicoControlCenterTab = () => {
             <select
               id="mercado-publico-job-status"
               onChange={(event) => {
-                setJobStatus(event.target.value);
+                setJobStatus(
+                  event.target.value as '' | MercadoPublicoJobRunStatus,
+                );
                 setJobRunsOffset(0);
               }}
               value={jobStatus}

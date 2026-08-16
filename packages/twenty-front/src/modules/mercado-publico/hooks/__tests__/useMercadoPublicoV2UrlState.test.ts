@@ -7,7 +7,7 @@ describe('Mercado Público V2 URL state', () => {
   it('restores cohort, filters, order, cursor and selected process', () => {
     const state = parseMercadoPublicoV2UrlState(
       new URLSearchParams(
-        'q=computadores&cohorte=terminal&estado=publicada,cerrada&buyer=69000100-1&region=13&desde=2026-07-01&hasta=2026-07-31&docsMin=2&docsMax=5&llamado=1&montoMin=100&montoMax=200&moneda=CLP,UF&orden=amount_asc&after=cursor-2&proceso=CA-2',
+        'q=computadores&cohorte=terminal&estado=publicada,cerrada&buyer=69000100-1&region=13&desde=2026-07-01&hasta=2026-07-31&docsMin=2&docsMax=5&llamado=1&montoMin=100&montoMax=200&moneda=CLP,UF&orden=AMOUNT_ASC&after=cursor-2&proceso=CA-2',
       ),
     );
 
@@ -25,7 +25,7 @@ describe('Mercado Público V2 URL state', () => {
       amountMin: '100',
       amountMax: '200',
       currencies: ['CLP', 'UF'],
-      sort: 'amount_asc',
+      sort: 'AMOUNT_ASC',
       after: 'cursor-2',
       proceso: 'CA-2',
     });
@@ -34,7 +34,7 @@ describe('Mercado Público V2 URL state', () => {
   it('falls back to default order for unknown URL order', () => {
     expect(
       parseMercadoPublicoV2UrlState(new URLSearchParams('orden=unknown')).sort,
-    ).toBe('closing_at_desc');
+    ).toBe('CLOSING_AT_DESC');
   });
 
   it('serializes filters without empty values', () => {

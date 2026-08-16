@@ -19,6 +19,12 @@ import { RelaxMpV2CanonicalStateAndDocumentCountFastInstanceCommand } from 'src/
 import { MpV2DurableDiscoveryHydrationFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1785000000000-mp-v2-durable-discovery-hydration';
 import { MpV2CohortFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1786000000000-mp-v2-cohort';
 import { MpV2EvidenceHistoryReplayFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1787000000000-mp-v2-evidence-history-replay';
+import { MpV2ActivasFiltersFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1789000000000-mp-v2-activas-filters';
+import { MpV2DetailContractFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1790000000000-mp-v2-detail-contract';
+import { MpV2SyncOperationsFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1791000000000-mp-v2-sync-operations';
+import { MpV2DurableHydrationRecoveryFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1792000000000-mp-v2-durable-hydration-recovery';
+import { MpV2ItemAttemptObservabilityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1793000000000-mp-v2-item-attempt-observability';
+import { MpV2ItemLifecycleStatusSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1794000000000-mp-v2-item-lifecycle-status';
 import { rawDataSource } from 'src/database/typeorm/raw/raw.datasource';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
@@ -49,6 +55,12 @@ const applyCommands = async (dataSource: DataSource): Promise<void> => {
     );
     await new MpV2CohortFastInstanceCommand().up(queryRunner);
     await new MpV2EvidenceHistoryReplayFastInstanceCommand().up(queryRunner);
+    await new MpV2ActivasFiltersFastInstanceCommand().up(queryRunner);
+    await new MpV2DetailContractFastInstanceCommand().up(queryRunner);
+    await new MpV2SyncOperationsFastInstanceCommand().up(queryRunner);
+    await new MpV2DurableHydrationRecoveryFastInstanceCommand().up(queryRunner);
+    await new MpV2ItemAttemptObservabilityFastInstanceCommand().up(queryRunner);
+    await new MpV2ItemLifecycleStatusSlowInstanceCommand().up(queryRunner);
     await queryRunner.commitTransaction();
   } catch (error) {
     await queryRunner.rollbackTransaction();
@@ -64,6 +76,7 @@ const truncateTables = async (dataSource: DataSource): Promise<void> => {
       mp.gold_detected_process,
       mp.v2_cohort,
       mp.sync_run_item,
+      mp.sync_run_item_attempt,
       mp.sync_run_page,
       mp.source_watermark,
       mp.v2_history,
@@ -174,6 +187,9 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
     }
 
     await applyCommands(dataSource);
+    await new MpV2ItemLifecycleStatusSlowInstanceCommand().runDataMigration(
+      dataSource,
+    );
   });
 
   beforeEach(async () => {
@@ -217,6 +233,7 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
 
     const result = await service.start({
       cambio_desde: '2026-08-01T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
     });
     const pendingItems = await dataSource.query<
       { codigo: string; status: string }[]
@@ -275,6 +292,7 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
 
     const result = await service.start({
       cambio_desde: '2026-08-05T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
     });
     const items = await dataSource.query<{ codigo: string }[]>(
       `SELECT codigo FROM mp.sync_run_item WHERE sync_run_id = $1`,
@@ -297,6 +315,7 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
 
     const result = await service.start({
       cambio_desde: '2026-08-05T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
     });
     const items = await dataSource.query<{ codigo: string }[]>(
       `SELECT codigo FROM mp.sync_run_item WHERE sync_run_id = $1`,
@@ -316,6 +335,7 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
 
     const result = await service.start({
       cambio_desde: '2026-08-05T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
     });
     const items = await dataSource.query<
       { codigo: string; discovery_page: number; status: string }[]
@@ -346,6 +366,7 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
 
     const firstRun = await service.start({
       cambio_desde: '2026-08-05T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
     });
     const cohortAfterTerminal = await dataSource.query<
       { status: string; terminal_sync_run_id: string }[]
@@ -356,6 +377,7 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
     clientService.getList.mockResolvedValueOnce(createResponse([]));
     const secondRun = await service.start({
       cambio_desde: '2026-08-05T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
     });
     const secondRunItems = await dataSource.query<{ codigo: string }[]>(
       `SELECT codigo FROM mp.sync_run_item WHERE sync_run_id = $1`,
@@ -407,6 +429,7 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
 
     const result = await service.start({
       cambio_desde: '2026-08-05T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
     });
     const after = await dataSource.query<{ title: string | null }[]>(
       `SELECT title FROM mp.compra_agil WHERE codigo = 'FIXTURE-CA-001'`,
@@ -428,7 +451,7 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
     );
 
     await expect(
-      service.start({ cambio_desde: '2026-08-05T00:00:00Z' }),
+      service.start({ cambio_desde: '2026-08-05T00:00:00Z', cambio_hasta: '2026-08-06T00:00:00Z' }),
     ).rejects.toThrow('all detail requests failed');
     const runs = await dataSource.query<
       { status: string; watermark_after: Date | null }[]
@@ -448,7 +471,7 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
     clientService.getByCodigo.mockResolvedValueOnce(
       createResponse([firstRecord]),
     );
-    await service.start({ cambio_desde: '2026-08-05T00:00:00Z' });
+    await service.start({ cambio_desde: '2026-08-05T00:00:00Z', cambio_hasta: '2026-08-06T00:00:00Z' });
 
     const staleRecord = createRecord(
       'CA-VERSIONED',
@@ -460,7 +483,7 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
     clientService.getByCodigo.mockResolvedValueOnce(
       createResponse([staleRecord]),
     );
-    await service.start({ cambio_desde: '2026-08-05T00:00:00Z' });
+    await service.start({ cambio_desde: '2026-08-05T00:00:00Z', cambio_hasta: '2026-08-06T00:00:00Z' });
 
     const equalTimestampRecord = createRecord(
       'CA-VERSIONED',
@@ -486,7 +509,7 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
         new Date('2026-08-06T12:00:00.000Z'),
       ),
     );
-    await service.start({ cambio_desde: '2026-08-05T00:00:00Z' });
+    await service.start({ cambio_desde: '2026-08-05T00:00:00Z', cambio_hasta: '2026-08-06T00:00:00Z' });
 
     const unknownTimestampRecord = createRecord(
       'CA-VERSIONED',
@@ -512,7 +535,7 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
         new Date('2026-08-07T12:00:00.000Z'),
       ),
     );
-    await service.start({ cambio_desde: '2026-08-05T00:00:00Z' });
+    await service.start({ cambio_desde: '2026-08-05T00:00:00Z', cambio_hasta: '2026-08-06T00:00:00Z' });
 
     const projections = await dataSource.query<
       {
@@ -569,6 +592,7 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
 
     const result = await service.start({
       cambio_desde: '2026-08-05T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
     });
     const after = await dataSource.query<{ title: string | null }[]>(
       `SELECT title FROM mp.compra_agil WHERE codigo = 'FIXTURE-CA-001'`,
@@ -593,7 +617,7 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
       );
 
       await expect(
-        service.start({ cambio_desde: '2026-08-05T00:00:00Z' }),
+        service.start({ cambio_desde: '2026-08-05T00:00:00Z', cambio_hasta: '2026-08-06T00:00:00Z' }),
       ).rejects.toThrow('systemic detail configuration failure');
     },
   );
@@ -604,7 +628,7 @@ describe('Mercado Publico V2 durable discovery and hydration (db-backed)', () =>
     );
 
     await expect(
-      service.start({ cambio_desde: '2026-08-01T00:00:00Z' }),
+      service.start({ cambio_desde: '2026-08-01T00:00:00Z', cambio_hasta: '2026-08-06T00:00:00Z' }),
     ).rejects.toThrow();
     const runs = await dataSource.query<
       { status: string; watermark_after: Date | null }[]

@@ -19,6 +19,11 @@ import { MpV2DurableDiscoveryHydrationFastInstanceCommand } from 'src/database/c
 import { MpV2CohortFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1786000000000-mp-v2-cohort';
 import { MpV2EvidenceHistoryReplayFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1787000000000-mp-v2-evidence-history-replay';
 import { MpV2ActivasFiltersFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1789000000000-mp-v2-activas-filters';
+import { MpV2DetailContractFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1790000000000-mp-v2-detail-contract';
+import { MpV2SyncOperationsFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1791000000000-mp-v2-sync-operations';
+import { MpV2DurableHydrationRecoveryFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1792000000000-mp-v2-durable-hydration-recovery';
+import { MpV2ItemAttemptObservabilityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1793000000000-mp-v2-item-attempt-observability';
+import { MpV2ItemLifecycleStatusSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1794000000000-mp-v2-item-lifecycle-status';
 import { rawDataSource } from 'src/database/typeorm/raw/raw.datasource';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
@@ -50,6 +55,11 @@ const applyCommands = async (dataSource: DataSource): Promise<void> => {
     await new MpV2CohortFastInstanceCommand().up(queryRunner);
     await new MpV2EvidenceHistoryReplayFastInstanceCommand().up(queryRunner);
     await new MpV2ActivasFiltersFastInstanceCommand().up(queryRunner);
+    await new MpV2DetailContractFastInstanceCommand().up(queryRunner);
+    await new MpV2SyncOperationsFastInstanceCommand().up(queryRunner);
+    await new MpV2DurableHydrationRecoveryFastInstanceCommand().up(queryRunner);
+    await new MpV2ItemAttemptObservabilityFastInstanceCommand().up(queryRunner);
+    await new MpV2ItemLifecycleStatusSlowInstanceCommand().up(queryRunner);
 
     await queryRunner.commitTransaction();
   } catch (error) {
@@ -66,6 +76,7 @@ const truncateTables = async (dataSource: DataSource): Promise<void> => {
       mp.gold_detected_process,
       mp.v2_cohort,
       mp.sync_run_item,
+      mp.sync_run_item_attempt,
       mp.sync_run_page,
       mp.source_watermark,
       mp.v2_history,
@@ -95,6 +106,9 @@ describe('Mercado Publico V2 golden path (db-backed)', () => {
     }
 
     await applyCommands(dataSource);
+    await new MpV2ItemLifecycleStatusSlowInstanceCommand().runDataMigration(
+      dataSource,
+    );
 
     const persistenceService = new MercadoPublicoPersistenceService(dataSource);
     durableSyncService = new MercadoPublicoV2DurableSyncService(

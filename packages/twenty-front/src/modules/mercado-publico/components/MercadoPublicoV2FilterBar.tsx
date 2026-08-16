@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { Button } from 'twenty-ui/input';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 
+import { MercadoPublicoV2OpportunitySort } from '~/generated/graphql';
+
 import {
   type MercadoPublicoV2Filters,
   type MercadoPublicoV2CohortStatus,
@@ -37,12 +39,30 @@ export const MERCADO_PUBLICO_V2_SORTS: Array<{
   value: MercadoPublicoV2Sort;
   label: string;
 }> = [
-  { value: 'closing_at_desc', label: 'Cierre más lejano' },
-  { value: 'closing_at_asc', label: 'Cierre más próximo' },
-  { value: 'published_at_desc', label: 'Publicación reciente' },
-  { value: 'published_at_asc', label: 'Publicación antigua' },
-  { value: 'amount_desc', label: 'Monto mayor a menor' },
-  { value: 'amount_asc', label: 'Monto menor a mayor' },
+  {
+    value: MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC,
+    label: 'Cierre más lejano',
+  },
+  {
+    value: MercadoPublicoV2OpportunitySort.CLOSING_AT_ASC,
+    label: 'Cierre más próximo',
+  },
+  {
+    value: MercadoPublicoV2OpportunitySort.PUBLISHED_AT_DESC,
+    label: 'Publicación reciente',
+  },
+  {
+    value: MercadoPublicoV2OpportunitySort.PUBLISHED_AT_ASC,
+    label: 'Publicación antigua',
+  },
+  {
+    value: MercadoPublicoV2OpportunitySort.AMOUNT_DESC,
+    label: 'Monto mayor a menor',
+  },
+  {
+    value: MercadoPublicoV2OpportunitySort.AMOUNT_ASC,
+    label: 'Monto menor a mayor',
+  },
 ];
 
 const StyledForm = styled.form`

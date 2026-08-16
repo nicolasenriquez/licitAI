@@ -9,11 +9,6 @@ export class MpV2ItemLifecycleStatusSlowInstanceCommand
 {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-      ALTER TABLE mp.sync_run_item
-        DROP CONSTRAINT IF EXISTS "ck_mp_sync_run_item_status"
-    `);
-
-    await queryRunner.query(`
       ALTER TABLE mp.sync_run
         ADD COLUMN IF NOT EXISTS records_deferred integer NOT NULL DEFAULT 0
     `);
@@ -28,6 +23,11 @@ export class MpV2ItemLifecycleStatusSlowInstanceCommand
             ELSE 'failed'
           END
       WHERE status = 'terminal'
+    `);
+
+    await dataSource.query(`
+      ALTER TABLE mp.sync_run_item
+        DROP CONSTRAINT IF EXISTS "ck_mp_sync_run_item_status"
     `);
 
     await dataSource.query(`
