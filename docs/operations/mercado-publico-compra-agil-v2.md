@@ -40,9 +40,13 @@ repeating a failed run from page one.
 
 ## Safe Manual Recipe
 
-Use UTC timestamps and a complete, small publication window. The internal
-`mercado-publico:run` command accepts one job name and a JSON payload; invoke
-it through the existing server command surface for the environment.
+Use UTC timestamps and a complete, small publication window. Manual V2 runs
+dispatch through the retained sync control surface: an assigned operator
+starts, resumes, or cancels the global incremental run from Centro de control,
+and the retained `MercadoPublicoV2SyncCommandJob` executes the dispatch name
+below. The retired `mercado-publico:run` CLI is no longer available; the
+retained `mercado-publico:sync-operator` command manages operator assignments
+only.
 
 ```text
 job: api-v2-compra-agil-by-publication-window
@@ -226,3 +230,43 @@ quota.
 **Policy**: 504 is retryable because the provider has returned endpoint timeout
 responses in retained runtime evidence. It is not listed in the published error
 matrix.
+
+## Retired Legacy Surface
+
+The `mercado-publico-v2-legacy-retirement` change (G5, 2026-08-16) removed the
+displaced legacy surface after the G4 cutover gate closed:
+
+- Legacy UI routes, pages, and the private legacy alias.
+- Legacy internal GraphQL queries, fragments, resolver, and read closure.
+- API V1 and Datos Abiertos CSV ingestion: drivers, services, jobs,
+  orchestrator, canonical-refresh, reconciliation, and the `mercado-publico:run`
+  CLI.
+- Displaced V2-named backbone services (`api-v2-*` incremental,
+  publication-window, detail-by-codigo) and their orchestration consumers.
+
+Retained: Compra Agil V2 durable sync, evidence replay, projections, sync
+control, cron jobs (sync-recovery, debt-recovery), operator assignment CLI,
+shared persistence/raw-layer evidence branches, and all committed `2-16-*mp*`
+instance commands.
+
+## Rollback and Recovery
+
+Rollback is deploying the G4 gate-close revision `49d115e768` on
+`feat/mercado-publico-v2-baseline`. That revision carries the legacy route, CLI,
+and V1/CSV runtime; the verified procedure is the G4 runbook in
+`openspec/changes/archive/2026-08-16-mercado-publico-v2-cutover-gate/pre-cutover-evidence.md`.
+
+Data recovery needs no removed component: all `mp` schema rows and committed
+migrations are untouched by G5, and historical V1/CSV rows remain queryable.
+New V1/CSV ingestion requires the rollback deployment by design.
+
+## Evidence and Execution Authorities
+
+- Evidence: `openspec/changes/mercado-publico-v2-legacy-retirement/retirement-evidence.md`
+  is the certification record (candidate manifest, zero-consumer proof, smoke,
+  visual evidence, rollback reference).
+- PRD: `.scratch/mercado-publico-v2-reconstruction/PRD.md`.
+- Source issues: 32-35 under `.scratch/mercado-publico-v2-reconstruction/issues/`.
+- OpenSpec decisions: `mercado-publico-v2-cutover-gate` (G4, archived),
+  `mercado-publico-v2-sync-operations` (G3, archived),
+  `mercado-publico-v2-legacy-retirement` (G5, active).
