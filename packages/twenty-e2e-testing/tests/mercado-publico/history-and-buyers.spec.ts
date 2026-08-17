@@ -9,6 +9,8 @@ const HISTORY_PATH = '/mercado-publico/historial';
 const BUYERS_PATH = '/mercado-publico/compradores';
 const seededCodigo =
   process.env.MERCADO_PUBLICO_V2_E2E_CODIGO ?? 'FIXTURE-CA-001';
+const seededUtmCodigo =
+  process.env.MERCADO_PUBLICO_V2_E2E_UTM_CODIGO ?? 'FIXTURE-CA-UTM';
 const seededBuyerCode =
   process.env.MERCADO_PUBLICO_V2_E2E_BUYER_CODE ?? '60.000.000-0';
 const v2FlagOn = process.env.REACT_APP_MERCADO_PUBLICO_V2_ENABLED === 'true';
@@ -36,6 +38,19 @@ test.describe('Mercado Publico V2 history and buyers', () => {
     await expect(page.getByText('Campos modificados')).toBeVisible();
     await expect(page.getByText('Procedencia')).toBeVisible();
     await expect(page.getByText('mercado-publico-v2-durable-1')).toBeVisible();
+  });
+
+  test('shows amount semantic change in history for non-CLP opportunity', async ({
+    page,
+  }) => {
+    await page.goto(
+      `${HISTORY_PATH}?codigo=${encodeURIComponent(seededUtmCodigo)}`,
+      { waitUntil: 'domcontentloaded' },
+    );
+
+    await expect(page.getByText(seededUtmCodigo)).toBeVisible();
+    await expect(page.getByText('Campos modificados')).toBeVisible();
+    await expect(page.getByText(/amount/)).toBeVisible();
   });
 
   test('shows guidance and no global history feed without codigo', async ({

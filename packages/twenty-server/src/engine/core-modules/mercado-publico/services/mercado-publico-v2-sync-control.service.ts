@@ -58,6 +58,10 @@ export type MercadoPublicoV2LatestRun = {
   recordsDiscovered: number;
   recordsHydrated: number;
   recordsFailed: number;
+  recordsDeferred: number;
+  recordsProjected: number;
+  discoveryComplete: boolean;
+  completionReason: string | null;
   startedAt: Date | null;
   updatedAt: Date | null;
   timeline: {
@@ -705,13 +709,18 @@ export class MercadoPublicoV2SyncControlService {
         records_discovered: string | null;
         records_hydrated: string | null;
         records_failed: string | null;
+        records_deferred: string | null;
+        records_projected: string | null;
+        discovery_complete: boolean;
+        completion_reason: string | null;
         created_at: Date | null;
         updated_at: Date | null;
       }[]
     >(
       `
         SELECT id, status, error_stage, records_discovered, records_hydrated,
-               records_failed, created_at, updated_at
+               records_failed, records_deferred, records_projected,
+               discovery_complete, completion_reason, created_at, updated_at
         FROM mp.sync_run
         WHERE control_workspace_id = $1
         ORDER BY created_at DESC
@@ -760,6 +769,10 @@ export class MercadoPublicoV2SyncControlService {
       recordsDiscovered: Number(row.records_discovered ?? 0),
       recordsHydrated: Number(row.records_hydrated ?? 0),
       recordsFailed: Number(row.records_failed ?? 0),
+      recordsDeferred: Number(row.records_deferred ?? 0),
+      recordsProjected: Number(row.records_projected ?? 0),
+      discoveryComplete: row.discovery_complete,
+      completionReason: row.completion_reason,
       startedAt: row.created_at,
       updatedAt: row.updated_at,
       timeline: timelineRows.map((timelineRow) => ({

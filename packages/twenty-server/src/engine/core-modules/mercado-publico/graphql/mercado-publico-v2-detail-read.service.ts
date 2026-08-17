@@ -28,6 +28,7 @@ type MercadoPublicoV2DetailRow = {
   publishedAt: Date | null;
   closingAt: Date | null;
   amount: string | null;
+  amountClp: string | null;
   currency: string | null;
   documentCount: number | null;
   llamado: number | null;
@@ -135,6 +136,7 @@ type DetailQueryRow = {
   published_at: Date | null;
   closing_at: Date | null;
   amount: string | null;
+  amount_clp: string | null;
   currency_source: string | null;
   document_count: number | null;
   llamado: number | null;
@@ -292,6 +294,7 @@ const mapDetail = (row: DetailQueryRow): MercadoPublicoV2Detail => {
     publishedAt: toDate(row.published_at),
     closingAt: toDate(row.closing_at),
     amount: row.amount,
+    amountClp: row.amount_clp,
     currency: row.currency_source,
     documentCount: row.document_count,
     llamado: row.llamado,
@@ -396,6 +399,7 @@ export class MercadoPublicoV2DetailReadService {
           gold.published_at,
           gold.closing_at,
           COALESCE(gold.amount_raw, gold.amount::text) AS amount,
+          gold.amount::text AS amount_clp,
           gold.currency_source,
           gold.document_count,
           gold.llamado,

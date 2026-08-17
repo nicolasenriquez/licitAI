@@ -1853,6 +1853,22 @@ export class MercadoPublicoV2DurableSyncService {
             : 'partial_failed: one or more detail requests were deferred for recovery'
           : undefined,
     });
+    const jobRunRows = await this.coreDataSource.query<{ job_name: string }[]>(
+      `
+        SELECT job_name
+        FROM mp.stg_job_run
+        WHERE id = $1
+      `,
+      [jobRunRecordId],
+    );
+    const jobName = jobRunRows[0]?.job_name;
+
+    if (jobName !== undefined) {
+      await this.mercadoPublicoPersistenceService.recordPipelineHealth({
+        jobName,
+        succeeded: status === 'succeeded',
+      });
+    }
 
     this.logger.log(
       `Mercado Publico V2 sync ${context.syncRunId} finished as ${status}`,

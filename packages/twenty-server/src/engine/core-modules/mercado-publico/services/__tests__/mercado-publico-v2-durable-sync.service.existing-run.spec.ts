@@ -64,6 +64,7 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
       }),
       persistApiFailure: jest.fn().mockResolvedValue(undefined),
       finalizeJobRun: jest.fn(),
+      recordPipelineHealth: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<MercadoPublicoPersistenceService>;
     const transaction = jest.fn(
       async (

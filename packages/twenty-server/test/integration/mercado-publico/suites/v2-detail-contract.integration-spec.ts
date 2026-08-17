@@ -285,6 +285,33 @@ describe('Mercado Publico V2 detail contract (db-backed)', () => {
     ).toBe(true);
   });
 
+  it('exposes every column required by the V2 list read model', async () => {
+    const readModelRequiredColumns = [
+      'process_code',
+      'title',
+      'canonical_state',
+      'buyer_name',
+      'region',
+      'published_at',
+      'closing_at',
+      'amount',
+      'amount_raw',
+      'currency_source',
+      'document_count',
+      'llamado',
+      'observation_id',
+      'normalizer_version',
+      'provider_schema_fingerprint',
+      'availability',
+    ];
+
+    for (const column of readModelRequiredColumns) {
+      expect(
+        await columnExists(dataSource, 'gold_detected_process', column),
+      ).toBe(true);
+    }
+  });
+
   it('projects child evidence with parent provider keys', async () => {
     const result = await projection.ingest(buildContext(buildDetailFixture()));
 

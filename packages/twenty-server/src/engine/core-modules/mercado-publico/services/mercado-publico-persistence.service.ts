@@ -302,6 +302,40 @@ export class MercadoPublicoPersistenceService {
     );
   }
 
+  async recordPipelineHealth(input: {
+    jobName: string;
+    succeeded: boolean;
+  }): Promise<void> {
+    await this.coreDataSource.query(
+      `
+        INSERT INTO mp.gold_pipeline_health (
+          job_name,
+          latest_status,
+          last_success_at,
+          last_failure_at,
+          failure_count,
+          freshness
+        )
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (job_name) DO UPDATE SET
+          latest_status = EXCLUDED.latest_status,
+          last_success_at = EXCLUDED.last_success_at,
+          last_failure_at = EXCLUDED.last_failure_at,
+          failure_count = mp.gold_pipeline_health.failure_count + EXCLUDED.failure_count,
+          freshness = EXCLUDED.freshness,
+          updated_at = now()
+      `,
+      [
+        input.jobName,
+        input.succeeded ? 'success' : 'failed',
+        input.succeeded ? new Date() : null,
+        input.succeeded ? null : new Date(),
+        input.succeeded ? 0 : 1,
+        input.succeeded ? 'healthy' : 'degraded',
+      ],
+    );
+  }
+
   async persistApiFailure(
     input: PersistMercadoPublicoApiFailureInput,
   ): Promise<void> {
@@ -551,7 +585,7 @@ export class MercadoPublicoPersistenceService {
         normalized.publishedAt,
         normalized.closingAt,
         normalized.amount,
-        normalized.amount,
+        normalized.amountRaw,
         normalized.currency,
         normalized.documentCount,
       );

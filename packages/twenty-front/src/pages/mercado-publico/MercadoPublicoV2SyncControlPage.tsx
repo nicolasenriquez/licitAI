@@ -20,6 +20,10 @@ const MERCADO_PUBLICO_V2_SYNC_CONTROL_LATEST_RUN_QUERY = gql`
         recordsDiscovered
         recordsHydrated
         recordsFailed
+        recordsDeferred
+        recordsProjected
+        discoveryComplete
+        completionReason
         startedAt
         updatedAt
         timeline {
@@ -174,6 +178,10 @@ type MercadoPublicoV2SyncControlLatestRunQuery = {
       recordsDiscovered: number;
       recordsHydrated: number;
       recordsFailed: number;
+      recordsDeferred: number;
+      recordsProjected: number;
+      discoveryComplete: boolean;
+      completionReason?: string | null;
       startedAt?: string | null;
       updatedAt?: string | null;
       timeline: MercadoPublicoV2SyncTimelineEvent[];
@@ -309,8 +317,17 @@ export const MercadoPublicoV2SyncControlPage = () => {
               ) : (
                 <>
                   <StyledStatusLine>
-                    {t`Estado: ${latestRun.safeStatus}`}
+                    {t`Ejecución: ${latestRun.safeStatus}`}
                   </StyledStatusLine>
+                  <StyledStatusLine>
+                    {t`Cobertura: ${latestRun.discoveryComplete ? 'Completa' : 'Parcial'}`}
+                  </StyledStatusLine>
+                  {latestRun.completionReason !== null &&
+                    latestRun.completionReason !== undefined && (
+                      <StyledStatusLine>
+                        {t`Motivo: ${latestRun.completionReason}`}
+                      </StyledStatusLine>
+                    )}
                   {latestRun.safeSummary !== null &&
                     latestRun.safeSummary !== undefined && (
                       <StyledStatusLine>
@@ -321,7 +338,7 @@ export const MercadoPublicoV2SyncControlPage = () => {
                     {t`Iniciada: ${latestRun.startedAt !== null && latestRun.startedAt !== undefined ? new Date(latestRun.startedAt).toLocaleString() : '—'}`}
                   </StyledStatusLine>
                   <StyledStatusLine>
-                    {t`Descubiertos: ${latestRun.recordsDiscovered} · Hidratados: ${latestRun.recordsHydrated} · Fallidos: ${latestRun.recordsFailed}`}
+                    {t`Descubiertos: ${latestRun.recordsDiscovered} · Hidratados: ${latestRun.recordsHydrated} · Diferidos: ${latestRun.recordsDeferred} · Fallidos: ${latestRun.recordsFailed} · Proyectados: ${latestRun.recordsProjected}`}
                   </StyledStatusLine>
                 </>
               )}

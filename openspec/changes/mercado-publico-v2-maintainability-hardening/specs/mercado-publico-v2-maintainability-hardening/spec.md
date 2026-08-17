@@ -1,143 +1,96 @@
 ## ADDED Requirements
 
-### Requirement: Refactor preserves every external contract
-The system SHALL keep the DB schema, GraphQL schema, queue names, job payloads,
-API semantics, watermark semantics, retry semantics, and projection semantics
-identical while internals move. A task that would change any of them SHALL stop
-instead of proceeding.
+### Requirement: Command submission keeps one transaction owner
+`MercadoPublicoV2SyncControlService.submitCommand()` SHALL remain the
+transaction owner for command submission. Any collaborator extracted from the
+submission path SHALL receive the existing `EntityManager` and SHALL NOT open
+an independent transaction for work that currently participates in the
+submission transaction. Queue dispatch SHALL occur only after the submission
+transaction has successfully completed.
 
-#### Scenario: A slice moves internals
-- **WHEN** a store, runner, or util extraction changes module internals
-- **THEN** the public method signatures, return types, and persisted data
-  remain identical
+#### Scenario: An extraction touches the submission path
+- **WHEN** a persistence helper is extracted from `submitCommand()`
+- **THEN** the helper receives the existing transaction `EntityManager` and
+  opens no new transaction
 
-#### Scenario: A change touches a frozen contract
-- **WHEN** a task would alter the `mp` schema, GraphQL surface, queue name, job
-  payload, watermark, retry, or projection semantics
-- **THEN** the task stops and the change is re-planned
+#### Scenario: Dispatch waits for the transaction
+- **WHEN** a start command produces a queued result
+- **THEN** the transaction commits before the queue job is added, and a
+  characterization test proves the ordering at the `submitCommand` seam
 
-### Requirement: Resume decisions come from one pure, testable function
-The system SHALL decide how to resume or rediscover a sync run through a single
-pure function that maps `{ status, errorStage, errorRetryable }` to
-`cancelled_before_start`, `requires_rediscovery`, `discovery`, or `hydration`.
-Both `resume()` and `executeExistingRun()` SHALL use it, and the decision table
-SHALL be unit-tested without Nest, PostgreSQL, BullMQ, or mocks. The util SHALL
-own only the shared stage decision; the terminal allowed-list guard SHALL stay
-in `executeExistingRun()` and remain pinned by its existing specs.
+### Requirement: Shared request policy lives in one neutral pure util
+The system SHALL provide `buildCompraAgilRequestParams` in
+`services/utils/mercado-publico-v2-sync-request-params.util.ts` as a pure
+function with no DB, queue, Nest state, injected dependency, or lifecycle. Both
+`MercadoPublicoV2DurableSyncService` and `MercadoPublicoV2SyncControlService`
+SHALL import it from the util; neither SHALL export or own it. No injectable
+service SHALL be created for it.
 
-#### Scenario: Partial failure during discovery is retryable
-- **WHEN** a run has status `partial_failed`, error stage `discovering`, and a
-  retryable error
-- **THEN** the decision is `discovery` and the run resumes discovery from the
-  next checkpointed page
+#### Scenario: Both orchestrators build request parameters
+- **WHEN** DurableSync creates a run or SyncControl previews one
+- **THEN** both derive parameters from the same pure util import and the
+  implementation text is unchanged
 
-#### Scenario: Failed discovery is not retryable
-- **WHEN** a run failed or was cancelled during discovery without a retryable
-  discovery error
-- **THEN** the decision is `requires_rediscovery`
+### Requirement: Deferred hydration recovery belongs to DurableSync
+The system SHALL own `recoverDeferredHydrations()` in
+`MercadoPublicoV2DurableSyncService`. `MercadoPublicoV2DebtRecoveryCronJob`
+SHALL depend on `MercadoPublicoV2DurableSyncService` and call it directly.
+`MercadoPublicoV2SyncControlService` SHALL have no
+`MercadoPublicoV2DurableSyncService` dependency. Recovery behavior SHALL stay
+identical: due `deferred` items are claimed with the same backoff SQL and
+dispatched as focused `'recovery'` runs, skipping items whose observation is
+already fresher.
 
-#### Scenario: The two entry points keep their intentional divergence
-- **WHEN** a run has status `failed` with error stage `hydrating`
-- **THEN** `resume()` proceeds to hydration while `executeExistingRun()` throws
-  the existing terminal error, because the terminal guard stays in
-  `executeExistingRun()`
+#### Scenario: The cron dispatches recovery runs
+- **WHEN** the debt recovery cron handles due deferred items
+- **THEN** it calls `recoverDeferredHydrations()` on DurableSync and the
+  existing recovery characterization tests pass moved, with behavior
+  unchanged
 
-### Requirement: Sync persistence lives behind domain-verb stores
-The system SHALL move all `mp.sync_run`, `mp.source_watermark`,
-`mp.sync_run_page`, quota-reset, `mp.sync_run_item`, and
-`mp.sync_run_item_attempt` SQL out of `MercadoPublicoV2DurableSyncService` into
-`MercadoPublicoV2SyncRunStore` and `MercadoPublicoV2SyncRunItemStore`, and all
-`mp.v2_cohort` lifecycle SQL plus the current-detail read
-(`mp.compra_agil`/`mp.v2_observation`) into `MercadoPublicoV2CohortStore`. The
-SQL statement text SHALL be copied verbatim during extraction; query
-optimization is a separate later change. Store interfaces SHALL use domain
-verbs, not generic update methods. `SyncRunStore` SHALL expose the lifecycle
-verbs `createSyncRun`, `checkpointPage`, `completeSyncRun`, `failSyncRun`,
-`readRunCounts`, and `listObservationIds` so the fixture runner never widens
-DurableSync's public surface.
+#### Scenario: SyncControl is free of the execution dependency
+- **WHEN** the edge removal lands
+- **THEN** the SyncControl constructor injects no DurableSync service and the
+  module provider registrations stay unchanged
 
-#### Scenario: Extraction moves a query
-- **WHEN** a query moves from DurableSync to a store
-- **THEN** the SQL text and parameters are unchanged and only the call site
-  changes
+### Requirement: Behavior preservation is pinned against a recorded baseline
+The system SHALL record a baseline commit SHA and green status of the targeted
+Mercado Publico V2 suites before any code move, and SHALL treat any
+pre-existing failure as recorded baseline state. The behavior-preservation
+matrix in `design.md` SHALL be the authoritative map from invariants to their
+existing characterization suites. Tests SHALL be added only for uncovered
+invariants; behavior already characterized by existing suites SHALL NOT be
+re-tested in a duplicate contract suite.
 
-#### Scenario: Orchestration needs item state
-- **WHEN** hydration marks an item terminal
-- **THEN** it calls `markTerminal(itemId, status, errorSummary, rawApiPayloadId?)`
-  instead of writing SQL inline
+#### Scenario: Baseline precedes moves
+- **WHEN** implementation begins
+- **THEN** the baseline result is recorded and reproducible, and no
+  extraction starts until it is
 
-### Requirement: Discovery and hydration run behind their own modules
-The system SHALL execute discovery through
-`MercadoPublicoV2DiscoveryRunnerService` and hydration through
-`MercadoPublicoV2HydrationRunnerService`. `MercadoPublicoV2DurableSyncService`
-SHALL only interpret the returned string-union outcomes. Outcome structs SHALL
-NOT be introduced while only one consumer reads the result.
+#### Scenario: A move preserves its mapped invariant
+- **WHEN** a pure-util or recovery move lands
+- **THEN** the existing suites mapped by the matrix stay green unchanged and
+  only the new queue-after-commit test is added
 
-#### Scenario: Discovery completes within page budget
-- **WHEN** the discovery runner returns `page_budget_reached`
-- **THEN** DurableSync continues to hydration without executing discovery logic
+### Requirement: No premature abstractions in this change
+The system SHALL NOT introduce injectable state services, repository
+interfaces, outcome structs, store services, a transactional outbox, or a
+watermark service in this change. `SyncCommandJob` SHALL stay unmodified. A
+further extraction SHALL be authorized only when it names one cohesive
+responsibility with a clear owner, meaningfully reduces orchestration
+complexity, and hides no transaction boundary.
 
-#### Scenario: A second consumer would need outcome fields
-- **WHEN** a module other than DurableSync must read the runner result
-- **THEN** an outcome struct may be introduced as a separate change, not before
-
-### Requirement: Projection normalizes each record once
-The system SHALL compute normalization, semantic payload, semantic fingerprint,
-and observed time through one private `buildProjectionInput()` in
-`MercadoPublicoV2ProjectionService` and reuse it at every projection site. The
-returned type SHALL stay file-local until a second module consumes it.
-
-#### Scenario: Ingest and rebuild project the same record
-- **WHEN** `ingest` and `rebuild` process the same record
-- **THEN** both derive their input from `buildProjectionInput()` and produce
-  identical fingerprints
-
-### Requirement: Sync control persistence moves behind two stores
-The system SHALL move `mp.sync_command` and `mp.sync_run_attempt` SQL from
-`MercadoPublicoV2SyncControlService` into `MercadoPublicoV2SyncCommandStore`
-and `MercadoPublicoV2SyncRunAttemptStore`, both accepting
-`EntityManager | DataSource` so SyncControl keeps transaction ownership.
-Recovery `mp.sync_run_item` SQL SHALL go through the `SyncRunItemStore` verbs
-`resetForResume` and `claimDueDeferred`, passing the `EntityManager`.
-SyncControl SHALL retain policy, queue dispatch, idempotency orchestration,
-operator commands, audit behavior, and a documented set of policy SQL:
-the `mp.sync_operator` read, `mp.sync_run` state reads and writes,
-the `mp.source_watermark` read, the workspace timeline read, and
-`mp.sync_run_audit` writes.
-
-#### Scenario: Claim within a transaction
-- **WHEN** `claimCommand` claims a pending command
-- **THEN** the store executes the same SQL through the passed
-  `EntityManager` and SyncControl performs the audit and result mapping
-
-#### Scenario: Recovery item updates go through the item store
-- **WHEN** recovery resets items for a resumable run or claims due deferred
-  items
-- **THEN** SyncControl calls `resetForResume` or `claimDueDeferred` with the
-  transaction `EntityManager` and writes no `mp.sync_run_item` SQL inline
-
-### Requirement: The fixture surface lives outside the productive workflow
-The system SHALL move `runFixture` and `projectPendingItems` into
-`MercadoPublicoV2FixtureRunnerService` and have the E2E fixture command
-delegate to it. The fixture runner SHALL depend only on stores, persistence,
-and projection, calling the `SyncRunStore` lifecycle verbs (`createSyncRun`,
-`checkpointPage`, `completeSyncRun`, `failSyncRun`) directly; it SHALL NOT
-depend on `MercadoPublicoV2DurableSyncService` or the discovery runner.
-`MercadoPublicoV2DurableSyncService` SHALL contain no fixture-specific
-behavior afterwards. The `'fixture'` intent value SHALL remain valid persisted
-data.
-
-#### Scenario: E2E fixture is reset and seeded
-- **WHEN** the isolated fixture command runs
-- **THEN** the runner produces the same sync run results and projections as
-  before the relocation
+#### Scenario: A speculative abstraction is proposed
+- **WHEN** a service would have one caller or one implementation and no new
+  behavior
+- **THEN** the change defers it behind the stop-and-reassess gate instead of
+  adding provider wiring
 
 ### Requirement: Release readiness proves operational guarantees
 The system SHALL provide a runbook documenting start, cancel, inspect, recover,
 429 handling, stuck-run handling, Redis restart, and DB failure procedures
-after all slices verify green. The DurableSync invariants SHALL be documented:
-no direct SQL, no axios knowledge, no fixture behavior, orchestration readable
-top-to-bottom.
+after all moves verify green. The runbook SHALL document the ownership split:
+SyncControl owns command and transaction lifecycle; DurableSync owns execution
+and deferred hydration recovery; the request-params util is shared pure policy.
 
 #### Scenario: Final gate passes
 - **WHEN** the full Mercado Publico suites, typechecks, lint, and diff checks

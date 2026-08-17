@@ -28,6 +28,7 @@ export type MercadoPublicoV2OpportunityRow = {
   closing_at: Date | null;
   amount: string | null;
   amount_sort_key: string | null;
+  amount_clp: string | null;
   currency_source: string | null;
   document_count: number | null;
   llamado: number | null;
@@ -118,7 +119,19 @@ const getSortKeyValue = (
     ? row.closing_at
     : row.published_at;
 
-  return date?.toISOString() ?? null;
+  if (date === null) {
+    return null;
+  }
+
+  const parsed = date instanceof Date ? date : new Date(date);
+
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(
+      `Invalid Mercado Publico V2 cursor timestamp: ${String(date)}`,
+    );
+  }
+
+  return parsed.toISOString();
 };
 
 export const encodeMercadoPublicoV2OpportunityCursor = (
@@ -213,6 +226,7 @@ export class MercadoPublicoV2ReadService {
           closing_at,
           COALESCE(amount_raw, amount::text) AS amount,
           amount::text AS amount_sort_key,
+          amount::text AS amount_clp,
           currency_source,
           document_count,
           llamado,
@@ -458,6 +472,7 @@ export class MercadoPublicoV2ReadService {
           closing_at,
           COALESCE(amount_raw, amount::text) AS amount,
           amount::text AS amount_sort_key,
+          amount::text AS amount_clp,
           currency_source,
           document_count,
           llamado,

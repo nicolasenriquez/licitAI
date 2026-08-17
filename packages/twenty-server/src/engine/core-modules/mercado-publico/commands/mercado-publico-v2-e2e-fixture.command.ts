@@ -85,15 +85,38 @@ export class MercadoPublicoV2E2EFixtureCommand extends CommandRunner {
       FROM mp.v2_history
       WHERE codigo = 'FIXTURE-CA-001'
     `);
+    const utmHistoryRows = await this.coreDataSource.query<{ count: string }[]>(
+      `
+        SELECT COUNT(*)::text AS count
+        FROM mp.v2_history
+        WHERE codigo = 'FIXTURE-CA-UTM'
+      `,
+    );
+    const utmAmountRows = await this.coreDataSource.query<
+      {
+        amount: string;
+        amount_raw: string;
+        currency_source: string;
+      }[]
+    >(`
+      SELECT amount, amount_raw, currency_source
+      FROM mp.gold_detected_process
+      WHERE process_type = 'compra_agil' AND process_code = 'FIXTURE-CA-UTM'
+    `);
     const verification = verificationRows[0];
+    const utmAmount = utmAmountRows[0];
 
     if (
       initial.status !== 'succeeded' ||
       changed.status !== 'succeeded' ||
-      verification?.total !== '3' ||
-      verification.codedBuyer !== '2' ||
+      verification?.total !== '4' ||
+      verification.codedBuyer !== '3' ||
       verification.uncodedBuyer !== '1' ||
-      historyRows[0]?.count !== '1'
+      historyRows[0]?.count !== '1' ||
+      utmHistoryRows[0]?.count !== '1' ||
+      utmAmount?.amount !== '7190000' ||
+      utmAmount?.amount_raw !== '100' ||
+      utmAmount?.currency_source !== 'UTM'
     ) {
       throw new Error('Mercado Publico V2 E2E fixture verification failed');
     }
@@ -112,7 +135,7 @@ export class MercadoPublicoV2E2EFixtureCommand extends CommandRunner {
     );
 
     this.logger.log(
-      'Mercado Publico V2 E2E fixture ready: FIXTURE-CA-001, 60.000.000-0',
+      'Mercado Publico V2 E2E fixture ready: FIXTURE-CA-001, FIXTURE-CA-UTM, 60.000.000-0',
     );
   }
 }

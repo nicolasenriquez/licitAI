@@ -15,6 +15,7 @@ export type NormalizedV2CompraAgilRecord = {
   providerChangedAtRaw: string | null;
   stateId: string | null;
   amount: string | null;
+  amountRaw: string | null;
   currency: string | null;
   documentCount: number | null;
   description: string | null;
@@ -99,6 +100,12 @@ export const normalizeV2CompraAgilRecord = (
   const budget = record.presupuesto;
   const motives = record.motivos;
   const summary = record.resumen;
+  const currency =
+    sourceAmount !== null && sourceAmount !== undefined
+      ? coerceToText(budget?.moneda ?? record.montos?.moneda)
+      : clpAmount !== null && clpAmount !== undefined
+        ? 'CLP'
+        : null;
 
   return {
     title: coerceToText(record.nombre),
@@ -121,13 +128,9 @@ export const normalizeV2CompraAgilRecord = (
     providerChangedAt: providerChangedAt.value,
     providerChangedAtRaw: providerChangedAt.raw,
     stateId,
-    amount: toDecimalString(amount),
-    currency:
-      sourceAmount !== null && sourceAmount !== undefined
-        ? coerceToText(budget?.moneda ?? record.montos?.moneda)
-        : clpAmount !== null && clpAmount !== undefined
-          ? 'CLP'
-          : null,
+    amount: toDecimalString(clpAmount ?? (currency === 'CLP' ? amount : null)),
+    amountRaw: toDecimalString(amount),
+    currency,
     documentCount: Array.isArray(record.documentos)
       ? record.documentos.length
       : null,

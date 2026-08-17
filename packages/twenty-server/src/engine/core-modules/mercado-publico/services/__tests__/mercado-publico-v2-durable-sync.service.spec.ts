@@ -32,6 +32,11 @@ describe('MercadoPublicoV2DurableSyncService', () => {
           },
         ]);
       }
+      if (sql.includes('SELECT job_name')) {
+        return Promise.resolve([
+          { job_name: 'api-v2-compra-agil-incremental' },
+        ]);
+      }
       if (sql.includes('SELECT observation_id')) {
         return Promise.resolve([{ observation_id: 'observation-1' }]);
       }
@@ -54,6 +59,7 @@ describe('MercadoPublicoV2DurableSyncService', () => {
         recordsCanonicalized: 0,
       }),
       finalizeJobRun: jest.fn(),
+      recordPipelineHealth: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<MercadoPublicoPersistenceService>;
     const transaction = jest.fn(
       async (
@@ -81,6 +87,10 @@ describe('MercadoPublicoV2DurableSyncService', () => {
       expect.stringContaining('INSERT INTO mp.v2_observation'),
       expect.any(Array),
     );
+    expect(persistenceService.recordPipelineHealth).toHaveBeenCalledWith({
+      jobName: 'api-v2-compra-agil-incremental',
+      succeeded: true,
+    });
   });
 
   it('marks a terminal cohort with its lifecycle reason', async () => {

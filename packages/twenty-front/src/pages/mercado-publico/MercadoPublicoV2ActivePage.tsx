@@ -31,6 +31,7 @@ import { useNavigateSidePanel } from '@/side-panel/hooks/useNavigateSidePanel';
 import { useSidePanelMenu } from '@/side-panel/hooks/useSidePanelMenu';
 import { isSidePanelOpenedState } from '@/side-panel/states/isSidePanelOpenedState';
 import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
+import { logError } from '~/utils/logError';
 
 const MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY = gql`
   query MercadoPublicoV2ActiveOpportunities(
@@ -51,6 +52,7 @@ const MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY = gql`
             publishedAt
             closingAt
             amount
+            amountClp
             currency
             documentCount
             llamado
@@ -127,6 +129,7 @@ type Opportunity = {
   publishedAt: string | null;
   closingAt: string | null;
   amount: string | null;
+  amountClp: string | null;
   currency: string | null;
   documentCount: number | null;
   llamado: number | null;
@@ -719,6 +722,8 @@ export const MercadoPublicoV2ActivePage = () => {
       return;
     }
 
+    logError(error);
+
     if (error.message.includes('Mercado Publico V2 cursor is invalid')) {
       setNotice(t`Cursor inválido; se volvió a la primera página.`);
       setAfter(null);
@@ -1089,6 +1094,13 @@ export const MercadoPublicoV2ActivePage = () => {
                           ? `${node.currency} ${node.amount}`
                           : node.amount}
                       </DataValue>
+                      {node.amountClp !== null &&
+                        node.currency !== null &&
+                        node.currency !== 'CLP' && (
+                          <StyledSecondaryText>
+                            {t`≈ CLP ${node.amountClp}`}
+                          </StyledSecondaryText>
+                        )}
                     </StyledCell>
                     <StyledCell data-label={t`Documentos / ofertas`}>
                       <div>

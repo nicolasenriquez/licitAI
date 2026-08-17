@@ -7,6 +7,7 @@ describe('normalizeV2CompraAgilRecord', () => {
 
     expect(normalized).toMatchObject({
       amount: '1',
+      amountRaw: '1',
       currency: '[string]',
       documentCount: 23,
       publishedAt: new Date('2026-01-02T03:04:05Z'),
@@ -105,6 +106,7 @@ describe('normalizeV2CompraAgilRecord', () => {
       providerChangedAtRaw: null,
       stateId: null,
       amount: null,
+      amountRaw: null,
       currency: null,
       documentCount: null,
       description: null,
@@ -142,6 +144,10 @@ describe('normalizeV2CompraAgilRecord', () => {
         codigo: 'CA-1',
         presupuesto: { moneda: 'USD', monto_disponible_clp: 120000 },
       }),
-    ).toMatchObject({ amount: '120000', currency: 'CLP' });
+    ).toMatchObject({
+      amount: '120000',
+      amountRaw: '120000',
+      currency: 'CLP',
+    });
   });
 });
