@@ -138,6 +138,26 @@ describe('normalizeV2CompraAgilRecord', () => {
     ).toMatchObject({ publishedAt: null, closingAt: null });
   });
 
+  it('uses DETAIL call closing dates before LIST date fallbacks', () => {
+    const normalized = normalizeV2CompraAgilRecord({
+      codigo: 'CA-1',
+      fechas: {
+        fecha_cierre_primer_llamado: '2026-06-10T10:00:00Z',
+        fecha_cierre_segundo_llamado: '2026-06-11T10:00:00Z',
+      },
+      convocatoria: {
+        fecha_cierre_primer_llamado: '2026-06-12T10:00:00Z',
+      },
+    });
+
+    expect(normalized.callFirstClosingAt).toEqual(
+      new Date('2026-06-12T10:00:00Z'),
+    );
+    expect(normalized.callSecondClosingAt).toEqual(
+      new Date('2026-06-11T10:00:00Z'),
+    );
+  });
+
   it('keeps a CLP fallback paired with CLP currency', () => {
     expect(
       normalizeV2CompraAgilRecord({

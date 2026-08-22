@@ -21,6 +21,8 @@ export type MercadoPublicoApiV2CompraAgilRecord = {
   fechas?: {
     fecha_publicacion?: string;
     fecha_cierre?: string;
+    fecha_cierre_primer_llamado?: string | null;
+    fecha_cierre_segundo_llamado?: string | null;
     fecha_ultimo_cambio?: string;
     fecha_cancelacion?: string | null;
   };

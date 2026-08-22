@@ -140,10 +140,10 @@ export const normalizeV2CompraAgilRecord = (
     cancellationAt: normalizeV2CompraAgilDate(dates?.fecha_cancelacion).value,
     callDescription: coerceToText(call?.descripcion),
     callFirstClosingAt: normalizeV2CompraAgilDate(
-      call?.fecha_cierre_primer_llamado,
+      call?.fecha_cierre_primer_llamado ?? dates?.fecha_cierre_primer_llamado,
     ).value,
     callSecondClosingAt: normalizeV2CompraAgilDate(
-      call?.fecha_cierre_segundo_llamado,
+      call?.fecha_cierre_segundo_llamado ?? dates?.fecha_cierre_segundo_llamado,
     ).value,
     budgetType: coerceToText(budget?.tipo_presupuesto),
     budgetEstimate: toDecimalString(budget?.presupuesto_estimado),

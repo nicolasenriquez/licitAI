@@ -1,15 +1,12 @@
 import { isNonEmptyString } from '@sniptt/guards';
 
 import { type MercadoPublicoApiV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/types/mercado-publico-api-v2-compra-agil-record.type';
-import { coerceToNullableString } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/coerce-to-nullable-string.util';
 
-const PREFERRED_ARRAY_KEYS = [
-  'Items',
-  'Data',
-  'Resultados',
-  'Listado',
-  'Lista',
-];
+export type MercadoPublicoV2CompraAgilDecodeResult = {
+  records: MercadoPublicoApiV2CompraAgilRecord[];
+  errorCode?: string;
+  errorMessage?: string;
+};
 
 const isObjectRecord = (value: unknown): value is Record<string, unknown> => {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -22,57 +19,57 @@ const isV2CompraAgilRecord = (
     return false;
   }
 
-  return isNonEmptyString(coerceToNullableString(value.codigo));
+  return isNonEmptyString(value.codigo);
 };
 
-const extractRecordArray = (
-  value: unknown,
-): MercadoPublicoApiV2CompraAgilRecord[] => {
-  if (!Array.isArray(value)) {
-    return [];
+const invalidEnvelope = (
+  endpoint: 'list' | 'detail',
+): MercadoPublicoV2CompraAgilDecodeResult => ({
+  records: [],
+  errorCode: `invalid_${endpoint}_envelope`,
+  errorMessage: `Compra Agil V2 ${endpoint.toUpperCase()} contract invalid: envelope does not match the documented shape`,
+});
+
+export const decodeV2CompraAgilListPayload = (
+  payload: unknown,
+): MercadoPublicoV2CompraAgilDecodeResult => {
+  if (!isObjectRecord(payload) || !isObjectRecord(payload.payload)) {
+    return invalidEnvelope('list');
   }
 
-  return value.filter(isV2CompraAgilRecord);
+  const items = payload.payload.items;
+
+  if (!Array.isArray(items)) {
+    return invalidEnvelope('list');
+  }
+
+  const invalidIndices = items.flatMap((item, index) =>
+    isV2CompraAgilRecord(item) ? [] : [index],
+  );
+
+  if (invalidIndices.length > 0) {
+    return {
+      records: [],
+      errorCode: 'invalid_list_items',
+      errorMessage: `Compra Agil V2 LIST contract invalid: itemCount=${items.length}; invalidItemCount=${invalidIndices.length}; invalidIndices=[${invalidIndices.join(',')}]`,
+    };
+  }
+
+  return { records: items };
 };
 
-const recursivelyExtractRecords = (
-  value: unknown,
-): MercadoPublicoApiV2CompraAgilRecord[] => {
-  const directArrayRecords = extractRecordArray(value);
-
-  if (directArrayRecords.length > 0) {
-    return directArrayRecords;
+export const decodeV2CompraAgilDetailPayload = (
+  payload: unknown,
+): MercadoPublicoV2CompraAgilDecodeResult => {
+  if (!isObjectRecord(payload) || !isV2CompraAgilRecord(payload.payload)) {
+    return invalidEnvelope('detail');
   }
 
-  if (!isObjectRecord(value)) {
-    return [];
-  }
-
-  for (const preferredArrayKey of PREFERRED_ARRAY_KEYS) {
-    const preferredArrayRecords = extractRecordArray(value[preferredArrayKey]);
-
-    if (preferredArrayRecords.length > 0) {
-      return preferredArrayRecords;
-    }
-  }
-
-  if (isV2CompraAgilRecord(value)) {
-    return [value];
-  }
-
-  for (const nestedValue of Object.values(value)) {
-    const nestedRecords = recursivelyExtractRecords(nestedValue);
-
-    if (nestedRecords.length > 0) {
-      return nestedRecords;
-    }
-  }
-
-  return [];
+  return { records: [payload.payload] };
 };
 
 export const extractV2CompraAgilListRecords = (
   payload: unknown,
 ): MercadoPublicoApiV2CompraAgilRecord[] => {
-  return recursivelyExtractRecords(payload);
+  return decodeV2CompraAgilListPayload(payload).records;
 };
