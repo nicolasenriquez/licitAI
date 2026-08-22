@@ -459,7 +459,7 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
     ).toBe(true);
   });
 
-  it('hydrates and finishes a bounded window when its page budget is reached', async () => {
+  it('finishes a bounded window successfully with partial coverage', async () => {
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('SELECT id, intent, scope, request_params')) {
         return Promise.resolve([
@@ -478,9 +478,16 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
             records_discovered: '0',
             records_hydrated: '0',
             records_failed: '0',
+            records_deferred: '0',
             records_projected: '0',
             pages_checkpointed: '1',
+            discovery_complete: false,
           },
+        ]);
+      }
+      if (sql.includes('SELECT job_name')) {
+        return Promise.resolve([
+          { job_name: 'api-v2-compra-agil-incremental' },
         ]);
       }
 
@@ -502,11 +509,28 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
       .mockResolvedValue('page_budget_reached');
     jest.spyOn(syncService, 'hydrate').mockResolvedValue('completed');
 
+    const persistenceService = (
+      service as unknown as {
+        mercadoPublicoPersistenceService: jest.Mocked<MercadoPublicoPersistenceService>;
+      }
+    ).mercadoPublicoPersistenceService;
+
     await expect(service.executeExistingRun('run-1')).resolves.toMatchObject({
       status: 'succeeded',
       watermarkAfter: null,
     });
     expect(syncService.hydrate).toHaveBeenCalled();
+    expect(persistenceService.finalizeJobRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jobRunRecordId: 'job-run-1',
+        status: 'success',
+        recordsFailed: 0,
+      }),
+    );
+    expect(persistenceService.recordPipelineHealth).toHaveBeenCalledWith({
+      jobName: 'api-v2-compra-agil-incremental',
+      succeeded: true,
+    });
   });
 
   it('resumes only a discovery-complete run', async () => {

@@ -9,10 +9,7 @@ import { type MercadoPublicoApiV2CompraAgilListResponse } from 'src/engine/core-
 import { coerceToNullableString } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/coerce-to-nullable-string.util';
 import { getV2CompraAgilOrderReferences } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
 import { normalizeV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/normalize-v2-compra-agil-record.util';
-import {
-  type MercadoPublicoJobName,
-  type MercadoPublicoJobRunStatus,
-} from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
+import { type MercadoPublicoJobRunStatus } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 
 export type MercadoPublicoJobRunRecord = {
   id: string;
@@ -306,6 +303,7 @@ export class MercadoPublicoPersistenceService {
     jobName: string;
     succeeded: boolean;
   }): Promise<void> {
+    // Execution health is distinct from source coverage in mp.sync_run.
     await this.coreDataSource.query(
       `
         INSERT INTO mp.gold_pipeline_health (
