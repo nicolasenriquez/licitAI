@@ -539,10 +539,15 @@ export class MercadoPublicoV2DurableSyncService {
         response,
         persistenceResult.rawApiPayloadId,
       );
-      await this.projectPendingItems(
-        context.syncRunId,
-        response.compraAgil,
-        persistenceResult.rawApiPayloadId,
+      await this.coreDataSource.query(
+        `
+          UPDATE mp.sync_run_item
+          SET status = 'succeeded', hydrated_at = now(), updated_at = now()
+          WHERE sync_run_id = $1
+            AND status = 'pending'
+            AND observation_id IS NOT NULL
+        `,
+        [context.syncRunId],
       );
 
       return this.finishRun(context, jobRunRecord.id);
@@ -958,6 +963,33 @@ export class MercadoPublicoV2DurableSyncService {
             hydrationPlan.reason,
           ],
         );
+
+        if (currentDetailsByCode.has(record.codigo)) {
+          continue;
+        }
+
+        const projectionResult =
+          await this.mercadoPublicoV2ProjectionService.ingestWithEntityManager(
+            entityManager,
+            {
+              syncRunId: context.syncRunId,
+              rawApiPayloadId,
+              response,
+              record,
+              snapshotKind: 'list',
+            },
+          );
+
+        if (projectionResult.applied) {
+          await entityManager.query(
+            `
+              UPDATE mp.sync_run_item
+              SET observation_id = $3, updated_at = now()
+              WHERE sync_run_id = $1 AND codigo = $2
+            `,
+            [context.syncRunId, record.codigo, projectionResult.observationId],
+          );
+        }
       }
     });
 
@@ -1287,64 +1319,6 @@ export class MercadoPublicoV2DurableSyncService {
       [syncRunId],
     );
     await this.updateSyncRunCounters(syncRunId);
-  }
-
-  private async projectPendingItems(
-    syncRunId: string,
-    records: MercadoPublicoApiV2CompraAgilRecord[],
-    rawApiPayloadId: string,
-  ): Promise<void> {
-    const items = await this.coreDataSource.query<SyncRunItem[]>(
-      `
-        SELECT id, codigo, status
-        FROM mp.sync_run_item
-        WHERE sync_run_id = $1 AND status = 'pending'
-        ORDER BY discovery_page ASC, id ASC
-      `,
-      [syncRunId],
-    );
-    const recordsByCode = new Map(
-      records.map((record) => [record.codigo, record]),
-    );
-
-    for (const item of items) {
-      const record = recordsByCode.get(item.codigo);
-
-      if (record === undefined) {
-        await this.markItemPending(
-          item.id,
-          'fixture record missing',
-          'projecting',
-        );
-        continue;
-      }
-
-      const observationId = await this.recordObservationAndProjection(
-        syncRunId,
-        rawApiPayloadId,
-        {
-          endpoint: MERCADO_PUBLICO_API_V2_COMPRA_AGIL_LIST_ENDPOINT,
-          source: MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
-          requestParams: { fixture: 'mercado-publico-v2-issue-20' },
-          requestFingerprint: createJsonSha256({ fixture: true }),
-          payloadChecksum: createJsonSha256(record),
-          schemaFingerprint: createJsonSha256(record),
-          httpStatus: 200,
-          fetchedAt: new Date(),
-          rawPayload: record,
-          compraAgil: [record],
-        },
-        record,
-        'list',
-      );
-
-      await this.markItemSucceeded(
-        item.id,
-        rawApiPayloadId,
-        observationId,
-        false,
-      );
-    }
   }
 
   private async recordObservationAndProjection(

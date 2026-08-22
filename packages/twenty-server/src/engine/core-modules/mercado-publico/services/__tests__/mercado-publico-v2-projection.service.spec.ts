@@ -5,7 +5,7 @@ import {
 
 type QueryCall = { sql: string; params: unknown[] };
 
-const buildHarness = () => {
+const buildHarness = (currentSnapshotKind?: 'list' | 'detail') => {
   const queries: QueryCall[] = [];
   const entityManager = {
     query: jest
@@ -15,6 +15,21 @@ const buildHarness = () => {
 
         if (sql.includes('INSERT INTO mp.v2_observation')) {
           return [{ id: 'observation-id' }];
+        }
+
+        if (
+          currentSnapshotKind !== undefined &&
+          sql.includes('FROM mp.compra_agil current')
+        ) {
+          return [
+            {
+              id: 'current-id',
+              codigo: 'CA-PRIORITY',
+              observation_id: 'previous-observation-id',
+              snapshot_kind: currentSnapshotKind,
+              semantic_fingerprint: null,
+            },
+          ];
         }
 
         if (sql.includes('INSERT INTO mp.compra_agil')) {
@@ -57,6 +72,40 @@ const buildContext = (
 });
 
 describe('MercadoPublicoV2ProjectionService', () => {
+  it('does not let a later LIST replace a current DETAIL', async () => {
+    const { service, queries } = buildHarness('detail');
+
+    const result = await service.ingest(
+      buildContext({ codigo: 'CA-PRIORITY', nombre: 'Resumen LIST' }, 'list'),
+    );
+
+    expect(result).toMatchObject({ applied: false, skipped: true });
+    expect(
+      queries.some((query) => query.sql.includes('INSERT INTO mp.compra_agil')),
+    ).toBe(false);
+    expect(
+      queries.some((query) =>
+        query.sql.includes('INSERT INTO mp.gold_detected_process'),
+      ),
+    ).toBe(false);
+  });
+
+  it('lets DETAIL replace a current LIST regardless of timestamp ordering', async () => {
+    const { service, queries } = buildHarness('list');
+
+    const result = await service.ingest(
+      buildContext({ codigo: 'CA-PRIORITY', nombre: 'Detalle' }),
+    );
+    const compraAgilQuery = queries.find((query) =>
+      query.sql.includes('INSERT INTO mp.compra_agil'),
+    );
+
+    expect(result.applied).toBe(true);
+    expect(compraAgilQuery?.params[compraAgilQuery.params.length - 1]).toBe(
+      true,
+    );
+  });
+
   it('projects all observed child arrays with stable provider keys', async () => {
     const { service, queries } = buildHarness();
 

@@ -9,8 +9,194 @@ import { MercadoPublicoV2ProjectionService } from 'src/engine/core-modules/merca
 const syncConfig = {
   getSettings: () => ({ httpMaxRetries: 3, httpRetryBackoffMs: 0 }),
 };
+const listRecord = fixture.payload.items[0];
 
 describe('MercadoPublicoV2DurableSyncService', () => {
+  it('publishes LIST canonical and gold rows in the page checkpoint transaction', async () => {
+    const query = jest.fn().mockResolvedValue([]);
+    const transactionalSql: string[] = [];
+    const entityManagerQuery = jest.fn().mockImplementation((sql: string) => {
+      transactionalSql.push(sql);
+
+      if (sql.includes('INSERT INTO mp.v2_observation')) {
+        return Promise.resolve([{ id: 'list-observation-1' }]);
+      }
+      if (sql.includes('INSERT INTO mp.compra_agil')) {
+        return Promise.resolve([{ id: 'compra-agil-1' }]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const transaction = jest.fn(
+      async (
+        callback: (manager: { query: typeof entityManagerQuery }) => unknown,
+      ) => callback({ query: entityManagerQuery }),
+    );
+    const dataSource = { query, transaction };
+    const getByCodigo = jest.fn();
+    const service = new MercadoPublicoV2DurableSyncService(
+      { getByCodigo } as unknown as MercadoPublicoApiV2CompraAgilClientService,
+      syncConfig as never,
+      {} as MercadoPublicoPersistenceService,
+      dataSource as never,
+      new MercadoPublicoV2ProjectionService(dataSource as never),
+    );
+    const response = {
+      endpoint: 'list',
+      source: 'api-v2-compra-agil' as const,
+      requestParams: { numero_pagina: 1, tamano_pagina: 50 },
+      requestFingerprint: 'list-fingerprint',
+      payloadChecksum: 'list-checksum',
+      schemaFingerprint: 'list-schema',
+      httpStatus: 200,
+      fetchedAt: new Date('2026-08-12T00:00:00Z'),
+      rawPayload: fixture,
+      compraAgil: [listRecord],
+      pagination: {
+        pageNumber: 1,
+        pageSize: 50,
+        totalPages: 1,
+        totalResults: 1,
+        hasNextPage: false,
+      },
+    };
+
+    await (
+      service as unknown as {
+        checkpointPage: (
+          context: Record<string, unknown>,
+          pageResponse: typeof response,
+          rawApiPayloadId: string,
+        ) => Promise<void>;
+      }
+    ).checkpointPage(
+      {
+        syncRunId: 'sync-run-1',
+        intent: 'manual',
+        scope: 'global',
+        requestParams: {},
+      },
+      response,
+      'raw-list-1',
+    );
+
+    const checkpointIndex = transactionalSql.findIndex((sql) =>
+      sql.includes('INSERT INTO mp.sync_run_page'),
+    );
+    const observationIndex = transactionalSql.findIndex((sql) =>
+      sql.includes('INSERT INTO mp.v2_observation'),
+    );
+    const canonicalIndex = transactionalSql.findIndex((sql) =>
+      sql.includes('INSERT INTO mp.compra_agil'),
+    );
+    const goldIndex = transactionalSql.findIndex((sql) =>
+      sql.includes('INSERT INTO mp.gold_detected_process'),
+    );
+
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(checkpointIndex).toBeLessThan(observationIndex);
+    expect(observationIndex).toBeLessThan(canonicalIndex);
+    expect(canonicalIndex).toBeLessThan(goldIndex);
+    expect(entityManagerQuery).toHaveBeenCalledWith(
+      expect.stringContaining('SET observation_id = $3'),
+      ['sync-run-1', listRecord.codigo, 'list-observation-1'],
+    );
+    expect(getByCodigo).not.toHaveBeenCalled();
+  });
+
+  it('rejects the page transaction when LIST projection fails', async () => {
+    const query = jest.fn().mockResolvedValue([]);
+    const transactionalSql: string[] = [];
+    const entityManagerQuery = jest.fn().mockImplementation((sql: string) => {
+      transactionalSql.push(sql);
+
+      if (sql.includes('INSERT INTO mp.v2_observation')) {
+        return Promise.resolve([{ id: 'list-observation-1' }]);
+      }
+      if (sql.includes('INSERT INTO mp.compra_agil')) {
+        return Promise.resolve([{ id: 'compra-agil-1' }]);
+      }
+      if (sql.includes('INSERT INTO mp.gold_detected_process')) {
+        throw new Error('projection failed');
+      }
+
+      return Promise.resolve([]);
+    });
+    let rolledBack = false;
+    const transaction = jest.fn(
+      async (
+        callback: (manager: { query: typeof entityManagerQuery }) => unknown,
+      ) => {
+        try {
+          return await callback({ query: entityManagerQuery });
+        } catch (error) {
+          rolledBack = true;
+          throw error;
+        }
+      },
+    );
+    const dataSource = { query, transaction };
+    const service = new MercadoPublicoV2DurableSyncService(
+      {} as MercadoPublicoApiV2CompraAgilClientService,
+      syncConfig as never,
+      {} as MercadoPublicoPersistenceService,
+      dataSource as never,
+      new MercadoPublicoV2ProjectionService(dataSource as never),
+    );
+    const response = {
+      endpoint: 'list',
+      source: 'api-v2-compra-agil' as const,
+      requestParams: { numero_pagina: 1, tamano_pagina: 50 },
+      requestFingerprint: 'list-fingerprint',
+      payloadChecksum: 'list-checksum',
+      schemaFingerprint: 'list-schema',
+      httpStatus: 200,
+      fetchedAt: new Date('2026-08-12T00:00:00Z'),
+      rawPayload: fixture,
+      compraAgil: [listRecord],
+      pagination: {
+        pageNumber: 1,
+        pageSize: 50,
+        totalPages: 1,
+        totalResults: 1,
+        hasNextPage: false,
+      },
+    };
+
+    await expect(
+      (
+        service as unknown as {
+          checkpointPage: (
+            context: Record<string, unknown>,
+            pageResponse: typeof response,
+            rawApiPayloadId: string,
+          ) => Promise<void>;
+        }
+      ).checkpointPage(
+        {
+          syncRunId: 'sync-run-1',
+          intent: 'manual',
+          scope: 'global',
+          requestParams: {},
+        },
+        response,
+        'raw-list-1',
+      ),
+    ).rejects.toThrow('projection failed');
+
+    expect(rolledBack).toBe(true);
+    expect(
+      transactionalSql.some((sql) =>
+        sql.includes('INSERT INTO mp.sync_run_page'),
+      ),
+    ).toBe(true);
+    expect(
+      transactionalSql.some((sql) =>
+        sql.includes('INSERT INTO mp.v2_observation'),
+      ),
+    ).toBe(true);
+  });
+
   it('runs the fixture through frozen page and item checkpoints', async () => {
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('INSERT INTO mp.sync_run')) {
@@ -46,6 +232,9 @@ describe('MercadoPublicoV2DurableSyncService', () => {
     const entityManagerQuery = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('INSERT INTO mp.v2_observation')) {
         return Promise.resolve([{ id: 'observation-1' }]);
+      }
+      if (sql.includes('INSERT INTO mp.compra_agil')) {
+        return Promise.resolve([{ id: 'compra-agil-1' }]);
       }
 
       return Promise.resolve([]);
@@ -197,6 +386,13 @@ describe('MercadoPublicoV2DurableSyncService', () => {
       expect.stringContaining('SET status = $2'),
       ['item-1', 'failed', 'soft_miss', 'raw-empty-detail'],
     );
+    const failureUpdate = query.mock.calls.find(
+      ([sql]) =>
+        sql.includes('SET status = $2') &&
+        sql.includes("error_stage = 'hydrating'"),
+    );
+
+    expect(failureUpdate?.[0]).not.toContain('observation_id');
   });
 
   it('requires rediscovery after a discovery failure', async () => {

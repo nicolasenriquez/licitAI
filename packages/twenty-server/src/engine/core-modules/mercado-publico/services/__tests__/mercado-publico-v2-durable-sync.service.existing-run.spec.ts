@@ -75,6 +75,22 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
       getList,
       getByCodigo,
     } as unknown as jest.Mocked<MercadoPublicoApiV2CompraAgilClientService>;
+    const projectionService = {
+      ingest: jest.fn().mockResolvedValue({
+        observationId: 'detail-observation-1',
+        created: true,
+        applied: true,
+        semanticChanged: false,
+        skipped: false,
+      }),
+      ingestWithEntityManager: jest.fn().mockResolvedValue({
+        observationId: 'list-observation-1',
+        created: true,
+        applied: true,
+        semanticChanged: false,
+        skipped: false,
+      }),
+    };
     const service = new MercadoPublicoV2DurableSyncService(
       client,
       {
@@ -82,7 +98,7 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
       } as never,
       persistenceService,
       { query, transaction } as never,
-      new MercadoPublicoV2ProjectionService({ transaction } as never),
+      projectionService as unknown as MercadoPublicoV2ProjectionService,
     );
 
     return service;
@@ -329,8 +345,9 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
 
   it('checkpoints only the configured page budget before pausing discovery', async () => {
     const getList = jest.fn().mockResolvedValue(buildListResponse(true));
+    const query = jest.fn().mockResolvedValue([]);
     const service = buildService({
-      query: jest.fn().mockResolvedValue([]),
+      query,
       entityManagerQuery: jest.fn().mockResolvedValue([]),
       getList,
       getByCodigo: jest.fn(),
@@ -363,6 +380,10 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
     expect(getList).toHaveBeenCalledTimes(1);
     expect(getList).toHaveBeenCalledWith(
       expect.objectContaining({ numero_pagina: 1 }),
+    );
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('completion_reason = $2'),
+      ['run-1', 'page_budget_reached', false],
     );
   });
 
