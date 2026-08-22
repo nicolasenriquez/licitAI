@@ -17,7 +17,8 @@ COPY ./packages/twenty-front-component-renderer/package.json /app/packages/twent
 COPY ./packages/twenty-sdk/package.json /app/packages/twenty-sdk/
 COPY ./packages/twenty-client-sdk/package.json /app/packages/twenty-client-sdk/
 
-RUN yarn workspaces focus licitai twenty-front twenty-front-component-renderer twenty-ui twenty-shared twenty-sdk twenty-client-sdk && yarn cache clean && npx nx reset
+RUN --mount=type=cache,id=licitai-yarn-front,target=/root/.yarn/berry/cache \
+    yarn workspaces focus licitai twenty-front twenty-front-component-renderer twenty-ui twenty-shared twenty-sdk twenty-client-sdk
 
 
 FROM node:24.16.0-alpine3.23@sha256:2bdb65ed1dab192432bc31c95f94155ca5ad7fc1392fb7eb7526ab682fa5bf14 AS server-deps
@@ -34,7 +35,8 @@ COPY ./packages/twenty-server/patches /app/packages/twenty-server/patches
 COPY ./packages/twenty-shared/package.json /app/packages/twenty-shared/
 COPY ./packages/twenty-client-sdk/package.json /app/packages/twenty-client-sdk/
 
-RUN yarn workspaces focus licitai twenty-server twenty-emails twenty-shared twenty-client-sdk && yarn cache clean && npx nx reset
+RUN --mount=type=cache,id=licitai-yarn-server,target=/root/.yarn/berry/cache \
+    yarn workspaces focus licitai twenty-server twenty-emails twenty-shared twenty-client-sdk
 
 
 FROM server-deps AS twenty-server-build
@@ -49,7 +51,8 @@ RUN npx nx run twenty-server:lingui:extract && \
     npx nx run twenty-emails:lingui:extract && \
     npx nx run twenty-emails:lingui:compile
 
-RUN npx nx run twenty-server:build
+RUN --mount=type=cache,id=licitai-nx-server,target=/app/.nx/cache \
+    npx nx run twenty-server:build
 
 # Clean server build output (type declarations and compiled tests are not needed at runtime;
 # source maps are kept because twenty-infra extracts them from the image for Sentry uploads)
@@ -69,14 +72,8 @@ COPY ./packages/twenty-sdk /app/packages/twenty-sdk
 COPY ./packages/twenty-client-sdk /app/packages/twenty-client-sdk
 RUN npx nx run twenty-front:lingui:extract && \
     npx nx run twenty-front:lingui:compile
-# To skip the memory-intensive frontend build, pre-build on the host:
-#   npx nx build twenty-front
-# The check below will use packages/twenty-front/build/ if it already exists.
-RUN if [ -d /app/packages/twenty-front/build ]; then \
-      echo "Using pre-built frontend from host"; \
-    else \
-      NODE_OPTIONS="--max-old-space-size=8192" npx nx build twenty-front; \
-    fi
+RUN --mount=type=cache,id=licitai-nx-front,target=/app/.nx/cache \
+    NODE_OPTIONS="--max-old-space-size=8192" npx nx build twenty-front
 
 
 # ===========================================================================

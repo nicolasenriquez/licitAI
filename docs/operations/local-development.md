@@ -75,6 +75,9 @@ docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/
 
 # Explicitly start the existing project only when authorized
 just dev-up
+
+# Rebuild the configured image and start the project only when authorized
+just dev-up-build
 ```
 
 | Service | Image | Port | Health Check | Notes |
@@ -87,6 +90,12 @@ just dev-up
 `docker-compose.dev.yml` is not a routine development path. It is an alternate
 infrastructure-only stack and is blocked by the command surface unless a human
 explicitly authorizes `ALLOW_EXTRA_CONTAINERS=1` for a CI reproduction.
+
+Build time depends on the machine and cache state. The 2026-08-22 verification
+on Windows with Docker Desktop took 7 min 21 s after Dockerfile and build-context
+changes, with 36% of steps cached. The next unchanged `just dev-up-build` took
+20 s, including the healthy startup. These measurements are a reference, not
+a fixed limit.
 
 ## Local Port Ownership
 
@@ -125,7 +134,8 @@ Environment variables are defined in `packages/twenty-docker/.env.example`. Secr
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `TAG` | Yes | Docker image tag (default: `latest`) |
+| `TAG` | Yes | Docker image tag used for both build and runtime (local example: `mp-local`) |
+| `PLATFORM` | Optional | Container platform (default: `linux/amd64`) |
 | `SERVER_URL` | Yes | Public server URL (default: `http://localhost:3000`) |
 | `PG_DATABASE_USER` | Optional | PostgreSQL user (default: `postgres`) |
 | `PG_DATABASE_PASSWORD` | Optional | PostgreSQL password |

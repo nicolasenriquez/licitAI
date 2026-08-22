@@ -22,8 +22,8 @@ The repository exposes a structured command surface through Docker Compose, Nx t
 | Command | Purpose | Details |
 | --- | --- | --- |
 | `just runtime-check` | Verify the existing full local runtime | **First runtime command. Read-only:** validates Compose config, prints current service state, and checks `/healthz` without starting or creating containers. |
-| `just dev-up` | Explicitly start the full local runtime | Human-authorized recovery path when the existing Compose project is not already running. Uses the existing `twentycrm/twenty:mp-local` image. |
-| `just dev-up-build` | Explicitly rebuild and start full local runtime | Human-authorized only after a changed image is required. This is not a routine fallback. |
+| `just dev-up` | Explicitly start the full local runtime | Human-authorized recovery path. Uses the image selected by `.env`, does not build or pull it, and waits for service health. |
+| `just dev-up-build` | Explicitly rebuild and start full local runtime | Human-authorized path after source changes. Compose builds and starts the same image tag, then waits for service health. |
 | `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml up -d` | Explicitly start full local runtime directly | Same canonical Compose project; use only when a human has requested a state-changing startup. |
 | `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml ps` | Inspect local runtime | Shows service state and health. |
 | `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml logs -f server worker` | Follow application logs | Use for startup and ingestion diagnosis. |
@@ -40,8 +40,13 @@ rejects the canonical project and an active E2E server before cleanup. Use
 Run `just runtime-check` before any runtime, API, or integration diagnosis. If it
 fails, report the existing stack's state; do not silently switch to host-local
 services, `docker-compose.dev.yml`, `docker run`, or a new Compose project.
-`TAG` is an optional override for a published image; without it, Compose selects
-the local `mp-local` tag.
+`TAG` selects the image for both Compose build and runtime. The local example
+uses `mp-local`. `PLATFORM` defaults to `linux/amd64`.
+
+Build time depends on hardware and cache state. The 2026-08-22 Windows and
+Docker Desktop verification took 7 min 21 s with 36% cached after Dockerfile
+and context changes. An unchanged rebuild and healthy startup took 20 s. Use
+these values as a local reference, not as an SLA.
 
 ### Testing Commands
 

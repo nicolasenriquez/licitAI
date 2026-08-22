@@ -24,7 +24,6 @@
 set windows-shell := ["cmd.exe", "/C"]
 
 PLATFORM := "linux/amd64"
-TAG := "latest"
 DOCKER_NETWORK := "twenty_network"
 COMPOSE_APP := "packages/twenty-docker/docker-compose.yml"
 COMPOSE_DEV := "packages/twenty-docker/docker-compose.dev.yml"
@@ -40,13 +39,14 @@ _default:
 # Start full app stack with cached image. Migrations run automatically on
 # server boot (instance commands are forward-only and immutable by design).
 dev-up: _ensure-env-file
-    docker compose --env-file {{ENV_FILE}} -f {{COMPOSE_APP}} up -d
-    @echo === Waiting for server (migrations run on boot, up to 300s) ===
-    npx wait-on http://localhost:3000/healthz --timeout 300000 --interval 5000
+    docker compose --env-file {{ENV_FILE}} -f {{COMPOSE_APP}} up --detach --no-build --pull never --wait --wait-timeout 300
     @echo === Stack ready. Migrations applied, server healthy. ===
 
-# Start full app stack, rebuilding the image first (slow, ~10-20 min)
-dev-up-build: _ensure-env-file prod-build dev-up
+# Build the configured local image and start the full app stack. The first
+# build varies by hardware; an unchanged rebuild uses Docker's layer cache.
+dev-up-build: _ensure-env-file
+    docker compose --env-file {{ENV_FILE}} -f {{COMPOSE_APP}} up --detach --build --pull never --wait --wait-timeout 300
+    @echo === Stack rebuilt and ready. Migrations applied, server healthy. ===
 
 # Stop app stack
 dev-down:
@@ -323,5 +323,5 @@ _ensure-ci-prerequisites: _ensure-pg _ensure-redis _ensure-clickhouse _ensure-se
 # DOCKER BUILD
 # ═════════════════════════════════════════════════════════════════════════════
 
-prod-build:
-    docker build --target twenty -f ./packages/twenty-docker/twenty/Dockerfile --platform {{PLATFORM}} --tag twentycrm/twenty:{{TAG}} .
+prod-build: _ensure-env-file
+    docker compose --env-file {{ENV_FILE}} -f {{COMPOSE_APP}} build server

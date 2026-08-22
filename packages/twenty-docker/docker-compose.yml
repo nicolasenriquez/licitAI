@@ -2,7 +2,12 @@ name: twenty
 
 services:
   server:
-    image: twentycrm/twenty:${TAG:-latest}
+    image: twentycrm/twenty:${TAG:?Set TAG in packages/twenty-docker/.env}
+    platform: ${PLATFORM:-linux/amd64}
+    build:
+      context: ../..
+      dockerfile: packages/twenty-docker/twenty/Dockerfile
+      target: twenty
     volumes:
       - server-local-data:/app/packages/twenty-server/.local-storage
     ports:
@@ -64,7 +69,8 @@ services:
     restart: always
 
   worker:
-    image: twentycrm/twenty:${TAG:-latest}
+    image: twentycrm/twenty:${TAG:?Set TAG in packages/twenty-docker/.env}
+    platform: ${PLATFORM:-linux/amd64}
     volumes:
       - server-local-data:/app/packages/twenty-server/.local-storage
     command: ["yarn", "worker:prod"]
