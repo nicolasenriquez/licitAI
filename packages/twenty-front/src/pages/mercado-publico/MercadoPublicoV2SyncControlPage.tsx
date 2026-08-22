@@ -219,7 +219,7 @@ type MercadoPublicoV2ResumeSyncMutation = {
 export const MercadoPublicoV2SyncControlPage = () => {
   const { t } = useLingui();
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-  const [maxPages, setMaxPages] = useState(50);
+  const [maxPages, setMaxPages] = useState<number | undefined>(undefined);
   const apolloCoreClient = useApolloCoreClient();
   const { data, loading, error, refetch, startPolling, stopPolling } =
     useQuery<MercadoPublicoV2SyncControlLatestRunQuery>(
@@ -228,7 +228,13 @@ export const MercadoPublicoV2SyncControlPage = () => {
     );
   const [startSync] = useMutation<
     MercadoPublicoV2StartSyncMutation,
-    { input: { idempotencyKey: string; confirmed: boolean; maxPages: number } }
+    {
+      input: {
+        idempotencyKey: string;
+        confirmed: boolean;
+        maxPages?: number;
+      };
+    }
   >(MERCADO_PUBLICO_V2_START_SYNC_MUTATION, { client: apolloCoreClient });
   const [cancelSync] = useMutation<
     MercadoPublicoV2CancelSyncMutation,
@@ -266,7 +272,13 @@ export const MercadoPublicoV2SyncControlPage = () => {
 
     if (pendingAction === 'start') {
       await startSync({
-        variables: { input: { idempotencyKey, confirmed: true, maxPages } },
+        variables: {
+          input: {
+            idempotencyKey,
+            confirmed: true,
+            ...(maxPages === undefined ? {} : { maxPages }),
+          },
+        },
       });
     } else if (pendingAction === 'cancel') {
       await cancelSync({
@@ -345,10 +357,17 @@ export const MercadoPublicoV2SyncControlPage = () => {
               <StyledPageLimit>
                 {t`Páginas por ejecución`}
                 <select
-                  value={maxPages}
-                  onChange={(event) => setMaxPages(Number(event.target.value))}
+                  value={maxPages ?? ''}
+                  onChange={(event) =>
+                    setMaxPages(
+                      event.target.value === ''
+                        ? undefined
+                        : Number(event.target.value),
+                    )
+                  }
                   disabled={isActive}
                 >
+                  <option value="">{t`Completa / sin límite`}</option>
                   <option value={1}>{t`1 página (smoke test)`}</option>
                   <option value={2}>{t`2 páginas`}</option>
                   <option value={10}>{t`10 páginas`}</option>
