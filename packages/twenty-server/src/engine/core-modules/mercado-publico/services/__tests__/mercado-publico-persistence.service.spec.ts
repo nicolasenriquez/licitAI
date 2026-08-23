@@ -164,6 +164,67 @@ describe('MercadoPublicoPersistenceService', () => {
         sql.includes('INSERT INTO mp.stg_api_v2_compra_agil'),
       ),
     ).toContain('ON CONFLICT DO NOTHING');
+    const rawInsertCall = mockEntityManager.query.mock.calls.find(([sql]) =>
+      sql.includes('INSERT INTO mp.raw_api_payload'),
+    );
+
+    expect(rawInsertCall?.[1]).toEqual([
+      'api-v2-compra-agil',
+      'list',
+      'request-fingerprint',
+      'payload-checksum',
+      JSON.stringify({ ttl_cambio_ms: 5000 }),
+      200,
+      new Date('2026-06-15T00:00:00.000Z'),
+      JSON.stringify({ Items: [{ codigo: 'CA-1' }, { codigo: 'CA-2' }] }),
+      'schema-fingerprint',
+      'job-run-record-id',
+      null,
+      2,
+      2,
+      0,
+      '[]',
+    ]);
+  });
+
+  it('persists rejected raw contract accounting before failing the run', async () => {
+    const query = jest.fn().mockResolvedValue([{ id: 'raw-api-payload-id' }]);
+    const mockDataSource = {
+      transaction: jest
+        .fn()
+        .mockImplementation(async (callback) => callback({ query })),
+    };
+    const service = new MercadoPublicoPersistenceService(
+      mockDataSource as never,
+    );
+
+    await service.persistApiFailure({
+      jobRunRecordId: 'job-run-record-id',
+      source: 'api-v2-compra-agil',
+      endpoint: 'list',
+      requestFingerprint: 'request-fingerprint',
+      payloadChecksum: 'payload-checksum',
+      requestParams: {},
+      httpStatus: 200,
+      fetchedAt: new Date('2026-06-15T00:00:00.000Z'),
+      rawPayload: { payload: { items: [{ codigo: 'CA-1' }] } },
+      schemaFingerprint: 'schema-fingerprint',
+      recordsFetched: 3,
+      recordsAccepted: 0,
+      recordsRejected: 3,
+      contractIssues: [{ code: 'duplicate_codigo', indices: [0, 1] }],
+      errorSummaryText: 'hard_fail: provider: invalid_list_items',
+    });
+
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('contract_issues'),
+      expect.arrayContaining([
+        3,
+        0,
+        3,
+        JSON.stringify([{ code: 'duplicate_codigo', indices: [0, 1] }]),
+      ]),
+    );
   });
 
   it('commits raw evidence before staging fails', async () => {

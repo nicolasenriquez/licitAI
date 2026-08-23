@@ -1960,7 +1960,10 @@ export class MercadoPublicoV2DurableSyncService {
       fetchedAt: response.fetchedAt,
       rawPayload: response.rawPayload,
       schemaFingerprint: response.schemaFingerprint,
-      recordsFetched: response.compraAgil.length,
+      recordsFetched: response.recordsFetched,
+      recordsAccepted: response.recordsAccepted,
+      recordsRejected: response.recordsRejected,
+      contractIssues: response.contractIssues,
       errorSummaryText: this.buildProviderError(response, 'provider'),
     });
   }

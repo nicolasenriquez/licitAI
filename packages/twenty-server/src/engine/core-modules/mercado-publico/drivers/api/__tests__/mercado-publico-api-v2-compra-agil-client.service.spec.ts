@@ -115,6 +115,12 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       expect(result.compraAgil[0].codigo).toBe('CA-1');
       expect(result.httpStatus).toBe(200);
       expect(result.errorSummary).toBeUndefined();
+      expect(result).toMatchObject({
+        recordsFetched: 1,
+        recordsAccepted: 1,
+        recordsRejected: 0,
+        contractIssues: [],
+      });
     });
 
     it('returns all 50 records from a valid LIST envelope', async () => {
@@ -151,6 +157,14 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       expect(result.errorCode).toBe('invalid_list_items');
       expect(result.errorMessage).toContain('invalidIndices=[1]');
       expect(result.rawPayload).toBe(rawPayload);
+      expect(result).toMatchObject({
+        recordsFetched: 3,
+        recordsAccepted: 0,
+        recordsRejected: 3,
+        contractIssues: [
+          { code: 'invalid_field', indices: [1], paths: ['[1].codigo'] },
+        ],
+      });
     });
 
     it('should classify 404 as soft_miss error', async () => {

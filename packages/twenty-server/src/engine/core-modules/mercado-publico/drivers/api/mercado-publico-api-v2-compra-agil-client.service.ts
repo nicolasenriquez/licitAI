@@ -10,6 +10,7 @@ import {
 import {
   decodeV2CompraAgilDetailPayload,
   decodeV2CompraAgilListPayload,
+  type MercadoPublicoV2ContractIssue,
 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
 import {
   extractV2CompraAgilPagination,
@@ -44,6 +45,10 @@ export type MercadoPublicoApiV2CompraAgilListResponse = {
   fetchedAt: Date;
   rawPayload: unknown;
   compraAgil: MercadoPublicoApiV2CompraAgilRecord[];
+  recordsFetched?: number | null;
+  recordsAccepted?: number | null;
+  recordsRejected?: number | null;
+  contractIssues?: MercadoPublicoV2ContractIssue[];
   pagination?: MercadoPublicoApiV2CompraAgilPagination;
   errorSummary?: MercadoPublicoErrorSummary;
   errorMessage?: string;
@@ -189,6 +194,10 @@ export class MercadoPublicoApiV2CompraAgilClientService {
       fetchedAt,
       rawPayload,
       compraAgil,
+      recordsFetched: decoded.recordsFetched,
+      recordsAccepted: decoded.recordsAccepted,
+      recordsRejected: decoded.recordsRejected,
+      contractIssues: decoded.contractIssues,
       pagination,
       errorSummary:
         providerErrorSummary ??
@@ -266,6 +275,10 @@ export class MercadoPublicoApiV2CompraAgilClientService {
       fetchedAt,
       rawPayload,
       compraAgil,
+      recordsFetched: decoded.recordsFetched,
+      recordsAccepted: decoded.recordsAccepted,
+      recordsRejected: decoded.recordsRejected,
+      contractIssues: decoded.contractIssues,
       errorSummary:
         providerErrorSummary ??
         (decoded.errorCode === undefined ? undefined : 'hard_fail'),

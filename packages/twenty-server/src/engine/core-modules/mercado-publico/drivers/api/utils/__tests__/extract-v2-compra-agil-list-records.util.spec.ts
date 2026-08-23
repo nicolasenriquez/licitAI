@@ -27,9 +27,47 @@ describe('Compra Agil V2 payload decoders', () => {
 
     expect(decoded).toEqual({
       records: [],
+      recordsFetched: 3,
+      recordsAccepted: 0,
+      recordsRejected: 3,
+      contractIssues: [
+        {
+          code: 'invalid_field',
+          indices: [1],
+          paths: ['[1].codigo'],
+        },
+      ],
       errorCode: 'invalid_list_items',
       errorMessage:
-        'Compra Agil V2 LIST contract invalid: itemCount=3; invalidItemCount=1; invalidIndices=[1]',
+        'Compra Agil V2 LIST contract invalid: itemCount=3; invalidItemCount=1; invalidIndices=[1]; invalidPaths=[[1].codigo]',
+    });
+  });
+
+  it('rejects the complete LIST when codigo repeats within one page', () => {
+    const decoded = decodeV2CompraAgilListPayload({
+      payload: {
+        items: [{ codigo: 'CA-1' }, { codigo: 'CA-1' }, { codigo: 'CA-3' }],
+      },
+    });
+
+    expect(decoded).toMatchObject({
+      records: [],
+      recordsFetched: 3,
+      recordsAccepted: 0,
+      recordsRejected: 3,
+      contractIssues: [{ code: 'duplicate_codigo', indices: [0, 1] }],
+      errorCode: 'invalid_list_items',
+    });
+  });
+
+  it('reports unknown counts when the LIST envelope is invalid', () => {
+    expect(decodeV2CompraAgilListPayload({ payload: {} })).toMatchObject({
+      records: [],
+      recordsFetched: null,
+      recordsAccepted: null,
+      recordsRejected: null,
+      contractIssues: [],
+      errorCode: 'invalid_list_envelope',
     });
   });
 
@@ -69,10 +107,31 @@ describe('Compra Agil V2 payload decoders', () => {
     expect(decodeV2CompraAgilDetailPayload(detailEnvelope).records).toEqual([
       expect.objectContaining({ codigo: 'FIXTURE-CA-DETAIL' }),
     ]);
+    expect(decodeV2CompraAgilDetailPayload(detailEnvelope)).toMatchObject({
+      recordsFetched: 1,
+      recordsAccepted: 1,
+      recordsRejected: 0,
+      contractIssues: [],
+    });
     expect(
       decodeV2CompraAgilDetailPayload({
         data: { codigo: 'CA-WRONG-ENVELOPE' },
       }),
     ).toMatchObject({ records: [], errorCode: 'invalid_detail_envelope' });
+  });
+
+  it('accounts for an invalid DETAIL record', () => {
+    expect(
+      decodeV2CompraAgilDetailPayload({ payload: { codigo: '' } }),
+    ).toMatchObject({
+      records: [],
+      recordsFetched: 1,
+      recordsAccepted: 0,
+      recordsRejected: 1,
+      contractIssues: [
+        { code: 'invalid_field', indices: [0], paths: ['payload.codigo'] },
+      ],
+      errorCode: 'invalid_detail_envelope',
+    });
   });
 });

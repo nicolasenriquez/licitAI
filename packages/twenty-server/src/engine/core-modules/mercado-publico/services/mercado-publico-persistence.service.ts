@@ -8,6 +8,7 @@ import { DataSource, type EntityManager } from 'typeorm';
 import { type MercadoPublicoApiV2CompraAgilListResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { coerceToNullableString } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/coerce-to-nullable-string.util';
 import { getV2CompraAgilOrderReferences } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
+import { type MercadoPublicoV2ContractIssue } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
 import { normalizeV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/normalize-v2-compra-agil-record.util';
 import { type MercadoPublicoJobRunStatus } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 
@@ -43,7 +44,10 @@ type PersistMercadoPublicoApiFailureInput = {
   fetchedAt: Date;
   rawPayload: unknown;
   schemaFingerprint: string;
-  recordsFetched: number;
+  recordsFetched?: number | null;
+  recordsAccepted?: number | null;
+  recordsRejected?: number | null;
+  contractIssues?: MercadoPublicoV2ContractIssue[];
   errorSummaryText: string;
 };
 
@@ -351,6 +355,9 @@ export class MercadoPublicoPersistenceService {
         schemaFingerprint: input.schemaFingerprint,
         errorSummary: input.errorSummaryText,
         recordsFetched: input.recordsFetched,
+        recordsAccepted: input.recordsAccepted,
+        recordsRejected: input.recordsRejected,
+        contractIssues: input.contractIssues,
       });
     });
   }
@@ -369,7 +376,10 @@ export class MercadoPublicoPersistenceService {
       rawPayload: unknown;
       schemaFingerprint: string;
       errorSummary?: string;
-      recordsFetched?: number;
+      recordsFetched?: number | null;
+      recordsAccepted?: number | null;
+      recordsRejected?: number | null;
+      contractIssues?: MercadoPublicoV2ContractIssue[];
     },
   ): Promise<string> {
     const insertedRawApiPayloadRows = await entityManager.query<
@@ -388,7 +398,10 @@ export class MercadoPublicoPersistenceService {
           schema_fingerprint,
           ingestion_job_id,
           error_summary,
-          records_fetched
+          records_fetched,
+          records_accepted,
+          records_rejected,
+          contract_issues
         )
         VALUES (
           $1,
@@ -402,7 +415,10 @@ export class MercadoPublicoPersistenceService {
           $9,
           $10,
           $11,
-          $12
+          $12,
+          $13,
+          $14,
+          $15::jsonb
         )
         ON CONFLICT (
           source,
@@ -425,6 +441,11 @@ export class MercadoPublicoPersistenceService {
         input.jobRunRecordId,
         input.errorSummary ?? null,
         input.recordsFetched ?? null,
+        input.recordsAccepted ?? null,
+        input.recordsRejected ?? null,
+        input.contractIssues === undefined
+          ? null
+          : JSON.stringify(input.contractIssues),
       ],
     );
 
@@ -459,6 +480,12 @@ export class MercadoPublicoPersistenceService {
   async persistV2CompraAgilSnapshot(
     input: PersistMercadoPublicoV2CompraAgilSnapshotInput,
   ): Promise<PersistMercadoPublicoV2CompraAgilSnapshotResult> {
+    const recordsFetched =
+      input.apiResponse.recordsFetched ?? input.apiResponse.compraAgil.length;
+    const recordsAccepted =
+      input.apiResponse.recordsAccepted ?? input.apiResponse.compraAgil.length;
+    const recordsRejected = input.apiResponse.recordsRejected ?? 0;
+    const contractIssues = input.apiResponse.contractIssues ?? [];
     const rawApiPayloadId = await this.coreDataSource.transaction(
       async (entityManager) =>
         this.insertRawApiPayload(entityManager, {
@@ -473,7 +500,10 @@ export class MercadoPublicoPersistenceService {
           rawPayload: input.apiResponse.rawPayload,
           schemaFingerprint: input.apiResponse.schemaFingerprint,
           errorSummary: input.errorSummaryText,
-          recordsFetched: input.apiResponse.compraAgil.length,
+          recordsFetched,
+          recordsAccepted,
+          recordsRejected,
+          contractIssues,
         }),
     );
 
@@ -489,7 +519,7 @@ export class MercadoPublicoPersistenceService {
 
     return {
       rawApiPayloadId,
-      recordsFetched: input.apiResponse.compraAgil.length,
+      recordsFetched,
       recordsStaged,
       recordsCanonicalized: 0,
     };
