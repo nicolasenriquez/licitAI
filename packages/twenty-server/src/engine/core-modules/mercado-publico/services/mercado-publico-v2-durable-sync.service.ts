@@ -101,7 +101,8 @@ type HydrationPlan = {
     | 'provider_change'
     | 'state_drift'
     | 'unchanged_detail'
-    | 'frozen_active_cohort';
+    | 'frozen_active_cohort'
+    | `lifecycle_${MercadoPublicoV2LifecycleClassification['reason']}`;
 };
 
 type SyncRunRow = {
@@ -899,11 +900,22 @@ export class MercadoPublicoV2DurableSyncService {
           },
         );
 
-        if (!classification.includeInRun) {
-          continue;
-        }
+        const projectionResult =
+          await this.mercadoPublicoV2ProjectionService.ingestWithEntityManager(
+            entityManager,
+            {
+              syncRunId: context.syncRunId,
+              rawApiPayloadId,
+              response,
+              record,
+              snapshotKind: 'list',
+            },
+          );
 
-        if (classification.reason === 'new_published') {
+        if (
+          classification.includeInRun &&
+          classification.reason === 'new_published'
+        ) {
           await entityManager.query(
             `
               INSERT INTO mp.v2_cohort (
@@ -922,10 +934,15 @@ export class MercadoPublicoV2DurableSyncService {
         }
 
         const normalized = normalizeV2CompraAgilRecord(record);
-        const hydrationPlan = this.getHydrationPlan(
-          record,
-          currentDetailsByCode.get(record.codigo),
-        );
+        const hydrationPlan = classification.includeInRun
+          ? this.getHydrationPlan(
+              record,
+              currentDetailsByCode.get(record.codigo),
+            )
+          : {
+              required: false,
+              reason: `lifecycle_${classification.reason}`,
+            };
 
         await entityManager.query(
           `
@@ -935,7 +952,7 @@ export class MercadoPublicoV2DurableSyncService {
               provider_changed_at_raw, provider_changed_at, status,
               hydration_required, hydration_reason
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', $11, $12)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             ON CONFLICT (sync_run_id, codigo) DO UPDATE SET
               discovery_page = EXCLUDED.discovery_page,
               raw_api_payload_id = EXCLUDED.raw_api_payload_id,
@@ -959,37 +976,20 @@ export class MercadoPublicoV2DurableSyncService {
             normalized.stateLabel,
             normalized.providerChangedAtRaw,
             normalized.providerChangedAt,
+            classification.includeInRun ? 'pending' : 'succeeded',
             hydrationPlan.required,
             hydrationPlan.reason,
           ],
         );
 
-        if (currentDetailsByCode.has(record.codigo)) {
-          continue;
-        }
-
-        const projectionResult =
-          await this.mercadoPublicoV2ProjectionService.ingestWithEntityManager(
-            entityManager,
-            {
-              syncRunId: context.syncRunId,
-              rawApiPayloadId,
-              response,
-              record,
-              snapshotKind: 'list',
-            },
-          );
-
-        if (projectionResult.applied) {
-          await entityManager.query(
-            `
-              UPDATE mp.sync_run_item
-              SET observation_id = $3, updated_at = now()
-              WHERE sync_run_id = $1 AND codigo = $2
-            `,
-            [context.syncRunId, record.codigo, projectionResult.observationId],
-          );
-        }
+        await entityManager.query(
+          `
+            UPDATE mp.sync_run_item
+            SET observation_id = $3, updated_at = now()
+            WHERE sync_run_id = $1 AND codigo = $2
+          `,
+          [context.syncRunId, record.codigo, projectionResult.observationId],
+        );
       }
     });
 

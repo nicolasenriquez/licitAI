@@ -25,6 +25,7 @@ import { MpV2SyncOperationsFastInstanceCommand } from 'src/database/commands/upg
 import { MpV2DurableHydrationRecoveryFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1792000000000-mp-v2-durable-hydration-recovery';
 import { MpV2ItemAttemptObservabilityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1793000000000-mp-v2-item-attempt-observability';
 import { MpV2ItemLifecycleStatusSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1794000000000-mp-v2-item-lifecycle-status';
+import { MpV2StagingIdempotencySlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1795000000000-mp-v2-staging-idempotency';
 import { rawDataSource } from 'src/database/typeorm/raw/raw.datasource';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
@@ -62,6 +63,7 @@ const applyCommands = async (dataSource: DataSource): Promise<void> => {
     await new MpV2DurableHydrationRecoveryFastInstanceCommand().up(queryRunner);
     await new MpV2ItemAttemptObservabilityFastInstanceCommand().up(queryRunner);
     await new MpV2ItemLifecycleStatusSlowInstanceCommand().up(queryRunner);
+    await new MpV2StagingIdempotencySlowInstanceCommand().up(queryRunner);
     await queryRunner.commitTransaction();
   } catch (error) {
     await queryRunner.rollbackTransaction();
@@ -180,7 +182,9 @@ describe('Mercado Publico V2 evidence, history and replay (db-backed)', () => {
     } as unknown as jest.Mocked<MercadoPublicoApiV2CompraAgilClientService>;
     durableSyncService = new MercadoPublicoV2DurableSyncService(
       clientService,
-      { getSettings: () => ({ httpMaxRetries: 3, httpRetryBackoffMs: 0 }) } as never,
+      {
+        getSettings: () => ({ httpMaxRetries: 3, httpRetryBackoffMs: 0 }),
+      } as never,
       new MercadoPublicoPersistenceService(dataSource),
       dataSource,
       new MercadoPublicoV2ProjectionService(dataSource),
@@ -311,7 +315,10 @@ describe('Mercado Publico V2 evidence, history and replay (db-backed)', () => {
     clientService.getList.mockResolvedValueOnce(createResponse([record]));
     clientService.getByCodigo.mockResolvedValueOnce(createResponse([record]));
 
-    await durableSyncService.start({ cambio_desde: '2026-08-01T00:00:00Z', cambio_hasta: '2026-08-06T00:00:00Z' });
+    await durableSyncService.start({
+      cambio_desde: '2026-08-01T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
+    });
 
     const stagingOrder = await dataSource.query<
       { id_orden_compra: string | null; id_oc: string | null }[]
@@ -374,7 +381,10 @@ describe('Mercado Publico V2 evidence, history and replay (db-backed)', () => {
     });
     clientService.getList.mockResolvedValueOnce(createResponse([first]));
     clientService.getByCodigo.mockResolvedValueOnce(createResponse([first]));
-    await durableSyncService.start({ cambio_desde: '2026-08-01T00:00:00Z', cambio_hasta: '2026-08-06T00:00:00Z' });
+    await durableSyncService.start({
+      cambio_desde: '2026-08-01T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
+    });
 
     const unchanged = createRecord('CA-HISTORY', {
       nombre: 'Alpha',
@@ -383,7 +393,10 @@ describe('Mercado Publico V2 evidence, history and replay (db-backed)', () => {
     clientService.getByCodigo.mockResolvedValueOnce(
       createResponse([unchanged], 1, 1, new Date('2026-08-06T12:00:00.000Z')),
     );
-    await durableSyncService.start({ cambio_desde: '2026-08-01T00:00:00Z', cambio_hasta: '2026-08-06T00:00:00Z' });
+    await durableSyncService.start({
+      cambio_desde: '2026-08-01T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
+    });
 
     const changed = createRecord('CA-HISTORY', {
       nombre: 'Beta',
@@ -392,7 +405,10 @@ describe('Mercado Publico V2 evidence, history and replay (db-backed)', () => {
     clientService.getByCodigo.mockResolvedValueOnce(
       createResponse([changed], 1, 1, new Date('2026-08-07T12:00:00.000Z')),
     );
-    await durableSyncService.start({ cambio_desde: '2026-08-01T00:00:00Z', cambio_hasta: '2026-08-06T00:00:00Z' });
+    await durableSyncService.start({
+      cambio_desde: '2026-08-01T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
+    });
 
     const historyRows = await dataSource.query<
       {
@@ -435,7 +451,10 @@ describe('Mercado Publico V2 evidence, history and replay (db-backed)', () => {
     );
     clientService.getList.mockResolvedValueOnce(createResponse([first]));
     clientService.getByCodigo.mockResolvedValueOnce(createResponse([first]));
-    await durableSyncService.start({ cambio_desde: '2026-08-01T00:00:00Z', cambio_hasta: '2026-08-06T00:00:00Z' });
+    await durableSyncService.start({
+      cambio_desde: '2026-08-01T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
+    });
 
     const second = createRecord(
       'CA-DEFECTIVE',
@@ -446,7 +465,10 @@ describe('Mercado Publico V2 evidence, history and replay (db-backed)', () => {
     clientService.getByCodigo.mockResolvedValueOnce(
       createResponse([second], 1, 1, new Date('2026-08-06T12:00:00.000Z')),
     );
-    await durableSyncService.start({ cambio_desde: '2026-08-01T00:00:00Z', cambio_hasta: '2026-08-06T00:00:00Z' });
+    await durableSyncService.start({
+      cambio_desde: '2026-08-01T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
+    });
 
     const third = createRecord('CA-DEFECTIVE', {
       nombre: 'Third',
@@ -455,14 +477,20 @@ describe('Mercado Publico V2 evidence, history and replay (db-backed)', () => {
     clientService.getByCodigo.mockResolvedValueOnce(
       createResponse([third], 1, 1, new Date('2026-08-07T12:00:00.000Z')),
     );
-    await durableSyncService.start({ cambio_desde: '2026-08-01T00:00:00Z', cambio_hasta: '2026-08-06T00:00:00Z' });
+    await durableSyncService.start({
+      cambio_desde: '2026-08-01T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
+    });
 
     const fourth = createRecord('CA-DEFECTIVE', { nombre: 'Fourth' }, null);
     clientService.getList.mockResolvedValueOnce(createResponse([fourth]));
     clientService.getByCodigo.mockResolvedValueOnce(
       createResponse([fourth], 1, 1, new Date('2026-08-08T12:00:00.000Z')),
     );
-    await durableSyncService.start({ cambio_desde: '2026-08-01T00:00:00Z', cambio_hasta: '2026-08-06T00:00:00Z' });
+    await durableSyncService.start({
+      cambio_desde: '2026-08-01T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
+    });
 
     const observations = await dataSource.query<{ count: string }[]>(
       `SELECT COUNT(*)::text AS count FROM mp.v2_observation WHERE codigo = 'CA-DEFECTIVE'`,
@@ -556,7 +584,10 @@ describe('Mercado Publico V2 evidence, history and replay (db-backed)', () => {
     const record = createRecord('CA-BACKFILL', { nombre: 'Backfill me' });
     clientService.getList.mockResolvedValueOnce(createResponse([record]));
     clientService.getByCodigo.mockResolvedValueOnce(createResponse([record]));
-    await durableSyncService.start({ cambio_desde: '2026-08-01T00:00:00Z', cambio_hasta: '2026-08-06T00:00:00Z' });
+    await durableSyncService.start({
+      cambio_desde: '2026-08-01T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
+    });
     await dataSource.query(
       `
         UPDATE mp.v2_cohort
@@ -629,7 +660,10 @@ describe('Mercado Publico V2 evidence, history and replay (db-backed)', () => {
               : [],
       ),
     );
-    await durableSyncService.start({ cambio_desde: '2026-08-01T00:00:00Z', cambio_hasta: '2026-08-06T00:00:00Z' });
+    await durableSyncService.start({
+      cambio_desde: '2026-08-01T00:00:00Z',
+      cambio_hasta: '2026-08-06T00:00:00Z',
+    });
 
     const rows = await dataSource.query<
       {

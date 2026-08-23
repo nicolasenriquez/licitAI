@@ -203,34 +203,6 @@ export class MercadoPublicoV2ProjectionService {
     entityManager: EntityManager,
     context: MercadoPublicoV2ProjectionContext,
   ): Promise<MercadoPublicoV2ProjectionResult> {
-    if (context.snapshotKind === 'list') {
-      const currentDetailRows = await entityManager.query<
-        { observation_id: string }[]
-      >(
-        `
-          SELECT observation.id AS observation_id
-          FROM mp.compra_agil current
-          INNER JOIN mp.v2_observation observation
-            ON observation.id = current.observation_id
-          WHERE current.codigo = $1
-            AND observation.snapshot_kind = 'detail'
-          LIMIT 1
-        `,
-        [context.record.codigo],
-      );
-      const currentDetail = currentDetailRows[0];
-
-      if (currentDetail !== undefined) {
-        return {
-          observationId: currentDetail.observation_id,
-          created: false,
-          applied: false,
-          semanticChanged: false,
-          skipped: true,
-        };
-      }
-    }
-
     const normalized = normalizeV2CompraAgilRecord(context.record);
     const semanticPayload = buildSemanticPayload(
       context.record.codigo,
@@ -405,6 +377,18 @@ export class MercadoPublicoV2ProjectionService {
       };
     }
 
+    await this.projectChildren(entityManager, observationId, context);
+    await entityManager.query(
+      `
+        UPDATE mp.stg_api_v2_compra_agil
+        SET observation_id = $1
+        WHERE raw_api_payload_id = $2
+          AND codigo = $3
+          AND observation_id IS NULL
+      `,
+      [observationId, context.rawApiPayloadId, context.record.codigo],
+    );
+
     if (
       context.snapshotKind === 'list' &&
       previous?.snapshot_kind === 'detail'
@@ -565,17 +549,6 @@ export class MercadoPublicoV2ProjectionService {
         context,
         observationId,
         semanticFingerprint,
-      );
-      await this.projectChildren(entityManager, observationId, context);
-      await entityManager.query(
-        `
-          UPDATE mp.stg_api_v2_compra_agil
-          SET observation_id = $1
-          WHERE raw_api_payload_id = $2
-            AND codigo = $3
-            AND observation_id IS NULL
-        `,
-        [observationId, context.rawApiPayloadId, context.record.codigo],
       );
     }
 

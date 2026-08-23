@@ -459,36 +459,40 @@ export class MercadoPublicoPersistenceService {
   async persistV2CompraAgilSnapshot(
     input: PersistMercadoPublicoV2CompraAgilSnapshotInput,
   ): Promise<PersistMercadoPublicoV2CompraAgilSnapshotResult> {
-    return this.coreDataSource.transaction(async (entityManager) => {
-      const rawApiPayloadId = await this.insertRawApiPayload(entityManager, {
-        jobRunRecordId: input.jobRunRecordId,
-        source: input.apiResponse.source,
-        endpoint: input.apiResponse.endpoint,
-        requestFingerprint: input.apiResponse.requestFingerprint,
-        payloadChecksum: input.apiResponse.payloadChecksum,
-        requestParams: input.apiResponse.requestParams,
-        httpStatus: input.apiResponse.httpStatus,
-        fetchedAt: input.apiResponse.fetchedAt,
-        rawPayload: input.apiResponse.rawPayload,
-        schemaFingerprint: input.apiResponse.schemaFingerprint,
-        errorSummary: input.errorSummaryText,
-        recordsFetched: input.apiResponse.compraAgil.length,
-      });
+    const rawApiPayloadId = await this.coreDataSource.transaction(
+      async (entityManager) =>
+        this.insertRawApiPayload(entityManager, {
+          jobRunRecordId: input.jobRunRecordId,
+          source: input.apiResponse.source,
+          endpoint: input.apiResponse.endpoint,
+          requestFingerprint: input.apiResponse.requestFingerprint,
+          payloadChecksum: input.apiResponse.payloadChecksum,
+          requestParams: input.apiResponse.requestParams,
+          httpStatus: input.apiResponse.httpStatus,
+          fetchedAt: input.apiResponse.fetchedAt,
+          rawPayload: input.apiResponse.rawPayload,
+          schemaFingerprint: input.apiResponse.schemaFingerprint,
+          errorSummary: input.errorSummaryText,
+          recordsFetched: input.apiResponse.compraAgil.length,
+        }),
+    );
 
-      await this.insertV2CompraAgilStagingRows(
-        entityManager,
-        rawApiPayloadId,
-        input.apiResponse,
-        input.snapshotKind,
-      );
+    const recordsStaged = await this.coreDataSource.transaction(
+      async (entityManager) =>
+        this.insertV2CompraAgilStagingRows(
+          entityManager,
+          rawApiPayloadId,
+          input.apiResponse,
+          input.snapshotKind,
+        ),
+    );
 
-      return {
-        rawApiPayloadId,
-        recordsFetched: input.apiResponse.compraAgil.length,
-        recordsStaged: input.apiResponse.compraAgil.length,
-        recordsCanonicalized: 0,
-      };
-    });
+    return {
+      rawApiPayloadId,
+      recordsFetched: input.apiResponse.compraAgil.length,
+      recordsStaged,
+      recordsCanonicalized: 0,
+    };
   }
 
   private async insertV2CompraAgilStagingRows(
@@ -496,17 +500,18 @@ export class MercadoPublicoPersistenceService {
     rawApiPayloadId: string,
     apiResponse: MercadoPublicoApiV2CompraAgilListResponse,
     snapshotKind: SnapshotKind,
-  ): Promise<void> {
+  ): Promise<number> {
     const placeholders: string[] = [];
     const params: unknown[] = [];
     let paramIndex = 1;
+    let recordsStaged = 0;
 
     const flushBatch = async () => {
       if (placeholders.length === 0) {
         return;
       }
 
-      await entityManager.query(
+      const insertedRows = await entityManager.query<{ id: string }[]>(
         `
           INSERT INTO mp.stg_api_v2_compra_agil (
             raw_api_payload_id,
@@ -540,9 +545,13 @@ export class MercadoPublicoPersistenceService {
             document_count
           )
           VALUES ${placeholders.join(', ')}
+          ON CONFLICT DO NOTHING
+          RETURNING id
         `,
         params,
       );
+
+      recordsStaged += insertedRows.length;
 
       placeholders.length = 0;
       params.length = 0;
@@ -595,6 +604,8 @@ export class MercadoPublicoPersistenceService {
     }
 
     await flushBatch();
+
+    return recordsStaged;
   }
 
   async persistCsvDownload(

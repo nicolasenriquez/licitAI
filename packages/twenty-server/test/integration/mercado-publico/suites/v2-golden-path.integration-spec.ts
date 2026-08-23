@@ -1,6 +1,7 @@
 import { type DataSource } from 'typeorm';
 
 import fixture from 'src/engine/core-modules/mercado-publico/drivers/api/__tests__/fixtures/v2-compra-agil-list.json';
+import { type MercadoPublicoApiV2CompraAgilListResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { MercadoPublicoV2BuyersReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-buyers-read.service';
 import { MercadoPublicoV2HistoryReadService } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2-history-read.service';
 import { MercadoPublicoV2NamespaceResolver } from 'src/engine/core-modules/mercado-publico/graphql/mercado-publico-v2.resolver';
@@ -24,6 +25,7 @@ import { MpV2SyncOperationsFastInstanceCommand } from 'src/database/commands/upg
 import { MpV2DurableHydrationRecoveryFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1792000000000-mp-v2-durable-hydration-recovery';
 import { MpV2ItemAttemptObservabilityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1793000000000-mp-v2-item-attempt-observability';
 import { MpV2ItemLifecycleStatusSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1794000000000-mp-v2-item-lifecycle-status';
+import { MpV2StagingIdempotencySlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1795000000000-mp-v2-staging-idempotency';
 import { rawDataSource } from 'src/database/typeorm/raw/raw.datasource';
 import { MercadoPublicoPersistenceService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-persistence.service';
 import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
@@ -60,6 +62,7 @@ const applyCommands = async (dataSource: DataSource): Promise<void> => {
     await new MpV2DurableHydrationRecoveryFastInstanceCommand().up(queryRunner);
     await new MpV2ItemAttemptObservabilityFastInstanceCommand().up(queryRunner);
     await new MpV2ItemLifecycleStatusSlowInstanceCommand().up(queryRunner);
+    await new MpV2StagingIdempotencySlowInstanceCommand().up(queryRunner);
 
     await queryRunner.commitTransaction();
   } catch (error) {
@@ -94,6 +97,7 @@ const truncateTables = async (dataSource: DataSource): Promise<void> => {
 describe('Mercado Publico V2 golden path (db-backed)', () => {
   let dataSource: DataSource;
   let durableSyncService: MercadoPublicoV2DurableSyncService;
+  let persistenceService: MercadoPublicoPersistenceService;
   let readService: MercadoPublicoV2ReadService;
   let resolver: MercadoPublicoV2NamespaceResolver;
 
@@ -110,10 +114,12 @@ describe('Mercado Publico V2 golden path (db-backed)', () => {
       dataSource,
     );
 
-    const persistenceService = new MercadoPublicoPersistenceService(dataSource);
+    persistenceService = new MercadoPublicoPersistenceService(dataSource);
     durableSyncService = new MercadoPublicoV2DurableSyncService(
       {} as never,
-      { getSettings: () => ({ httpMaxRetries: 3, httpRetryBackoffMs: 0 }) } as never,
+      {
+        getSettings: () => ({ httpMaxRetries: 3, httpRetryBackoffMs: 0 }),
+      } as never,
       persistenceService,
       dataSource,
       new MercadoPublicoV2ProjectionService(dataSource),
@@ -197,6 +203,81 @@ describe('Mercado Publico V2 golden path (db-backed)', () => {
     expect(page.rows).toHaveLength(1);
     expect(page.rows[0]?.codigo).toBe('FIXTURE-CA-001');
     expect(connection.edges[0]?.node.codigo).toBe('FIXTURE-CA-001');
+  });
+
+  it('keeps staging idempotent when the same raw payload is retried', async () => {
+    const jobRun = await persistenceService.createJobRun('v2-idempotency-test');
+    const response: MercadoPublicoApiV2CompraAgilListResponse = {
+      endpoint: 'list',
+      source: 'api-v2-compra-agil',
+      requestParams: { numero_pagina: 1 },
+      requestFingerprint: 'idempotency-request',
+      payloadChecksum: 'idempotency-payload',
+      schemaFingerprint: 'idempotency-schema',
+      httpStatus: 200,
+      fetchedAt: new Date('2026-08-10T12:00:00.000Z'),
+      rawPayload: { payload: { items: [{ codigo: 'CA-IDEMPOTENT' }] } },
+      compraAgil: [{ codigo: 'CA-IDEMPOTENT' }],
+    };
+
+    const first = await persistenceService.persistV2CompraAgilSnapshot({
+      jobRunRecordId: jobRun.id,
+      snapshotKind: 'list',
+      apiResponse: response,
+    });
+    const second = await persistenceService.persistV2CompraAgilSnapshot({
+      jobRunRecordId: jobRun.id,
+      snapshotKind: 'list',
+      apiResponse: response,
+    });
+    const rawCountRows = await dataSource.query<{ count: string }[]>(
+      `SELECT COUNT(*)::text AS count FROM mp.raw_api_payload`,
+    );
+    const stagingCountRows = await dataSource.query<{ count: string }[]>(
+      `SELECT COUNT(*)::text AS count FROM mp.stg_api_v2_compra_agil`,
+    );
+
+    expect(second.rawApiPayloadId).toBe(first.rawApiPayloadId);
+    expect(first.recordsStaged).toBe(1);
+    expect(second.recordsStaged).toBe(0);
+    expect(rawCountRows[0]?.count).toBe('1');
+    expect(stagingCountRows[0]?.count).toBe('1');
+  });
+
+  it('retains raw evidence when staging rejects the payload', async () => {
+    const jobRun = await persistenceService.createJobRun(
+      'v2-raw-durability-test',
+    );
+    const response: MercadoPublicoApiV2CompraAgilListResponse = {
+      endpoint: 'list',
+      source: 'api-v2-compra-agil',
+      requestParams: { numero_pagina: 1 },
+      requestFingerprint: 'raw-durability-request',
+      payloadChecksum: 'raw-durability-payload',
+      schemaFingerprint: 'raw-durability-schema',
+      httpStatus: 200,
+      fetchedAt: new Date('2026-08-10T12:00:00.000Z'),
+      rawPayload: { payload: { items: [{ codigo: null }] } },
+      compraAgil: [{ codigo: null as never }],
+    };
+
+    await expect(
+      persistenceService.persistV2CompraAgilSnapshot({
+        jobRunRecordId: jobRun.id,
+        snapshotKind: 'list',
+        apiResponse: response,
+      }),
+    ).rejects.toThrow();
+
+    const rawCountRows = await dataSource.query<{ count: string }[]>(
+      `SELECT COUNT(*)::text AS count FROM mp.raw_api_payload`,
+    );
+    const stagingCountRows = await dataSource.query<{ count: string }[]>(
+      `SELECT COUNT(*)::text AS count FROM mp.stg_api_v2_compra_agil`,
+    );
+
+    expect(rawCountRows[0]?.count).toBe('1');
+    expect(stagingCountRows[0]?.count).toBe('0');
   });
 
   it('uses active cohort membership instead of canonical state for Activas', async () => {

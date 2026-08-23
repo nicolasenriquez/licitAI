@@ -33,6 +33,38 @@ describe('Compra Agil V2 payload decoders', () => {
     });
   });
 
+  it.each([
+    ['object field', { codigo: 'CA-1', fechas: [] }, '[0].fechas'],
+    [
+      'array field',
+      { codigo: 'CA-1', proveedores_cotizando: {} },
+      '[0].proveedores_cotizando',
+    ],
+    [
+      'array item',
+      { codigo: 'CA-1', documentos: ['invalid'] },
+      '[0].documentos[0]',
+    ],
+    [
+      'nested array field',
+      {
+        codigo: 'CA-1',
+        proveedores_cotizando: [{ productos_cotizados: {} }],
+      },
+      '[0].proveedores_cotizando[0].productos_cotizados',
+    ],
+  ])('rejects malformed nested %s', (_label, item, path) => {
+    const decoded = decodeV2CompraAgilListPayload({
+      payload: { items: [item] },
+    });
+
+    expect(decoded).toMatchObject({
+      records: [],
+      errorCode: 'invalid_list_items',
+      errorMessage: expect.stringContaining(path),
+    });
+  });
+
   it('decodes DETAIL only from payload', () => {
     expect(decodeV2CompraAgilDetailPayload(detailEnvelope).records).toEqual([
       expect.objectContaining({ codigo: 'FIXTURE-CA-DETAIL' }),

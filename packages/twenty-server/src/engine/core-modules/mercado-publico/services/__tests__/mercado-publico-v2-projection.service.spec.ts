@@ -81,6 +81,11 @@ describe('MercadoPublicoV2ProjectionService', () => {
 
     expect(result).toMatchObject({ applied: false, skipped: true });
     expect(
+      queries.some((query) =>
+        query.sql.includes('INSERT INTO mp.v2_observation'),
+      ),
+    ).toBe(true);
+    expect(
       queries.some((query) => query.sql.includes('INSERT INTO mp.compra_agil')),
     ).toBe(false);
     expect(
@@ -88,6 +93,16 @@ describe('MercadoPublicoV2ProjectionService', () => {
         query.sql.includes('INSERT INTO mp.gold_detected_process'),
       ),
     ).toBe(false);
+    expect(
+      queries.some((query) =>
+        query.sql.includes('INSERT INTO mp.v2_relation_snapshot'),
+      ),
+    ).toBe(true);
+    expect(
+      queries.some((query) =>
+        query.sql.includes('UPDATE mp.stg_api_v2_compra_agil'),
+      ),
+    ).toBe(true);
   });
 
   it('lets DETAIL replace a current LIST regardless of timestamp ordering', async () => {

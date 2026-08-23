@@ -99,6 +99,10 @@ describe('MercadoPublicoPersistenceService', () => {
           return [{ id: 'raw-api-payload-id' }];
         }
 
+        if (sql.includes('INSERT INTO mp.stg_api_v2_compra_agil')) {
+          return [{ id: 'staging-id-1' }, { id: 'staging-id-2' }];
+        }
+
         return [];
       }),
     };
@@ -146,6 +150,7 @@ describe('MercadoPublicoPersistenceService', () => {
       recordsStaged: 2,
       recordsCanonicalized: 0,
     });
+    expect(mockDataSource.transaction).toHaveBeenCalledTimes(2);
     expect(
       executedSql.some((sql) => sql.includes('INSERT INTO mp.raw_api_payload')),
     ).toBe(true);
@@ -154,6 +159,61 @@ describe('MercadoPublicoPersistenceService', () => {
         sql.includes('INSERT INTO mp.stg_api_v2_compra_agil'),
       ),
     ).toHaveLength(1);
+    expect(
+      executedSql.find((sql) =>
+        sql.includes('INSERT INTO mp.stg_api_v2_compra_agil'),
+      ),
+    ).toContain('ON CONFLICT DO NOTHING');
+  });
+
+  it('commits raw evidence before staging fails', async () => {
+    const rawEntityManager = {
+      query: jest.fn().mockResolvedValue([{ id: 'raw-api-payload-id' }]),
+    };
+    const stagingError = new Error('staging failed');
+    const stagingEntityManager = {
+      query: jest.fn().mockRejectedValue(stagingError),
+    };
+    const mockDataSource = {
+      transaction: jest
+        .fn()
+        .mockImplementationOnce(async (callback) => callback(rawEntityManager))
+        .mockImplementationOnce(async (callback) =>
+          callback(stagingEntityManager),
+        ),
+    };
+    const service = new MercadoPublicoPersistenceService(
+      mockDataSource as never,
+    );
+
+    await expect(
+      service.persistV2CompraAgilSnapshot({
+        jobRunRecordId: 'job-run-record-id',
+        snapshotKind: 'list',
+        apiResponse: {
+          endpoint: 'list',
+          source: 'api-v2-compra-agil',
+          requestParams: {},
+          requestFingerprint: 'request-fingerprint',
+          payloadChecksum: 'payload-checksum',
+          schemaFingerprint: 'schema-fingerprint',
+          httpStatus: 200,
+          fetchedAt: new Date('2026-06-15T00:00:00.000Z'),
+          rawPayload: {},
+          compraAgil: [{ codigo: 'CA-1' }],
+        },
+      }),
+    ).rejects.toThrow(stagingError);
+
+    expect(mockDataSource.transaction).toHaveBeenCalledTimes(2);
+    expect(rawEntityManager.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO mp.raw_api_payload'),
+      expect.any(Array),
+    );
+    expect(stagingEntityManager.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO mp.stg_api_v2_compra_agil'),
+      expect.any(Array),
+    );
   });
 
   it('does not insert raw_csv_file_id into stg_csv_orden_compra rows', async () => {
