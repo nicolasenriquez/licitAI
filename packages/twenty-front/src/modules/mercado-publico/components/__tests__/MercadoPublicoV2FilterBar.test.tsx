@@ -25,6 +25,31 @@ const filters: MercadoPublicoV2Filters = {
 };
 
 describe('MercadoPublicoV2FilterBar', () => {
+  it('counts zero-valued numeric filters as active', () => {
+    render(
+      <ThemeProvider colorScheme="light">
+        <I18nProvider i18n={i18n}>
+          <MercadoPublicoV2FilterBar
+            filters={{
+              ...filters,
+              documentCountMin: 0,
+              documentCountMax: 0,
+              llamado: 0,
+            }}
+            sort={MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC}
+            notice={null}
+            noticeId="mercado-publico-v2-filters-notice"
+            onApply={jest.fn()}
+            onClear={jest.fn()}
+            onSortChange={jest.fn()}
+          />
+        </I18nProvider>
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByText('Más filtros (3)')).toBeDefined();
+  });
+
   it('keeps staged filters when the user enters a search before applying', async () => {
     const onApply = jest.fn();
     const user = userEvent.setup();
