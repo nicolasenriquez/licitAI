@@ -82,16 +82,15 @@ export class DevSeederPermissionsService {
       workspaceId,
     });
 
-    let adminUserWorkspaceId: string | undefined;
+    let adminUserWorkspaceIds: string[] = [];
     let memberUserWorkspaceIds: string[] = [];
-    let limitedUserWorkspaceId: string | undefined;
     let guestUserWorkspaceId: string | undefined;
 
     if (workspaceId === SEED_APPLE_WORKSPACE_ID) {
       if (light) {
         // In light mode, Tim is admin (prefilled login user needs full
         // access for SDK development). No demo permission roles needed.
-        adminUserWorkspaceId = USER_WORKSPACE_DATA_SEED_IDS.TIM;
+        adminUserWorkspaceIds = [USER_WORKSPACE_DATA_SEED_IDS.TIM];
         memberUserWorkspaceIds = [
           USER_WORKSPACE_DATA_SEED_IDS.JANE,
           USER_WORKSPACE_DATA_SEED_IDS.JONY,
@@ -99,8 +98,10 @@ export class DevSeederPermissionsService {
           ...Object.values(RANDOM_USER_WORKSPACE_IDS),
         ];
       } else {
-        adminUserWorkspaceId = USER_WORKSPACE_DATA_SEED_IDS.JANE;
-        limitedUserWorkspaceId = USER_WORKSPACE_DATA_SEED_IDS.TIM;
+        adminUserWorkspaceIds = [
+          USER_WORKSPACE_DATA_SEED_IDS.JANE,
+          USER_WORKSPACE_DATA_SEED_IDS.TIM,
+        ];
         guestUserWorkspaceId = USER_WORKSPACE_DATA_SEED_IDS.PHIL;
         memberUserWorkspaceIds = [
           USER_WORKSPACE_DATA_SEED_IDS.JONY,
@@ -118,17 +119,11 @@ export class DevSeederPermissionsService {
           roleId: guestRole.id,
         });
 
-        // The limited role restricts access to Pet and Rocket objects,
-        // which are only created in full (non-light) mode
-        const limitedRole = await this.createLimitedRoleForSeedWorkspace({
+        // Keep restricted role available for permission testing without
+        // assigning it to Tim, who is now an administrator.
+        await this.createLimitedRoleForSeedWorkspace({
           workspaceId,
           ownerFlatApplication: workspaceCustomFlatApplication,
-        });
-
-        await this.userRoleService.assignRoleToManyUserWorkspace({
-          workspaceId,
-          userWorkspaceIds: [limitedUserWorkspaceId],
-          roleId: limitedRole.id,
         });
 
         const impersonateOnlyRole =
@@ -144,7 +139,7 @@ export class DevSeederPermissionsService {
         });
       }
     } else if (workspaceId === SEED_YCOMBINATOR_WORKSPACE_ID) {
-      adminUserWorkspaceId = USER_WORKSPACE_DATA_SEED_IDS.TIM_ACME;
+      adminUserWorkspaceIds = [USER_WORKSPACE_DATA_SEED_IDS.TIM_ACME];
       memberUserWorkspaceIds = [
         USER_WORKSPACE_DATA_SEED_IDS.JONY_ACME,
         USER_WORKSPACE_DATA_SEED_IDS.JANE_ACME,
@@ -152,7 +147,7 @@ export class DevSeederPermissionsService {
       ];
     }
 
-    if (!adminUserWorkspaceId) {
+    if (adminUserWorkspaceIds.length === 0) {
       throw new Error(
         'Should never occur, no eligible user workspace for admin has been found',
       );
@@ -160,7 +155,7 @@ export class DevSeederPermissionsService {
 
     await this.userRoleService.assignRoleToManyUserWorkspace({
       workspaceId,
-      userWorkspaceIds: [adminUserWorkspaceId],
+      userWorkspaceIds: adminUserWorkspaceIds,
       roleId: adminRole.id,
     });
 

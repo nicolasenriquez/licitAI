@@ -118,15 +118,25 @@ describe('roles permissions', () => {
         },
       ]);
 
-      expect(adminRole.workspaceMembers).toEqual([
-        {
-          id: '20202020-463f-435b-828c-107e007a2711',
-          name: {
-            firstName: 'Jane',
-            lastName: 'Austen',
+      expect(adminRole.workspaceMembers).toHaveLength(2);
+      expect(adminRole.workspaceMembers).toEqual(
+        expect.arrayContaining([
+          {
+            id: '20202020-463f-435b-828c-107e007a2711',
+            name: {
+              firstName: 'Jane',
+              lastName: 'Austen',
+            },
           },
-        },
-      ]);
+          {
+            id: '20202020-0687-4c41-b707-ed1bfca972a7',
+            name: {
+              firstName: 'Tim',
+              lastName: 'Apple',
+            },
+          },
+        ]),
+      );
 
       expect(memberRole.workspaceMembers).toEqual(
         expect.arrayContaining([
@@ -140,15 +150,7 @@ describe('roles permissions', () => {
         ]),
       );
 
-      expect(objectRestrictedRole.workspaceMembers).toEqual([
-        {
-          id: '20202020-0687-4c41-b707-ed1bfca972a7',
-          name: {
-            firstName: 'Tim',
-            lastName: 'Apple',
-          },
-        },
-      ]);
+      expect(objectRestrictedRole.workspaceMembers).toEqual([]);
     });
     it('should throw a permission error when user does not have permission (member role)', async () => {
       const query = {
