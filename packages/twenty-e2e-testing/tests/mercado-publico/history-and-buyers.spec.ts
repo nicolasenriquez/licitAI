@@ -13,16 +13,8 @@ const seededUtmCodigo =
   process.env.MERCADO_PUBLICO_V2_E2E_UTM_CODIGO ?? 'FIXTURE-CA-UTM';
 const seededBuyerCode =
   process.env.MERCADO_PUBLICO_V2_E2E_BUYER_CODE ?? '60.000.000-0';
-const v2FlagOn = process.env.REACT_APP_MERCADO_PUBLICO_V2_ENABLED === 'true';
 
 test.describe('Mercado Publico V2 history and buyers', () => {
-  test.beforeEach(async () => {
-    test.skip(
-      !v2FlagOn,
-      'build has REACT_APP_MERCADO_PUBLICO_V2_ENABLED=false',
-    );
-  });
-
   test('renders history event and provenance for seeded opportunity', async ({
     page,
   }) => {
@@ -62,11 +54,11 @@ test.describe('Mercado Publico V2 history and buyers', () => {
       page.getByRole('heading', { name: 'Historial' }),
     ).toBeVisible();
     await expect(
-      page.getByText('Selecciona una oportunidad para consultar su historial'),
+      page.getByText('Selecciona un proceso para consultar su historial'),
     ).toBeVisible();
   });
 
-  test('renders buyer aggregates and accessible partial data state', async ({
+  test('renders buyer aggregates and data-quality context', async ({
     page,
   }) => {
     await page.goto(BUYERS_PATH, { waitUntil: 'domcontentloaded' });
@@ -76,14 +68,17 @@ test.describe('Mercado Publico V2 history and buyers', () => {
     ).toBeVisible();
     await expect(page.getByText(seededBuyerCode)).toBeVisible();
     await expect(
-      page.getByRole('columnheader', { name: 'Cobertura de comprador' }),
+      page.getByRole('columnheader', { name: 'Procesos' }),
     ).toBeVisible();
-    await expect(page.getByRole('status')).toContainText(
-      /cobertura|disponibilidad/i,
-    );
+    await expect(
+      page
+        .getByRole('row')
+        .filter({ hasText: seededBuyerCode })
+        .getByRole('group'),
+    ).toHaveCount(1);
   });
 
-  test('navigates buyer selection to Activas and browser Back restores Compradores', async ({
+  test('navigates buyer selection to Procesos and browser Back restores Compradores', async ({
     page,
   }) => {
     await page.goto(BUYERS_PATH, { waitUntil: 'domcontentloaded' });
@@ -94,7 +89,7 @@ test.describe('Mercado Publico V2 history and buyers', () => {
         `${ACTIVE_PATH}.*buyer=${encodeURIComponent(seededBuyerCode)}`,
       ),
     );
-    await expect(page.getByRole('heading', { name: 'Activas' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Procesos' })).toBeVisible();
 
     await page.goBack();
 

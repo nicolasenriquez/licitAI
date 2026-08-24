@@ -19,17 +19,16 @@ test('release gate aggregates each owned G1-G4 proof exactly once', async () => 
 
   assert.deepEqual(
     mercadoPublicoReleaseGateManifest.gates.map((gate) => gate.id),
-    ['lifecycle', 'evidence', 'analytics', 'security', 'navigation', 'cutover'],
+    ['lifecycle', 'evidence', 'analytics', 'security', 'navigation'],
   );
   assert.deepEqual(
     mercadoPublicoReleaseGateManifest.gates.map((gate) => gate.command),
     [
       'npx jest --config jest-integration.config.ts "v2-durable-sync|v2-golden-path"',
       'npx jest --config jest-integration.config.ts v2-evidence-history-replay',
-      'npx playwright test tests/mercado-publico/baseline.spec.ts --project=chrome',
+      'npx playwright test tests/mercado-publico/activas-ui-contract.spec.ts --project=chrome',
       'npx playwright test tests/mercado-publico/sync-control.spec.ts --project=operator --project=analyst',
       'npx playwright test tests/mercado-publico/history-and-buyers.spec.ts --project=chrome',
-      'node scripts/run-mercado-publico-cutover.mjs',
     ],
   );
 });

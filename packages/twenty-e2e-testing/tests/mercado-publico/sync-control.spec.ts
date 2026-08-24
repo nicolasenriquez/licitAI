@@ -3,13 +3,12 @@ import { expect, test, type Page } from '@playwright/test';
 // Isolated operator and analyst checks for the V2 sync control center
 // (openspec change mercado-publico-v2-sync-operations, task 3.2).
 // Prerequisites (isolated disposable project):
-//   node scripts/provision-baseline.mjs --flag on --fixture v2-history-and-buyers
+//   node scripts/provision-baseline.mjs --fixture v2-history-and-buyers
 // Run: npx playwright test tests/mercado-publico/sync-control.spec.ts --project=operator --project=analyst
 
 const SYNC_CONTROL_PATH = '/mercado-publico/centro-de-control';
 const UUID_PATTERN =
   /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-const v2FlagOn = process.env.REACT_APP_MERCADO_PUBLICO_V2_ENABLED === 'true';
 const START_BUTTON_NAME = /^Iniciar(?:\s|$)/;
 
 const getEnabledControlAction = async (page: Page) => {
@@ -26,10 +25,6 @@ const openConfirmationDialog = async (page: Page) => {
   await page.getByRole('button', { name: START_BUTTON_NAME }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
 };
-
-test.beforeEach(async () => {
-  test.skip(!v2FlagOn, 'build has REACT_APP_MERCADO_PUBLICO_V2_ENABLED=false');
-});
 
 test.describe('Mercado Publico V2 sync control for operators @operator', () => {
   test('operator sees safe latest-run state without internal identifiers', async ({
@@ -132,6 +127,42 @@ test.describe('Mercado Publico V2 sync control for operators @operator', () => {
   test('operator start requires explicit confirmation and confirms safely', async ({
     page,
   }) => {
+    let startInput: Record<string, unknown> | undefined;
+
+    await page.route('**/*', async (route) => {
+      if (route.request().method() !== 'POST') {
+        await route.continue();
+        return;
+      }
+
+      let requestBody: {
+        operationName?: string;
+        variables?: { input?: Record<string, unknown> };
+      };
+
+      try {
+        requestBody = route.request().postDataJSON() as typeof requestBody;
+      } catch {
+        await route.continue();
+        return;
+      }
+
+      if (requestBody.operationName !== 'MercadoPublicoV2StartSync') {
+        await route.continue();
+        return;
+      }
+
+      startInput = requestBody.variables?.input;
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            mercadoPublicoV2SyncControl: { start: { state: 'accepted' } },
+          },
+        }),
+      });
+    });
+
     await page.goto(SYNC_CONTROL_PATH, { waitUntil: 'domcontentloaded' });
     await expect(
       page.getByRole('heading', { name: 'Centro de control' }),
@@ -156,6 +187,10 @@ test.describe('Mercado Publico V2 sync control for operators @operator', () => {
       .getByRole('button', { name: 'Confirmar' })
       .click();
     await expect(page.getByRole('dialog')).toBeHidden({ timeout: 15000 });
+    expect(startInput).toEqual({
+      confirmed: true,
+      idempotencyKey: expect.stringMatching(UUID_PATTERN),
+    });
   });
 });
 

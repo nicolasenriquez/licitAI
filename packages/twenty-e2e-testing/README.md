@@ -129,7 +129,7 @@ npx playwright test tests/login.setup.ts --project=setup-team
 Then run an authenticated Mercado Publico smoke:
 
 ```powershell
-npx playwright test tests/mercado-publico/baseline.spec.ts --project=chrome
+npx playwright test tests/mercado-publico/activas-ui-contract.spec.ts --project=chrome
 ```
 
 ### Mercado Publico V2 history and buyers
@@ -139,7 +139,7 @@ because the `mp` schema is deployment-local. The server image must contain the
 same source revision as the frontend so `/metadata` exposes `history` and
 `buyers`.
 
-Seed V2 data through the real ingestion and normalization path. The fixture
+Seed V2 data directly into isolated read models. The fixture
 must contain:
 
 - one opportunity ingested twice with a semantic change;
@@ -150,18 +150,18 @@ must contain:
 The supported provisioner creates only isolated Compose project `twenty-mp-e2e`
 on a Docker-assigned local port,
 builds the current source revision, runs migrations, and
-seeds the fixture through the server-side durable sync path. It requires the
-disposable fixture flags set by `docker-compose.e2e.yml`; it does not use
+seeds deterministic fixture-owned rows without provider or queue calls. It
+requires disposable seed flags set by `docker-compose.e2e.yml`; it does not use
 persisted local Compose data.
 
 Routine provisions reuse the isolated database volume. The provisioner
 restores the active `default` database from a per-revision template
 (`mp_e2e_template_v2hb_<gitSha>`), so repeat runs skip seeding and fixture
-ingestion. A source change creates a new template and drops stale ones. Use
+insertion. A source change creates a new template and drops stale ones. Use
 `--fresh` to force a full reset including the named volumes:
 
 ```powershell
-node scripts/provision-baseline.mjs --flag on --fixture v2-history-and-buyers [--fresh]
+node scripts/provision-baseline.mjs --fixture v2-history-and-buyers [--fresh]
 ```
 
 Run the isolated fixture through its target:
@@ -172,11 +172,10 @@ npx nx run twenty-e2e-testing:test:mercado-publico
 
 The target stops the isolated containers after Playwright completes, including
 when a test fails. It preserves the volumes and templates. To inspect a stack,
-run the provisioner and then run Playwright with the flag in the process
-environment. To discard a manually provisioned stack, run:
+run the provisioner and then run Playwright. To discard a manually provisioned
+stack, run:
 
 ```powershell
-$env:REACT_APP_MERCADO_PUBLICO_V2_ENABLED = 'true'
 npx playwright test tests/mercado-publico/history-and-buyers.spec.ts --project=chrome
 ```
 

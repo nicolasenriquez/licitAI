@@ -1,5 +1,5 @@
 // Baseline provisioner: disposable env + identities, no versioned secrets.
-// Usage: node scripts/provision-baseline.mjs [--flag on|off] [--fixture name] [--fresh]
+// Usage: node scripts/provision-baseline.mjs [--fixture name] [--fresh]
 //
 // This script builds the fixture frontend with process-scoped configuration.
 // It never changes frontend or E2E .env files.
@@ -14,18 +14,26 @@ import {
   isolatedE2EComposeProject,
 } from './e2e-compose-preflight.mjs';
 
-const flagArg = process.argv[2] === '--flag' ? process.argv[3] : undefined;
+const arguments_ = process.argv.slice(2);
+const fixtureOptionIndex = arguments_.indexOf('--fixture');
 const fixtureArg =
-  process.argv[4] === '--fixture' ? process.argv[5] : undefined;
-const freshArg = process.argv.includes('--fresh');
+  fixtureOptionIndex === -1 ? undefined : arguments_[fixtureOptionIndex + 1];
+const freshArg = arguments_.includes('--fresh');
 const e2eFixture = 'v2-history-and-buyers';
+const unknownArguments = arguments_.filter(
+  (argument, index) =>
+    argument !== '--fresh' &&
+    argument !== '--fixture' &&
+    index !== fixtureOptionIndex + 1,
+);
 
 if (
-  (flagArg !== undefined && flagArg !== 'on' && flagArg !== 'off') ||
+  unknownArguments.length > 0 ||
+  (fixtureOptionIndex !== -1 && fixtureArg === undefined) ||
   (fixtureArg !== undefined && fixtureArg !== e2eFixture)
 ) {
   console.error(
-    'Usage: node scripts/provision-baseline.mjs [--flag on|off] [--fixture v2-history-and-buyers] [--fresh]',
+    'Usage: node scripts/provision-baseline.mjs [--fixture v2-history-and-buyers] [--fresh]',
   );
   process.exit(1);
 }
@@ -37,7 +45,6 @@ const frontendBuildIndex = resolve(
   scriptDir,
   '../../twenty-front/build/index.html',
 );
-const flagValue = flagArg === 'off' ? 'false' : 'true';
 const composeDir = resolve(scriptDir, '../../twenty-docker');
 const composeFiles = [
   '-f',
@@ -198,11 +205,6 @@ const isE2EServerRunning = () => {
 };
 
 if (fixtureArg === e2eFixture) {
-  if (flagValue !== 'true') {
-    console.error('The V2 fixture requires --flag on');
-    process.exit(1);
-  }
-
   const gitShaResult = spawnSync('git', ['rev-parse', '--short=12', 'HEAD'], {
     cwd: repoRoot,
     encoding: 'utf8',
@@ -280,7 +282,7 @@ if (fixtureArg === e2eFixture) {
       'server',
       'yarn',
       'command:prod',
-      'mercado-publico:v2:e2e-fixture',
+      'mercado-publico:v2:e2e-read-model-seed',
     ]);
     run(['stop', 'server']);
     execDbSql(`CREATE DATABASE ${templateDb} TEMPLATE ${PG_DATABASE};`);
@@ -294,10 +296,7 @@ if (fixtureArg === e2eFixture) {
     ['nx', 'build', 'twenty-front', '--skip-nx-cache'],
     {
       cwd: repoRoot,
-      env: {
-        ...process.env,
-        REACT_APP_MERCADO_PUBLICO_V2_ENABLED: flagValue,
-      },
+      env: process.env,
       stdio: 'inherit',
       shell: process.platform === 'win32',
     },
@@ -326,8 +325,6 @@ if (fixtureArg === e2eFixture) {
   writeFileSync(frontendBuildIndex, configuredFrontendIndex, 'utf8');
 }
 
-console.log(`baseline flag ${flagValue === 'true' ? 'ON' : 'OFF'}`);
-console.log('');
 console.log('Next:');
 console.log('  npx nx run twenty-e2e-testing:test:mercado-publico');
 
@@ -335,6 +332,6 @@ if (fixtureArg === e2eFixture) {
   console.log('');
   console.log('V2 fixture:');
   console.log(
-    "  $env:REACT_APP_MERCADO_PUBLICO_V2_ENABLED = 'true'; npx playwright test tests/mercado-publico/history-and-buyers.spec.ts --project=chrome",
+    '  npx playwright test tests/mercado-publico/history-and-buyers.spec.ts --project=chrome',
   );
 }

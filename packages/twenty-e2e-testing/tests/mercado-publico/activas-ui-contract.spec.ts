@@ -1,13 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type Request } from '@playwright/test';
 
-// Baseline smoke (issue 18): authenticated, flag-aware, evidence-preserving.
-// The flag is build-time (REACT_APP_MERCADO_PUBLICO_V2_ENABLED); this spec asserts
-// the behavior of the running build and saves screenshots/trace via config.
-
-const V2_PATH = '/mercado-publico-v2';
 const ACTIVE_PATH = '/mercado-publico';
-const v2FlagOn = process.env.REACT_APP_MERCADO_PUBLICO_V2_ENABLED === 'true';
 const isAllowedExternalRequest = (url: URL) =>
   url.hostname === 'fonts.googleapis.com' ||
   url.hostname.endsWith('.gstatic.com') ||
@@ -17,6 +11,42 @@ type GraphqlRequestBody = {
   operationName?: string;
   query?: string;
   variables?: Record<string, unknown>;
+};
+
+const getGraphqlRequestBody = (
+  request: Request,
+): GraphqlRequestBody | undefined => {
+  if (request.method() === 'POST') {
+    try {
+      return request.postDataJSON() as GraphqlRequestBody | undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  if (request.method() !== 'GET') {
+    return undefined;
+  }
+
+  const url = new URL(request.url());
+  const query = url.searchParams.get('query') ?? undefined;
+  const operationName =
+    url.searchParams.get('operationName') ??
+    query?.match(/\b(?:query|mutation)\s+(\w+)/)?.[1];
+  const variables = url.searchParams.get('variables');
+
+  try {
+    return {
+      operationName,
+      query,
+      variables:
+        variables === null
+          ? undefined
+          : (JSON.parse(variables) as Record<string, unknown>),
+    };
+  } catch {
+    return undefined;
+  }
 };
 
 const buildOpportunity = (overrides: Record<string, unknown> = {}) => ({
@@ -88,7 +118,12 @@ const trackHarnessDiagnostics = (page: Page) => {
     }
 
     if (url.pathname.endsWith('/metadata')) {
-      const requestBody = request.postDataJSON() as GraphqlRequestBody;
+      const requestBody = getGraphqlRequestBody(request);
+
+      if (requestBody === undefined) {
+        return;
+      }
+
       const operationName = requestBody.operationName;
 
       if (
@@ -135,8 +170,13 @@ const mockMercadoPublicoGraphql = async (
       })
     : undefined;
 
-  await page.route('**/metadata', async (route) => {
-    const requestBody = route.request().postDataJSON() as GraphqlRequestBody;
+  await page.route('**/*', async (route) => {
+    const requestBody = getGraphqlRequestBody(route.request());
+
+    if (requestBody === undefined) {
+      await route.continue();
+      return;
+    }
 
     if (requestBody.operationName === 'MercadoPublicoV2ActiveOpportunities') {
       activeRequestCount += 1;
@@ -220,66 +260,10 @@ const mockMercadoPublicoGraphql = async (
   return () => releaseActiveRequest?.();
 };
 
-test.describe('Mercado Publico V2 baseline', () => {
-  test('flagged build exposes the full V2 route, read-only, local-only network', async ({
+test.describe('Mercado Publico Procesos UI contract', () => {
+  test('mocked UI Procesos opens a detail panel without losing table context', async ({
     page,
   }) => {
-    test.skip(
-      !v2FlagOn,
-      'build has REACT_APP_MERCADO_PUBLICO_V2_ENABLED=false',
-    );
-
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
-
-    const externalRequests: string[] = [];
-
-    page.on('request', (request) => {
-      const url = new URL(request.url());
-      const isLocal =
-        url.hostname === 'localhost' || url.hostname === '127.0.0.1';
-
-      if (!isLocal && !isAllowedExternalRequest(url)) {
-        externalRequests.push(request.url());
-      }
-    });
-
-    await page.goto(V2_PATH, { waitUntil: 'domcontentloaded' });
-    await expect(
-      page.getByRole('heading', { name: 'Mercado Público V2 (baseline)' }),
-    ).toBeVisible();
-
-    await page.screenshot({
-      path: 'run_results/baseline-v2-route.png',
-      fullPage: true,
-    });
-
-    expect(
-      externalRequests,
-      'browser must never call the provider or an unapproved external host',
-    ).toEqual([]);
-  });
-
-  test('non-flagged build does not expose the V2 route (prior state intact)', async ({
-    page,
-  }) => {
-    test.skip(v2FlagOn, 'build has REACT_APP_MERCADO_PUBLICO_V2_ENABLED=true');
-
-    await page.goto(V2_PATH, { waitUntil: 'domcontentloaded' });
-
-    await expect(
-      page.getByRole('heading', { name: 'Mercado Público V2 (baseline)' }),
-    ).not.toBeVisible();
-  });
-
-  test('mocked UI Activas opens a detail panel without losing table context', async ({
-    page,
-  }) => {
-    test.skip(
-      !v2FlagOn,
-      'build has REACT_APP_MERCADO_PUBLICO_V2_ENABLED=false',
-    );
-
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
 
@@ -301,10 +285,12 @@ test.describe('Mercado Publico V2 baseline', () => {
       }
 
       if (url.pathname.endsWith('/metadata')) {
-        const requestBody = request.postDataJSON() as {
-          operationName?: string;
-          query?: string;
-        };
+        const requestBody = getGraphqlRequestBody(request);
+
+        if (requestBody === undefined) {
+          return;
+        }
+
         const operationName = requestBody.operationName;
         const query = requestBody.query;
 
@@ -366,10 +352,13 @@ test.describe('Mercado Publico V2 baseline', () => {
       },
     ];
 
-    await page.route('**/metadata', async (route) => {
-      const requestBody = route.request().postDataJSON() as {
-        operationName?: string;
-      };
+    await page.route('**/*', async (route) => {
+      const requestBody = getGraphqlRequestBody(route.request());
+
+      if (requestBody === undefined) {
+        await route.continue();
+        return;
+      }
 
       if (requestBody.operationName === 'MercadoPublicoV2ActiveOpportunities') {
         await route.fulfill({
@@ -449,7 +438,7 @@ test.describe('Mercado Publico V2 baseline', () => {
     });
 
     await page.goto(ACTIVE_PATH, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: 'Activas' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Procesos' })).toBeVisible();
     await expect(
       page.getByRole('heading', { name: 'Resumen del universo filtrado' }),
     ).toBeVisible();
@@ -488,7 +477,7 @@ test.describe('Mercado Publico V2 baseline', () => {
     await expect(page.getByText('Evidencia')).toBeVisible();
 
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('heading', { name: 'Activas' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Procesos' })).toBeVisible();
     await expect(
       page
         .getByRole('row')
@@ -504,21 +493,19 @@ test.describe('Mercado Publico V2 baseline', () => {
   test('mobile view stacks every table field without horizontal page overflow', async ({
     page,
   }) => {
-    test.skip(
-      !v2FlagOn,
-      'build has REACT_APP_MERCADO_PUBLICO_V2_ENABLED=false',
-    );
-
     await page.setViewportSize({ width: 390, height: 844 });
     await page.emulateMedia({
       colorScheme: 'light',
       reducedMotion: 'no-preference',
     });
 
-    await page.route('**/metadata', async (route) => {
-      const requestBody = route.request().postDataJSON() as {
-        operationName?: string;
-      };
+    await page.route('**/*', async (route) => {
+      const requestBody = getGraphqlRequestBody(route.request());
+
+      if (requestBody === undefined) {
+        await route.continue();
+        return;
+      }
 
       if (requestBody.operationName === 'MercadoPublicoV2ActiveOpportunities') {
         await route.fulfill({
@@ -600,21 +587,18 @@ test.describe('Mercado Publico V2 baseline', () => {
 
     await page.goto(ACTIVE_PATH, { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('columnheader')).toHaveCount(5);
-    await expect(page.getByText('Municipalidad de Ejemplo')).toBeVisible();
+    await expect(
+      page.getByText('Municipalidad de Ejemplo').first(),
+    ).toBeVisible();
     await expect(page.getByText('Documentos: 1')).toBeVisible();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(390);
   });
 
-  test('flagged Activas advances through URL-backed keyset pages', async ({
+  test('Procesos advances through URL-backed keyset pages', async ({
     page,
   }) => {
-    test.skip(
-      !v2FlagOn,
-      'build has REACT_APP_MERCADO_PUBLICO_V2_ENABLED=false',
-    );
-
     const pageOneOpportunity = {
       codigo: 'FIXTURE-CA-001',
       title: 'Primera oportunidad',
@@ -637,11 +621,13 @@ test.describe('Mercado Publico V2 baseline', () => {
       title: 'Segunda oportunidad',
     };
 
-    await page.route('**/metadata', async (route) => {
-      const requestBody = route.request().postDataJSON() as {
-        operationName?: string;
-        variables?: { after?: string };
-      };
+    await page.route('**/*', async (route) => {
+      const requestBody = getGraphqlRequestBody(route.request());
+
+      if (requestBody === undefined) {
+        await route.continue();
+        return;
+      }
 
       if (requestBody.operationName !== 'MercadoPublicoV2ActiveOpportunities') {
         await route.continue();
@@ -695,18 +681,13 @@ test.describe('Mercado Publico V2 baseline', () => {
   });
 
   test('renders loading state before populated results', async ({ page }) => {
-    test.skip(
-      !v2FlagOn,
-      'build has REACT_APP_MERCADO_PUBLICO_V2_ENABLED=false',
-    );
-
     const diagnostics = trackHarnessDiagnostics(page);
     const release = await mockMercadoPublicoGraphql(page, {
       holdActive: true,
     });
 
     await page.goto(ACTIVE_PATH, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByText('Cargando oportunidades…')).toBeVisible();
+    await expect(page.getByText('Cargando procesos…')).toBeVisible();
 
     release();
     await expect(
@@ -720,11 +701,6 @@ test.describe('Mercado Publico V2 baseline', () => {
   test('renders empty and partial availability states without hiding fields', async ({
     page,
   }) => {
-    test.skip(
-      !v2FlagOn,
-      'build has REACT_APP_MERCADO_PUBLICO_V2_ENABLED=false',
-    );
-
     const diagnostics = trackHarnessDiagnostics(page);
     await mockMercadoPublicoGraphql(page, {
       opportunities: [],
@@ -734,12 +710,10 @@ test.describe('Mercado Publico V2 baseline', () => {
     await page.goto(`${ACTIVE_PATH}?q=empty-state`, {
       waitUntil: 'domcontentloaded',
     });
-    await expect(
-      page.getByText('No hay oportunidades disponibles.'),
-    ).toBeVisible();
+    await expect(page.getByText('No hay procesos disponibles.')).toBeVisible();
     await expect(page.locator('table')).toHaveCount(0);
 
-    await page.unroute('**/metadata');
+    await page.unroute('**/*');
     await mockMercadoPublicoGraphql(page, {
       opportunities: [
         buildOpportunity({
@@ -786,11 +760,6 @@ test.describe('Mercado Publico V2 baseline', () => {
   });
 
   test('renders active errors and retries successfully', async ({ page }) => {
-    test.skip(
-      !v2FlagOn,
-      'build has REACT_APP_MERCADO_PUBLICO_V2_ENABLED=false',
-    );
-
     const diagnostics = trackHarnessDiagnostics(page);
     await mockMercadoPublicoGraphql(page, {
       activeError: 'fixture active failure',
@@ -802,10 +771,8 @@ test.describe('Mercado Publico V2 baseline', () => {
     });
     await expect(
       page.locator('#mercado-publico-v2-filter-notice'),
-    ).toContainText('No fue posible cargar las oportunidades.');
-    await page
-      .getByRole('button', { name: 'Reintentar oportunidades' })
-      .click();
+    ).toContainText('No fue posible cargar los procesos.');
+    await page.getByRole('button', { name: 'Reintentar procesos' }).click();
     await expect(
       page.getByRole('button', {
         name: 'Abrir Servicio de mantención preventiva',
@@ -815,11 +782,6 @@ test.describe('Mercado Publico V2 baseline', () => {
   });
 
   test('passes responsive theme matrix and diagnostics', async ({ page }) => {
-    test.skip(
-      !v2FlagOn,
-      'build has REACT_APP_MERCADO_PUBLICO_V2_ENABLED=false',
-    );
-
     const diagnostics = trackHarnessDiagnostics(page);
     await mockMercadoPublicoGraphql(page);
 
@@ -870,10 +832,12 @@ test.describe('Mercado Publico V2 baseline', () => {
         { waitUntil: 'domcontentloaded' },
       );
       await expect(
-        page.getByRole('heading', { name: 'Activas' }),
+        page.getByRole('heading', { name: 'Procesos' }),
       ).toBeVisible();
       await expect(page.getByRole('columnheader')).toHaveCount(5);
-      await expect(page.getByText('Municipalidad de Ejemplo')).toBeVisible();
+      await expect(
+        page.getByText('Municipalidad de Ejemplo').first(),
+      ).toBeVisible();
       await expect(page.getByText('Documentos: 1')).toBeVisible();
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
@@ -895,11 +859,6 @@ test.describe('Mercado Publico V2 baseline', () => {
   test('supports keyboard interaction, visible focus, reduced motion, and 200% zoom', async ({
     page,
   }) => {
-    test.skip(
-      !v2FlagOn,
-      'build has REACT_APP_MERCADO_PUBLICO_V2_ENABLED=false',
-    );
-
     const diagnostics = trackHarnessDiagnostics(page);
     await mockMercadoPublicoGraphql(page);
     await page.setViewportSize({ width: 1280, height: 900 });
@@ -960,7 +919,9 @@ test.describe('Mercado Publico V2 baseline', () => {
     await page.evaluate(() => {
       document.documentElement.style.zoom = '2';
     });
-    await expect(page.getByText('Municipalidad de Ejemplo')).toBeVisible();
+    await expect(
+      page.getByText('Municipalidad de Ejemplo').first(),
+    ).toBeVisible();
     await expect(page.getByText('Documentos: 1')).toBeVisible();
 
     const zoomMetrics = await page

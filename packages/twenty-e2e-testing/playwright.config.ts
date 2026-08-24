@@ -59,11 +59,7 @@ export const playwrightConfig = {
     },
     {
       name: 'chrome',
-      testIgnore: [
-        GLOBAL_TEST_IGNORE,
-        /.*sync-control.*/,
-        /.*cutover-route-matrix.*/,
-      ],
+      testIgnore: [GLOBAL_TEST_IGNORE, /.*sync-control.*/],
       use: {
         ...devices['Desktop Chrome'],
         permissions: ['clipboard-read', 'clipboard-write'],
@@ -77,7 +73,7 @@ export const playwrightConfig = {
     },
     {
       name: 'operator',
-      testMatch: /.*(sync-control|cutover-route-matrix).*/,
+      testMatch: /.*sync-control.*/,
       grep: /@operator/,
       use: {
         ...devices['Desktop Chrome'],
@@ -94,7 +90,7 @@ export const playwrightConfig = {
           },
           {
             name: 'analyst',
-            testMatch: /.*(sync-control|cutover-route-matrix).*/,
+            testMatch: /.*sync-control.*/,
             grep: /@analyst/,
             use: {
               ...devices['Desktop Chrome'],

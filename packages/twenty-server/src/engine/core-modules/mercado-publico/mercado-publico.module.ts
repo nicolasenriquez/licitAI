@@ -5,7 +5,7 @@ import { MercadoPublicoV2SyncRecoveryCronCommand } from 'src/engine/core-modules
 import { MercadoPublicoV2DebtRecoveryCronJob } from 'src/engine/core-modules/mercado-publico/crons/jobs/mercado-publico-v2-debt-recovery.cron.job';
 import { MercadoPublicoV2SyncRecoveryCronJob } from 'src/engine/core-modules/mercado-publico/crons/jobs/mercado-publico-v2-sync-recovery.cron.job';
 import { MercadoPublicoSyncOperatorCommand } from 'src/engine/core-modules/mercado-publico/commands/mercado-publico-sync-operator.command';
-import { MercadoPublicoV2E2EFixtureCommand } from 'src/engine/core-modules/mercado-publico/commands/mercado-publico-v2-e2e-fixture.command';
+import { MercadoPublicoV2E2EReadModelSeedCommand } from 'src/engine/core-modules/mercado-publico/commands/mercado-publico-v2-e2e-read-model-seed.command';
 import { MercadoPublicoApiV2CompraAgilClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import {
   MercadoPublicoV2NamespaceResolver,
@@ -53,7 +53,7 @@ import { MercadoPublicoV2EvidenceReplayService } from 'src/engine/core-modules/m
     MercadoPublicoV2SyncControlService,
     MercadoPublicoApiV2CompraAgilClientService,
     MercadoPublicoSyncOperatorCommand,
-    MercadoPublicoV2E2EFixtureCommand,
+    MercadoPublicoV2E2EReadModelSeedCommand,
     MercadoPublicoV2SyncCommandJob,
     MercadoPublicoV2SyncRecoveryCronJob,
     MercadoPublicoV2SyncRecoveryCronCommand,

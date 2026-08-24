@@ -24,7 +24,7 @@ export const mercadoPublicoReleaseGateManifest = {
     {
       id: 'analytics',
       command:
-        'npx playwright test tests/mercado-publico/baseline.spec.ts --project=chrome',
+        'npx playwright test tests/mercado-publico/activas-ui-contract.spec.ts --project=chrome',
       cwd: packageDirectory,
     },
     {
@@ -37,11 +37,6 @@ export const mercadoPublicoReleaseGateManifest = {
       id: 'navigation',
       command:
         'npx playwright test tests/mercado-publico/history-and-buyers.spec.ts --project=chrome',
-      cwd: packageDirectory,
-    },
-    {
-      id: 'cutover',
-      command: 'node scripts/run-mercado-publico-cutover.mjs',
       cwd: packageDirectory,
     },
   ],
