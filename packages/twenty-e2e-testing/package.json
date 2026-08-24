@@ -5,12 +5,13 @@
   "private": true,
   "license": "AGPL-3.0",
   "scripts": {
-    "test:e2e-compose-preflight": "node --test scripts/e2e-compose-preflight.test.mjs"
+    "test:e2e-compose-preflight": "node --test scripts/e2e-compose-preflight.test.mjs",
+    "test:mercado-publico:runners": "node --test scripts/run-mercado-publico-e2e.test.mjs scripts/mercado-publico-release-gate.test.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
-    "@playwright/test": "^1.60.0",
-    "playwright": "^1.60.0",
-    "playwright-core": "1.60.0"
+    "@playwright/test": "1.62.0",
+    "playwright": "1.62.0",
+    "playwright-core": "1.62.0"
   }
 }

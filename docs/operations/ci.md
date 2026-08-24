@@ -183,7 +183,7 @@ the same structural pattern:
 | `ci-shared.yaml` | PR | Lint, typecheck, unit tests |
 | `ci-new-ui.yaml` | PR + push main | Lint, typecheck, unit tests, Storybook build & test |
 | `ci-sdk.yaml` | PR | Lint, typecheck, unit tests, integration tests, E2E tests against live server |
-| `ci-e2e-main.yaml` | push main + labeled PR | Full Playwright E2E: builds front+server, DB reset, worker, E2E tests |
+| `ci-e2e-main.yaml` | PR + merge queue + push main | Every PR runs the Mercado Publico UI-contract smoke. Merge queue and main run generic E2E plus the Mercado Publico release gate. |
 | `ci-test-docker-compose.yaml` | PR | docker compose up, docker build of app-dev target, health checks |
 | `ci-breaking-changes.yaml` | PR | GraphQL + REST API schema diff (main vs branch) |
 | `ci-docs.yaml` | PR + push main | Lint |
@@ -382,7 +382,7 @@ Reasons are documented below.
 | Workflow | Why Not Local |
 |----------|---------------|
 | `ci-breaking-changes.yaml` | Builds both `main` and current branch servers, diffs GraphQL + OpenAPI schemas. Requires pristine checkout of `origin/main` and full `rm -rf node_modules` reinstall. Too destructive for a developer workspace. |
-| `ci-e2e-main.yaml` | Label-gated (`run-merge-queue`), artifact uploads/downloads, full Playwright setup. The Playwright tests themselves can be run with `npx nx test twenty-e2e-testing`, but the workflow orchestrator is GitHub-specific. |
+| `ci-e2e-main.yaml` | Policy-gated artifact uploads and full Playwright setup. The final status reports `PASS`, `FAIL`, or `SKIPPED_BY_POLICY`; a policy skip is not full acceptance. |
 | `ci-utils.yaml` | Uses `pull_request_target` with GitHub API tokens. Danger.js is a GitHub-native code review bot. |
 | `ci-codex-plugin.yaml` | Internal tooling package. Not relevant to CI pipeline concerns. |
 

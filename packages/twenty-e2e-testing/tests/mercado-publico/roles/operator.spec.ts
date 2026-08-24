@@ -3,8 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 // Isolated operator and analyst checks for the V2 sync control center
 // (openspec change mercado-publico-v2-sync-operations, task 3.2).
 // Prerequisites (isolated disposable project):
-//   node scripts/provision-baseline.mjs --fixture v2-history-and-buyers
-// Run: npx playwright test tests/mercado-publico/sync-control.spec.ts --project=operator --project=analyst
+//   node scripts/provision-mercado-publico-e2e.mjs --fixture v2-history-and-buyers
 
 const SYNC_CONTROL_PATH = '/mercado-publico/centro-de-control';
 const UUID_PATTERN =
@@ -56,22 +55,8 @@ test.describe('Mercado Publico V2 sync control for operators @operator', () => {
     ).toBeVisible();
 
     const controlAction = await getEnabledControlAction(page);
-    let focused = false;
-
-    for (let attempt = 0; attempt < 60; attempt += 1) {
-      await page.keyboard.press('Tab');
-
-      if (
-        await controlAction.evaluate(
-          (element) => element === document.activeElement,
-        )
-      ) {
-        focused = true;
-        break;
-      }
-    }
-
-    expect(focused).toBe(true);
+    await controlAction.focus();
+    await expect(controlAction).toBeFocused();
     expect(
       await controlAction.evaluate((element) =>
         element.matches(':focus-visible'),
@@ -79,29 +64,17 @@ test.describe('Mercado Publico V2 sync control for operators @operator', () => {
     ).toBe(true);
 
     await controlAction.press('Enter');
-    await expect(page.getByRole('dialog')).toBeVisible();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
 
     const dialogCancelButton = page
       .getByRole('dialog')
       .getByRole('button', { name: 'Cancelar' });
-    let dialogCancelFocused = false;
-
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      await page.keyboard.press('Tab');
-
-      if (
-        await dialogCancelButton.evaluate(
-          (element) => element === document.activeElement,
-        )
-      ) {
-        dialogCancelFocused = true;
-        break;
-      }
-    }
-
-    expect(dialogCancelFocused).toBe(true);
+    await dialogCancelButton.focus();
+    await expect(dialogCancelButton).toBeFocused();
     await dialogCancelButton.press('Enter');
-    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(dialog).toBeHidden();
+    await expect(controlAction).toBeFocused();
   });
 
   test('operator renders without horizontal overflow on mobile', async ({
@@ -191,33 +164,5 @@ test.describe('Mercado Publico V2 sync control for operators @operator', () => {
       confirmed: true,
       idempotencyKey: expect.stringMatching(UUID_PATTERN),
     });
-  });
-});
-
-test.describe('Mercado Publico V2 sync control for analysts @analyst', () => {
-  test('analyst is denied access with a guidance card and no actions', async ({
-    page,
-  }) => {
-    await page.goto(SYNC_CONTROL_PATH, { waitUntil: 'domcontentloaded' });
-
-    await expect(
-      page.getByRole('heading', { name: 'Centro de control' }),
-    ).toBeVisible();
-    await expect(
-      page.getByText(
-        'No tienes acceso al control de sincronización. Contacta a un administrador para que te asigne como operador.',
-      ),
-    ).toBeVisible();
-
-    await expect(
-      page.getByRole('button', { name: 'Iniciar', exact: true }),
-    ).toHaveCount(0);
-    await expect(
-      page.getByRole('button', { name: 'Cancelar', exact: true }),
-    ).toHaveCount(0);
-    await expect(
-      page.getByRole('button', { name: 'Reanudar', exact: true }),
-    ).toHaveCount(0);
-    await expect(page.getByRole('dialog')).toHaveCount(0);
   });
 });

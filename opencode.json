@@ -1,0 +1,98 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "playwright-test": {
+      "type": "local",
+      "command": ["yarn", "playwright", "run-test-mcp-server"],
+      "enabled": true
+    }
+  },
+  "tools": {
+    "playwright*": false
+  },
+  "agent": {
+    "playwright-browser-worker": {
+      "description": "Explore the application in a browser without editing files",
+      "mode": "subagent",
+      "model": "openai/gpt-5.6-luna",
+      "reasoningEffort": "medium",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "external_directory": "deny"
+      },
+      "tools": {
+        "read": true,
+        "glob": true,
+        "grep": true,
+        "playwright-test*browser_*": true
+      }
+    },
+    "playwright-test-planner": {
+      "description": "Explore the application and write Playwright plans",
+      "mode": "subagent",
+      "model": "openai/gpt-5.6-luna",
+      "reasoningEffort": "high",
+      "prompt": "{file:.opencode/prompts/playwright-test-planner.md}",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "specs/**": "allow"
+        },
+        "bash": "deny",
+        "external_directory": "deny"
+      },
+      "tools": {
+        "read": true,
+        "glob": true,
+        "grep": true,
+        "playwright-test*browser_*": true,
+        "playwright-test*planner_*": true
+      }
+    },
+    "playwright-test-generator": {
+      "description": "Generate Playwright tests from an approved plan",
+      "mode": "subagent",
+      "model": "openai/gpt-5.6-luna",
+      "reasoningEffort": "high",
+      "prompt": "{file:.opencode/prompts/playwright-test-generator.md}",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "packages/twenty-e2e-testing/**": "allow"
+        },
+        "bash": "deny",
+        "external_directory": "deny"
+      },
+      "tools": {
+        "read": true,
+        "glob": true,
+        "grep": true,
+        "playwright-test*browser_*": true,
+        "playwright-test*generator_*": true
+      }
+    },
+    "playwright-test-healer": {
+      "description": "Diagnose and repair Playwright tests within the E2E tree",
+      "mode": "subagent",
+      "model": "openai/gpt-5.6-luna",
+      "reasoningEffort": "xhigh",
+      "prompt": "{file:.opencode/prompts/playwright-test-healer.md}",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "packages/twenty-e2e-testing/**": "allow"
+        },
+        "bash": "deny",
+        "external_directory": "deny"
+      },
+      "tools": {
+        "read": true,
+        "glob": true,
+        "grep": true,
+        "playwright-test*browser_*": true,
+        "playwright-test*test_*": true
+      }
+    }
+  }
+}

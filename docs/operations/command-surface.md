@@ -32,10 +32,15 @@ The repository exposes a structured command surface through Docker Compose, Nx t
 | `just ci-infra-up` | Legacy alternate CI infrastructure | Blocked by default because it creates a second Compose/ClickHouse stack. Requires `ALLOW_EXTRA_CONTAINERS=1` and explicit human authorization. |
 
 Mercado Publico fixture tests use only project `twenty-mp-e2e`, provisioned by
-`packages/twenty-e2e-testing/scripts/provision-baseline.mjs`. The provisioner
+`packages/twenty-e2e-testing/scripts/provision-mercado-publico-e2e.mjs`. The provisioner
 rejects the canonical project and an active E2E server before cleanup. Use
 `docker compose exec` for commands in an active service; do not use
 `docker compose run`, which creates a one-off container.
+
+Use the Nx targets `test:mercado-publico:ui-contract`,
+`test:mercado-publico:journeys`, `test:mercado-publico:roles`,
+`test:mercado-publico`, and `test:mercado-publico:release-gate`. The aggregate
+provisions once and always cleans up. The release gate runs backend proof first.
 
 Run `just runtime-check` before any runtime, API, or integration diagnosis. If it
 fails, report the existing stack's state; do not silently switch to host-local

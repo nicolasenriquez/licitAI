@@ -90,16 +90,9 @@ just runtime-check
 curl.exe --fail http://localhost:3000/healthz
 ```
 
-`packages/twenty-docker/.env` must contain:
-
-```env
-DISABLE_DB_MIGRATIONS=true
-DISABLE_CRON_JOBS_REGISTRATION=true
-```
-
-These values target the persisted local `mp-local` database used by this E2E
-baseline. Recreate the canonical server only as an explicit recovery action;
-routine tests must not create another Compose service or one-off container.
+Mercado Publico tests use the isolated `twenty-mp-e2e` Compose project. The
+runner supplies the fixture configuration to the process. It does not change
+package or frontend `.env` files.
 
 ### Local test account
 
@@ -107,9 +100,8 @@ Set `DEFAULT_LOGIN` and `DEFAULT_PASSWORD` in the ignored package `.env` for
 the standard local test account. Generic tests use only this account.
 
 The operator project uses `DEFAULT_LOGIN`. For an authorization-denial test,
-set `ANALYST_LOGIN` in the ignored package `.env` to a seeded user without the
-explicit sync-operator assignment. Do not put role-specific account values in
-a test, probe, README, or committed environment file.
+the fixture identity is `jane.austen@apple.dev`. It has no sync-operator
+assignment. Tim remains the operator fixture.
 
 ### Seed and login smoke
 
@@ -129,7 +121,7 @@ npx playwright test tests/login.setup.ts --project=setup-team
 Then run an authenticated Mercado Publico smoke:
 
 ```powershell
-npx playwright test tests/mercado-publico/activas-ui-contract.spec.ts --project=chrome
+yarn nx run twenty-e2e-testing:test:mercado-publico:ui-contract
 ```
 
 ### Mercado Publico V2 history and buyers
@@ -161,25 +153,27 @@ insertion. A source change creates a new template and drops stale ones. Use
 `--fresh` to force a full reset including the named volumes:
 
 ```powershell
-node scripts/provision-baseline.mjs --fixture v2-history-and-buyers [--fresh]
+node scripts/provision-mercado-publico-e2e.mjs --fixture v2-history-and-buyers [--fresh]
 ```
 
 Run the isolated fixture through its target:
 
 ```powershell
-npx nx run twenty-e2e-testing:test:mercado-publico
+yarn nx run twenty-e2e-testing:test:mercado-publico
 ```
+
+The public category targets are:
+
+- `test:mercado-publico:ui-contract`
+- `test:mercado-publico:journeys`
+- `test:mercado-publico:roles`
+- `test:mercado-publico`
+- `test:mercado-publico:release-gate`
 
 The target stops the isolated containers after Playwright completes, including
-when a test fails. It preserves the volumes and templates. To inspect a stack,
-run the provisioner and then run Playwright. To discard a manually provisioned
-stack, run:
-
-```powershell
-npx playwright test tests/mercado-publico/history-and-buyers.spec.ts --project=chrome
-```
-
-Then run:
+when a test fails. It preserves the database volume and supported template
+cache. To inspect a stack, set `MERCADO_PUBLICO_V2_KEEP_E2E_ENV=true`. Clean it
+with:
 
 ```powershell
 docker compose -p twenty-mp-e2e --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml -f packages/twenty-docker/docker-compose.e2e.yml down --remove-orphans

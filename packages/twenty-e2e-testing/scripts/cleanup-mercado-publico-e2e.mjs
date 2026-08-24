@@ -19,7 +19,7 @@ if (composeProjectError !== undefined) {
   throw new Error(composeProjectError);
 }
 
-export default () => {
+export const cleanupMercadoPublicoE2E = () => {
   const result = spawnSync(
     'docker',
     [
@@ -44,3 +44,9 @@ export default () => {
     throw result.error ?? new Error(`E2E cleanup failed with ${result.status}`);
   }
 };
+
+export default cleanupMercadoPublicoE2E;
+
+if (process.argv[1] === import.meta.filename) {
+  cleanupMercadoPublicoE2E();
+}

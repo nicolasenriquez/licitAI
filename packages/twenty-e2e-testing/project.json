@@ -42,7 +42,28 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/twenty-e2e-testing",
-        "command": "node scripts/provision-baseline.mjs --fixture v2-history-and-buyers && yarn playwright test --config=playwright.mercado-publico.config.ts tests/mercado-publico --project=chrome"
+        "command": "node scripts/run-mercado-publico-e2e.mjs all"
+      }
+    },
+    "test:mercado-publico:ui-contract": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/twenty-e2e-testing",
+        "command": "node scripts/run-mercado-publico-e2e.mjs ui-contract"
+      }
+    },
+    "test:mercado-publico:journeys": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/twenty-e2e-testing",
+        "command": "node scripts/run-mercado-publico-e2e.mjs journeys"
+      }
+    },
+    "test:mercado-publico:roles": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/twenty-e2e-testing",
+        "command": "node scripts/run-mercado-publico-e2e.mjs roles"
       }
     },
     "test:mercado-publico:release-gate": {

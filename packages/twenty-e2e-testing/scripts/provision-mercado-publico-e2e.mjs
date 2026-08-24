@@ -1,5 +1,5 @@
 // Baseline provisioner: disposable env + identities, no versioned secrets.
-// Usage: node scripts/provision-baseline.mjs [--fixture name] [--fresh]
+// Usage: node scripts/provision-mercado-publico-e2e.mjs [--fixture name] [--fresh]
 //
 // This script builds the fixture frontend with process-scoped configuration.
 // It never changes frontend or E2E .env files.
@@ -33,7 +33,7 @@ if (
   (fixtureArg !== undefined && fixtureArg !== e2eFixture)
 ) {
   console.error(
-    'Usage: node scripts/provision-baseline.mjs [--fixture v2-history-and-buyers] [--fresh]',
+    'Usage: node scripts/provision-mercado-publico-e2e.mjs [--fixture v2-history-and-buyers] [--fresh]',
   );
   process.exit(1);
 }
@@ -332,6 +332,6 @@ if (fixtureArg === e2eFixture) {
   console.log('');
   console.log('V2 fixture:');
   console.log(
-    '  npx playwright test tests/mercado-publico/history-and-buyers.spec.ts --project=chrome',
+    '  yarn playwright test --config=playwright.mercado-publico.config.ts tests/mercado-publico/journeys --project=chrome',
   );
 }
