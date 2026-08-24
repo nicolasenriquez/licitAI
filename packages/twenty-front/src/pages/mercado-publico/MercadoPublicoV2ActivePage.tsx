@@ -13,6 +13,7 @@ import {
 import { useSearchParams } from 'react-router-dom';
 import { Temporal } from 'temporal-polyfill';
 import { SidePanelPages } from 'twenty-shared/types';
+import { MercadoPublicoV2ErrorCode } from 'twenty-shared/constants';
 import { MOBILE_VIEWPORT, themeCssVariables } from 'twenty-ui/theme-constants';
 import { IconDotsVertical } from 'twenty-ui/icon';
 import { Button } from 'twenty-ui/input';
@@ -32,6 +33,7 @@ import { useSidePanelMenu } from '@/side-panel/hooks/useSidePanelMenu';
 import { isSidePanelOpenedState } from '@/side-panel/states/isSidePanelOpenedState';
 import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
 import { logError } from '~/utils/logError';
+import { isGraphqlErrorOfType } from '~/utils/is-graphql-error-of-type.util';
 
 const MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY = gql`
   query MercadoPublicoV2ActiveOpportunities(
@@ -232,6 +234,7 @@ const StyledTableContainer = styled.div`
   border: 1px solid ${themeCssVariables.border.color.light};
   border-radius: ${themeCssVariables.border.radius.md};
   max-width: 100%;
+  order: 1;
   overflow-x: auto;
 
   &:focus-visible {
@@ -399,12 +402,10 @@ const StyledDateValue = styled.time`
   }
 `;
 
-const StyledAnalytics = styled.section`
+const StyledAnalytics = styled.details`
   border: 1px solid ${themeCssVariables.border.color.light};
   border-radius: ${themeCssVariables.border.radius.md};
-  display: flex;
-  flex-direction: column;
-  gap: ${themeCssVariables.spacing[3]};
+  order: 2;
   padding: ${themeCssVariables.spacing[4]};
 `;
 
@@ -426,9 +427,11 @@ const StyledStateMessage = styled.div`
   padding: ${themeCssVariables.spacing[5]};
 `;
 
-const StyledAnalyticsHeading = styled.h2`
+const StyledAnalyticsHeading = styled.summary`
   color: ${themeCssVariables.font.color.primary};
+  cursor: pointer;
   font-size: ${themeCssVariables.font.size.lg};
+  font-weight: ${themeCssVariables.font.weight.medium};
   margin: 0;
 `;
 
@@ -469,6 +472,7 @@ const StyledBucket = styled.li`
 const StyledPagination = styled.nav`
   display: flex;
   justify-content: flex-end;
+  order: 1;
 `;
 
 const FILTER_NOTICE_ID = 'mercado-publico-v2-filter-notice';
@@ -676,6 +680,9 @@ export const MercadoPublicoV2ActivePage = () => {
   const { state, applyFilters, clearFilters, setSort, setAfter } =
     useMercadoPublicoV2UrlState();
   const [notice, setNotice] = useState<string | null>(null);
+  const [previousCursors, setPreviousCursors] = useState<Array<string | null>>(
+    [],
+  );
   const [hasMounted, setHasMounted] = useState(false);
   const [openingOpportunityCode, setOpeningOpportunityCode] = useState<
     string | null
@@ -724,22 +731,23 @@ export const MercadoPublicoV2ActivePage = () => {
 
     logError(error);
 
-    if (error.message.includes('Mercado Publico V2 cursor is invalid')) {
+    if (isGraphqlErrorOfType(error, MercadoPublicoV2ErrorCode.INVALID_CURSOR)) {
       setNotice(t`Cursor inválido; se volvió a la primera página.`);
       setAfter(null);
+      setPreviousCursors([]);
 
       return;
     }
 
-    if (error.message.includes('Mercado Publico V2 filter:')) {
+    if (isGraphqlErrorOfType(error, MercadoPublicoV2ErrorCode.INVALID_FILTER)) {
       setNotice(
-        t`Los filtros ingresados no son válidos; revisa los rangos (desde/hasta o mínimo/máximo).`,
+        t`Los filtros ingresados no son válidos. Revisa que cada valor desde o mínimo no supere su valor hasta o máximo.`,
       );
 
       return;
     }
 
-    setNotice(t`No fue posible cargar las oportunidades.`);
+    setNotice(t`No fue posible cargar los procesos.`);
   }, [error, setAfter, t]);
 
   useEffect(() => {
@@ -747,7 +755,7 @@ export const MercadoPublicoV2ActivePage = () => {
       navigateSidePanel({
         page: SidePanelPages.MercadoPublicoV2Opportunity,
         pageId: state.proceso,
-        pageTitle: t`Detalle de oportunidad`,
+        pageTitle: t`Detalle del proceso`,
         pageIcon: IconDotsVertical,
         resetNavigationStack: true,
       });
@@ -811,7 +819,7 @@ export const MercadoPublicoV2ActivePage = () => {
       navigateSidePanel({
         page: SidePanelPages.MercadoPublicoV2Opportunity,
         pageId: opportunity.codigo,
-        pageTitle: t`Detalle de oportunidad`,
+        pageTitle: t`Detalle del proceso`,
         pageIcon: IconDotsVertical,
         resetNavigationStack: true,
       });
@@ -823,6 +831,7 @@ export const MercadoPublicoV2ActivePage = () => {
     useCallback(
       (filters) => {
         setNotice(null);
+        setPreviousCursors([]);
         applyFilters(filters);
       },
       [applyFilters],
@@ -830,12 +839,14 @@ export const MercadoPublicoV2ActivePage = () => {
 
   const handleClearFilters = useCallback(() => {
     setNotice(null);
+    setPreviousCursors([]);
     clearFilters();
   }, [clearFilters]);
 
   const handleSortChange = useCallback(
     (sort: MercadoPublicoV2Sort) => {
       setNotice(null);
+      setPreviousCursors([]);
       setSort(sort);
     },
     [setSort],
@@ -852,16 +863,28 @@ export const MercadoPublicoV2ActivePage = () => {
       return;
     }
 
+    setPreviousCursors((current) => [...current, state.after]);
     setAfter(opportunities.pageInfo.endCursor);
-  }, [opportunities, setAfter]);
+  }, [opportunities, setAfter, state.after]);
+
+  const goToPreviousPage = useCallback(() => {
+    const previousCursor = previousCursors.at(-1);
+
+    if (previousCursor === undefined) {
+      return;
+    }
+
+    setPreviousCursors((current) => current.slice(0, -1));
+    setAfter(previousCursor);
+  }, [previousCursors, setAfter]);
 
   return (
     <StyledPage>
       <StyledHeader>
-        <StyledHeading>{t`Activas`}</StyledHeading>
+        <StyledHeading>{t`Procesos`}</StyledHeading>
         <MercadoPublicoV2Nav />
         {opportunities && (
-          <StyledCount>{t`${opportunities.totalCount} oportunidades`}</StyledCount>
+          <StyledCount>{t`${opportunities.totalCount} procesos`}</StyledCount>
         )}
       </StyledHeader>
 
@@ -880,7 +903,7 @@ export const MercadoPublicoV2ActivePage = () => {
         aria-labelledby="mercado-publico-v2-analytics-heading"
       >
         <StyledAnalyticsHeading id="mercado-publico-v2-analytics-heading">
-          {t`Resumen del universo filtrado`}
+          {t`Calidad de datos`}
         </StyledAnalyticsHeading>
         {analyticsLoading && (
           <StyledAnalyticsStatus role="status">
@@ -909,7 +932,7 @@ export const MercadoPublicoV2ActivePage = () => {
                 : analytics.availability === 'partial'
                   ? t`Resultados parciales`
                   : t`Resultados no disponibles`}
-              {` · ${analytics.population} oportunidades · `}
+              {` · ${analytics.population} procesos · `}
               {analytics.completeness === 'complete'
                 ? t`completitud completa`
                 : analytics.completeness === 'partial'
@@ -965,14 +988,14 @@ export const MercadoPublicoV2ActivePage = () => {
 
       {loading && (
         <StyledStateMessage role="status" aria-live="polite">
-          {t`Cargando oportunidades…`}
+          {t`Cargando procesos…`}
         </StyledStateMessage>
       )}
       {!loading && error && (
         <StyledStateMessage role="alert">
-          <span>{t`No fue posible cargar las oportunidades.`}</span>
+          <span>{t`No fue posible cargar los procesos.`}</span>
           <Button
-            title={t`Reintentar oportunidades`}
+            title={t`Reintentar procesos`}
             type="button"
             size="small"
             variant="secondary"
@@ -982,7 +1005,7 @@ export const MercadoPublicoV2ActivePage = () => {
       )}
       {!loading && !error && opportunities?.edges.length === 0 && (
         <StyledStateMessage role="status" aria-live="polite">
-          <span>{t`No hay oportunidades disponibles.`}</span>
+          <span>{t`No hay procesos disponibles.`}</span>
         </StyledStateMessage>
       )}
       {!loading &&
@@ -1009,7 +1032,7 @@ export const MercadoPublicoV2ActivePage = () => {
                   <StyledHeaderCell scope="col">{t`Cierre`}</StyledHeaderCell>
                   <StyledHeaderCell scope="col">{t`Monto`}</StyledHeaderCell>
                   <StyledHeaderCell scope="col">
-                    {t`Documentos / ofertas`}
+                    {t`Documentos`}
                   </StyledHeaderCell>
                 </tr>
               </thead>
@@ -1102,7 +1125,7 @@ export const MercadoPublicoV2ActivePage = () => {
                           </StyledSecondaryText>
                         )}
                     </StyledCell>
-                    <StyledCell data-label={t`Documentos / ofertas`}>
+                    <StyledCell data-label={t`Documentos`}>
                       <div>
                         {t`Documentos`}:{' '}
                         <DataValue
@@ -1114,12 +1137,6 @@ export const MercadoPublicoV2ActivePage = () => {
                             : t`${node.documentCount}`}
                         </DataValue>
                       </div>
-                      <StyledSecondaryText>
-                        {t`Ofertas`}:{' '}
-                        <DataValue value={null} availability="unavailable">
-                          {null}
-                        </DataValue>
-                      </StyledSecondaryText>
                     </StyledCell>
                   </tr>
                 ))}
@@ -1129,6 +1146,14 @@ export const MercadoPublicoV2ActivePage = () => {
         )}
       {!loading && !error && opportunities?.edges.length ? (
         <StyledPagination aria-label={t`Paginación de oportunidades`}>
+          <Button
+            title={t`Anterior`}
+            type="button"
+            size="small"
+            variant="secondary"
+            disabled={previousCursors.length === 0}
+            onClick={goToPreviousPage}
+          />
           <Button
             title={t`Siguiente`}
             type="button"

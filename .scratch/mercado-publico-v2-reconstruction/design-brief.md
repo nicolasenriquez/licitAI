@@ -114,3 +114,17 @@ Mode: Operate
 - Autoridad: este brief es referencia única de UX/UI para tickets 18–35.
   Refinamientos posteriores pasan por los comandos de impeccable sobre el
   código productivo.
+
+## 8. Corrección posterior al baseline
+
+- La navegación comercial usa `Procesos` y `Compradores`. `Historial` conserva
+  su ruta para enlaces profundos. `Sincronización` sólo se muestra después de
+  confirmar acceso de operador.
+- La tabla de procesos precede a la telemetría. Los filtros secundarios y la
+  calidad de datos usan disclosures nativos cerrados por defecto.
+- El detalle prioriza la información de compra. Oculta relaciones no
+  disponibles y mantiene el JSON sanitizado bajo una acción explícita.
+- El historial acepta sólo retornos internos bajo `/mercado-publico` y siempre
+  muestra una acción para volver a procesos.
+- Esta corrección mantiene el contrato read-only. No añade guardados, puentes
+  CRM, rankings, métricas derivadas ni acciones de agente.

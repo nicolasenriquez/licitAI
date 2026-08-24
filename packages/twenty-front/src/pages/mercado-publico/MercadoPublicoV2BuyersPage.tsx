@@ -207,6 +207,14 @@ const StyledSecondaryText = styled.div`
   overflow-wrap: anywhere;
 `;
 
+const StyledBuyerQuality = styled.details`
+  margin-top: ${themeCssVariables.spacing[2]};
+
+  summary {
+    cursor: pointer;
+  }
+`;
+
 const StyledStateMessage = styled.div`
   align-items: center;
   color: ${themeCssVariables.font.color.secondary};
@@ -404,9 +412,6 @@ export const MercadoPublicoV2BuyersPage = () => {
 
       {!loading && !error && connection && connection.edges.length > 0 && (
         <>
-          <StyledStateMessage role="status" aria-live="polite">
-            {t`Cobertura de comprador y disponibilidad declaradas para la población filtrada.`}
-          </StyledStateMessage>
           <StyledTableContainer>
             <StyledTable>
               <StyledTableCaption>
@@ -415,10 +420,8 @@ export const MercadoPublicoV2BuyersPage = () => {
               <thead>
                 <tr>
                   <StyledHeaderCell>{t`Comprador`}</StyledHeaderCell>
-                  <StyledHeaderCell>{t`Oportunidades`}</StyledHeaderCell>
-                  <StyledHeaderCell>{t`Cobertura de comprador`}</StyledHeaderCell>
-                  <StyledHeaderCell>{t`Cobertura de monto`}</StyledHeaderCell>
-                  <StyledHeaderCell>{t`Estado y frescura`}</StyledHeaderCell>
+                  <StyledHeaderCell>{t`Procesos`}</StyledHeaderCell>
+                  <StyledHeaderCell>{t`Última actualización`}</StyledHeaderCell>
                 </tr>
               </thead>
               <tbody>
@@ -432,23 +435,24 @@ export const MercadoPublicoV2BuyersPage = () => {
                         {node.buyerName ?? t`Nombre no informado por fuente`}
                       </StyledSecondaryText>
                     </StyledCell>
-                    <StyledCell data-label={t`Oportunidades`}>
+                    <StyledCell data-label={t`Procesos`}>
                       {node.opportunityCount}
                     </StyledCell>
-                    <StyledCell data-label={t`Cobertura de comprador`}>
-                      {formatCoverage(node.buyerCoverage)}
-                    </StyledCell>
-                    <StyledCell data-label={t`Cobertura de monto`}>
-                      {formatCoverage(node.amountCoverage)}
-                    </StyledCell>
-                    <StyledCell data-label={t`Estado y frescura`}>
-                      <div>{getAvailabilityLabel(node.availability, t)}</div>
-                      <StyledSecondaryText>
-                        {node.completeness === 'complete'
-                          ? t`Completitud completa`
-                          : t`Completitud parcial`}
-                        {` · ${formatDate(node.asOf)}`}
-                      </StyledSecondaryText>
+                    <StyledCell data-label={t`Última actualización`}>
+                      {formatDate(node.asOf)}
+                      <StyledBuyerQuality>
+                        <summary>{t`Calidad de datos`}</summary>
+                        <StyledSecondaryText>
+                          {getAvailabilityLabel(node.availability, t)}
+                          {` · ${t`Cobertura de comprador`}: ${formatCoverage(node.buyerCoverage)}`}
+                          {` · ${t`Cobertura de monto`}: ${formatCoverage(node.amountCoverage)}`}
+                          {` · ${
+                            node.completeness === 'complete'
+                              ? t`Completitud completa`
+                              : t`Completitud parcial`
+                          }`}
+                        </StyledSecondaryText>
+                      </StyledBuyerQuality>
                     </StyledCell>
                   </tr>
                 ))}

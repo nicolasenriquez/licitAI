@@ -6,9 +6,12 @@ import { useEffect, useState } from 'react';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 import { Loader } from 'twenty-ui/feedback';
 import { Button } from 'twenty-ui/input';
+import { ModalContent, ModalHeader } from 'twenty-ui/surfaces';
 
 import { MercadoPublicoV2Nav } from '@/mercado-publico/components/MercadoPublicoV2Nav';
 import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
+import { ModalStatefulWrapper } from '@/ui/layout/modal/components/ModalStatefulWrapper';
+import { isGraphqlErrorOfType } from '~/utils/is-graphql-error-of-type.util';
 
 const MERCADO_PUBLICO_V2_SYNC_CONTROL_LATEST_RUN_QUERY = gql`
   query MercadoPublicoV2SyncControlLatestRun {
@@ -112,26 +115,6 @@ const StyledTimelineList = styled.ol`
   padding-left: ${themeCssVariables.spacing[5]};
 `;
 
-const StyledDialogOverlay = styled.div`
-  align-items: center;
-  background: ${themeCssVariables.background.overlayTertiary};
-  display: flex;
-  inset: 0;
-  justify-content: center;
-  position: fixed;
-  z-index: 100;
-`;
-
-const StyledDialog = styled.div`
-  background: ${themeCssVariables.background.primary};
-  border-radius: ${themeCssVariables.border.radius.md};
-  display: flex;
-  flex-direction: column;
-  gap: ${themeCssVariables.spacing[4]};
-  min-width: 320px;
-  padding: ${themeCssVariables.spacing[5]};
-`;
-
 const StyledDialogActions = styled.div`
   display: flex;
   gap: ${themeCssVariables.spacing[3]};
@@ -220,6 +203,7 @@ export const MercadoPublicoV2SyncControlPage = () => {
   const { t } = useLingui();
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [maxPages, setMaxPages] = useState<number | undefined>(undefined);
+  const [actionError, setActionError] = useState<string | null>(null);
   const apolloCoreClient = useApolloCoreClient();
   const { data, loading, error, refetch, startPolling, stopPolling } =
     useQuery<MercadoPublicoV2SyncControlLatestRunQuery>(
@@ -270,28 +254,36 @@ export const MercadoPublicoV2SyncControlPage = () => {
 
     const idempotencyKey = crypto.randomUUID();
 
-    if (pendingAction === 'start') {
-      await startSync({
-        variables: {
-          input: {
-            idempotencyKey,
-            confirmed: true,
-            ...(maxPages === undefined ? {} : { maxPages }),
+    try {
+      if (pendingAction === 'start') {
+        await startSync({
+          variables: {
+            input: {
+              idempotencyKey,
+              confirmed: true,
+              ...(maxPages === undefined ? {} : { maxPages }),
+            },
           },
-        },
-      });
-    } else if (pendingAction === 'cancel') {
-      await cancelSync({
-        variables: { input: { idempotencyKey, confirmed: true } },
-      });
-    } else if (latestRun?.canResume === true) {
-      await resumeSync({
-        variables: { input: { idempotencyKey } },
-      });
-    }
+        });
+      } else if (pendingAction === 'cancel') {
+        await cancelSync({
+          variables: { input: { idempotencyKey, confirmed: true } },
+        });
+      } else if (latestRun?.canResume === true) {
+        await resumeSync({
+          variables: { input: { idempotencyKey } },
+        });
+      }
 
-    setPendingAction(null);
-    await refetch();
+      setPendingAction(null);
+      setActionError(null);
+      await refetch();
+    } catch {
+      setPendingAction(null);
+      setActionError(
+        t`La acción no se completó. Se conserva la última información. Reintenta cuando el servicio esté disponible.`,
+      );
+    }
   };
 
   const confirmationTitle =
@@ -310,13 +302,25 @@ export const MercadoPublicoV2SyncControlPage = () => {
   return (
     <StyledPage>
       <MercadoPublicoV2Nav />
-      <h1>{t`Centro de control`}</h1>
+      <h1>{t`Sincronización`}</h1>
       {loading && <Loader />}
+      {actionError && (
+        <StyledCard role="alert">
+          <StyledStatusLine>{actionError}</StyledStatusLine>
+        </StyledCard>
+      )}
       {error !== undefined && (
         <StyledCard>
           <StyledStatusLine>
-            {t`No tienes acceso al control de sincronización. Contacta a un administrador para que te asigne como operador.`}
+            {isGraphqlErrorOfType(error, 'FORBIDDEN') ||
+            isGraphqlErrorOfType(error, 'PERMISSION_DENIED')
+              ? t`Falta el rol de operador. Contacta a un administrador para solicitar acceso.`
+              : t`No se pudo cargar el control de sincronización.`}
           </StyledStatusLine>
+          {!isGraphqlErrorOfType(error, 'FORBIDDEN') &&
+            !isGraphqlErrorOfType(error, 'PERMISSION_DENIED') && (
+              <Button title={t`Reintentar`} onClick={() => void refetch()} />
+            )}
         </StyledCard>
       )}
       {error === undefined && !loading && (
@@ -368,7 +372,7 @@ export const MercadoPublicoV2SyncControlPage = () => {
                   disabled={isActive}
                 >
                   <option value="">{t`Completa / sin límite`}</option>
-                  <option value={1}>{t`1 página (smoke test)`}</option>
+                  <option value={1}>{t`1 página`}</option>
                   <option value={2}>{t`2 páginas`}</option>
                   <option value={10}>{t`10 páginas`}</option>
                   <option value={50}>{t`50 páginas`}</option>
@@ -416,9 +420,16 @@ export const MercadoPublicoV2SyncControlPage = () => {
         </>
       )}
       {pendingAction !== null && (
-        <StyledDialogOverlay>
-          <StyledDialog role="dialog" aria-modal="true">
-            <h2>{confirmationTitle}</h2>
+        <ModalStatefulWrapper
+          modalInstanceId="mercado-publico-v2-sync-confirmation"
+          isClosable
+          onClose={() => setPendingAction(null)}
+          renderInDocumentBody
+          autoHeight
+          narrowWidth
+        >
+          <ModalHeader>{confirmationTitle}</ModalHeader>
+          <ModalContent>
             <p>{confirmationMessage}</p>
             <StyledDialogActions>
               <Button
@@ -433,8 +444,8 @@ export const MercadoPublicoV2SyncControlPage = () => {
                 }}
               />
             </StyledDialogActions>
-          </StyledDialog>
-        </StyledDialogOverlay>
+          </ModalContent>
+        </ModalStatefulWrapper>
       )}
     </StyledPage>
   );

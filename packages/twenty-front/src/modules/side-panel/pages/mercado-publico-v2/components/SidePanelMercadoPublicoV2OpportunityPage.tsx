@@ -3,7 +3,7 @@ import { useLazyQuery, useQuery } from '@apollo/client/react';
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { AppPath } from 'twenty-shared/types';
 
 import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
@@ -506,17 +506,16 @@ const RelationSection = ({
   const nodes = connection?.edges.map(({ node }) => node) ?? [];
   const availability = connection?.availability;
 
+  if (availability?.availability === 'unavailable' && !error) {
+    return null;
+  }
+
   return (
     <StyledSection data-testid={testId}>
       <StyledHeading>{label}</StyledHeading>
       {error && (
         <StyledStatus>
           {t({ message: 'No fue posible cargar esta relación.' })}
-        </StyledStatus>
-      )}
-      {availability?.availability === 'unavailable' && (
-        <StyledStatus>
-          {t({ message: 'Relación aún no disponible.' })}
         </StyledStatus>
       )}
       {availability?.availability === 'available' && nodes.length === 0 && (
@@ -562,6 +561,7 @@ const RelationSection = ({
 export const SidePanelMercadoPublicoV2OpportunityPage = () => {
   const { t } = useLingui();
   const apolloCoreClient = useApolloCoreClient();
+  const location = useLocation();
   const context = useComponentInstanceStateContext(
     SidePanelPageComponentInstanceContext,
   );
@@ -670,7 +670,7 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
       </div>
 
       <StyledHistoryLink
-        to={`${AppPath.MercadoPublicoV2History}?codigo=${encodeURIComponent(opportunity.codigo)}`}
+        to={`${AppPath.MercadoPublicoV2History}?codigo=${encodeURIComponent(opportunity.codigo)}&returnTo=${encodeURIComponent(`${location.pathname}${location.search}`)}`}
       >
         {t({ message: 'Ver historial' })}
       </StyledHistoryLink>

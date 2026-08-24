@@ -149,6 +149,17 @@ const StyledActions = styled.div`
   gap: ${themeCssVariables.spacing[2]};
 `;
 
+const StyledAdvancedFilters = styled.details`
+  border-top: 1px solid ${themeCssVariables.border.color.light};
+  padding-top: ${themeCssVariables.spacing[2]};
+
+  summary {
+    color: ${themeCssVariables.font.color.primary};
+    cursor: pointer;
+    font-size: ${themeCssVariables.font.size.sm};
+  }
+`;
+
 const StyledNotice = styled.p`
   color: ${themeCssVariables.font.color.danger};
   font-size: ${themeCssVariables.font.size.sm};
@@ -195,6 +206,18 @@ export const MercadoPublicoV2FilterBar = ({
   const updateDraft = (partial: Partial<MercadoPublicoV2Filters>): void => {
     setDraft((current) => ({ ...current, ...partial }));
   };
+
+  const advancedFilterCount = [
+    draft.cohortStatus,
+    draft.states.length > 0,
+    draft.closingAtFrom,
+    draft.documentCountMin,
+    draft.documentCountMax,
+    draft.llamado,
+    draft.amountMin,
+    draft.amountMax,
+    draft.currencies.length > 0,
+  ].filter(Boolean).length;
 
   return (
     <StyledForm
@@ -389,51 +412,60 @@ export const MercadoPublicoV2FilterBar = ({
             onChange={(event) => updateDraft({ buyer: event.target.value })}
           />
         </StyledField>
-
-        <StyledField>
-          <StyledFieldLabel>{t`Estados`}</StyledFieldLabel>
-          <StyledCheckboxGroup aria-label={t`Filtrar por estados`}>
-            {MERCADO_PUBLICO_V2_STATES.map((state) => (
-              <StyledCheckbox key={state}>
-                <input
-                  type="checkbox"
-                  checked={draft.states.includes(state)}
-                  onChange={(event) => {
-                    const states = event.target.checked
-                      ? [...draft.states, state]
-                      : draft.states.filter((item) => item !== state);
-
-                    updateDraft({ states });
-                  }}
-                />
-                {stateLabels[state]}
-              </StyledCheckbox>
-            ))}
-          </StyledCheckboxGroup>
-        </StyledField>
-
-        <StyledField>
-          <StyledFieldLabel>{t`Monedas`}</StyledFieldLabel>
-          <StyledCheckboxGroup aria-label={t`Filtrar por moneda`}>
-            {MERCADO_PUBLICO_V2_CURRENCIES.map((currency) => (
-              <StyledCheckbox key={currency}>
-                <input
-                  type="checkbox"
-                  checked={draft.currencies.includes(currency)}
-                  onChange={(event) => {
-                    const currencies = event.target.checked
-                      ? [...draft.currencies, currency]
-                      : draft.currencies.filter((item) => item !== currency);
-
-                    updateDraft({ currencies });
-                  }}
-                />
-                {currency}
-              </StyledCheckbox>
-            ))}
-          </StyledCheckboxGroup>
-        </StyledField>
       </StyledRow>
+
+      <StyledAdvancedFilters>
+        <summary>
+          {advancedFilterCount > 0
+            ? t`Más filtros (${advancedFilterCount})`
+            : t`Más filtros`}
+        </summary>
+        <StyledRow>
+          <StyledField>
+            <StyledFieldLabel>{t`Estados`}</StyledFieldLabel>
+            <StyledCheckboxGroup aria-label={t`Filtrar por estados`}>
+              {MERCADO_PUBLICO_V2_STATES.map((state) => (
+                <StyledCheckbox key={state}>
+                  <input
+                    type="checkbox"
+                    checked={draft.states.includes(state)}
+                    onChange={(event) => {
+                      const states = event.target.checked
+                        ? [...draft.states, state]
+                        : draft.states.filter((item) => item !== state);
+
+                      updateDraft({ states });
+                    }}
+                  />
+                  {stateLabels[state]}
+                </StyledCheckbox>
+              ))}
+            </StyledCheckboxGroup>
+          </StyledField>
+
+          <StyledField>
+            <StyledFieldLabel>{t`Monedas`}</StyledFieldLabel>
+            <StyledCheckboxGroup aria-label={t`Filtrar por moneda`}>
+              {MERCADO_PUBLICO_V2_CURRENCIES.map((currency) => (
+                <StyledCheckbox key={currency}>
+                  <input
+                    type="checkbox"
+                    checked={draft.currencies.includes(currency)}
+                    onChange={(event) => {
+                      const currencies = event.target.checked
+                        ? [...draft.currencies, currency]
+                        : draft.currencies.filter((item) => item !== currency);
+
+                      updateDraft({ currencies });
+                    }}
+                  />
+                  {currency}
+                </StyledCheckbox>
+              ))}
+            </StyledCheckboxGroup>
+          </StyledField>
+        </StyledRow>
+      </StyledAdvancedFilters>
 
       <StyledActions>
         <Button

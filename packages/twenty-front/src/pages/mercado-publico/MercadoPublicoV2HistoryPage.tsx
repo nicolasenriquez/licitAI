@@ -3,7 +3,8 @@ import { useQuery } from '@apollo/client/react';
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
 import { useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { AppPath } from 'twenty-shared/types';
 import { MOBILE_VIEWPORT, themeCssVariables } from 'twenty-ui/theme-constants';
 import { Button } from 'twenty-ui/input';
 
@@ -157,6 +158,30 @@ const StyledPagination = styled.nav`
   display: flex;
 `;
 
+const StyledBackLink = styled(Link)`
+  align-self: flex-start;
+  color: ${themeCssVariables.font.color.primary};
+  text-decoration: underline;
+`;
+
+export const getMercadoPublicoV2HistoryReturnTo = (
+  returnTo: string | null,
+  codigo: string | null,
+): string => {
+  if (
+    returnTo === AppPath.MercadoPublico ||
+    returnTo?.startsWith(`${AppPath.MercadoPublico}?`) ||
+    returnTo?.startsWith(`${AppPath.MercadoPublico}/`)
+  ) {
+    return returnTo;
+  }
+
+  const fallback = new URLSearchParams();
+  if (codigo) fallback.set('proceso', codigo);
+
+  return `${AppPath.MercadoPublico}${fallback.size > 0 ? `?${fallback}` : ''}`;
+};
+
 const valueOrFallback = (
   value: string | null,
   t: ReturnType<typeof useLingui>['t'],
@@ -167,6 +192,10 @@ export const MercadoPublicoV2HistoryPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const codigo = searchParams.get('codigo');
   const after = searchParams.get('after');
+  const returnTo = getMercadoPublicoV2HistoryReturnTo(
+    searchParams.get('returnTo'),
+    codigo,
+  );
   const apolloCoreClient = useApolloCoreClient();
 
   const { data, error, loading, refetch } = useQuery<
@@ -200,13 +229,15 @@ export const MercadoPublicoV2HistoryPage = () => {
         <MercadoPublicoV2Nav />
       </StyledHeader>
 
+      <StyledBackLink to={returnTo}>{t`Volver a procesos`}</StyledBackLink>
+
       {codigo === null || codigo === '' ? (
         <StyledStateMessage role="status" aria-live="polite">
-          {t`Selecciona una oportunidad para consultar su historial`}
+          {t`Selecciona un proceso para consultar su historial`}
         </StyledStateMessage>
       ) : (
         <>
-          <StyledCode>{t`Oportunidad ${codigo}`}</StyledCode>
+          <StyledCode>{t`Proceso ${codigo}`}</StyledCode>
 
           {loading && (
             <StyledStateMessage role="status" aria-live="polite">
@@ -229,7 +260,7 @@ export const MercadoPublicoV2HistoryPage = () => {
 
           {!loading && !error && connection?.edges.length === 0 && (
             <StyledStateMessage role="status" aria-live="polite">
-              {t`No hay cambios semánticos registrados para esta oportunidad.`}
+              {t`No hay cambios semánticos registrados para este proceso.`}
             </StyledStateMessage>
           )}
 

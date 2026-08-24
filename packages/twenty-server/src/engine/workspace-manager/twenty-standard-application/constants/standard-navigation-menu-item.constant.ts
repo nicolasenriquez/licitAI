@@ -24,33 +24,41 @@ export const STANDARD_NAVIGATION_MENU_ITEMS = {
       STANDARD_OBJECTS.opportunity.views.allOpportunities.universalIdentifier,
     position: 2,
   },
+  mercadoPublico: {
+    universalIdentifier: '20202020-b00b-4b0b-8b0b-c0aba11c000b',
+    type: NavigationMenuItemType.LINK,
+    name: 'Mercado Público',
+    link: '/mercado-publico',
+    icon: 'IconBuildingStore',
+    position: 3,
+  },
   allTasks: {
     universalIdentifier: '20202020-b006-4b06-8b06-c0aba11c0006',
     type: NavigationMenuItemType.OBJECT,
     viewUniversalIdentifier:
       STANDARD_OBJECTS.task.views.allTasks.universalIdentifier,
-    position: 3,
+    position: 4,
   },
   allNotes: {
     universalIdentifier: '20202020-b003-4b03-8b03-c0aba11c0003',
     type: NavigationMenuItemType.OBJECT,
     viewUniversalIdentifier:
       STANDARD_OBJECTS.note.views.allNotes.universalIdentifier,
-    position: 4,
+    position: 5,
   },
   allDashboards: {
     universalIdentifier: '20202020-b002-4b02-8b02-c0aba11c0002',
     type: NavigationMenuItemType.OBJECT,
     viewUniversalIdentifier:
       STANDARD_OBJECTS.dashboard.views.allDashboards.universalIdentifier,
-    position: 5,
+    position: 6,
   },
   workflowsFolder: {
     universalIdentifier: '20202020-b007-4b07-8b07-c0aba11c0007',
     type: NavigationMenuItemType.FOLDER,
     name: 'Workflows',
     icon: 'IconSettingsAutomation',
-    position: 6,
+    position: 7,
   },
   workflowsFolderAllWorkflows: {
     universalIdentifier: '20202020-b008-4b08-8b08-c0aba11c0008',
@@ -87,6 +95,7 @@ export const STANDARD_NAVIGATION_MENU_ITEM_DEFAULT_COLORS: Partial<
   allTasks: 'turquoise',
   allNotes: 'turquoise',
   allOpportunities: 'red',
+  mercadoPublico: 'blue',
   workflowsFolder: 'orange',
   allDashboards: 'gray',
   workflowsFolderAllWorkflows: 'gray',

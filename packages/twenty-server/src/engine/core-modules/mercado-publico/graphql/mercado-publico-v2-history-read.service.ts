@@ -2,7 +2,9 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 
 import { DataSource } from 'typeorm';
+import { MercadoPublicoV2ErrorCode } from 'twenty-shared/constants';
 import { isValidUuid } from 'twenty-shared/utils';
+import { UserInputError } from 'src/engine/core-modules/graphql/utils/graphql-errors.util';
 
 export type MercadoPublicoV2HistoryRow = {
   id: string;
@@ -85,9 +87,10 @@ const decodeHistoryCursor = (value: string): HistoryCursor => {
       id: parsed.id as string,
     };
   } catch {
-    throw new BadRequestException(
-      'Mercado Publico V2 history cursor is invalid',
-    );
+    throw new UserInputError('Mercado Publico V2 history cursor is invalid', {
+      subCode: MercadoPublicoV2ErrorCode.INVALID_CURSOR,
+      isExpected: true,
+    });
   }
 };
 

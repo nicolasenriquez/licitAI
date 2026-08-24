@@ -1,8 +1,10 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 
 import { DataSource } from 'typeorm';
+import { MercadoPublicoV2ErrorCode } from 'twenty-shared/constants';
 
+import { UserInputError } from 'src/engine/core-modules/graphql/utils/graphql-errors.util';
 import { createJsonSha256 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/create-json-sha256.util';
 import { redactMercadoPublicoRequestParams } from 'src/engine/core-modules/mercado-publico/utils/redact-mercado-publico-request-params.util';
 
@@ -239,7 +241,10 @@ const decodeChildCursor = (
 
     return cursor as ChildCursor;
   } catch {
-    throw new BadRequestException('Mercado Publico V2 child cursor is invalid');
+    throw new UserInputError('Mercado Publico V2 child cursor is invalid', {
+      subCode: MercadoPublicoV2ErrorCode.INVALID_CURSOR,
+      isExpected: true,
+    });
   }
 };
 
