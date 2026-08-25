@@ -28,6 +28,7 @@ const MERCADO_PUBLICO_V2_OPPORTUNITY_QUERY = gql`
         publishedAt
         closingAt
         amount
+        amountClp
         currency
         documentCount
         llamado
@@ -265,6 +266,7 @@ type OpportunityDetail = {
   publishedAt: string | null;
   closingAt: string | null;
   amount: string | null;
+  amountClp: string | null;
   currency: string | null;
   documentCount: number | null;
   llamado: number | null;
@@ -514,7 +516,9 @@ const RelationSection = ({
   testId,
   connection,
   error,
+  loading,
   nextPageLabel,
+  onRetry,
   onNext,
   t,
 }: {
@@ -522,7 +526,9 @@ const RelationSection = ({
   testId: string;
   connection: RelationConnection | undefined;
   error: Error | undefined;
+  loading: boolean;
   nextPageLabel: string;
+  onRetry: () => void;
   onNext: () => void;
   t: ReturnType<typeof useLingui>['t'];
 }) => {
@@ -536,10 +542,18 @@ const RelationSection = ({
   return (
     <StyledDisclosure data-testid={testId}>
       <summary>{label}</summary>
+      {loading && (
+        <StyledStatus role="status">{t({ message: 'Cargando…' })}</StyledStatus>
+      )}
       {error && (
-        <StyledStatus>
-          {t({ message: 'No fue posible cargar esta relación.' })}
-        </StyledStatus>
+        <>
+          <StyledStatus>
+            {t({ message: 'No fue posible cargar esta relación.' })}
+          </StyledStatus>
+          <StyledButton type="button" onClick={onRetry}>
+            {t({ message: 'Reintentar' })}
+          </StyledButton>
+        </>
       )}
       {availability?.availability === 'available' && nodes.length === 0 && (
         <StyledStatus>
@@ -618,25 +632,25 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
     {
       client: apolloCoreClient,
       variables: { ...relationVariables, after: documentAfter },
-      skip: codigo.length === 0,
+      skip: codigo.length === 0 || activeTab !== 'documents',
     },
   );
   const items = useQuery<RelationQuery>(MERCADO_PUBLICO_V2_ITEMS_QUERY, {
     client: apolloCoreClient,
     variables: { ...relationVariables, after: itemAfter },
-    skip: codigo.length === 0,
+    skip: codigo.length === 0 || activeTab !== 'relations',
   });
   const offers = useQuery<RelationQuery>(MERCADO_PUBLICO_V2_OFFERS_QUERY, {
     client: apolloCoreClient,
     variables: { ...relationVariables, after: offerAfter },
-    skip: codigo.length === 0,
+    skip: codigo.length === 0 || activeTab !== 'relations',
   });
   const quotedProducts = useQuery<RelationQuery>(
     MERCADO_PUBLICO_V2_QUOTED_PRODUCTS_QUERY,
     {
       client: apolloCoreClient,
       variables: { ...relationVariables, after: quotedProductAfter },
-      skip: codigo.length === 0,
+      skip: codigo.length === 0 || activeTab !== 'relations',
     },
   );
   const [loadPayload, payloadQuery] = useLazyQuery<PayloadQuery>(
@@ -705,12 +719,6 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
         <StyledCode>{opportunity.codigo}</StyledCode>
       </div>
 
-      <StyledHistoryLink
-        to={`${AppPath.MercadoPublicoV2History}?codigo=${encodeURIComponent(opportunity.codigo)}&returnTo=${encodeURIComponent(`${location.pathname}${location.search}`)}`}
-      >
-        {t({ message: 'Ver historial' })}
-      </StyledHistoryLink>
-
       <TabList
         tabs={[
           { id: 'summary', title: t({ message: 'Resumen' }) },
@@ -737,11 +745,16 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
               </StyledValue>
               <StyledLabel>{t({ message: 'Cierre' })}</StyledLabel>
               <StyledValue>{formatDate(opportunity.closingAt)}</StyledValue>
-              <StyledLabel>{t({ message: 'Monto' })}</StyledLabel>
+              <StyledLabel>{t({ message: 'Monto publicado' })}</StyledLabel>
               <StyledValue>
                 {opportunity.amount === null
                   ? t({ message: 'No informado por fuente' })
                   : `${opportunity.currency ?? ''} ${opportunity.amount}`.trim()}
+                {opportunity.amountClp !== null &&
+                  opportunity.currency !== null &&
+                  opportunity.currency !== 'CLP' && (
+                    <StyledStatus>{`≈ CLP ${opportunity.amountClp}`}</StyledStatus>
+                  )}
               </StyledValue>
               <StyledLabel>{t({ message: 'Región' })}</StyledLabel>
               <StyledValue>{valueOrFallback(opportunity.region)}</StyledValue>
@@ -750,6 +763,23 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
               <StyledLabel>{t({ message: 'Descripción' })}</StyledLabel>
               <StyledValue>
                 {valueOrFallback(opportunity.description)}
+              </StyledValue>
+            </StyledDetailList>
+          </StyledSection>
+
+          <StyledSection>
+            <StyledHeading>
+              {t({ message: 'Factibilidad financiera' })}
+            </StyledHeading>
+            <StyledDetailList>
+              <StyledLabel>{t({ message: 'Estado' })}</StyledLabel>
+              <StyledValue>{t({ message: 'No evaluada' })}</StyledValue>
+              <StyledLabel>{t({ message: 'Límite' })}</StyledLabel>
+              <StyledValue>
+                {t({
+                  message:
+                    'El monto publicado no representa por sí solo el capital necesario para ejecutar el proceso.',
+                })}
               </StyledValue>
             </StyledDetailList>
           </StyledSection>
@@ -838,6 +868,12 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
               )}
             </StyledDetailList>
           </StyledDisclosure>
+
+          <StyledHistoryLink
+            to={`${AppPath.MercadoPublicoV2History}?codigo=${encodeURIComponent(opportunity.codigo)}&returnTo=${encodeURIComponent(`${location.pathname}${location.search}`)}`}
+          >
+            {t({ message: 'Ver historial' })}
+          </StyledHistoryLink>
         </>
       )}
 
@@ -847,7 +883,9 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
           testId="relation-documents"
           connection={documents.data?.mercadoPublicoV2.documents}
           error={documents.error}
+          loading={documents.loading}
           nextPageLabel={t({ message: 'Siguiente página de documentos' })}
+          onRetry={() => void documents.refetch()}
           onNext={() =>
             setDocumentAfter(
               documents.data?.mercadoPublicoV2.documents.pageInfo.endCursor ??
@@ -864,7 +902,9 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
             testId="relation-items"
             connection={items.data?.mercadoPublicoV2.items}
             error={items.error}
+            loading={items.loading}
             nextPageLabel={t({ message: 'Siguiente página de ítems' })}
+            onRetry={() => void items.refetch()}
             onNext={() =>
               setItemAfter(
                 items.data?.mercadoPublicoV2.items.pageInfo.endCursor ?? null,
@@ -877,7 +917,9 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
             testId="relation-offers"
             connection={offers.data?.mercadoPublicoV2.offers}
             error={offers.error}
+            loading={offers.loading}
             nextPageLabel={t({ message: 'Siguiente página de ofertas' })}
+            onRetry={() => void offers.refetch()}
             onNext={() =>
               setOfferAfter(
                 offers.data?.mercadoPublicoV2.offers.pageInfo.endCursor ?? null,
@@ -890,9 +932,11 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
             testId="relation-quoted-products"
             connection={quotedProducts.data?.mercadoPublicoV2.quotedProducts}
             error={quotedProducts.error}
+            loading={quotedProducts.loading}
             nextPageLabel={t({
               message: 'Siguiente página de productos cotizados',
             })}
+            onRetry={() => void quotedProducts.refetch()}
             onNext={() =>
               setQuotedProductAfter(
                 quotedProducts.data?.mercadoPublicoV2.quotedProducts.pageInfo

@@ -39,6 +39,8 @@ import { useNavigateSidePanel } from '@/side-panel/hooks/useNavigateSidePanel';
 import { useSidePanelMenu } from '@/side-panel/hooks/useSidePanelMenu';
 import { isSidePanelOpenedState } from '@/side-panel/states/isSidePanelOpenedState';
 import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
+import { dateLocaleState } from '~/localization/states/dateLocaleState';
+import { formatDateISOStringToRelativeDate } from '~/modules/localization/utils/formatDateISOStringToRelativeDate';
 import { logError } from '~/utils/logError';
 import { isGraphqlErrorOfType } from '~/utils/is-graphql-error-of-type.util';
 
@@ -337,6 +339,12 @@ const StyledDateValue = styled.time`
   display: inline-block;
 `;
 
+const StyledUrgency = styled.div`
+  color: ${themeCssVariables.font.color.primary};
+  font-weight: ${themeCssVariables.font.weight.medium};
+  margin-bottom: ${themeCssVariables.spacing[1]};
+`;
+
 const StyledStateMessage = styled.div`
   align-items: center;
   color: ${themeCssVariables.font.color.secondary};
@@ -527,21 +535,36 @@ const ProcessStatus = ({ state }: { state: string }) => {
 
 const DateValue = ({ value, availability }: DateValueProps) => {
   const { t } = useLingui();
+  const { localeCatalog } = useAtomValue(dateLocaleState.atom);
 
   if (value === null) {
     return <DataValue value={value} availability={availability} />;
   }
 
   const formatted = formatDate(value);
+  let relative: string | null = null;
+
+  try {
+    relative = formatDateISOStringToRelativeDate({
+      isoDate: value,
+      localeCatalog,
+      timeZone: SANTIAGO_TIME_ZONE,
+    });
+  } catch {
+    relative = null;
+  }
 
   return (
-    <StyledDateValue
-      aria-label={t`${formatted}; hora de Santiago; ISO ${value}`}
-      dateTime={value}
-      title={t`Hora de Santiago. ISO: ${value}`}
-    >
-      {formatted}
-    </StyledDateValue>
+    <div>
+      {relative && <StyledUrgency>{relative}</StyledUrgency>}
+      <StyledDateValue
+        aria-label={t`${formatted}; hora de Santiago; ISO ${value}`}
+        dateTime={value}
+        title={t`Hora de Santiago. ISO: ${value}`}
+      >
+        {formatted}
+      </StyledDateValue>
+    </div>
   );
 };
 
@@ -848,7 +871,9 @@ export const MercadoPublicoV2ActivePage = () => {
                     {t`Comprador / región`}
                   </StyledHeaderCell>
                   <StyledHeaderCell scope="col">{t`Cierre`}</StyledHeaderCell>
-                  <StyledHeaderCell scope="col">{t`Monto`}</StyledHeaderCell>
+                  <StyledHeaderCell scope="col">
+                    {t`Monto publicado`}
+                  </StyledHeaderCell>
                   <StyledHeaderCell scope="col">
                     {t`Documentos`}
                   </StyledHeaderCell>
@@ -923,7 +948,7 @@ export const MercadoPublicoV2ActivePage = () => {
                         availability={node.availability}
                       />
                     </StyledCell>
-                    <StyledCell data-label={t`Monto`}>
+                    <StyledCell data-label={t`Monto publicado`}>
                       <DataValue
                         value={node.amount}
                         availability={node.availability}

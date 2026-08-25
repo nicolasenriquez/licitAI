@@ -26,6 +26,17 @@ const StyledContent = styled.main`
   }
 `;
 
+const StyledPageTitle = styled.h1`
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+`;
+
 type MercadoPublicoV2PageShellProps = {
   children: ReactNode;
   title: string;
@@ -41,6 +52,7 @@ export const MercadoPublicoV2PageShell = ({
 }: MercadoPublicoV2PageShellProps) => (
   <PageContainer>
     <PageTitle title={title} />
+    <StyledPageTitle>{title}</StyledPageTitle>
     <PageCardLayout
       header={<PageCardHeader title={title} tag={tag} />}
       secondaryBar={

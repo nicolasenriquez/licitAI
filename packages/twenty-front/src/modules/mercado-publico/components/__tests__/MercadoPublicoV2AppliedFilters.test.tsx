@@ -67,4 +67,24 @@ describe('MercadoPublicoV2AppliedFilters', () => {
     await user.click(screen.getByRole('button', { name: /^Limpiar/ }));
     expect(onClear).toHaveBeenCalledTimes(1);
   });
+
+  it('identifies the amount range as normalized CLP', () => {
+    render(
+      <ThemeProvider colorScheme="light">
+        <I18nProvider i18n={i18n}>
+          <MercadoPublicoV2AppliedFilters
+            filters={{ ...filters, amountMin: '100000' }}
+            onRemove={jest.fn()}
+            onClear={jest.fn()}
+          />
+        </I18nProvider>
+      </ThemeProvider>,
+    );
+
+    expect(
+      screen.getByRole('button', {
+        name: /Monto equivalente CLP: 100000–—/,
+      }),
+    ).toBeDefined();
+  });
 });

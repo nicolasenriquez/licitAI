@@ -163,6 +163,23 @@ export const serializeMercadoPublicoV2Filters = (
   return params;
 };
 
+export const getMercadoPublicoV2SectionSearch = (search: string): string => {
+  const current = new URLSearchParams(search);
+  const params = new URLSearchParams();
+
+  for (const key of [...FILTER_PARAM_KEYS, 'orden']) {
+    const value = current.get(key);
+
+    if (value !== null) {
+      params.set(key, value);
+    }
+  }
+
+  const next = params.toString();
+
+  return next === '' ? '' : `?${next}`;
+};
+
 export const useMercadoPublicoV2UrlState = () => {
   const [searchParams] = useSearchParams();
   const location = useLocation();

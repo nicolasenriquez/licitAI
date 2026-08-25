@@ -164,16 +164,18 @@ const StyledNotice = styled.p`
 export type MercadoPublicoV2FilterBarProps = {
   filters: MercadoPublicoV2Filters;
   sort: MercadoPublicoV2Sort;
+  showSort?: boolean;
   notice: string | null;
   noticeId: string;
   onApply: (filters: Partial<MercadoPublicoV2Filters>) => void;
   onClear: () => void;
-  onSortChange: (sort: MercadoPublicoV2Sort) => void;
+  onSortChange?: (sort: MercadoPublicoV2Sort) => void;
 };
 
 export const MercadoPublicoV2FilterBar = ({
   filters,
   sort,
+  showSort = true,
   notice,
   noticeId,
   onApply,
@@ -220,8 +222,6 @@ export const MercadoPublicoV2FilterBar = ({
     draft.documentCountMin !== null,
     draft.documentCountMax !== null,
     draft.llamado !== null,
-    draft.amountMin,
-    draft.amountMax,
     draft.currencies.length > 0,
   ].filter(Boolean).length;
 
@@ -308,22 +308,46 @@ export const MercadoPublicoV2FilterBar = ({
           />
         </StyledClosingRange>
 
-        <StyledField>
-          <StyledFieldLabel>{t`Orden`}</StyledFieldLabel>
-          <StyledSelect
-            aria-label={t`Orden de resultados`}
-            value={sort}
+        <StyledClosingRange>
+          <legend>{t`Monto equivalente CLP`}</legend>
+          <StyledInput
+            aria-label={t`Monto equivalente CLP mínimo`}
+            type="number"
+            min={0}
+            value={draft.amountMin ?? ''}
             onChange={(event) =>
-              onSortChange(event.target.value as MercadoPublicoV2Sort)
+              updateDraft({ amountMin: event.target.value || null })
             }
-          >
-            {MERCADO_PUBLICO_V2_SORTS.map((sortOption) => (
-              <option key={sortOption} value={sortOption}>
-                {sortLabels[sortOption]}
-              </option>
-            ))}
-          </StyledSelect>
-        </StyledField>
+          />
+          <StyledInput
+            aria-label={t`Monto equivalente CLP máximo`}
+            type="number"
+            min={0}
+            value={draft.amountMax ?? ''}
+            onChange={(event) =>
+              updateDraft({ amountMax: event.target.value || null })
+            }
+          />
+        </StyledClosingRange>
+
+        {showSort && onSortChange && (
+          <StyledField>
+            <StyledFieldLabel>{t`Orden`}</StyledFieldLabel>
+            <StyledSelect
+              aria-label={t`Orden de resultados`}
+              value={sort}
+              onChange={(event) =>
+                onSortChange(event.target.value as MercadoPublicoV2Sort)
+              }
+            >
+              {MERCADO_PUBLICO_V2_SORTS.map((sortOption) => (
+                <option key={sortOption} value={sortOption}>
+                  {sortLabels[sortOption]}
+                </option>
+              ))}
+            </StyledSelect>
+          </StyledField>
+        )}
       </StyledRow>
 
       <StyledAdvancedFilters>
@@ -398,32 +422,6 @@ export const MercadoPublicoV2FilterBar = ({
                       ? null
                       : Number(event.target.value),
                 })
-              }
-            />
-          </StyledField>
-
-          <StyledField>
-            <StyledFieldLabel>{t`Monto mín`}</StyledFieldLabel>
-            <StyledInput
-              aria-label={t`Monto mínimo`}
-              type="number"
-              min={0}
-              value={draft.amountMin ?? ''}
-              onChange={(event) =>
-                updateDraft({ amountMin: event.target.value || null })
-              }
-            />
-          </StyledField>
-
-          <StyledField>
-            <StyledFieldLabel>{t`Monto máx`}</StyledFieldLabel>
-            <StyledInput
-              aria-label={t`Monto máximo`}
-              type="number"
-              min={0}
-              value={draft.amountMax ?? ''}
-              onChange={(event) =>
-                updateDraft({ amountMax: event.target.value || null })
               }
             />
           </StyledField>

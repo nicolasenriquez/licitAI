@@ -80,6 +80,11 @@ const StyledTableContainer = styled.div`
   border-radius: ${themeCssVariables.border.radius.md};
   max-width: 100%;
   overflow-x: auto;
+
+  &:focus-visible {
+    outline: 2px solid ${themeCssVariables.border.color.blue};
+    outline-offset: 2px;
+  }
 `;
 
 const StyledTable = styled.table`
@@ -287,14 +292,8 @@ const toQueryFilter = (
 
 export const MercadoPublicoV2BuyersPage = () => {
   const { t } = useLingui();
-  const {
-    state,
-    applyFilters,
-    clearFilters,
-    setSort,
-    setAfter,
-    previousCursors,
-  } = useMercadoPublicoV2UrlState();
+  const { state, applyFilters, clearFilters, setAfter, previousCursors } =
+    useMercadoPublicoV2UrlState();
   const queryFilter = toQueryFilter(state);
   const apolloCoreClient = useApolloCoreClient();
 
@@ -338,11 +337,11 @@ export const MercadoPublicoV2BuyersPage = () => {
       <MercadoPublicoV2FilterBar
         filters={state}
         sort={state.sort}
+        showSort={false}
         notice={null}
         noticeId="mercado-publico-v2-buyers-filter-notice"
         onApply={applyFilters}
         onClear={clearFilters}
-        onSortChange={setSort}
       />
 
       <MercadoPublicoV2AppliedFilters
@@ -380,7 +379,11 @@ export const MercadoPublicoV2BuyersPage = () => {
 
       {!loading && !error && connection && connection.edges.length > 0 && (
         <>
-          <StyledTableContainer>
+          <StyledTableContainer
+            aria-label={t`Compradores de la población filtrada`}
+            role="region"
+            tabIndex={0}
+          >
             <StyledTable>
               <StyledTableCaption>
                 {t`Compradores de la población filtrada`}

@@ -122,7 +122,7 @@ export const MercadoPublicoV2AppliedFilters = ({
       ? [
           {
             key: 'amountMin' as const,
-            label: t`Monto: ${filters.amountMin ?? '—'}–${filters.amountMax ?? '—'}`,
+            label: t`Monto equivalente CLP: ${filters.amountMin ?? '—'}–${filters.amountMax ?? '—'}`,
             remove: { amountMin: null, amountMax: null },
           },
         ]

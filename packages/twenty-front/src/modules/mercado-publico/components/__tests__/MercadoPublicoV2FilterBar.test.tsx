@@ -76,6 +76,29 @@ describe('MercadoPublicoV2FilterBar', () => {
       screen.getByLabelText('Filtrar por situación').querySelector('option'),
     ).toHaveTextContent('Todas');
   });
+
+  it('labels the normalized amount and hides unsupported buyer sorting', () => {
+    render(
+      <ThemeProvider colorScheme="light">
+        <I18nProvider i18n={i18n}>
+          <MercadoPublicoV2FilterBar
+            filters={filters}
+            sort={MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC}
+            showSort={false}
+            notice={null}
+            noticeId="notice"
+            onApply={jest.fn()}
+            onClear={jest.fn()}
+          />
+        </I18nProvider>
+      </ThemeProvider>,
+    );
+
+    expect(
+      screen.getByLabelText('Monto equivalente CLP mínimo').closest('details'),
+    ).toBeNull();
+    expect(screen.queryByLabelText('Orden de resultados')).toBeNull();
+  });
   it('counts zero-valued numeric filters as active', () => {
     render(
       <ThemeProvider colorScheme="light">

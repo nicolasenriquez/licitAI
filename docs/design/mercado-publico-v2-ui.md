@@ -8,10 +8,11 @@ description: Operate-mode contract for the Mercado Publico workspace.
 
 ## Purpose
 
-Mercado Público is an operational workspace for procurement analysts. It must
-support one direct flow: search, filter, scan public procurement processes,
-open detail, and decide. Keep the current routes and GraphQL contract. Do not
-add a parallel record page.
+Mercado Público is an operational workspace for a Chilean SME with one to three
+operators, limited research time, and limited working capital. It must support
+one direct flow: search, filter, scan public procurement processes, open
+detail, and decide what merits investigation. Keep the current routes and
+GraphQL contract. Do not add a parallel record page.
 
 ## Information hierarchy
 
@@ -49,6 +50,10 @@ derive universe metrics from the visible page.
 
 Distinguish numeric zero from unavailable data. Use one of these messages when
 data is absent: `No informado por fuente`, `Aún no disponible`, or `No aplica`.
+
+Treat the published process amount as source evidence, not required working
+capital. Do not invent capital, margin, ROI, probability, scores, or
+recommendations. State explicitly when financial feasibility is not evaluated.
 
 ## Responsive and accessibility
 

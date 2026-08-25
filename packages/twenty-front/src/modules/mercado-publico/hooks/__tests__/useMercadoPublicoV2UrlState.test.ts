@@ -1,4 +1,5 @@
 import {
+  getMercadoPublicoV2SectionSearch,
   parseMercadoPublicoV2UrlState,
   serializeMercadoPublicoV2Filters,
 } from '@/mercado-publico/hooks/useMercadoPublicoV2UrlState';
@@ -57,5 +58,13 @@ describe('Mercado Público V2 URL state', () => {
     expect(params.toString()).toBe(
       'q=+computadores+&cohorte=active&estado=publicada%2Ccerrada&buyer=69000100-1&region=13&desde=2026-07-01&hasta=2026-07-31&docsMin=0&montoMin=100&moneda=CLP%2CUF',
     );
+  });
+
+  it('preserves shared context between sections and drops local state', () => {
+    expect(
+      getMercadoPublicoV2SectionSearch(
+        '?q=computadores&region=13&orden=AMOUNT_ASC&after=cursor-2&proceso=CA-2&codigo=CA-2&returnTo=%2Fmercado-publico',
+      ),
+    ).toBe('?q=computadores&region=13&orden=AMOUNT_ASC');
   });
 });
