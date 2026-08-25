@@ -1,10 +1,9 @@
-import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { gql } from '@apollo/client';
 import { useQuery } from '@apollo/client/react';
 import { AppPath } from 'twenty-shared/types';
-import { themeCssVariables } from 'twenty-ui/theme-constants';
+import { StyledTabContainer, TabButton } from 'twenty-ui/input';
 import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
 
 const SYNC_ACCESS_PROBE = gql`
@@ -14,23 +13,6 @@ const SYNC_ACCESS_PROBE = gql`
         safeStatus
       }
     }
-  }
-`;
-
-const StyledNav = styled.nav`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${themeCssVariables.spacing[3]};
-`;
-
-const StyledNavLink = styled(Link)`
-  color: ${themeCssVariables.font.color.secondary};
-  font-size: ${themeCssVariables.font.size.md};
-  text-decoration: none;
-
-  &[aria-current='page'] {
-    color: ${themeCssVariables.font.color.primary};
-    text-decoration: underline;
   }
 `;
 
@@ -47,25 +29,41 @@ export const MercadoPublicoV2Nav = () => {
     client: apolloCoreClient,
     errorPolicy: 'ignore',
   });
-  const links = [
-    { to: AppPath.MercadoPublico, label: t`Oportunidades` },
-    { to: AppPath.MercadoPublicoV2Buyers, label: t`Compradores` },
+  const tabs = [
+    {
+      id: 'mercado-publico-processes',
+      to: AppPath.MercadoPublico,
+      title: t`Procesos`,
+    },
+    {
+      id: 'mercado-publico-buyers',
+      to: AppPath.MercadoPublicoV2Buyers,
+      title: t`Compradores`,
+    },
     ...(syncAccessData
-      ? [{ to: AppPath.MercadoPublicoV2SyncControl, label: t`Sincronización` }]
+      ? [
+          {
+            id: 'mercado-publico-sync',
+            to: AppPath.MercadoPublicoV2SyncControl,
+            title: t`Sincronización`,
+          },
+        ]
       : []),
   ];
 
   return (
-    <StyledNav aria-label={t`Navegación Mercado Público V2`}>
-      {links.map(({ to, label }) => (
-        <StyledNavLink
-          key={to}
-          to={to}
-          aria-current={isActivePath(pathname, to) ? 'page' : undefined}
-        >
-          {label}
-        </StyledNavLink>
-      ))}
-    </StyledNav>
+    <nav aria-label={t`Secciones de Mercado Público`}>
+      <StyledTabContainer>
+        {tabs.map(({ id, to, title }) => (
+          <TabButton
+            key={id}
+            id={id}
+            title={title}
+            to={to}
+            active={isActivePath(pathname, to)}
+          />
+        ))}
+      </StyledTabContainer>
+    </nav>
   );
 };

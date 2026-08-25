@@ -1,7 +1,7 @@
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
 import { useEffect, useState } from 'react';
-import { Button } from 'twenty-ui/input';
+import { Button, Checkbox, SearchInput } from 'twenty-ui/input';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 
 import { MercadoPublicoV2OpportunitySort } from '~/generated/graphql';
@@ -21,12 +21,9 @@ export const MERCADO_PUBLICO_V2_STATES = [
   'oc_emitida',
 ] as const;
 
-const MERCADO_PUBLICO_V2_COHORTS: Array<{
-  value: MercadoPublicoV2CohortStatus;
-  label: string;
-}> = [
-  { value: 'active', label: 'Activa' },
-  { value: 'terminal', label: 'Terminal' },
+const MERCADO_PUBLICO_V2_COHORTS: MercadoPublicoV2CohortStatus[] = [
+  'active',
+  'terminal',
 ];
 
 const MERCADO_PUBLICO_V2_REGIONS = [
@@ -35,34 +32,13 @@ const MERCADO_PUBLICO_V2_REGIONS = [
 
 const MERCADO_PUBLICO_V2_CURRENCIES = ['CLP', 'UF', 'USD'];
 
-export const MERCADO_PUBLICO_V2_SORTS: Array<{
-  value: MercadoPublicoV2Sort;
-  label: string;
-}> = [
-  {
-    value: MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC,
-    label: 'Cierre más lejano',
-  },
-  {
-    value: MercadoPublicoV2OpportunitySort.CLOSING_AT_ASC,
-    label: 'Cierre más próximo',
-  },
-  {
-    value: MercadoPublicoV2OpportunitySort.PUBLISHED_AT_DESC,
-    label: 'Publicación reciente',
-  },
-  {
-    value: MercadoPublicoV2OpportunitySort.PUBLISHED_AT_ASC,
-    label: 'Publicación antigua',
-  },
-  {
-    value: MercadoPublicoV2OpportunitySort.AMOUNT_DESC,
-    label: 'Monto mayor a menor',
-  },
-  {
-    value: MercadoPublicoV2OpportunitySort.AMOUNT_ASC,
-    label: 'Monto menor a mayor',
-  },
+export const MERCADO_PUBLICO_V2_SORTS: MercadoPublicoV2Sort[] = [
+  MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC,
+  MercadoPublicoV2OpportunitySort.CLOSING_AT_ASC,
+  MercadoPublicoV2OpportunitySort.PUBLISHED_AT_DESC,
+  MercadoPublicoV2OpportunitySort.PUBLISHED_AT_ASC,
+  MercadoPublicoV2OpportunitySort.AMOUNT_DESC,
+  MercadoPublicoV2OpportunitySort.AMOUNT_ASC,
 ];
 
 const StyledForm = styled.form`
@@ -127,6 +103,10 @@ const StyledInput = styled.input`
   }
 `;
 
+const StyledSearchInput = styled(SearchInput)`
+  width: 100%;
+`;
+
 const StyledSelect = styled.select`
   background: ${themeCssVariables.background.primary};
   border: 1px solid ${themeCssVariables.border.color.medium};
@@ -156,11 +136,6 @@ const StyledCheckbox = styled.label`
   display: inline-flex;
   font-size: ${themeCssVariables.font.size.xs};
   gap: ${themeCssVariables.spacing[1]};
-
-  input:focus-visible {
-    outline: 2px solid ${themeCssVariables.border.color.blue};
-    outline-offset: 2px;
-  }
 `;
 
 const StyledActions = styled.div`
@@ -217,6 +192,18 @@ export const MercadoPublicoV2FilterBar = ({
     proveedor_seleccionado: t`Proveedor seleccionado`,
     oc_emitida: t`Orden de compra emitida`,
   };
+  const cohortLabels: Record<MercadoPublicoV2CohortStatus, string> = {
+    active: t`Activa`,
+    terminal: t`Terminal`,
+  };
+  const sortLabels: Record<MercadoPublicoV2Sort, string> = {
+    [MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC]: t`Cierre más lejano`,
+    [MercadoPublicoV2OpportunitySort.CLOSING_AT_ASC]: t`Cierre más próximo`,
+    [MercadoPublicoV2OpportunitySort.PUBLISHED_AT_DESC]: t`Publicación reciente`,
+    [MercadoPublicoV2OpportunitySort.PUBLISHED_AT_ASC]: t`Publicación antigua`,
+    [MercadoPublicoV2OpportunitySort.AMOUNT_DESC]: t`Monto mayor a menor`,
+    [MercadoPublicoV2OpportunitySort.AMOUNT_ASC]: t`Monto menor a mayor`,
+  };
   const [draft, setDraft] = useState<MercadoPublicoV2Filters>(filters);
 
   useEffect(() => {
@@ -247,12 +234,13 @@ export const MercadoPublicoV2FilterBar = ({
     >
       <StyledRow>
         <StyledField>
-          <StyledFieldLabel>{t`Búsqueda`}</StyledFieldLabel>
-          <StyledInput
-            aria-label={t`Buscar por código, título o comprador`}
-            type="search"
+          <StyledFieldLabel>
+            {t`Buscar por código, título o comprador`}
+          </StyledFieldLabel>
+          <StyledSearchInput
+            placeholder={t`Buscar por código, título o comprador…`}
             value={draft.search}
-            onChange={(event) => updateDraft({ search: event.target.value })}
+            onChange={(search) => updateDraft({ search })}
           />
         </StyledField>
 
@@ -270,8 +258,8 @@ export const MercadoPublicoV2FilterBar = ({
           >
             <option value="">{t`Todas`}</option>
             {MERCADO_PUBLICO_V2_COHORTS.map((cohort) => (
-              <option key={cohort.value} value={cohort.value}>
-                {cohort.label}
+              <option key={cohort} value={cohort}>
+                {cohortLabels[cohort]}
               </option>
             ))}
           </StyledSelect>
@@ -329,9 +317,9 @@ export const MercadoPublicoV2FilterBar = ({
               onSortChange(event.target.value as MercadoPublicoV2Sort)
             }
           >
-            {MERCADO_PUBLICO_V2_SORTS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+            {MERCADO_PUBLICO_V2_SORTS.map((sortOption) => (
+              <option key={sortOption} value={sortOption}>
+                {sortLabels[sortOption]}
               </option>
             ))}
           </StyledSelect>
@@ -445,11 +433,11 @@ export const MercadoPublicoV2FilterBar = ({
             <StyledCheckboxGroup aria-label={t`Filtrar por estados`}>
               {MERCADO_PUBLICO_V2_STATES.map((state) => (
                 <StyledCheckbox key={state}>
-                  <input
-                    type="checkbox"
+                  <Checkbox
+                    aria-label={stateLabels[state]}
                     checked={draft.states.includes(state)}
-                    onChange={(event) => {
-                      const states = event.target.checked
+                    onCheckedChange={(checked) => {
+                      const states = checked
                         ? [...draft.states, state]
                         : draft.states.filter((item) => item !== state);
 
@@ -467,11 +455,11 @@ export const MercadoPublicoV2FilterBar = ({
             <StyledCheckboxGroup aria-label={t`Filtrar por moneda`}>
               {MERCADO_PUBLICO_V2_CURRENCIES.map((currency) => (
                 <StyledCheckbox key={currency}>
-                  <input
-                    type="checkbox"
+                  <Checkbox
+                    aria-label={currency}
                     checked={draft.currencies.includes(currency)}
-                    onChange={(event) => {
-                      const currencies = event.target.checked
+                    onCheckedChange={(checked) => {
+                      const currencies = checked
                         ? [...draft.currencies, currency]
                         : draft.currencies.filter((item) => item !== currency);
 

@@ -14,17 +14,18 @@ import { useSearchParams } from 'react-router-dom';
 import { Temporal } from 'temporal-polyfill';
 import { SidePanelPages } from 'twenty-shared/types';
 import { MercadoPublicoV2ErrorCode } from 'twenty-shared/constants';
-import { MOBILE_VIEWPORT, themeCssVariables } from 'twenty-ui/theme-constants';
+import { themeCssVariables } from 'twenty-ui/theme-constants';
 import { IconDotsVertical } from 'twenty-ui/icon';
 import { Button } from 'twenty-ui/input';
 import { Callout } from 'twenty-ui/feedback';
+import { Status } from 'twenty-ui/data-display';
 
 import {
   MercadoPublicoV2FilterBar,
   type MercadoPublicoV2FilterBarProps,
 } from '@/mercado-publico/components/MercadoPublicoV2FilterBar';
 import { MercadoPublicoV2AppliedFilters } from '@/mercado-publico/components/MercadoPublicoV2AppliedFilters';
-import { MercadoPublicoV2Nav } from '@/mercado-publico/components/MercadoPublicoV2Nav';
+import { MercadoPublicoV2PageShell } from '@/mercado-publico/components/MercadoPublicoV2PageShell';
 import {
   formatMercadoPublicoAvailability,
   formatMercadoPublicoFreshness,
@@ -84,45 +85,9 @@ const MERCADO_PUBLICO_V2_ANALYTICS_QUERY = gql`
     mercadoPublicoV2 {
       analytics(filter: $filter) {
         population
-        calculatedAt
         asOf
         freshness
-        completeness
         availability
-        coverage {
-          closingAt
-          state
-          region
-          buyer
-          amount
-          currency
-          documentCount
-          llamado
-        }
-        stateBuckets {
-          key
-          count
-        }
-        regionBuckets {
-          key
-          count
-        }
-        currencyBuckets {
-          key
-          count
-        }
-        closingDateBuckets {
-          key
-          count
-        }
-        documentBuckets {
-          key
-          count
-        }
-        llamadoBuckets {
-          key
-          count
-        }
       }
     }
   }
@@ -167,34 +132,11 @@ type MercadoPublicoV2ActiveQueryVariables = {
   sort?: MercadoPublicoV2Sort;
 };
 
-type AnalyticsBucket = {
-  key: string | null;
-  count: number;
-};
-
 type MercadoPublicoV2Analytics = {
   population: number;
-  calculatedAt: string;
   asOf: string | null;
   freshness: string;
-  completeness: string;
   availability: string;
-  coverage: {
-    closingAt: number;
-    state: number;
-    region: number;
-    buyer: number;
-    amount: number;
-    currency: number;
-    documentCount: number;
-    llamado: number;
-  };
-  stateBuckets: AnalyticsBucket[];
-  regionBuckets: AnalyticsBucket[];
-  currencyBuckets: AnalyticsBucket[];
-  closingDateBuckets: AnalyticsBucket[];
-  documentBuckets: AnalyticsBucket[];
-  llamadoBuckets: AnalyticsBucket[];
 };
 
 type MercadoPublicoV2AnalyticsQuery = {
@@ -203,37 +145,15 @@ type MercadoPublicoV2AnalyticsQuery = {
   };
 };
 
-const StyledPage = styled.main`
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: ${themeCssVariables.spacing[4]};
-  min-width: 0;
-  padding: ${themeCssVariables.spacing[6]};
-  width: 100%;
-
-  @media (max-width: ${MOBILE_VIEWPORT}px) {
-    padding: ${themeCssVariables.spacing[4]};
-  }
-`;
-
-const StyledHeader = styled.header`
-  align-items: baseline;
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${themeCssVariables.spacing[3]};
-  justify-content: space-between;
-`;
-
-const StyledHeading = styled.h1`
-  color: ${themeCssVariables.font.color.primary};
-  font-size: ${themeCssVariables.font.size.xl};
-  margin: 0;
-`;
-
 const StyledCount = styled.span`
   color: ${themeCssVariables.font.color.secondary};
   font-size: ${themeCssVariables.font.size.sm};
+`;
+
+const StyledHeaderMeta = styled.span`
+  align-items: center;
+  display: inline-flex;
+  gap: ${themeCssVariables.spacing[2]};
 `;
 
 const StyledTableContainer = styled.div`
@@ -415,25 +335,6 @@ const StyledDataValue = styled.span`
 
 const StyledDateValue = styled.time`
   display: inline-block;
-
-  &:focus-visible {
-    outline: 2px solid ${themeCssVariables.border.color.blue};
-    outline-offset: 2px;
-  }
-`;
-
-const StyledAnalytics = styled.details`
-  border: 1px solid ${themeCssVariables.border.color.light};
-  border-radius: ${themeCssVariables.border.radius.md};
-  order: 2;
-  padding: ${themeCssVariables.spacing[4]};
-`;
-
-const StyledAnalyticsStatus = styled.p`
-  color: ${themeCssVariables.font.color.secondary};
-  font-size: ${themeCssVariables.font.size.sm};
-  margin: 0;
-  overflow-wrap: anywhere;
 `;
 
 const StyledStateMessage = styled.div`
@@ -445,48 +346,6 @@ const StyledStateMessage = styled.div`
   justify-content: space-between;
   margin: 0;
   padding: ${themeCssVariables.spacing[5]};
-`;
-
-const StyledAnalyticsHeading = styled.summary`
-  color: ${themeCssVariables.font.color.primary};
-  cursor: pointer;
-  font-size: ${themeCssVariables.font.size.lg};
-  font-weight: ${themeCssVariables.font.weight.medium};
-  margin: 0;
-`;
-
-const StyledAnalyticsSection = styled.details`
-  border-top: 1px solid ${themeCssVariables.border.color.light};
-  padding-top: ${themeCssVariables.spacing[3]};
-
-  summary {
-    color: ${themeCssVariables.font.color.primary};
-    cursor: pointer;
-    font-size: ${themeCssVariables.font.size.sm};
-    font-weight: ${themeCssVariables.font.weight.medium};
-
-    &:focus-visible {
-      outline: 2px solid ${themeCssVariables.border.color.blue};
-      outline-offset: 2px;
-    }
-  }
-`;
-
-const StyledBucketList = styled.ul`
-  display: grid;
-  gap: ${themeCssVariables.spacing[2]};
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  list-style: none;
-  margin: ${themeCssVariables.spacing[3]} 0 0;
-  padding: 0;
-`;
-
-const StyledBucket = styled.li`
-  background: ${themeCssVariables.background.secondary};
-  border-radius: ${themeCssVariables.border.radius.sm};
-  color: ${themeCssVariables.font.color.primary};
-  font-size: ${themeCssVariables.font.size.sm};
-  padding: ${themeCssVariables.spacing[2]};
 `;
 
 const StyledPagination = styled.nav`
@@ -646,6 +505,27 @@ type DateValueProps = {
   availability: string;
 };
 
+const ProcessStatus = ({ state }: { state: string }) => {
+  const { t } = useLingui();
+
+  switch (state) {
+    case 'publicada':
+      return <Status color="green" text={t`Publicada`} />;
+    case 'cerrada':
+      return <Status color="gray" text={t`Cerrada`} />;
+    case 'desierta':
+      return <Status color="orange" text={t`Desierta`} />;
+    case 'cancelada':
+      return <Status color="red" text={t`Cancelada`} />;
+    case 'proveedor_seleccionado':
+      return <Status color="blue" text={t`Proveedor seleccionado`} />;
+    case 'oc_emitida':
+      return <Status color="turquoise" text={t`Orden de compra emitida`} />;
+    default:
+      return <Status color="gray" text={state} />;
+  }
+};
+
 const DateValue = ({ value, availability }: DateValueProps) => {
   const { t } = useLingui();
 
@@ -659,35 +539,12 @@ const DateValue = ({ value, availability }: DateValueProps) => {
     <StyledDateValue
       aria-label={t`${formatted}; hora de Santiago; ISO ${value}`}
       dateTime={value}
-      tabIndex={0}
       title={t`Hora de Santiago. ISO: ${value}`}
     >
       {formatted}
     </StyledDateValue>
   );
 };
-
-const AnalyticsBuckets = ({
-  label,
-  buckets,
-}: {
-  label: string;
-  buckets: AnalyticsBucket[];
-}) => (
-  <StyledAnalyticsSection>
-    <summary>{label}</summary>
-    <StyledBucketList>
-      {buckets.map((bucket) => (
-        <StyledBucket key={`${label}-${bucket.key ?? 'unknown'}`}>
-          <DataValue value={bucket.key} availability="available">
-            {bucket.key}
-          </DataValue>
-          : {bucket.count}
-        </StyledBucket>
-      ))}
-    </StyledBucketList>
-  </StyledAnalyticsSection>
-);
 
 export const MercadoPublicoV2ActivePage = () => {
   const { t } = useLingui();
@@ -732,12 +589,7 @@ export const MercadoPublicoV2ActivePage = () => {
       sort: state.sort,
     },
   });
-  const {
-    data: analyticsData,
-    error: analyticsError,
-    loading: analyticsLoading,
-    refetch: refetchAnalytics,
-  } = useQuery<
+  const { data: analyticsData } = useQuery<
     MercadoPublicoV2AnalyticsQuery,
     Pick<MercadoPublicoV2ActiveQueryVariables, 'filter'>
   >(MERCADO_PUBLICO_V2_ANALYTICS_QUERY, {
@@ -767,7 +619,7 @@ export const MercadoPublicoV2ActivePage = () => {
       return;
     }
 
-    setNotice(t`No fue posible cargar las oportunidades.`);
+    setNotice(t`No fue posible cargar los procesos.`);
   }, [error, setAfter, t]);
 
   useEffect(() => {
@@ -897,15 +749,29 @@ export const MercadoPublicoV2ActivePage = () => {
   }, [previousCursors, setAfter]);
 
   return (
-    <StyledPage>
-      <StyledHeader>
-        <StyledHeading>{t`Mercado Público`}</StyledHeading>
-        <MercadoPublicoV2Nav />
-        {opportunities && (
-          <StyledCount>{t`${opportunities.totalCount} oportunidades`}</StyledCount>
-        )}
-      </StyledHeader>
-
+    <MercadoPublicoV2PageShell
+      title={t`Mercado Público`}
+      tag={
+        opportunities || analytics ? (
+          <StyledHeaderMeta>
+            {opportunities && (
+              <StyledCount>{t`${opportunities.totalCount} procesos`}</StyledCount>
+            )}
+            {analytics?.asOf && (
+              <StyledCount>
+                {t`Actualizado ${formatDate(analytics.asOf)}`}
+              </StyledCount>
+            )}
+            {analytics &&
+              formatMercadoPublicoFreshness(analytics.freshness, t) && (
+                <StyledCount>
+                  {formatMercadoPublicoFreshness(analytics.freshness, t)}
+                </StyledCount>
+              )}
+          </StyledHeaderMeta>
+        ) : undefined
+      }
+    >
       <MercadoPublicoV2FilterBar
         filters={state}
         sort={state.sort}
@@ -925,7 +791,7 @@ export const MercadoPublicoV2ActivePage = () => {
       {loading && (
         <StyledTableContainer
           role="status"
-          aria-label={t`Cargando oportunidades…`}
+          aria-label={t`Cargando procesos…`}
           aria-live="polite"
         >
           <StyledTable aria-hidden="true">
@@ -945,7 +811,7 @@ export const MercadoPublicoV2ActivePage = () => {
         <StyledStateMessage role="alert">
           <Callout
             variant="error"
-            title={t`No fue posible cargar las oportunidades`}
+            title={t`No fue posible cargar los procesos`}
             description={t`Reintenta sin perder los filtros ni el orden actual.`}
             action={{
               label: t`Reintentar`,
@@ -958,7 +824,7 @@ export const MercadoPublicoV2ActivePage = () => {
         <StyledStateMessage role="status" aria-live="polite">
           <Callout
             variant="neutral"
-            title={t`No hay oportunidades disponibles`}
+            title={t`No hay procesos disponibles`}
             description={t`Ajusta los filtros o limpia la búsqueda para ampliar los resultados.`}
           />
         </StyledStateMessage>
@@ -968,19 +834,17 @@ export const MercadoPublicoV2ActivePage = () => {
         opportunities &&
         opportunities.edges.length > 0 && (
           <StyledTableContainer
-            aria-label={t`Oportunidades activas`}
+            aria-label={t`Procesos activos`}
             role="region"
             tabIndex={0}
           >
             <StyledTable>
               <StyledTableCaption>
-                {t`Oportunidades activas. Cinco columnas en escritorio; cada fila se apila en móvil.`}
+                {t`Procesos activos. Cinco columnas en escritorio; cada fila se apila en móvil.`}
               </StyledTableCaption>
               <thead>
                 <tr>
-                  <StyledHeaderCell scope="col">
-                    {t`Oportunidad`}
-                  </StyledHeaderCell>
+                  <StyledHeaderCell scope="col">{t`Proceso`}</StyledHeaderCell>
                   <StyledHeaderCell scope="col">
                     {t`Comprador / región`}
                   </StyledHeaderCell>
@@ -994,7 +858,7 @@ export const MercadoPublicoV2ActivePage = () => {
               <tbody>
                 {opportunities.edges.map(({ node }) => (
                   <tr key={node.codigo}>
-                    <StyledCell data-label={t`Oportunidad`}>
+                    <StyledCell data-label={t`Proceso`}>
                       <StyledOpportunityButton
                         aria-label={t`Abrir ${node.title ?? node.codigo}`}
                         onClick={() => openOpportunity(node)}
@@ -1008,7 +872,7 @@ export const MercadoPublicoV2ActivePage = () => {
                           value={node.state}
                           availability={node.availability}
                         >
-                          {node.state}
+                          {node.state && <ProcessStatus state={node.state} />}
                         </DataValue>
                         <DataValue
                           value={node.llamado}
@@ -1097,7 +961,7 @@ export const MercadoPublicoV2ActivePage = () => {
           </StyledTableContainer>
         )}
       {!loading && !error && opportunities?.edges.length ? (
-        <StyledPagination aria-label={t`Paginación de oportunidades`}>
+        <StyledPagination aria-label={t`Paginación de procesos`}>
           <Button
             title={t`Anterior`}
             type="button"
@@ -1116,95 +980,6 @@ export const MercadoPublicoV2ActivePage = () => {
           />
         </StyledPagination>
       ) : null}
-
-      <StyledAnalytics
-        aria-busy={analyticsLoading}
-        aria-labelledby="mercado-publico-v2-analytics-heading"
-      >
-        <StyledAnalyticsHeading id="mercado-publico-v2-analytics-heading">
-          {t`Calidad y procedencia`}
-        </StyledAnalyticsHeading>
-        {analyticsLoading && (
-          <StyledAnalyticsStatus role="status">
-            {t`Calculando analítica del universo completo…`}
-          </StyledAnalyticsStatus>
-        )}
-        {!analyticsLoading && analyticsError && (
-          <StyledStateMessage role="alert">
-            <Callout
-              variant="error"
-              title={t`Analítica no disponible`}
-              description={t`No se calcularon cifras desde la página visible.`}
-              action={{
-                label: t`Reintentar analítica`,
-                onClick: () => void refetchAnalytics(),
-              }}
-            />
-          </StyledStateMessage>
-        )}
-        {!analyticsLoading && !analyticsError && analytics && (
-          <>
-            <StyledAnalyticsStatus role="status">
-              {analytics.availability === 'available'
-                ? t`Resultados disponibles`
-                : analytics.availability === 'partial'
-                  ? t`Resultados parciales`
-                  : t`Resultados no disponibles`}
-              {` · ${analytics.population} oportunidades · `}
-              {analytics.completeness === 'complete'
-                ? t`completitud completa`
-                : analytics.completeness === 'partial'
-                  ? t`completitud parcial`
-                  : t`sin datos completos`}
-              {formatMercadoPublicoFreshness(analytics.freshness, t)
-                ? ` · ${t`Frescura`}: ${formatMercadoPublicoFreshness(analytics.freshness, t)}`
-                : ''}
-              {` · ${t`Calculado`}: ${formatDate(analytics.calculatedAt)}`}
-              {` · ${t`Actualizado`}: ${formatDate(analytics.asOf)}`}
-            </StyledAnalyticsStatus>
-            {analytics.availability !== 'unavailable' && (
-              <>
-                <StyledAnalyticsStatus>
-                  {t`Cobertura conocida`}:{' '}
-                  {t`cierre ${analytics.coverage.closingAt}/${analytics.population}`}
-                  ,{' '}
-                  {t`estado ${analytics.coverage.state}/${analytics.population}`}
-                  ,{' '}
-                  {t`región ${analytics.coverage.region}/${analytics.population}`}
-                  ,{' '}
-                  {t`monto ${analytics.coverage.amount}/${analytics.population}`}
-                  ,{' '}
-                  {t`documentos ${analytics.coverage.documentCount}/${analytics.population}`}
-                </StyledAnalyticsStatus>
-                <AnalyticsBuckets
-                  label={t`Estados`}
-                  buckets={analytics.stateBuckets}
-                />
-                <AnalyticsBuckets
-                  label={t`Regiones`}
-                  buckets={analytics.regionBuckets}
-                />
-                <AnalyticsBuckets
-                  label={t`Fechas de cierre`}
-                  buckets={analytics.closingDateBuckets}
-                />
-                <AnalyticsBuckets
-                  label={t`Monedas`}
-                  buckets={analytics.currencyBuckets}
-                />
-                <AnalyticsBuckets
-                  label={t`Documentos`}
-                  buckets={analytics.documentBuckets}
-                />
-                <AnalyticsBuckets
-                  label={t`Llamados`}
-                  buckets={analytics.llamadoBuckets}
-                />
-              </>
-            )}
-          </>
-        )}
-      </StyledAnalytics>
-    </StyledPage>
+    </MercadoPublicoV2PageShell>
   );
 };

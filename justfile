@@ -40,13 +40,13 @@ _default:
 # server boot (instance commands are forward-only and immutable by design).
 dev-up: _ensure-env-file
     docker compose --env-file {{ENV_FILE}} -f {{COMPOSE_APP}} up --detach --no-build --pull never --wait --wait-timeout 300
-    @echo === Stack ready. Migrations applied, server healthy. ===
+    @echo === Stack ready and healthy. ===
 
 # Build the configured local image and start the full app stack. The first
 # build varies by hardware; an unchanged rebuild uses Docker's layer cache.
 dev-up-build: _ensure-env-file
     docker compose --env-file {{ENV_FILE}} -f {{COMPOSE_APP}} up --detach --build --pull never --wait --wait-timeout 300
-    @echo === Stack rebuilt and ready. Migrations applied, server healthy. ===
+    @echo === Stack rebuilt and ready. Server healthy. ===
 
 # Stop app stack
 dev-down:

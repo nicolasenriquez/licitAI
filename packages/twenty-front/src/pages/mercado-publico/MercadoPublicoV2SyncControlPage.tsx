@@ -8,7 +8,7 @@ import { Loader } from 'twenty-ui/feedback';
 import { Button } from 'twenty-ui/input';
 import { ModalContent, ModalHeader } from 'twenty-ui/surfaces';
 
-import { MercadoPublicoV2Nav } from '@/mercado-publico/components/MercadoPublicoV2Nav';
+import { MercadoPublicoV2PageShell } from '@/mercado-publico/components/MercadoPublicoV2PageShell';
 import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
 import { ModalStatefulWrapper } from '@/ui/layout/modal/components/ModalStatefulWrapper';
 import { isGraphqlErrorOfType } from '~/utils/is-graphql-error-of-type.util';
@@ -86,6 +86,8 @@ const StyledPage = styled.div`
   flex-direction: column;
   gap: ${themeCssVariables.spacing[6]};
   max-width: 720px;
+  min-width: 0;
+  width: 100%;
 `;
 
 const StyledSection = styled.section`
@@ -117,6 +119,7 @@ const StyledTimelineList = styled.ol`
 
 const StyledDialogActions = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: ${themeCssVariables.spacing[3]};
   justify-content: flex-end;
 `;
@@ -300,153 +303,157 @@ export const MercadoPublicoV2SyncControlPage = () => {
         : t`¿Confirmas reanudar la ejecución desde sus puntos de control?`;
 
   return (
-    <StyledPage>
-      <MercadoPublicoV2Nav />
-      <h1>{t`Sincronización`}</h1>
-      {loading && <Loader />}
-      {actionError && (
-        <StyledCard role="alert">
-          <StyledStatusLine>{actionError}</StyledStatusLine>
-        </StyledCard>
-      )}
-      {error !== undefined && (
-        <StyledCard>
-          <StyledStatusLine>
-            {isGraphqlErrorOfType(error, 'FORBIDDEN') ||
-            isGraphqlErrorOfType(error, 'PERMISSION_DENIED')
-              ? t`Falta el rol de operador. Contacta a un administrador para solicitar acceso.`
-              : t`No se pudo cargar el control de sincronización.`}
-          </StyledStatusLine>
-          {!isGraphqlErrorOfType(error, 'FORBIDDEN') &&
-            !isGraphqlErrorOfType(error, 'PERMISSION_DENIED') && (
-              <Button title={t`Reintentar`} onClick={() => void refetch()} />
-            )}
-        </StyledCard>
-      )}
-      {error === undefined && !loading && (
-        <>
-          <StyledSection>
-            <h2>{t`Última ejecución`}</h2>
-            <StyledCard>
-              {latestRun === null || latestRun === undefined ? (
-                <StyledStatusLine>{t`No hay ejecuciones registradas.`}</StyledStatusLine>
-              ) : (
-                <>
-                  <StyledStatusLine>
-                    {t`Ejecución: ${latestRun.safeStatus}`}
-                  </StyledStatusLine>
-                  <StyledStatusLine>
-                    {t`Cobertura: ${latestRun.discoveryComplete ? 'Completa' : 'Parcial'}`}
-                  </StyledStatusLine>
-                  {latestRun.completionReason !== null &&
-                    latestRun.completionReason !== undefined && (
-                      <StyledStatusLine>
-                        {t`Motivo: ${latestRun.completionReason}`}
-                      </StyledStatusLine>
-                    )}
-                  {latestRun.safeSummary !== null &&
-                    latestRun.safeSummary !== undefined && (
-                      <StyledStatusLine>
-                        {latestRun.safeSummary}
-                      </StyledStatusLine>
-                    )}
-                  <StyledStatusLine>
-                    {t`Iniciada: ${latestRun.startedAt !== null && latestRun.startedAt !== undefined ? new Date(latestRun.startedAt).toLocaleString() : '—'}`}
-                  </StyledStatusLine>
-                  <StyledStatusLine>
-                    {t`Descubiertos: ${latestRun.recordsDiscovered} · Hidratados: ${latestRun.recordsHydrated} · Diferidos: ${latestRun.recordsDeferred} · Fallidos: ${latestRun.recordsFailed} · Proyectados: ${latestRun.recordsProjected}`}
-                  </StyledStatusLine>
-                </>
+    <MercadoPublicoV2PageShell title={t`Mercado Público`}>
+      <StyledPage>
+        {loading && (
+          <div role="status" aria-label={t`Cargando sincronización…`}>
+            <Loader />
+          </div>
+        )}
+        {actionError && (
+          <StyledCard role="alert">
+            <StyledStatusLine>{actionError}</StyledStatusLine>
+          </StyledCard>
+        )}
+        {error !== undefined && (
+          <StyledCard role="alert">
+            <StyledStatusLine>
+              {isGraphqlErrorOfType(error, 'FORBIDDEN') ||
+              isGraphqlErrorOfType(error, 'PERMISSION_DENIED')
+                ? t`Falta el rol de operador. Contacta a un administrador para solicitar acceso.`
+                : t`No se pudo cargar el control de sincronización.`}
+            </StyledStatusLine>
+            {!isGraphqlErrorOfType(error, 'FORBIDDEN') &&
+              !isGraphqlErrorOfType(error, 'PERMISSION_DENIED') && (
+                <Button title={t`Reintentar`} onClick={() => void refetch()} />
               )}
-              <StyledPageLimit>
-                {t`Páginas por ejecución`}
-                <select
-                  value={maxPages ?? ''}
-                  onChange={(event) =>
-                    setMaxPages(
-                      event.target.value === ''
-                        ? undefined
-                        : Number(event.target.value),
-                    )
-                  }
-                  disabled={isActive}
-                >
-                  <option value="">{t`Completa / sin límite`}</option>
-                  <option value={1}>{t`1 página`}</option>
-                  <option value={2}>{t`2 páginas`}</option>
-                  <option value={10}>{t`10 páginas`}</option>
-                  <option value={50}>{t`50 páginas`}</option>
-                </select>
-              </StyledPageLimit>
+          </StyledCard>
+        )}
+        {error === undefined && !loading && (
+          <>
+            <StyledSection>
+              <h2>{t`Última ejecución`}</h2>
+              <StyledCard>
+                {latestRun === null || latestRun === undefined ? (
+                  <StyledStatusLine>{t`No hay ejecuciones registradas.`}</StyledStatusLine>
+                ) : (
+                  <>
+                    <StyledStatusLine>
+                      {t`Ejecución: ${latestRun.safeStatus}`}
+                    </StyledStatusLine>
+                    <StyledStatusLine>
+                      {t`Cobertura: ${latestRun.discoveryComplete ? 'Completa' : 'Parcial'}`}
+                    </StyledStatusLine>
+                    {latestRun.completionReason !== null &&
+                      latestRun.completionReason !== undefined && (
+                        <StyledStatusLine>
+                          {t`Motivo: ${latestRun.completionReason}`}
+                        </StyledStatusLine>
+                      )}
+                    {latestRun.safeSummary !== null &&
+                      latestRun.safeSummary !== undefined && (
+                        <StyledStatusLine>
+                          {latestRun.safeSummary}
+                        </StyledStatusLine>
+                      )}
+                    <StyledStatusLine>
+                      {t`Iniciada: ${latestRun.startedAt !== null && latestRun.startedAt !== undefined ? new Date(latestRun.startedAt).toLocaleString() : '—'}`}
+                    </StyledStatusLine>
+                    <StyledStatusLine>
+                      {t`Descubiertos: ${latestRun.recordsDiscovered} · Hidratados: ${latestRun.recordsHydrated} · Diferidos: ${latestRun.recordsDeferred} · Fallidos: ${latestRun.recordsFailed} · Proyectados: ${latestRun.recordsProjected}`}
+                    </StyledStatusLine>
+                  </>
+                )}
+                <StyledPageLimit>
+                  {t`Páginas por ejecución`}
+                  <select
+                    value={maxPages ?? ''}
+                    onChange={(event) =>
+                      setMaxPages(
+                        event.target.value === ''
+                          ? undefined
+                          : Number(event.target.value),
+                      )
+                    }
+                    disabled={isActive}
+                  >
+                    <option value="">{t`Completa / sin límite`}</option>
+                    <option value={1}>{t`1 página`}</option>
+                    <option value={2}>{t`2 páginas`}</option>
+                    <option value={10}>{t`10 páginas`}</option>
+                    <option value={50}>{t`50 páginas`}</option>
+                  </select>
+                </StyledPageLimit>
+                <StyledDialogActions>
+                  <Button
+                    title={t`Iniciar`}
+                    disabled={isActive}
+                    onClick={() => setPendingAction('start')}
+                  />
+                  <Button
+                    title={t`Cancelar`}
+                    disabled={!isActive}
+                    onClick={() => setPendingAction('cancel')}
+                  />
+                  <Button
+                    title={t`Reanudar`}
+                    disabled={!isResumable}
+                    onClick={() => setPendingAction('resume')}
+                  />
+                </StyledDialogActions>
+              </StyledCard>
+            </StyledSection>
+            <StyledSection>
+              <h2>{t`Línea de tiempo`}</h2>
+              {latestRun !== null &&
+              latestRun !== undefined &&
+              latestRun.timeline.length > 0 ? (
+                <StyledTimelineList>
+                  {latestRun.timeline.map((event, index) => (
+                    <li key={`${event.eventType}-${event.at}-${index}`}>
+                      {new Date(event.at).toLocaleString()} —{' '}
+                      {getEventLabel(event.eventType)} —{' '}
+                      {event.operatorName ?? t`Sistema`}
+                    </li>
+                  ))}
+                </StyledTimelineList>
+              ) : (
+                <StyledStatusLine>
+                  {t`No hay eventos registrados.`}
+                </StyledStatusLine>
+              )}
+            </StyledSection>
+          </>
+        )}
+        {pendingAction !== null && (
+          <ModalStatefulWrapper
+            modalInstanceId="mercado-publico-v2-sync-confirmation"
+            isClosable
+            onClose={() => setPendingAction(null)}
+            renderInDocumentBody
+            autoHeight
+            narrowWidth
+          >
+            <ModalHeader>{confirmationTitle}</ModalHeader>
+            <ModalContent>
+              <p>{confirmationMessage}</p>
               <StyledDialogActions>
                 <Button
-                  title={t`Iniciar`}
-                  disabled={isActive}
-                  onClick={() => setPendingAction('start')}
-                />
-                <Button
                   title={t`Cancelar`}
-                  disabled={!isActive}
-                  onClick={() => setPendingAction('cancel')}
+                  onClick={() => setPendingAction(null)}
                 />
                 <Button
-                  title={t`Reanudar`}
-                  disabled={!isResumable}
-                  onClick={() => setPendingAction('resume')}
+                  title={t`Confirmar`}
+                  variant="primary"
+                  onClick={() => {
+                    void runAction();
+                  }}
                 />
               </StyledDialogActions>
-            </StyledCard>
-          </StyledSection>
-          <StyledSection>
-            <h2>{t`Línea de tiempo`}</h2>
-            {latestRun !== null &&
-            latestRun !== undefined &&
-            latestRun.timeline.length > 0 ? (
-              <StyledTimelineList>
-                {latestRun.timeline.map((event, index) => (
-                  <li key={`${event.eventType}-${event.at}-${index}`}>
-                    {new Date(event.at).toLocaleString()} —{' '}
-                    {getEventLabel(event.eventType)} —{' '}
-                    {event.operatorName ?? t`Sistema`}
-                  </li>
-                ))}
-              </StyledTimelineList>
-            ) : (
-              <StyledStatusLine>
-                {t`No hay eventos registrados.`}
-              </StyledStatusLine>
-            )}
-          </StyledSection>
-        </>
-      )}
-      {pendingAction !== null && (
-        <ModalStatefulWrapper
-          modalInstanceId="mercado-publico-v2-sync-confirmation"
-          isClosable
-          onClose={() => setPendingAction(null)}
-          renderInDocumentBody
-          autoHeight
-          narrowWidth
-        >
-          <ModalHeader>{confirmationTitle}</ModalHeader>
-          <ModalContent>
-            <p>{confirmationMessage}</p>
-            <StyledDialogActions>
-              <Button
-                title={t`Cancelar`}
-                onClick={() => setPendingAction(null)}
-              />
-              <Button
-                title={t`Confirmar`}
-                variant="primary"
-                onClick={() => {
-                  void runAction();
-                }}
-              />
-            </StyledDialogActions>
-          </ModalContent>
-        </ModalStatefulWrapper>
-      )}
-    </StyledPage>
+            </ModalContent>
+          </ModalStatefulWrapper>
+        )}
+      </StyledPage>
+    </MercadoPublicoV2PageShell>
   );
 };

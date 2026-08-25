@@ -12,6 +12,7 @@ import {
   formatMercadoPublicoFreshness,
 } from '@/mercado-publico/utils/format-mercado-publico-data-status';
 import { SidePanelPageComponentInstanceContext } from '@/side-panel/states/contexts/SidePanelPageComponentInstanceContext';
+import { TabList } from '@/ui/layout/tab-list/components/TabList';
 import { useComponentInstanceStateContext } from '@/ui/utilities/state/component-state/hooks/useComponentInstanceStateContext';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 
@@ -595,6 +596,7 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
     null,
   );
   const [payloadVisible, setPayloadVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState('summary');
   const payloadButtonRef = useRef<HTMLButtonElement>(null);
   const { data, error, loading } = useQuery<DetailQuery>(
     MERCADO_PUBLICO_V2_OPPORTUNITY_QUERY,
@@ -675,10 +677,19 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
   };
 
   if (loading)
-    return <StyledContent>{t({ message: 'Cargando detalle…' })}</StyledContent>;
+    return (
+      <StyledContent role="status" aria-live="polite">
+        {t({ message: 'Cargando detalle…' })}
+      </StyledContent>
+    );
   if (error || !opportunity) {
     return (
-      <StyledContent>{t({ message: 'Detalle no disponible.' })}</StyledContent>
+      <StyledContent role="alert">
+        {t({
+          message:
+            'Detalle no disponible. Cierra y vuelve a abrir el proceso para reintentar.',
+        })}
+      </StyledContent>
     );
   }
 
@@ -700,228 +711,282 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
         {t({ message: 'Ver historial' })}
       </StyledHistoryLink>
 
-      <StyledSection>
-        <StyledHeading>{t({ message: 'Resumen' })}</StyledHeading>
-        <StyledDetailList>
-          <StyledLabel>{t({ message: 'Estado' })}</StyledLabel>
-          <StyledValue>{valueOrFallback(opportunity.state)}</StyledValue>
-          <StyledLabel>{t({ message: 'Comprador' })}</StyledLabel>
-          <StyledValue>{valueOrFallback(opportunity.buyerName)}</StyledValue>
-          <StyledLabel>{t({ message: 'Cierre' })}</StyledLabel>
-          <StyledValue>{formatDate(opportunity.closingAt)}</StyledValue>
-          <StyledLabel>{t({ message: 'Monto' })}</StyledLabel>
-          <StyledValue>
-            {opportunity.amount === null
-              ? t({ message: 'No informado por fuente' })
-              : `${opportunity.currency ?? ''} ${opportunity.amount}`.trim()}
-          </StyledValue>
-          <StyledLabel>{t({ message: 'Región' })}</StyledLabel>
-          <StyledValue>{valueOrFallback(opportunity.region)}</StyledValue>
-          <StyledLabel>{t({ message: 'Llamado' })}</StyledLabel>
-          <StyledValue>{valueOrFallback(opportunity.llamado)}</StyledValue>
-          <StyledLabel>{t({ message: 'Descripción' })}</StyledLabel>
-          <StyledValue>{valueOrFallback(opportunity.description)}</StyledValue>
-        </StyledDetailList>
-      </StyledSection>
+      <TabList
+        tabs={[
+          { id: 'summary', title: t({ message: 'Resumen' }) },
+          { id: 'relations', title: t({ message: 'Ítems y ofertas' }) },
+          { id: 'documents', title: t({ message: 'Documentos' }) },
+          { id: 'technical', title: t({ message: 'Datos técnicos' }) },
+        ]}
+        behaveAsLinks={false}
+        componentInstanceId="mercado-publico-v2-opportunity-tabs"
+        isInSidePanel
+        onChangeTab={setActiveTab}
+      />
 
-      {(opportunity.deliveryAddress !== null ||
-        opportunity.deliveryDays !== null ||
-        opportunity.budgetType !== null ||
-        opportunity.budgetEstimate !== null) && (
-        <StyledDisclosure>
-          <summary>{t({ message: 'Entrega y presupuesto' })}</summary>
-          <StyledDetailList>
-            <StyledLabel>{t({ message: 'Entrega' })}</StyledLabel>
-            <StyledValue>
-              {opportunity.deliveryAddress === null
-                ? t({ message: 'No informado por fuente' })
-                : `${opportunity.deliveryAddress}${
-                    opportunity.deliveryDays === null
-                      ? ''
-                      : ` · ${opportunity.deliveryDays} días`
-                  }`}
-            </StyledValue>
-            <StyledLabel>{t({ message: 'Tipo de presupuesto' })}</StyledLabel>
-            <StyledValue>{valueOrFallback(opportunity.budgetType)}</StyledValue>
-            <StyledLabel>{t({ message: 'Presupuesto estimado' })}</StyledLabel>
-            <StyledValue>
-              {opportunity.budgetEstimate === null
-                ? t({ message: 'No informado por fuente' })
-                : `${opportunity.budgetCurrency ?? ''} ${opportunity.budgetEstimate}`.trim()}
-            </StyledValue>
-          </StyledDetailList>
-        </StyledDisclosure>
+      {activeTab === 'summary' && (
+        <>
+          <StyledSection>
+            <StyledHeading>{t({ message: 'Resumen' })}</StyledHeading>
+            <StyledDetailList>
+              <StyledLabel>{t({ message: 'Estado' })}</StyledLabel>
+              <StyledValue>{valueOrFallback(opportunity.state)}</StyledValue>
+              <StyledLabel>{t({ message: 'Comprador' })}</StyledLabel>
+              <StyledValue>
+                {valueOrFallback(opportunity.buyerName)}
+              </StyledValue>
+              <StyledLabel>{t({ message: 'Cierre' })}</StyledLabel>
+              <StyledValue>{formatDate(opportunity.closingAt)}</StyledValue>
+              <StyledLabel>{t({ message: 'Monto' })}</StyledLabel>
+              <StyledValue>
+                {opportunity.amount === null
+                  ? t({ message: 'No informado por fuente' })
+                  : `${opportunity.currency ?? ''} ${opportunity.amount}`.trim()}
+              </StyledValue>
+              <StyledLabel>{t({ message: 'Región' })}</StyledLabel>
+              <StyledValue>{valueOrFallback(opportunity.region)}</StyledValue>
+              <StyledLabel>{t({ message: 'Llamado' })}</StyledLabel>
+              <StyledValue>{valueOrFallback(opportunity.llamado)}</StyledValue>
+              <StyledLabel>{t({ message: 'Descripción' })}</StyledLabel>
+              <StyledValue>
+                {valueOrFallback(opportunity.description)}
+              </StyledValue>
+            </StyledDetailList>
+          </StyledSection>
+
+          {(opportunity.deliveryAddress !== null ||
+            opportunity.deliveryDays !== null ||
+            opportunity.budgetType !== null ||
+            opportunity.budgetEstimate !== null) && (
+            <StyledDisclosure>
+              <summary>{t({ message: 'Entrega y presupuesto' })}</summary>
+              <StyledDetailList>
+                <StyledLabel>{t({ message: 'Entrega' })}</StyledLabel>
+                <StyledValue>
+                  {opportunity.deliveryAddress === null
+                    ? t({ message: 'No informado por fuente' })
+                    : `${opportunity.deliveryAddress}${
+                        opportunity.deliveryDays === null
+                          ? ''
+                          : ` · ${opportunity.deliveryDays} días`
+                      }`}
+                </StyledValue>
+                <StyledLabel>
+                  {t({ message: 'Tipo de presupuesto' })}
+                </StyledLabel>
+                <StyledValue>
+                  {valueOrFallback(opportunity.budgetType)}
+                </StyledValue>
+                <StyledLabel>
+                  {t({ message: 'Presupuesto estimado' })}
+                </StyledLabel>
+                <StyledValue>
+                  {opportunity.budgetEstimate === null
+                    ? t({ message: 'No informado por fuente' })
+                    : `${opportunity.budgetCurrency ?? ''} ${opportunity.budgetEstimate}`.trim()}
+                </StyledValue>
+              </StyledDetailList>
+            </StyledDisclosure>
+          )}
+
+          {(opportunity.cancelMotive !== null ||
+            opportunity.desertedMotive !== null ||
+            opportunity.selectionMotive !== null) && (
+            <StyledDisclosure>
+              <summary>{t({ message: 'Motivos y decisión' })}</summary>
+              <StyledDetailList>
+                <StyledLabel>
+                  {t({ message: 'Motivo de cancelación' })}
+                </StyledLabel>
+                <StyledValue>
+                  {valueOrFallback(opportunity.cancelMotive)}
+                </StyledValue>
+                <StyledLabel>
+                  {t({ message: 'Motivo de desierta' })}
+                </StyledLabel>
+                <StyledValue>
+                  {valueOrFallback(opportunity.desertedMotive)}
+                </StyledValue>
+                <StyledLabel>
+                  {t({ message: 'Motivo de selección' })}
+                </StyledLabel>
+                <StyledValue>
+                  {valueOrFallback(opportunity.selectionMotive)}
+                </StyledValue>
+              </StyledDetailList>
+            </StyledDisclosure>
+          )}
+
+          <StyledDisclosure>
+            <summary>{t({ message: 'Ciclo de vida' })}</summary>
+            <StyledDetailList>
+              <StyledLabel>{t({ message: 'Publicación' })}</StyledLabel>
+              <StyledValue>{formatDate(opportunity.publishedAt)}</StyledValue>
+              <StyledLabel>{t({ message: 'Razón' })}</StyledLabel>
+              <StyledValue>
+                {valueOrFallback(opportunity.lifecycleReason)}
+              </StyledValue>
+              <StyledLabel>{t({ message: 'Disponibilidad' })}</StyledLabel>
+              <StyledValue>
+                {formatMercadoPublicoAvailability(opportunity.availability, t)}
+              </StyledValue>
+              {freshness && (
+                <>
+                  <StyledLabel>{t({ message: 'Frescura' })}</StyledLabel>
+                  <StyledValue>{freshness}</StyledValue>
+                </>
+              )}
+            </StyledDetailList>
+          </StyledDisclosure>
+        </>
       )}
 
-      {(opportunity.cancelMotive !== null ||
-        opportunity.desertedMotive !== null ||
-        opportunity.selectionMotive !== null) && (
-        <StyledDisclosure>
-          <summary>{t({ message: 'Motivos y decisión' })}</summary>
-          <StyledDetailList>
-            <StyledLabel>{t({ message: 'Motivo de cancelación' })}</StyledLabel>
-            <StyledValue>
-              {valueOrFallback(opportunity.cancelMotive)}
-            </StyledValue>
-            <StyledLabel>{t({ message: 'Motivo de desierta' })}</StyledLabel>
-            <StyledValue>
-              {valueOrFallback(opportunity.desertedMotive)}
-            </StyledValue>
-            <StyledLabel>{t({ message: 'Motivo de selección' })}</StyledLabel>
-            <StyledValue>
-              {valueOrFallback(opportunity.selectionMotive)}
-            </StyledValue>
-          </StyledDetailList>
-        </StyledDisclosure>
+      {activeTab === 'documents' && (
+        <RelationSection
+          label={t({ message: 'Documentos' })}
+          testId="relation-documents"
+          connection={documents.data?.mercadoPublicoV2.documents}
+          error={documents.error}
+          nextPageLabel={t({ message: 'Siguiente página de documentos' })}
+          onNext={() =>
+            setDocumentAfter(
+              documents.data?.mercadoPublicoV2.documents.pageInfo.endCursor ??
+                null,
+            )
+          }
+          t={t}
+        />
+      )}
+      {activeTab === 'relations' && (
+        <>
+          <RelationSection
+            label={t({ message: 'Ítems solicitados' })}
+            testId="relation-items"
+            connection={items.data?.mercadoPublicoV2.items}
+            error={items.error}
+            nextPageLabel={t({ message: 'Siguiente página de ítems' })}
+            onNext={() =>
+              setItemAfter(
+                items.data?.mercadoPublicoV2.items.pageInfo.endCursor ?? null,
+              )
+            }
+            t={t}
+          />
+          <RelationSection
+            label={t({ message: 'Ofertas' })}
+            testId="relation-offers"
+            connection={offers.data?.mercadoPublicoV2.offers}
+            error={offers.error}
+            nextPageLabel={t({ message: 'Siguiente página de ofertas' })}
+            onNext={() =>
+              setOfferAfter(
+                offers.data?.mercadoPublicoV2.offers.pageInfo.endCursor ?? null,
+              )
+            }
+            t={t}
+          />
+          <RelationSection
+            label={t({ message: 'Productos cotizados' })}
+            testId="relation-quoted-products"
+            connection={quotedProducts.data?.mercadoPublicoV2.quotedProducts}
+            error={quotedProducts.error}
+            nextPageLabel={t({
+              message: 'Siguiente página de productos cotizados',
+            })}
+            onNext={() =>
+              setQuotedProductAfter(
+                quotedProducts.data?.mercadoPublicoV2.quotedProducts.pageInfo
+                  .endCursor ?? null,
+              )
+            }
+            t={t}
+          />
+        </>
       )}
 
-      <StyledDisclosure>
-        <summary>{t({ message: 'Ciclo de vida' })}</summary>
-        <StyledDetailList>
-          <StyledLabel>{t({ message: 'Publicación' })}</StyledLabel>
-          <StyledValue>{formatDate(opportunity.publishedAt)}</StyledValue>
-          <StyledLabel>{t({ message: 'Razón' })}</StyledLabel>
-          <StyledValue>
-            {valueOrFallback(opportunity.lifecycleReason)}
-          </StyledValue>
-          <StyledLabel>{t({ message: 'Disponibilidad' })}</StyledLabel>
-          <StyledValue>
-            {formatMercadoPublicoAvailability(opportunity.availability, t)}
-          </StyledValue>
-          {freshness && (
-            <>
-              <StyledLabel>{t({ message: 'Frescura' })}</StyledLabel>
-              <StyledValue>{freshness}</StyledValue>
-            </>
-          )}
-        </StyledDetailList>
-      </StyledDisclosure>
+      {activeTab === 'technical' && (
+        <>
+          <StyledDisclosure>
+            <summary>{t({ message: 'Procedencia' })}</summary>
+            <StyledDetailList>
+              <StyledLabel>{t({ message: 'Observación' })}</StyledLabel>
+              <StyledValue>
+                {opportunity.provenance?.observationId ??
+                  opportunity.observationId ??
+                  t({ message: 'No disponible' })}
+              </StyledValue>
+              <StyledLabel>{t({ message: 'Normalizador' })}</StyledLabel>
+              <StyledValue>
+                {opportunity.provenance?.normalizerVersion ??
+                  opportunity.normalizerVersion ??
+                  t({ message: 'No disponible' })}
+              </StyledValue>
+              <StyledLabel>{t({ message: 'Snapshot' })}</StyledLabel>
+              <StyledValue>
+                {opportunity.provenance?.snapshotKind ??
+                  t({ message: 'No disponible' })}
+              </StyledValue>
+              <StyledLabel>{t({ message: 'Observado' })}</StyledLabel>
+              <StyledValue>
+                {formatDate(opportunity.provenance?.observedAt ?? null)}
+              </StyledValue>
+              <StyledLabel>
+                {t({ message: 'Disponibilidad técnica' })}
+              </StyledLabel>
+              <StyledValue>{opportunity.availability}</StyledValue>
+              {opportunity.detailFreshness && (
+                <>
+                  <StyledLabel>
+                    {t({ message: 'Frescura técnica' })}
+                  </StyledLabel>
+                  <StyledValue>
+                    {opportunity.detailFreshness.status}
+                  </StyledValue>
+                </>
+              )}
+              {opportunity.detailFreshness?.lastError && (
+                <>
+                  <StyledLabel>{t({ message: 'Último error' })}</StyledLabel>
+                  <StyledValue>
+                    {opportunity.detailFreshness.lastError}
+                  </StyledValue>
+                </>
+              )}
+            </StyledDetailList>
+          </StyledDisclosure>
 
-      <RelationSection
-        label={t({ message: 'Documentos' })}
-        testId="relation-documents"
-        connection={documents.data?.mercadoPublicoV2.documents}
-        error={documents.error}
-        nextPageLabel={t({ message: 'Siguiente página de documentos' })}
-        onNext={() =>
-          setDocumentAfter(
-            documents.data?.mercadoPublicoV2.documents.pageInfo.endCursor ??
-              null,
-          )
-        }
-        t={t}
-      />
-      <RelationSection
-        label={t({ message: 'Ítems solicitados' })}
-        testId="relation-items"
-        connection={items.data?.mercadoPublicoV2.items}
-        error={items.error}
-        nextPageLabel={t({ message: 'Siguiente página de ítems' })}
-        onNext={() =>
-          setItemAfter(
-            items.data?.mercadoPublicoV2.items.pageInfo.endCursor ?? null,
-          )
-        }
-        t={t}
-      />
-      <RelationSection
-        label={t({ message: 'Ofertas' })}
-        testId="relation-offers"
-        connection={offers.data?.mercadoPublicoV2.offers}
-        error={offers.error}
-        nextPageLabel={t({ message: 'Siguiente página de ofertas' })}
-        onNext={() =>
-          setOfferAfter(
-            offers.data?.mercadoPublicoV2.offers.pageInfo.endCursor ?? null,
-          )
-        }
-        t={t}
-      />
-      <RelationSection
-        label={t({ message: 'Productos cotizados' })}
-        testId="relation-quoted-products"
-        connection={quotedProducts.data?.mercadoPublicoV2.quotedProducts}
-        error={quotedProducts.error}
-        nextPageLabel={t({
-          message: 'Siguiente página de productos cotizados',
-        })}
-        onNext={() =>
-          setQuotedProductAfter(
-            quotedProducts.data?.mercadoPublicoV2.quotedProducts.pageInfo
-              .endCursor ?? null,
-          )
-        }
-        t={t}
-      />
-
-      <StyledDisclosure>
-        <summary>{t({ message: 'Procedencia' })}</summary>
-        <StyledDetailList>
-          <StyledLabel>{t({ message: 'Observación' })}</StyledLabel>
-          <StyledValue>
-            {opportunity.provenance?.observationId ??
-              opportunity.observationId ??
-              t({ message: 'No disponible' })}
-          </StyledValue>
-          <StyledLabel>{t({ message: 'Normalizador' })}</StyledLabel>
-          <StyledValue>
-            {opportunity.provenance?.normalizerVersion ??
-              opportunity.normalizerVersion ??
-              t({ message: 'No disponible' })}
-          </StyledValue>
-          <StyledLabel>{t({ message: 'Snapshot' })}</StyledLabel>
-          <StyledValue>
-            {opportunity.provenance?.snapshotKind ??
-              t({ message: 'No disponible' })}
-          </StyledValue>
-          <StyledLabel>{t({ message: 'Observado' })}</StyledLabel>
-          <StyledValue>
-            {formatDate(opportunity.provenance?.observedAt ?? null)}
-          </StyledValue>
-          <StyledLabel>{t({ message: 'Disponibilidad técnica' })}</StyledLabel>
-          <StyledValue>{opportunity.availability}</StyledValue>
-          {opportunity.detailFreshness && (
-            <>
-              <StyledLabel>{t({ message: 'Frescura técnica' })}</StyledLabel>
-              <StyledValue>{opportunity.detailFreshness.status}</StyledValue>
-            </>
-          )}
-          {opportunity.detailFreshness?.lastError && (
-            <>
-              <StyledLabel>{t({ message: 'Último error' })}</StyledLabel>
-              <StyledValue>{opportunity.detailFreshness.lastError}</StyledValue>
-            </>
-          )}
-        </StyledDetailList>
-      </StyledDisclosure>
-
-      <StyledDisclosure>
-        <summary>{t({ message: 'Payload técnico de fuente' })}</summary>
-        <StyledButton
-          ref={payloadButtonRef}
-          type="button"
-          aria-expanded={payloadVisible}
-          onClick={togglePayload}
-        >
-          {payloadVisible
-            ? t({ message: 'Ocultar JSON sanitizado' })
-            : t({ message: 'Ver JSON sanitizado' })}
-        </StyledButton>
-        <StyledPayload data-testid="sanitized-payload" hidden={!payloadVisible}>
-          {payloadQuery.loading
-            ? t({ message: 'Cargando payload…' })
-            : payloadQuery.error
-              ? t({ message: 'Payload no disponible.' })
-              : JSON.stringify(payload?.payload ?? null, null, 2)}
-        </StyledPayload>
-        {payloadVisible && payload && (
-          <StyledStatus>
-            {payload.redacted
-              ? t({ message: 'Contenido sanitizado antes de exponerlo.' })
-              : t({ message: 'La fuente no requirió redacción.' })}
-          </StyledStatus>
-        )}
-      </StyledDisclosure>
+          <StyledDisclosure>
+            <summary>{t({ message: 'Payload técnico de fuente' })}</summary>
+            <StyledButton
+              ref={payloadButtonRef}
+              type="button"
+              aria-expanded={payloadVisible}
+              onClick={togglePayload}
+            >
+              {payloadVisible
+                ? t({ message: 'Ocultar JSON sanitizado' })
+                : t({ message: 'Ver JSON sanitizado' })}
+            </StyledButton>
+            <StyledPayload
+              data-testid="sanitized-payload"
+              hidden={!payloadVisible}
+            >
+              {payloadQuery.loading
+                ? t({ message: 'Cargando payload…' })
+                : payloadQuery.error
+                  ? t({ message: 'Payload no disponible.' })
+                  : JSON.stringify(payload?.payload ?? null, null, 2)}
+            </StyledPayload>
+            {payloadVisible && payload && (
+              <StyledStatus>
+                {payload.redacted
+                  ? t({ message: 'Contenido sanitizado antes de exponerlo.' })
+                  : t({ message: 'La fuente no requirió redacción.' })}
+              </StyledStatus>
+            )}
+          </StyledDisclosure>
+        </>
+      )}
     </StyledContent>
   );
 };

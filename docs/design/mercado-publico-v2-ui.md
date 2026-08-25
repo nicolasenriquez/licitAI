@@ -9,13 +9,13 @@ description: Operate-mode contract for the Mercado Publico workspace.
 ## Purpose
 
 Mercado Público is an operational workspace for procurement analysts. It must
-support one direct flow: search, filter, scan opportunities, open detail, and
-decide. Keep the current routes and GraphQL contract. Do not add a parallel
-record page.
+support one direct flow: search, filter, scan public procurement processes,
+open detail, and decide. Keep the current routes and GraphQL contract. Do not
+add a parallel record page.
 
 ## Information hierarchy
 
-Use this order on the opportunities page:
+Use this order on the processes page:
 
 1. Mercado Público heading and section navigation.
 2. Primary filters: search, situation, region, closing date, and order.
@@ -24,8 +24,9 @@ Use this order on the opportunities page:
 5. Previous and next pagination.
 6. Collapsed Quality and provenance analytics.
 
-Use the words **Oportunidades** and **Compradores**. Show totals as secondary
-context. Do not use Procesos as the main product noun.
+Use the words **Procesos** and **Compradores** for Mercado Público source data.
+Reserve **Oportunidad** for an explicit CRM conversion or link action. Show
+totals as secondary context.
 
 ## Interaction contract
 

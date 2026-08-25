@@ -5,12 +5,12 @@ import { useLingui } from '@lingui/react/macro';
 import { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Temporal } from 'temporal-polyfill';
-import { MOBILE_VIEWPORT, themeCssVariables } from 'twenty-ui/theme-constants';
+import { themeCssVariables } from 'twenty-ui/theme-constants';
 import { Button } from 'twenty-ui/input';
 import { Callout } from 'twenty-ui/feedback';
 import { AppPath } from 'twenty-shared/types';
 
-import { MercadoPublicoV2Nav } from '@/mercado-publico/components/MercadoPublicoV2Nav';
+import { MercadoPublicoV2PageShell } from '@/mercado-publico/components/MercadoPublicoV2PageShell';
 import { MercadoPublicoV2FilterBar } from '@/mercado-publico/components/MercadoPublicoV2FilterBar';
 import { MercadoPublicoV2AppliedFilters } from '@/mercado-publico/components/MercadoPublicoV2AppliedFilters';
 import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
@@ -74,34 +74,6 @@ type MercadoPublicoV2BuyersQueryVariables = {
   after?: string | null;
   first?: number;
 };
-
-const StyledPage = styled.main`
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: ${themeCssVariables.spacing[4]};
-  min-width: 0;
-  padding: ${themeCssVariables.spacing[6]};
-  width: 100%;
-
-  @media (max-width: ${MOBILE_VIEWPORT}px) {
-    padding: ${themeCssVariables.spacing[4]};
-  }
-`;
-
-const StyledHeader = styled.header`
-  align-items: baseline;
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${themeCssVariables.spacing[3]};
-  justify-content: space-between;
-`;
-
-const StyledHeading = styled.h1`
-  color: ${themeCssVariables.font.color.primary};
-  font-size: ${themeCssVariables.font.size.xl};
-  margin: 0;
-`;
 
 const StyledTableContainer = styled.div`
   border: 1px solid ${themeCssVariables.border.color.light};
@@ -363,12 +335,7 @@ export const MercadoPublicoV2BuyersPage = () => {
   const connection = data?.mercadoPublicoV2.buyers;
 
   return (
-    <StyledPage>
-      <StyledHeader>
-        <StyledHeading>{t`Mercado Público`}</StyledHeading>
-        <MercadoPublicoV2Nav />
-      </StyledHeader>
-
+    <MercadoPublicoV2PageShell title={t`Mercado Público`}>
       <MercadoPublicoV2FilterBar
         filters={state}
         sort={state.sort}
@@ -421,9 +388,11 @@ export const MercadoPublicoV2BuyersPage = () => {
               </StyledTableCaption>
               <thead>
                 <tr>
-                  <StyledHeaderCell>{t`Comprador`}</StyledHeaderCell>
-                  <StyledHeaderCell>{t`Oportunidades`}</StyledHeaderCell>
-                  <StyledHeaderCell>{t`Última actualización`}</StyledHeaderCell>
+                  <StyledHeaderCell scope="col">{t`Comprador`}</StyledHeaderCell>
+                  <StyledHeaderCell scope="col">{t`Procesos`}</StyledHeaderCell>
+                  <StyledHeaderCell scope="col">
+                    {t`Última actualización`}
+                  </StyledHeaderCell>
                 </tr>
               </thead>
               <tbody>
@@ -431,17 +400,25 @@ export const MercadoPublicoV2BuyersPage = () => {
                   <tr key={node.buyerCode}>
                     <StyledCell data-label={t`Comprador`}>
                       <StyledBuyerLink to={buildBuyerPath(node.buyerCode)}>
-                        {node.buyerName ?? t`Nombre no informado por fuente`}
+                        {node.buyerName ?? node.buyerCode}
                       </StyledBuyerLink>
-                      <StyledSecondaryText>
-                        {node.buyerCode}
-                      </StyledSecondaryText>
+                      {node.buyerName && (
+                        <StyledSecondaryText>
+                          {node.buyerCode}
+                        </StyledSecondaryText>
+                      )}
                     </StyledCell>
-                    <StyledCell data-label={t`Oportunidades`}>
+                    <StyledCell data-label={t`Procesos`}>
                       {node.opportunityCount}
                     </StyledCell>
                     <StyledCell data-label={t`Última actualización`}>
-                      {formatDate(node.asOf)}
+                      {node.asOf ? (
+                        <time dateTime={node.asOf}>
+                          {formatDate(node.asOf)}
+                        </time>
+                      ) : (
+                        formatDate(node.asOf)
+                      )}
                     </StyledCell>
                   </tr>
                 ))}
@@ -471,6 +448,6 @@ export const MercadoPublicoV2BuyersPage = () => {
           )}
         </>
       )}
-    </StyledPage>
+    </MercadoPublicoV2PageShell>
   );
 };
