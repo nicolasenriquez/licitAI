@@ -1,3 +1,5 @@
+import { ConflictException } from '@nestjs/common';
+
 import {
   MercadoPublicoV2SyncControlService,
   buildMercadoPublicoV2SyncCommandFingerprint,
@@ -300,6 +302,44 @@ describe('MercadoPublicoV2SyncControlService', () => {
         buildInput({ idempotencyKey: IDEMPOTENCY_KEY, confirmed: true }),
       ),
     ).rejects.toThrow(/409|conflict/i);
+  });
+
+  it('preserves conflict semantics when a changed request loses the insert race', async () => {
+    let commandReads = 0;
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('FROM mp.sync_command')) {
+        commandReads += 1;
+
+        return Promise.resolve(
+          commandReads === 1
+            ? []
+            : [
+                {
+                  id: 'command-1',
+                  state: 'pending',
+                  request_fingerprint: 'different-fingerprint',
+                  sync_run_id: null,
+                  result: null,
+                },
+              ],
+        );
+      }
+      if (sql.includes('INSERT INTO mp.sync_command')) {
+        return Promise.resolve([]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const service = new MercadoPublicoV2SyncControlService(
+      { query, transaction: transactionUsing(query) } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+      {} as never,
+    );
+
+    await expect(service.submitCommand(buildInput())).rejects.toBeInstanceOf(
+      ConflictException,
+    );
   });
 
   it('reuses a same-workspace active run and returns its safe status', async () => {

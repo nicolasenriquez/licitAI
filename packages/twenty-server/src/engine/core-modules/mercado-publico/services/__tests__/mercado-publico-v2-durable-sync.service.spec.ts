@@ -395,6 +395,71 @@ describe('MercadoPublicoV2DurableSyncService', () => {
     expect(failureUpdate?.[0]).not.toContain('observation_id');
   });
 
+  it('checks cancellation before completing after the final hydration item', async () => {
+    let pendingItemReads = 0;
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('SELECT id, codigo')) {
+        pendingItemReads += 1;
+
+        return Promise.resolve(
+          pendingItemReads === 1
+            ? [
+                {
+                  id: 'item-1',
+                  codigo: 'FIXTURE-CA-001',
+                  attempts: 0,
+                  status: 'pending',
+                },
+              ]
+            : [],
+        );
+      }
+      if (sql.includes('SELECT cancellation_requested_at')) {
+        return Promise.resolve([
+          { cancellation_requested_at: new Date('2026-08-12T00:05:00Z') },
+        ]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const response = {
+      endpoint: 'detail',
+      source: 'api-v2-compra-agil',
+      requestParams: { id: 'FIXTURE-CA-001' },
+      requestFingerprint: 'detail-fingerprint',
+      payloadChecksum: 'detail-checksum',
+      schemaFingerprint: 'detail-schema',
+      httpStatus: 200,
+      fetchedAt: new Date('2026-08-12T00:00:00Z'),
+      rawPayload: { data: [] },
+      compraAgil: [],
+    };
+    const service = new MercadoPublicoV2DurableSyncService(
+      {
+        getByCodigo: jest.fn().mockResolvedValue(response),
+      } as unknown as MercadoPublicoApiV2CompraAgilClientService,
+      syncConfig as never,
+      {
+        persistV2CompraAgilSnapshot: jest.fn().mockResolvedValue({
+          rawApiPayloadId: 'raw-empty-detail',
+        }),
+      } as unknown as MercadoPublicoPersistenceService,
+      { query } as never,
+      {} as MercadoPublicoV2ProjectionService,
+    );
+
+    await expect(
+      (
+        service as unknown as {
+          hydrate: (
+            context: { syncRunId: string },
+            jobRunRecordId: string,
+          ) => Promise<unknown>;
+        }
+      ).hydrate({ syncRunId: 'sync-run-1' }, 'job-run-1'),
+    ).resolves.toBe('cancelled');
+  });
+
   it('requires rediscovery after a discovery failure', async () => {
     const query = jest.fn().mockResolvedValue([
       {

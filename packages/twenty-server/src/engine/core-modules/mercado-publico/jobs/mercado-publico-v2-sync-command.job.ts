@@ -4,7 +4,10 @@ import { Process } from 'src/engine/core-modules/message-queue/decorators/proces
 import { Processor } from 'src/engine/core-modules/message-queue/decorators/processor.decorator';
 import { MessageQueue } from 'src/engine/core-modules/message-queue/message-queue.constants';
 import { MERCADO_PUBLICO_V2_SYNC_COMMAND_JOB_NAME } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
-import { MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
+import {
+  MercadoPublicoV2DurableSyncService,
+  MercadoPublicoV2InactiveSyncAttemptError,
+} from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
 import { MercadoPublicoV2SyncControlService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-sync-control.service';
 import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
 import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
@@ -41,6 +44,7 @@ export class MercadoPublicoV2SyncCommandJob {
       const result =
         await this.mercadoPublicoV2DurableSyncService.executeExistingRun(
           claim.syncRunId,
+          claim.attemptId,
         );
 
       await this.mercadoPublicoV2SyncControlService.finalizeCommand({
@@ -50,6 +54,14 @@ export class MercadoPublicoV2SyncCommandJob {
         status: result.status,
       });
     } catch (error) {
+      if (error instanceof MercadoPublicoV2InactiveSyncAttemptError) {
+        this.logger.warn(
+          `Mercado Publico V2 sync command ${data.commandId} stopped because attempt ${claim.attemptId} is no longer active`,
+        );
+
+        return;
+      }
+
       if (
         error instanceof MercadoPublicoRecordedJobFailureError &&
         error.retryable &&

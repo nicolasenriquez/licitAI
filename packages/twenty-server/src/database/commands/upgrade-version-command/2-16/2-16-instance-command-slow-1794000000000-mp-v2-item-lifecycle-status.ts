@@ -15,33 +15,35 @@ export class MpV2ItemLifecycleStatusSlowInstanceCommand
   }
 
   public async runDataMigration(dataSource: DataSource): Promise<void> {
-    await dataSource.query(`
-      UPDATE mp.sync_run_item
-      SET status = CASE
-            WHEN error_summary IS NULL THEN 'lifecycle_terminal'
-            WHEN error_summary LIKE 'retryable_failed%' THEN 'deferred'
-            ELSE 'failed'
-          END
-      WHERE status = 'terminal'
-    `);
+    await dataSource.transaction(async (entityManager) => {
+      await entityManager.query(`
+        ALTER TABLE mp.sync_run_item
+          DROP CONSTRAINT IF EXISTS "ck_mp_sync_run_item_status"
+      `);
 
-    await dataSource.query(`
-      ALTER TABLE mp.sync_run_item
-        DROP CONSTRAINT IF EXISTS "ck_mp_sync_run_item_status"
-    `);
+      await entityManager.query(`
+        UPDATE mp.sync_run_item
+        SET status = CASE
+              WHEN error_summary IS NULL THEN 'lifecycle_terminal'
+              WHEN error_summary LIKE 'retryable_failed%' THEN 'deferred'
+              ELSE 'failed'
+            END
+        WHERE status = 'terminal'
+      `);
 
-    await dataSource.query(`
-      ALTER TABLE mp.sync_run_item
-        ADD CONSTRAINT "ck_mp_sync_run_item_status"
-          CHECK (status IN (
-            'pending',
-            'processing',
-            'succeeded',
-            'lifecycle_terminal',
-            'failed',
-            'deferred'
-          ))
-    `);
+      await entityManager.query(`
+        ALTER TABLE mp.sync_run_item
+          ADD CONSTRAINT "ck_mp_sync_run_item_status"
+            CHECK (status IN (
+              'pending',
+              'processing',
+              'succeeded',
+              'lifecycle_terminal',
+              'failed',
+              'deferred'
+            ))
+      `);
+    });
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

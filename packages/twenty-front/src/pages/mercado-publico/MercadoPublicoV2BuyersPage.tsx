@@ -269,7 +269,6 @@ const toQueryFilter = (
   }
 
   return {
-    ...filters,
     search: filters.search.trim() === '' ? undefined : filters.search.trim(),
     cohortStatus: filters.cohortStatus ?? undefined,
     states: filters.states.length > 0 ? filters.states : undefined,

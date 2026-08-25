@@ -896,7 +896,7 @@ export class MercadoPublicoV2SyncControlService {
       }
 
       if (command.request_fingerprint !== fingerprint) {
-        throw new Error(
+        throw new ConflictException(
           '409 Conflict: the idempotency key was reused with a different request',
         );
       }

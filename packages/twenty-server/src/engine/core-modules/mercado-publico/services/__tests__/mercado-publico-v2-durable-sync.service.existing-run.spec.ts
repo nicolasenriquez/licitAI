@@ -171,6 +171,62 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
     expect(runInserts).toHaveLength(0);
   });
 
+  it('fences an expired attempt after a slow provider request', async () => {
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (
+        sql.includes('SELECT id') &&
+        sql.includes('FROM mp.sync_run_attempt')
+      ) {
+        return Promise.resolve([{ id: 'attempt-1' }]);
+      }
+      if (
+        sql.includes('SELECT id, intent, scope, request_params') &&
+        sql.includes('FROM mp.sync_run')
+      ) {
+        return Promise.resolve([
+          buildRunRow({ status: 'queued', request_params: { max_pages: 1 } }),
+        ]);
+      }
+      if (sql.includes('SELECT records_discovered')) {
+        return Promise.resolve([
+          {
+            records_discovered: '1',
+            records_hydrated: '0',
+            records_failed: '0',
+            records_deferred: '0',
+            records_projected: '0',
+            pages_checkpointed: '1',
+            discovery_complete: true,
+          },
+        ]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const getList = jest.fn().mockResolvedValue(buildListResponse(false));
+    const service = buildService({
+      query,
+      entityManagerQuery: jest.fn().mockResolvedValue([]),
+      getList,
+      getByCodigo: jest.fn(),
+    });
+    const persistenceService = (
+      service as unknown as {
+        mercadoPublicoPersistenceService: jest.Mocked<MercadoPublicoPersistenceService>;
+      }
+    ).mercadoPublicoPersistenceService;
+
+    await expect(
+      service.executeExistingRun('run-1', 'attempt-1'),
+    ).rejects.toThrow(/attempt.*active|stale/i);
+
+    expect(getList).toHaveBeenCalledTimes(1);
+    expect(
+      persistenceService.persistV2CompraAgilSnapshot,
+    ).not.toHaveBeenCalled();
+    expect(persistenceService.finalizeJobRun).not.toHaveBeenCalled();
+  });
+
   it('returns the cancelled result without hydrating when a queued run was cancelled', async () => {
     const runRow = buildRunRow({
       error_stage: 'queued',

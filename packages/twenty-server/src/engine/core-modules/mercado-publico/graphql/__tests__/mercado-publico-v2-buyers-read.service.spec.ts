@@ -67,7 +67,9 @@ describe('MercadoPublicoV2BuyersReadService', () => {
     const result = await service.listBuyers({ region: 13 });
 
     expect(result.rows).toEqual([]);
-    expect(query.mock.calls[0][0]).toContain('COUNT(*)');
+    expect(query.mock.calls[0][0]).toContain(
+      '(SELECT COUNT(*)::text FROM filtered) AS population',
+    );
     expect(query.mock.calls[0][0]).toContain('buyer_code IS NOT NULL');
   });
 

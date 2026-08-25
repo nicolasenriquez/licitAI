@@ -34,12 +34,19 @@ describe('MpV2ItemLifecycleStatusSlowInstanceCommand', () => {
 
   it('backfills legacy terminal rows and restores the status check', async () => {
     const query = jest.fn().mockResolvedValue(undefined);
+    const transaction = jest
+      .fn()
+      .mockImplementation(async (callback) => callback({ query }));
 
     await new MpV2ItemLifecycleStatusSlowInstanceCommand().runDataMigration({
-      query,
+      transaction,
     } as unknown as DataSource);
 
     const sql = query.mock.calls.map(([statement]) => statement).join('\n');
+    const constraintDropIndex = sql.indexOf(
+      'DROP CONSTRAINT IF EXISTS "ck_mp_sync_run_item_status"',
+    );
+    const backfillIndex = sql.indexOf('UPDATE mp.sync_run_item');
 
     expect(sql).toContain(
       "WHEN error_summary IS NULL THEN 'lifecycle_terminal'",
@@ -49,9 +56,12 @@ describe('MpV2ItemLifecycleStatusSlowInstanceCommand', () => {
     );
     expect(sql).toContain("ELSE 'failed'");
     expect(sql).toContain('DROP CONSTRAINT IF EXISTS "ck_mp_sync_run_item_status"');
-    expect(sql).toContain("status IN (\n            'pending',");
+    expect(sql).toContain('CHECK (status IN (');
+    expect(sql).toContain("'pending',");
     expect(sql).toContain("'lifecycle_terminal',");
     expect(sql).toContain("'deferred'");
+    expect(constraintDropIndex).toBeLessThan(backfillIndex);
+    expect(transaction).toHaveBeenCalledTimes(1);
   });
 
   it('blocks rollback while split-status rows exist', async () => {
