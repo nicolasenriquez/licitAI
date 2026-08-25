@@ -26,6 +26,10 @@ import {
 import { MercadoPublicoV2AppliedFilters } from '@/mercado-publico/components/MercadoPublicoV2AppliedFilters';
 import { MercadoPublicoV2Nav } from '@/mercado-publico/components/MercadoPublicoV2Nav';
 import {
+  formatMercadoPublicoAvailability,
+  formatMercadoPublicoFreshness,
+} from '@/mercado-publico/utils/format-mercado-publico-data-status';
+import {
   useMercadoPublicoV2UrlState,
   type MercadoPublicoV2Filters,
   type MercadoPublicoV2Sort,
@@ -360,20 +364,20 @@ const StyledCell = styled.td`
 `;
 
 const StyledOpportunityButton = styled.button`
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   background: transparent;
   border: 0;
   color: ${themeCssVariables.font.color.primary};
   cursor: pointer;
-  font: inherit;
   display: -webkit-box;
+  font: inherit;
   overflow: hidden;
   overflow-wrap: anywhere;
   padding: 0;
   text-align: left;
   text-decoration: underline;
   text-underline-offset: 2px;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
 
   &:focus-visible {
     outline: 2px solid ${themeCssVariables.border.color.blue};
@@ -661,31 +665,6 @@ const DateValue = ({ value, availability }: DateValueProps) => {
       {formatted}
     </StyledDateValue>
   );
-};
-
-const formatAvailability = (
-  availability: string,
-  t: ReturnType<typeof useLingui>['t'],
-): string => {
-  if (availability === 'unavailable') {
-    return t`Aún no disponible`;
-  }
-
-  if (availability === 'not_applicable') {
-    return t`No aplica`;
-  }
-
-  return t`Disponible`;
-};
-
-const formatFreshness = (
-  freshness: string,
-  t: ReturnType<typeof useLingui>['t'],
-): string | null => {
-  if (freshness === 'healthy') return t`Al día`;
-  if (freshness === 'stale') return t`Desactualizada`;
-  if (freshness === 'degraded') return t`Degradada`;
-  return null;
 };
 
 const AnalyticsBuckets = ({
@@ -1040,7 +1019,10 @@ export const MercadoPublicoV2ActivePage = () => {
                             : t`Llamado ${node.llamado}`}
                         </DataValue>
                         <StyledAvailability>
-                          {formatAvailability(node.availability, t)}
+                          {formatMercadoPublicoAvailability(
+                            node.availability,
+                            t,
+                          )}
                         </StyledAvailability>
                       </StyledOpportunityMeta>
                       {node.title === null && (
@@ -1174,8 +1156,8 @@ export const MercadoPublicoV2ActivePage = () => {
                 : analytics.completeness === 'partial'
                   ? t`completitud parcial`
                   : t`sin datos completos`}
-              {formatFreshness(analytics.freshness, t)
-                ? ` · ${t`Frescura`}: ${formatFreshness(analytics.freshness, t)}`
+              {formatMercadoPublicoFreshness(analytics.freshness, t)
+                ? ` · ${t`Frescura`}: ${formatMercadoPublicoFreshness(analytics.freshness, t)}`
                 : ''}
               {` · ${t`Calculado`}: ${formatDate(analytics.calculatedAt)}`}
               {` · ${t`Actualizado`}: ${formatDate(analytics.asOf)}`}

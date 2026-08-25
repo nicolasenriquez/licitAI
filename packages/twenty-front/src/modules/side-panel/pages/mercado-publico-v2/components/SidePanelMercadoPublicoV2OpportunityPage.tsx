@@ -7,6 +7,10 @@ import { Link, useLocation } from 'react-router-dom';
 import { AppPath } from 'twenty-shared/types';
 
 import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
+import {
+  formatMercadoPublicoAvailability,
+  formatMercadoPublicoFreshness,
+} from '@/mercado-publico/utils/format-mercado-publico-data-status';
 import { SidePanelPageComponentInstanceContext } from '@/side-panel/states/contexts/SidePanelPageComponentInstanceContext';
 import { useComponentInstanceStateContext } from '@/ui/utilities/state/component-state/hooks/useComponentInstanceStateContext';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
@@ -679,6 +683,9 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
   }
 
   const payload = payloadQuery.data?.mercadoPublicoV2.rawPayload;
+  const freshness = opportunity.detailFreshness
+    ? formatMercadoPublicoFreshness(opportunity.detailFreshness.status, t)
+    : null;
 
   return (
     <StyledContent>
@@ -778,15 +785,15 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
             {valueOrFallback(opportunity.lifecycleReason)}
           </StyledValue>
           <StyledLabel>{t({ message: 'Disponibilidad' })}</StyledLabel>
-          <StyledValue>{opportunity.availability}</StyledValue>
-          <StyledLabel>{t({ message: 'Frescura' })}</StyledLabel>
           <StyledValue>
-            {opportunity.detailFreshness?.status ??
-              t({ message: 'No disponible' })}
-            {opportunity.detailFreshness?.lastError
-              ? ` · ${opportunity.detailFreshness.lastError}`
-              : ''}
+            {formatMercadoPublicoAvailability(opportunity.availability, t)}
           </StyledValue>
+          {freshness && (
+            <>
+              <StyledLabel>{t({ message: 'Frescura' })}</StyledLabel>
+              <StyledValue>{freshness}</StyledValue>
+            </>
+          )}
         </StyledDetailList>
       </StyledDisclosure>
 
@@ -871,6 +878,20 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
           <StyledValue>
             {formatDate(opportunity.provenance?.observedAt ?? null)}
           </StyledValue>
+          <StyledLabel>{t({ message: 'Disponibilidad técnica' })}</StyledLabel>
+          <StyledValue>{opportunity.availability}</StyledValue>
+          {opportunity.detailFreshness && (
+            <>
+              <StyledLabel>{t({ message: 'Frescura técnica' })}</StyledLabel>
+              <StyledValue>{opportunity.detailFreshness.status}</StyledValue>
+            </>
+          )}
+          {opportunity.detailFreshness?.lastError && (
+            <>
+              <StyledLabel>{t({ message: 'Último error' })}</StyledLabel>
+              <StyledValue>{opportunity.detailFreshness.lastError}</StyledValue>
+            </>
+          )}
         </StyledDetailList>
       </StyledDisclosure>
 
