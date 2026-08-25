@@ -382,6 +382,24 @@ const StyledSection = styled.section`
   gap: ${themeCssVariables.spacing[3]};
 `;
 
+const StyledDisclosure = styled.details`
+  border-top: 1px solid ${themeCssVariables.border.color.light};
+  padding-top: ${themeCssVariables.spacing[3]};
+
+  > summary {
+    color: ${themeCssVariables.font.color.primary};
+    cursor: pointer;
+    font-size: ${themeCssVariables.font.size.md};
+    font-weight: ${themeCssVariables.font.weight.medium};
+    margin-bottom: ${themeCssVariables.spacing[3]};
+  }
+
+  > summary:focus-visible {
+    outline: 2px solid ${themeCssVariables.border.color.blue};
+    outline-offset: 2px;
+  }
+`;
+
 const StyledHeading = styled.h3`
   color: ${themeCssVariables.font.color.primary};
   font-size: ${themeCssVariables.font.size.md};
@@ -511,8 +529,8 @@ const RelationSection = ({
   }
 
   return (
-    <StyledSection data-testid={testId}>
-      <StyledHeading>{label}</StyledHeading>
+    <StyledDisclosure data-testid={testId}>
+      <summary>{label}</summary>
       {error && (
         <StyledStatus>
           {t({ message: 'No fue posible cargar esta relación.' })}
@@ -554,7 +572,7 @@ const RelationSection = ({
           {nextPageLabel}
         </StyledButton>
       )}
-    </StyledSection>
+    </StyledDisclosure>
   );
 };
 
@@ -676,24 +694,12 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
       </StyledHistoryLink>
 
       <StyledSection>
-        <StyledHeading>{t({ message: 'Identidad y estado' })}</StyledHeading>
+        <StyledHeading>{t({ message: 'Resumen' })}</StyledHeading>
         <StyledDetailList>
           <StyledLabel>{t({ message: 'Estado' })}</StyledLabel>
           <StyledValue>{valueOrFallback(opportunity.state)}</StyledValue>
-          <StyledLabel>{t({ message: 'Llamado' })}</StyledLabel>
-          <StyledValue>{valueOrFallback(opportunity.llamado)}</StyledValue>
           <StyledLabel>{t({ message: 'Comprador' })}</StyledLabel>
           <StyledValue>{valueOrFallback(opportunity.buyerName)}</StyledValue>
-          <StyledLabel>{t({ message: 'Región' })}</StyledLabel>
-          <StyledValue>{valueOrFallback(opportunity.region)}</StyledValue>
-        </StyledDetailList>
-      </StyledSection>
-
-      <StyledSection>
-        <StyledHeading>{t({ message: 'Fechas y monto' })}</StyledHeading>
-        <StyledDetailList>
-          <StyledLabel>{t({ message: 'Publicación' })}</StyledLabel>
-          <StyledValue>{formatDate(opportunity.publishedAt)}</StyledValue>
           <StyledLabel>{t({ message: 'Cierre' })}</StyledLabel>
           <StyledValue>{formatDate(opportunity.closingAt)}</StyledValue>
           <StyledLabel>{t({ message: 'Monto' })}</StyledLabel>
@@ -702,56 +708,71 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
               ? t({ message: 'No informado por fuente' })
               : `${opportunity.currency ?? ''} ${opportunity.amount}`.trim()}
           </StyledValue>
-        </StyledDetailList>
-      </StyledSection>
-
-      <StyledSection>
-        <StyledHeading>{t({ message: 'Necesidad' })}</StyledHeading>
-        <StyledDetailList>
+          <StyledLabel>{t({ message: 'Región' })}</StyledLabel>
+          <StyledValue>{valueOrFallback(opportunity.region)}</StyledValue>
+          <StyledLabel>{t({ message: 'Llamado' })}</StyledLabel>
+          <StyledValue>{valueOrFallback(opportunity.llamado)}</StyledValue>
           <StyledLabel>{t({ message: 'Descripción' })}</StyledLabel>
           <StyledValue>{valueOrFallback(opportunity.description)}</StyledValue>
-          <StyledLabel>{t({ message: 'Entrega' })}</StyledLabel>
-          <StyledValue>
-            {opportunity.deliveryAddress === null
-              ? t({ message: 'No informado por fuente' })
-              : `${opportunity.deliveryAddress}${
-                  opportunity.deliveryDays === null
-                    ? ''
-                    : ` · ${opportunity.deliveryDays} días`
-                }`}
-          </StyledValue>
-          <StyledLabel>{t({ message: 'Tipo de presupuesto' })}</StyledLabel>
-          <StyledValue>{valueOrFallback(opportunity.budgetType)}</StyledValue>
-          <StyledLabel>{t({ message: 'Presupuesto estimado' })}</StyledLabel>
-          <StyledValue>
-            {opportunity.budgetEstimate === null
-              ? t({ message: 'No informado por fuente' })
-              : `${opportunity.budgetCurrency ?? ''} ${opportunity.budgetEstimate}`.trim()}
-          </StyledValue>
         </StyledDetailList>
       </StyledSection>
 
-      <StyledSection>
-        <StyledHeading>
-          {t({ message: 'Motivos de cancelación' })}
-        </StyledHeading>
-        <StyledDetailList>
-          <StyledLabel>{t({ message: 'Motivo de cancelación' })}</StyledLabel>
-          <StyledValue>{valueOrFallback(opportunity.cancelMotive)}</StyledValue>
-          <StyledLabel>{t({ message: 'Motivo de desierta' })}</StyledLabel>
-          <StyledValue>
-            {valueOrFallback(opportunity.desertedMotive)}
-          </StyledValue>
-          <StyledLabel>{t({ message: 'Motivo de selección' })}</StyledLabel>
-          <StyledValue>
-            {valueOrFallback(opportunity.selectionMotive)}
-          </StyledValue>
-        </StyledDetailList>
-      </StyledSection>
+      {(opportunity.deliveryAddress !== null ||
+        opportunity.deliveryDays !== null ||
+        opportunity.budgetType !== null ||
+        opportunity.budgetEstimate !== null) && (
+        <StyledDisclosure>
+          <summary>{t({ message: 'Entrega y presupuesto' })}</summary>
+          <StyledDetailList>
+            <StyledLabel>{t({ message: 'Entrega' })}</StyledLabel>
+            <StyledValue>
+              {opportunity.deliveryAddress === null
+                ? t({ message: 'No informado por fuente' })
+                : `${opportunity.deliveryAddress}${
+                    opportunity.deliveryDays === null
+                      ? ''
+                      : ` · ${opportunity.deliveryDays} días`
+                  }`}
+            </StyledValue>
+            <StyledLabel>{t({ message: 'Tipo de presupuesto' })}</StyledLabel>
+            <StyledValue>{valueOrFallback(opportunity.budgetType)}</StyledValue>
+            <StyledLabel>{t({ message: 'Presupuesto estimado' })}</StyledLabel>
+            <StyledValue>
+              {opportunity.budgetEstimate === null
+                ? t({ message: 'No informado por fuente' })
+                : `${opportunity.budgetCurrency ?? ''} ${opportunity.budgetEstimate}`.trim()}
+            </StyledValue>
+          </StyledDetailList>
+        </StyledDisclosure>
+      )}
 
-      <StyledSection>
-        <StyledHeading>{t({ message: 'Ciclo de vida' })}</StyledHeading>
+      {(opportunity.cancelMotive !== null ||
+        opportunity.desertedMotive !== null ||
+        opportunity.selectionMotive !== null) && (
+        <StyledDisclosure>
+          <summary>{t({ message: 'Motivos y decisión' })}</summary>
+          <StyledDetailList>
+            <StyledLabel>{t({ message: 'Motivo de cancelación' })}</StyledLabel>
+            <StyledValue>
+              {valueOrFallback(opportunity.cancelMotive)}
+            </StyledValue>
+            <StyledLabel>{t({ message: 'Motivo de desierta' })}</StyledLabel>
+            <StyledValue>
+              {valueOrFallback(opportunity.desertedMotive)}
+            </StyledValue>
+            <StyledLabel>{t({ message: 'Motivo de selección' })}</StyledLabel>
+            <StyledValue>
+              {valueOrFallback(opportunity.selectionMotive)}
+            </StyledValue>
+          </StyledDetailList>
+        </StyledDisclosure>
+      )}
+
+      <StyledDisclosure>
+        <summary>{t({ message: 'Ciclo de vida' })}</summary>
         <StyledDetailList>
+          <StyledLabel>{t({ message: 'Publicación' })}</StyledLabel>
+          <StyledValue>{formatDate(opportunity.publishedAt)}</StyledValue>
           <StyledLabel>{t({ message: 'Razón' })}</StyledLabel>
           <StyledValue>
             {valueOrFallback(opportunity.lifecycleReason)}
@@ -767,7 +788,7 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
               : ''}
           </StyledValue>
         </StyledDetailList>
-      </StyledSection>
+      </StyledDisclosure>
 
       <RelationSection
         label={t({ message: 'Documentos' })}
@@ -826,8 +847,8 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
         t={t}
       />
 
-      <StyledSection>
-        <StyledHeading>{t({ message: 'Procedencia' })}</StyledHeading>
+      <StyledDisclosure>
+        <summary>{t({ message: 'Procedencia' })}</summary>
         <StyledDetailList>
           <StyledLabel>{t({ message: 'Observación' })}</StyledLabel>
           <StyledValue>
@@ -851,10 +872,10 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
             {formatDate(opportunity.provenance?.observedAt ?? null)}
           </StyledValue>
         </StyledDetailList>
-      </StyledSection>
+      </StyledDisclosure>
 
-      <StyledSection>
-        <StyledHeading>{t({ message: 'Payload de fuente' })}</StyledHeading>
+      <StyledDisclosure>
+        <summary>{t({ message: 'Payload técnico de fuente' })}</summary>
         <StyledButton
           ref={payloadButtonRef}
           type="button"
@@ -879,7 +900,7 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
               : t({ message: 'La fuente no requirió redacción.' })}
           </StyledStatus>
         )}
-      </StyledSection>
+      </StyledDisclosure>
     </StyledContent>
   );
 };

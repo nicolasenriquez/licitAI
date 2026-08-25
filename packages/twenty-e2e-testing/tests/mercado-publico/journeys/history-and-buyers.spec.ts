@@ -68,14 +68,14 @@ test.describe('Mercado Publico V2 history and buyers', () => {
     ).toBeVisible();
     await expect(page.getByText(seededBuyerCode)).toBeVisible();
     await expect(
-      page.getByRole('columnheader', { name: 'Procesos' }),
+      page.getByRole('columnheader', { name: 'Oportunidades' }),
     ).toBeVisible();
     await expect(
       page
         .getByRole('row')
         .filter({ hasText: seededBuyerCode })
-        .getByRole('group'),
-    ).toHaveCount(1);
+        .getByText(seededBuyerCode),
+    ).toBeVisible();
   });
 
   test('navigates buyer selection to Procesos and browser Back restores Compradores', async ({
@@ -89,7 +89,9 @@ test.describe('Mercado Publico V2 history and buyers', () => {
         `${ACTIVE_PATH}.*buyer=${encodeURIComponent(seededBuyerCode)}`,
       ),
     );
-    await expect(page.getByRole('heading', { name: 'Procesos' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Mercado Público' }),
+    ).toBeVisible();
 
     await page.goBack();
 

@@ -3,13 +3,16 @@ import { useQuery } from '@apollo/client/react';
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
 import { useCallback } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Temporal } from 'temporal-polyfill';
 import { MOBILE_VIEWPORT, themeCssVariables } from 'twenty-ui/theme-constants';
 import { Button } from 'twenty-ui/input';
+import { Callout } from 'twenty-ui/feedback';
 import { AppPath } from 'twenty-shared/types';
 
 import { MercadoPublicoV2Nav } from '@/mercado-publico/components/MercadoPublicoV2Nav';
+import { MercadoPublicoV2FilterBar } from '@/mercado-publico/components/MercadoPublicoV2FilterBar';
+import { MercadoPublicoV2AppliedFilters } from '@/mercado-publico/components/MercadoPublicoV2AppliedFilters';
 import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
 import {
   useMercadoPublicoV2UrlState,
@@ -207,14 +210,6 @@ const StyledSecondaryText = styled.div`
   overflow-wrap: anywhere;
 `;
 
-const StyledBuyerQuality = styled.details`
-  margin-top: ${themeCssVariables.spacing[2]};
-
-  summary {
-    cursor: pointer;
-  }
-`;
-
 const StyledStateMessage = styled.div`
   align-items: center;
   color: ${themeCssVariables.font.color.secondary};
@@ -230,9 +225,6 @@ const StyledPagination = styled.nav`
   display: flex;
   justify-content: flex-end;
 `;
-
-const formatCoverage = (coverage: number): string =>
-  `${Math.round(coverage * 100)}%`;
 
 const SANTIAGO_TIME_ZONE = 'America/Santiago';
 
@@ -322,25 +314,16 @@ const toQueryFilter = (
   } as MercadoPublicoV2Filters;
 };
 
-const getAvailabilityLabel = (
-  availability: string,
-  t: ReturnType<typeof useLingui>['t'],
-): string => {
-  if (availability === 'available') {
-    return t`Disponible`;
-  }
-
-  if (availability === 'partial') {
-    return t`Resultados parciales`;
-  }
-
-  return t`Datos no disponibles`;
-};
-
 export const MercadoPublicoV2BuyersPage = () => {
   const { t } = useLingui();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { state } = useMercadoPublicoV2UrlState();
+  const {
+    state,
+    applyFilters,
+    clearFilters,
+    setSort,
+    setAfter,
+    previousCursors,
+  } = useMercadoPublicoV2UrlState();
   const queryFilter = toQueryFilter(state);
   const apolloCoreClient = useApolloCoreClient();
 
@@ -359,31 +342,48 @@ export const MercadoPublicoV2BuyersPage = () => {
       return;
     }
 
-    const next = new URLSearchParams(searchParams);
-    next.set('after', endCursor);
-    setSearchParams(next);
-  }, [data, searchParams, setSearchParams]);
+    setAfter(endCursor, [...previousCursors, state.after]);
+  }, [data, previousCursors, setAfter, state.after]);
 
-  const buildBuyerPath = useCallback(
-    (buyerCode: string): string => {
-      const next = new URLSearchParams(searchParams);
-      next.set('buyer', buyerCode);
-      next.delete('after');
-      next.delete('proceso');
+  const goToPreviousPage = useCallback(() => {
+    const previousCursor = previousCursors.at(-1);
+    if (previousCursor === undefined) return;
+    setAfter(previousCursor, previousCursors.slice(0, -1));
+  }, [previousCursors, setAfter]);
 
-      return `${AppPath.MercadoPublico}?${next.toString()}`;
-    },
-    [searchParams],
-  );
+  const buildBuyerPath = useCallback((buyerCode: string): string => {
+    const next = new URLSearchParams(window.location.search);
+    next.set('buyer', buyerCode);
+    next.delete('after');
+    next.delete('proceso');
+
+    return `${AppPath.MercadoPublico}?${next.toString()}`;
+  }, []);
 
   const connection = data?.mercadoPublicoV2.buyers;
 
   return (
     <StyledPage>
       <StyledHeader>
-        <StyledHeading>{t`Compradores`}</StyledHeading>
+        <StyledHeading>{t`Mercado Público`}</StyledHeading>
         <MercadoPublicoV2Nav />
       </StyledHeader>
+
+      <MercadoPublicoV2FilterBar
+        filters={state}
+        sort={state.sort}
+        notice={null}
+        noticeId="mercado-publico-v2-buyers-filter-notice"
+        onApply={applyFilters}
+        onClear={clearFilters}
+        onSortChange={setSort}
+      />
+
+      <MercadoPublicoV2AppliedFilters
+        filters={state}
+        onRemove={applyFilters}
+        onClear={clearFilters}
+      />
 
       {loading && (
         <StyledStateMessage role="status" aria-live="polite">
@@ -393,20 +393,22 @@ export const MercadoPublicoV2BuyersPage = () => {
 
       {!loading && error && (
         <StyledStateMessage role="alert">
-          <span>{t`No fue posible cargar los compradores.`}</span>
-          <Button
-            title={t`Reintentar compradores`}
-            type="button"
-            size="small"
-            variant="secondary"
-            onClick={() => void refetch()}
+          <Callout
+            variant="error"
+            title={t`No fue posible cargar los compradores`}
+            description={t`Reintenta sin perder el contexto actual.`}
+            action={{ label: t`Reintentar`, onClick: () => void refetch() }}
           />
         </StyledStateMessage>
       )}
 
       {!loading && !error && connection?.edges.length === 0 && (
         <StyledStateMessage role="status" aria-live="polite">
-          {t`No hay compradores para la población filtrada.`}
+          <Callout
+            variant="neutral"
+            title={t`No hay compradores`}
+            description={t`No hay compradores para la población filtrada.`}
+          />
         </StyledStateMessage>
       )}
 
@@ -420,7 +422,7 @@ export const MercadoPublicoV2BuyersPage = () => {
               <thead>
                 <tr>
                   <StyledHeaderCell>{t`Comprador`}</StyledHeaderCell>
-                  <StyledHeaderCell>{t`Procesos`}</StyledHeaderCell>
+                  <StyledHeaderCell>{t`Oportunidades`}</StyledHeaderCell>
                   <StyledHeaderCell>{t`Última actualización`}</StyledHeaderCell>
                 </tr>
               </thead>
@@ -429,30 +431,17 @@ export const MercadoPublicoV2BuyersPage = () => {
                   <tr key={node.buyerCode}>
                     <StyledCell data-label={t`Comprador`}>
                       <StyledBuyerLink to={buildBuyerPath(node.buyerCode)}>
-                        {node.buyerCode}
+                        {node.buyerName ?? t`Nombre no informado por fuente`}
                       </StyledBuyerLink>
                       <StyledSecondaryText>
-                        {node.buyerName ?? t`Nombre no informado por fuente`}
+                        {node.buyerCode}
                       </StyledSecondaryText>
                     </StyledCell>
-                    <StyledCell data-label={t`Procesos`}>
+                    <StyledCell data-label={t`Oportunidades`}>
                       {node.opportunityCount}
                     </StyledCell>
                     <StyledCell data-label={t`Última actualización`}>
                       {formatDate(node.asOf)}
-                      <StyledBuyerQuality>
-                        <summary>{t`Calidad de datos`}</summary>
-                        <StyledSecondaryText>
-                          {getAvailabilityLabel(node.availability, t)}
-                          {` · ${t`Cobertura de comprador`}: ${formatCoverage(node.buyerCoverage)}`}
-                          {` · ${t`Cobertura de monto`}: ${formatCoverage(node.amountCoverage)}`}
-                          {` · ${
-                            node.completeness === 'complete'
-                              ? t`Completitud completa`
-                              : t`Completitud parcial`
-                          }`}
-                        </StyledSecondaryText>
-                      </StyledBuyerQuality>
                     </StyledCell>
                   </tr>
                 ))}
@@ -460,13 +449,22 @@ export const MercadoPublicoV2BuyersPage = () => {
             </StyledTable>
           </StyledTableContainer>
 
-          {connection.pageInfo.hasNextPage && (
+          {(previousCursors.length > 0 || connection.pageInfo.hasNextPage) && (
             <StyledPagination aria-label={t`Paginación de compradores`}>
+              <Button
+                title={t`Anterior`}
+                type="button"
+                size="small"
+                variant="secondary"
+                disabled={previousCursors.length === 0}
+                onClick={goToPreviousPage}
+              />
               <Button
                 title={t`Siguiente`}
                 type="button"
                 size="small"
                 variant="secondary"
+                disabled={!connection.pageInfo.hasNextPage}
                 onClick={goToNextPage}
               />
             </StyledPagination>

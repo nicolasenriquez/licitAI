@@ -48,7 +48,7 @@ export const MercadoPublicoV2Nav = () => {
     errorPolicy: 'ignore',
   });
   const links = [
-    { to: AppPath.MercadoPublico, label: t`Procesos` },
+    { to: AppPath.MercadoPublico, label: t`Oportunidades` },
     { to: AppPath.MercadoPublicoV2Buyers, label: t`Compradores` },
     ...(syncAccessData
       ? [{ to: AppPath.MercadoPublicoV2SyncControl, label: t`Sincronización` }]

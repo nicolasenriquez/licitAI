@@ -77,6 +77,26 @@ const StyledRow = styled.div`
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
 `;
 
+const StyledClosingRange = styled.fieldset`
+  border: 0;
+  display: grid;
+  gap: ${themeCssVariables.spacing[2]};
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+
+  legend {
+    color: ${themeCssVariables.font.color.secondary};
+    font-size: ${themeCssVariables.font.size.xs};
+    margin-bottom: ${themeCssVariables.spacing[1]};
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
 const StyledField = styled.label`
   align-items: stretch;
   display: flex;
@@ -208,9 +228,8 @@ export const MercadoPublicoV2FilterBar = ({
   };
 
   const advancedFilterCount = [
-    draft.cohortStatus,
     draft.states.length > 0,
-    draft.closingAtFrom,
+    draft.buyer.trim(),
     draft.documentCountMin !== null,
     draft.documentCountMax !== null,
     draft.llamado !== null,
@@ -228,27 +247,6 @@ export const MercadoPublicoV2FilterBar = ({
     >
       <StyledRow>
         <StyledField>
-          <StyledFieldLabel>{t`Cohorte`}</StyledFieldLabel>
-          <StyledSelect
-            aria-label={t`Filtrar por cohorte`}
-            value={draft.cohortStatus ?? ''}
-            onChange={(event) =>
-              updateDraft({
-                cohortStatus: (event.target.value ||
-                  null) as MercadoPublicoV2CohortStatus | null,
-              })
-            }
-          >
-            <option value="">{t`Activas`}</option>
-            {MERCADO_PUBLICO_V2_COHORTS.map((cohort) => (
-              <option key={cohort.value} value={cohort.value}>
-                {cohort.label}
-              </option>
-            ))}
-          </StyledSelect>
-        </StyledField>
-
-        <StyledField>
           <StyledFieldLabel>{t`Búsqueda`}</StyledFieldLabel>
           <StyledInput
             aria-label={t`Buscar por código, título o comprador`}
@@ -259,17 +257,21 @@ export const MercadoPublicoV2FilterBar = ({
         </StyledField>
 
         <StyledField>
-          <StyledFieldLabel>{t`Orden`}</StyledFieldLabel>
+          <StyledFieldLabel>{t`Situación`}</StyledFieldLabel>
           <StyledSelect
-            aria-label={t`Orden de resultados`}
-            value={sort}
+            aria-label={t`Filtrar por situación`}
+            value={draft.cohortStatus ?? ''}
             onChange={(event) =>
-              onSortChange(event.target.value as MercadoPublicoV2Sort)
+              updateDraft({
+                cohortStatus: (event.target.value ||
+                  null) as MercadoPublicoV2CohortStatus | null,
+              })
             }
           >
-            {MERCADO_PUBLICO_V2_SORTS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+            <option value="">{t`Todas`}</option>
+            {MERCADO_PUBLICO_V2_COHORTS.map((cohort) => (
+              <option key={cohort.value} value={cohort.value}>
+                {cohort.label}
               </option>
             ))}
           </StyledSelect>
@@ -296,121 +298,43 @@ export const MercadoPublicoV2FilterBar = ({
           </StyledSelect>
         </StyledField>
 
-        <StyledField>
-          <StyledFieldLabel>{t`Llamado`}</StyledFieldLabel>
-          <StyledSelect
-            aria-label={t`Filtrar por número de llamado`}
-            value={draft.llamado === null ? '' : String(draft.llamado)}
-            onChange={(event) =>
-              updateDraft({
-                llamado:
-                  event.target.value === '' ? null : Number(event.target.value),
-              })
-            }
-          >
-            <option value="">{t`Todos`}</option>
-            {[1, 2, 3].map((llamado) => (
-              <option key={llamado} value={llamado}>
-                {t`Llamado ${llamado}`}
-              </option>
-            ))}
-          </StyledSelect>
-        </StyledField>
-
-        <StyledField>
-          <StyledFieldLabel>{t`Cierre desde`}</StyledFieldLabel>
+        <StyledClosingRange>
+          <legend>{t`Cierre`}</legend>
           <StyledInput
             aria-label={t`Fecha de cierre desde`}
+            lang="es-CL"
             type="date"
             value={draft.closingAtFrom ?? ''}
             onChange={(event) =>
-              updateDraft({
-                closingAtFrom: event.target.value || null,
-              })
+              updateDraft({ closingAtFrom: event.target.value || null })
             }
           />
-        </StyledField>
-
-        <StyledField>
-          <StyledFieldLabel>{t`Cierre hasta`}</StyledFieldLabel>
           <StyledInput
             aria-label={t`Fecha de cierre hasta`}
+            lang="es-CL"
             type="date"
             value={draft.closingAtTo ?? ''}
             onChange={(event) =>
               updateDraft({ closingAtTo: event.target.value || null })
             }
           />
-        </StyledField>
+        </StyledClosingRange>
 
         <StyledField>
-          <StyledFieldLabel>{t`Documentos mín`}</StyledFieldLabel>
-          <StyledInput
-            aria-label={t`Cantidad mínima de documentos`}
-            type="number"
-            min={0}
-            value={draft.documentCountMin ?? ''}
+          <StyledFieldLabel>{t`Orden`}</StyledFieldLabel>
+          <StyledSelect
+            aria-label={t`Orden de resultados`}
+            value={sort}
             onChange={(event) =>
-              updateDraft({
-                documentCountMin:
-                  event.target.value === '' ? null : Number(event.target.value),
-              })
+              onSortChange(event.target.value as MercadoPublicoV2Sort)
             }
-          />
-        </StyledField>
-
-        <StyledField>
-          <StyledFieldLabel>{t`Documentos máx`}</StyledFieldLabel>
-          <StyledInput
-            aria-label={t`Cantidad máxima de documentos`}
-            type="number"
-            min={0}
-            value={draft.documentCountMax ?? ''}
-            onChange={(event) =>
-              updateDraft({
-                documentCountMax:
-                  event.target.value === '' ? null : Number(event.target.value),
-              })
-            }
-          />
-        </StyledField>
-
-        <StyledField>
-          <StyledFieldLabel>{t`Monto mín`}</StyledFieldLabel>
-          <StyledInput
-            aria-label={t`Monto mínimo`}
-            type="number"
-            min={0}
-            value={draft.amountMin ?? ''}
-            onChange={(event) =>
-              updateDraft({ amountMin: event.target.value || null })
-            }
-          />
-        </StyledField>
-
-        <StyledField>
-          <StyledFieldLabel>{t`Monto máx`}</StyledFieldLabel>
-          <StyledInput
-            aria-label={t`Monto máximo`}
-            type="number"
-            min={0}
-            value={draft.amountMax ?? ''}
-            onChange={(event) =>
-              updateDraft({ amountMax: event.target.value || null })
-            }
-          />
-        </StyledField>
-      </StyledRow>
-
-      <StyledRow>
-        <StyledField>
-          <StyledFieldLabel>{t`Comprador o RUT`}</StyledFieldLabel>
-          <StyledInput
-            aria-label={t`Filtrar por comprador o RUT`}
-            type="search"
-            value={draft.buyer}
-            onChange={(event) => updateDraft({ buyer: event.target.value })}
-          />
+          >
+            {MERCADO_PUBLICO_V2_SORTS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </StyledSelect>
         </StyledField>
       </StyledRow>
 
@@ -421,6 +345,101 @@ export const MercadoPublicoV2FilterBar = ({
             : t`Más filtros`}
         </summary>
         <StyledRow>
+          <StyledField>
+            <StyledFieldLabel>{t`Comprador o RUT`}</StyledFieldLabel>
+            <StyledInput
+              aria-label={t`Filtrar por comprador o RUT`}
+              type="search"
+              value={draft.buyer}
+              onChange={(event) => updateDraft({ buyer: event.target.value })}
+            />
+          </StyledField>
+
+          <StyledField>
+            <StyledFieldLabel>{t`Llamado`}</StyledFieldLabel>
+            <StyledSelect
+              aria-label={t`Filtrar por número de llamado`}
+              value={draft.llamado === null ? '' : String(draft.llamado)}
+              onChange={(event) =>
+                updateDraft({
+                  llamado:
+                    event.target.value === ''
+                      ? null
+                      : Number(event.target.value),
+                })
+              }
+            >
+              <option value="">{t`Todos`}</option>
+              {[1, 2, 3].map((llamado) => (
+                <option key={llamado} value={llamado}>
+                  {t`Llamado ${llamado}`}
+                </option>
+              ))}
+            </StyledSelect>
+          </StyledField>
+
+          <StyledField>
+            <StyledFieldLabel>{t`Documentos mín`}</StyledFieldLabel>
+            <StyledInput
+              aria-label={t`Cantidad mínima de documentos`}
+              type="number"
+              min={0}
+              value={draft.documentCountMin ?? ''}
+              onChange={(event) =>
+                updateDraft({
+                  documentCountMin:
+                    event.target.value === ''
+                      ? null
+                      : Number(event.target.value),
+                })
+              }
+            />
+          </StyledField>
+
+          <StyledField>
+            <StyledFieldLabel>{t`Documentos máx`}</StyledFieldLabel>
+            <StyledInput
+              aria-label={t`Cantidad máxima de documentos`}
+              type="number"
+              min={0}
+              value={draft.documentCountMax ?? ''}
+              onChange={(event) =>
+                updateDraft({
+                  documentCountMax:
+                    event.target.value === ''
+                      ? null
+                      : Number(event.target.value),
+                })
+              }
+            />
+          </StyledField>
+
+          <StyledField>
+            <StyledFieldLabel>{t`Monto mín`}</StyledFieldLabel>
+            <StyledInput
+              aria-label={t`Monto mínimo`}
+              type="number"
+              min={0}
+              value={draft.amountMin ?? ''}
+              onChange={(event) =>
+                updateDraft({ amountMin: event.target.value || null })
+              }
+            />
+          </StyledField>
+
+          <StyledField>
+            <StyledFieldLabel>{t`Monto máx`}</StyledFieldLabel>
+            <StyledInput
+              aria-label={t`Monto máximo`}
+              type="number"
+              min={0}
+              value={draft.amountMax ?? ''}
+              onChange={(event) =>
+                updateDraft({ amountMax: event.target.value || null })
+              }
+            />
+          </StyledField>
+
           <StyledField>
             <StyledFieldLabel>{t`Estados`}</StyledFieldLabel>
             <StyledCheckboxGroup aria-label={t`Filtrar por estados`}>

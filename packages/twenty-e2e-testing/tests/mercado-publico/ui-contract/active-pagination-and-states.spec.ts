@@ -9,8 +9,8 @@ import {
   trackHarnessDiagnostics,
 } from '../fixtures/mercado-publico.fixture';
 
-test.describe('Mercado Publico Procesos UI contract', () => {
-  test('Procesos advances through URL-backed keyset pages', async ({
+test.describe('Mercado Publico Oportunidades UI contract', () => {
+  test('Oportunidades advances and returns through URL-backed keyset pages', async ({
     page,
   }) => {
     const pageOneOpportunity = {
@@ -87,8 +87,14 @@ test.describe('Mercado Publico Procesos UI contract', () => {
       page.getByRole('button', { name: 'Siguiente' }),
     ).toBeDisabled();
 
-    await page.goBack();
+    await page.getByRole('button', { name: 'Anterior' }).click();
     await expect(page).toHaveURL(/\/mercado-publico$/);
+    await expect(
+      page.getByRole('button', { name: 'Abrir Primera oportunidad' }),
+    ).toBeVisible();
+
+    await page.goForward();
+    await page.goBack();
     await expect(
       page.getByRole('button', { name: 'Abrir Primera oportunidad' }),
     ).toBeVisible();
@@ -101,7 +107,9 @@ test.describe('Mercado Publico Procesos UI contract', () => {
     });
 
     await page.goto(ACTIVE_PATH, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByText('Cargando procesos…')).toBeVisible();
+    await expect(
+      page.getByRole('status', { name: 'Cargando oportunidades…' }),
+    ).toBeVisible();
 
     release();
     await expect(
@@ -124,7 +132,9 @@ test.describe('Mercado Publico Procesos UI contract', () => {
     await page.goto(`${ACTIVE_PATH}?q=empty-state`, {
       waitUntil: 'domcontentloaded',
     });
-    await expect(page.getByText('No hay procesos disponibles.')).toBeVisible();
+    await expect(
+      page.getByText('No hay oportunidades disponibles'),
+    ).toBeVisible();
     await expect(page.locator('table')).toHaveCount(0);
 
     await page.unroute('**/*');
@@ -185,8 +195,8 @@ test.describe('Mercado Publico Procesos UI contract', () => {
     });
     await expect(
       page.locator('#mercado-publico-v2-filter-notice'),
-    ).toContainText('No fue posible cargar los procesos.');
-    await page.getByRole('button', { name: 'Reintentar procesos' }).click();
+    ).toContainText('No fue posible cargar las oportunidades.');
+    await page.getByRole('button', { name: 'Reintentar' }).click();
     await expect(
       page.getByRole('button', {
         name: 'Abrir Servicio de mantención preventiva',

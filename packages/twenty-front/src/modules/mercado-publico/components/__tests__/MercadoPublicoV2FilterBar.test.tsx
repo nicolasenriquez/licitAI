@@ -25,6 +25,57 @@ const filters: MercadoPublicoV2Filters = {
 };
 
 describe('MercadoPublicoV2FilterBar', () => {
+  it('keeps only secondary controls inside More filters', () => {
+    render(
+      <ThemeProvider colorScheme="light">
+        <I18nProvider i18n={i18n}>
+          <MercadoPublicoV2FilterBar
+            filters={filters}
+            sort={MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC}
+            notice={null}
+            noticeId="notice"
+            onApply={jest.fn()}
+            onClear={jest.fn()}
+            onSortChange={jest.fn()}
+          />
+        </I18nProvider>
+      </ThemeProvider>,
+    );
+
+    expect(
+      screen
+        .getByLabelText('Buscar por código, título o comprador')
+        .closest('details'),
+    ).toBeNull();
+    expect(
+      screen.getByLabelText('Filtrar por comprador o RUT').closest('details'),
+    ).not.toBeNull();
+    expect(
+      screen.getByLabelText('Cantidad mínima de documentos').closest('details'),
+    ).not.toBeNull();
+  });
+
+  it('uses Todas as the empty situation option', () => {
+    render(
+      <ThemeProvider colorScheme="light">
+        <I18nProvider i18n={i18n}>
+          <MercadoPublicoV2FilterBar
+            filters={filters}
+            sort={MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC}
+            notice={null}
+            noticeId="notice"
+            onApply={jest.fn()}
+            onClear={jest.fn()}
+            onSortChange={jest.fn()}
+          />
+        </I18nProvider>
+      </ThemeProvider>,
+    );
+    expect(screen.getByLabelText('Filtrar por situación')).toHaveValue('');
+    expect(
+      screen.getByLabelText('Filtrar por situación').querySelector('option'),
+    ).toHaveTextContent('Todas');
+  });
   it('counts zero-valued numeric filters as active', () => {
     render(
       <ThemeProvider colorScheme="light">
