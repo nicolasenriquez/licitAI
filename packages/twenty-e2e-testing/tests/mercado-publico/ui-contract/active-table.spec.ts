@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 import {
@@ -220,7 +221,7 @@ test.describe('Mercado Publico Procesos UI contract', () => {
         name: 'Abrir Servicio de mantención preventiva',
       })
       .click();
-    await expect(page.getByText('Evidencia')).toBeVisible();
+    await expect(page.getByText('Datos técnicos')).toBeVisible();
 
     await page.keyboard.press('Escape');
     await expect(page.getByRole('heading', { name: 'Procesos' })).toBeVisible();

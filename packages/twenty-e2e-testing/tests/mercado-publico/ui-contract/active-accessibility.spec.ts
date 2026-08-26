@@ -119,9 +119,9 @@ test.describe('Mercado Publico Procesos UI contract', () => {
     ).toBeGreaterThan(0);
 
     await opportunityButton.press('Enter');
-    await expect(page.getByText('Evidencia')).toBeVisible();
+    await expect(page.getByText('Datos técnicos')).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.getByText('Evidencia')).toBeHidden();
+    await expect(page.getByText('Datos técnicos')).toBeHidden();
     await expect(opportunityButton).toBeFocused();
 
     expect(

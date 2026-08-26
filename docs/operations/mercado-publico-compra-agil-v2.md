@@ -30,7 +30,7 @@ repeating a failed run from page one.
   is the official examples guide. It is not a V3 API version.
 - **Implemented**: V2 requests use `GET /v2/compra-agil` and send the secret
   in the `ticket` header. The ticket must come only from managed configuration.
-- **Implemented**: `tamano_pagina` is an integer from 1 through 50,
+- **Implemented**: `tamano_pagina` is at most 50,
   `numero_pagina` is a positive integer, `region` is an integer from 1 through
   16, `id` and `q` are mutually exclusive, and `ordenar_por` is propagated.
 - **Implemented**: `orden` is rejected. A supplied `cambio_*` or `publicado_*`

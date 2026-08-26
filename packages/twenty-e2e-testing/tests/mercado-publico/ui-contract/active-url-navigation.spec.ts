@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-// Issue 22: Activas navigation through URL and keyset (deep links, Back/Forward,
+// Issue 22: Procesos navigation through URL and keyset (deep links, Back/Forward,
 // invalid cursor recovery). The flag is build-time (REACT_APP_MERCADO_PUBLICO_V2_ENABLED).
 
 const ACTIVE_PATH = '/mercado-publico';
@@ -134,7 +134,7 @@ const mockGraphql = async (
   });
 };
 
-test.describe('Mercado Publico V2 Activas URL and keyset navigation', () => {
+test.describe('Mercado Publico V2 Procesos URL and keyset navigation', () => {
   test('serializes filters and order in the URL and restores them from it', async ({
     page,
   }) => {
@@ -194,7 +194,7 @@ test.describe('Mercado Publico V2 Activas URL and keyset navigation', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(page.getByText('Evidencia')).toBeVisible();
+    await expect(page.getByText('Datos técnicos')).toBeVisible();
   });
 
   test('Back closes the open panel before navigating the table', async ({
@@ -214,13 +214,13 @@ test.describe('Mercado Publico V2 Activas URL and keyset navigation', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(page.getByText('Evidencia')).toBeVisible();
+    await expect(page.getByText('Datos técnicos')).toBeVisible();
     await expect(page).toHaveURL(/proceso=FIXTURE-CA-001/);
 
     await page.goBack();
 
-    await expect(page.getByText('Evidencia')).toBeHidden();
-    await expect(page.getByRole('heading', { name: 'Activas' })).toBeVisible();
+    await expect(page.getByText('Datos técnicos')).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'Procesos' })).toBeVisible();
     await expect(page).toHaveURL(/\/mercado-publico$/);
   });
 

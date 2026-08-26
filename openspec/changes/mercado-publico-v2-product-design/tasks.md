@@ -1,16 +1,19 @@
 ## 0. Investigation and Scope Lock
 
-- [ ] 0.1 Confirm active page, URL hook, filter bar, side-panel detail, History,
+- [x] 0.1 Confirm active page, URL hook, filter bar, side-panel detail, History,
   resolver, Opportunity metadata, and Common API ownership against current HEAD.
   Traceability: locks highest existing frontend and backend Seams before code changes.
+  Notes: Confirmed `MercadoPublicoV2ActivePage`, `useMercadoPublicoV2UrlState`, `MercadoPublicoV2FilterBar`, `SidePanelMercadoPublicoV2OpportunityPage`, `MercadoPublicoV2HistoryPage`, the read-only Mercado Publico resolvers, Opportunity standard metadata, and Common API record creation ownership.
 
-- [ ] 0.2 Record baseline results and reconcile obsolete Mercado Publico E2E
+- [x] 0.2 Record baseline results and reconcile obsolete Mercado Publico E2E
   labels before treating existing failures as regressions.
   Traceability: separates pre-existing test drift from product-design changes.
+  Notes: Baseline passed frontend 4 suites/22 tests, server 5 suites/31 tests, and E2E runner 3/3 tests. Reconciled stale `Activas`, `Evidencia`, and opportunity loading/empty labels, restored `AxeBuilder` import, and fixed equivalent official-link validation.
 
-- [ ] 0.3 Confirm generated fast instance-command scope for Opportunity source
+- [x] 0.3 Confirm generated fast instance-command scope for Opportunity source
   fields and core investigation mapping, including reversible `up` and `down`.
   Traceability: prevents silent schema widening or hand-authored migration logic.
+  Notes: Confirmed repository fast-command generator contract and existing reversible Mercado Publico command pattern. Scope is nullable Opportunity source fields plus workspace/code mapping table and unique identity; no slow backfill is required.
 
 ## 1. Contract Coverage (Failing First)
 

@@ -160,4 +160,34 @@ describe('MercadoPublicoV2FilterBar', () => {
       expect.objectContaining({ region: 13, search: 'obra' }),
     );
   });
+
+  it('groups advanced filters by operator intent and returns focus on Escape', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ThemeProvider colorScheme="light">
+        <I18nProvider i18n={i18n}>
+          <MercadoPublicoV2FilterBar
+            filters={filters}
+            sort={MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC}
+            notice={null}
+            noticeId="notice"
+            onApply={jest.fn()}
+            onClear={jest.fn()}
+            onSortChange={jest.fn()}
+          />
+        </I18nProvider>
+      </ThemeProvider>,
+    );
+
+    const disclosure = screen.getByText('Quién compra');
+
+    expect(disclosure.closest('details')).not.toBeNull();
+    await user.click(disclosure);
+    disclosure.focus();
+    await user.keyboard('{Escape}');
+
+    expect(disclosure).toHaveFocus();
+    expect(disclosure.closest('details')).not.toHaveAttribute('open');
+  });
 });

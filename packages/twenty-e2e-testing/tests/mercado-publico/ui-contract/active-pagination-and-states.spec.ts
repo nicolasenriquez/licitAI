@@ -108,7 +108,7 @@ test.describe('Mercado Publico Oportunidades UI contract', () => {
 
     await page.goto(ACTIVE_PATH, { waitUntil: 'domcontentloaded' });
     await expect(
-      page.getByRole('status', { name: 'Cargando oportunidades…' }),
+      page.getByRole('status', { name: 'Cargando procesos…' }),
     ).toBeVisible();
 
     release();
@@ -133,7 +133,7 @@ test.describe('Mercado Publico Oportunidades UI contract', () => {
       waitUntil: 'domcontentloaded',
     });
     await expect(
-      page.getByText('No hay oportunidades disponibles'),
+      page.getByText('No hay procesos disponibles'),
     ).toBeVisible();
     await expect(page.locator('table')).toHaveCount(0);
 
@@ -195,7 +195,7 @@ test.describe('Mercado Publico Oportunidades UI contract', () => {
     });
     await expect(
       page.locator('#mercado-publico-v2-filter-notice'),
-    ).toContainText('No fue posible cargar las oportunidades.');
+    ).toContainText('No fue posible cargar los procesos.');
     await page.getByRole('button', { name: 'Reintentar' }).click();
     await expect(
       page.getByRole('button', {

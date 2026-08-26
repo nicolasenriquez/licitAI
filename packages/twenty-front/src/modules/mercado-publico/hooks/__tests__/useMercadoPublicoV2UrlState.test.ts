@@ -67,4 +67,23 @@ describe('Mercado Público V2 URL state', () => {
       ),
     ).toBe('?q=computadores&region=13&orden=AMOUNT_ASC');
   });
+
+  it('keeps sort and process while applying filters resets cursor', () => {
+    const current = parseMercadoPublicoV2UrlState(
+      new URLSearchParams(
+        'q=old&orden=AMOUNT_ASC&after=cursor-2&proceso=CA-2',
+      ),
+    );
+
+    const next = serializeMercadoPublicoV2Filters({
+      ...current,
+      search: 'new',
+    });
+
+    next.delete('after');
+    next.set('orden', current.sort);
+    next.set('proceso', current.proceso ?? '');
+
+    expect(next.toString()).toBe('q=new&orden=AMOUNT_ASC&proceso=CA-2');
+  });
 });
