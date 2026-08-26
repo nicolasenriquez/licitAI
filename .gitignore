@@ -55,7 +55,6 @@ mcp.json
 /.junie/
 /.agents/plugins/marketplace.json
 TRANSLATION_QA_REPORT.md
-.playwright-mcp/
 .playwright-cli/
 output/playwright/
 screenshots/

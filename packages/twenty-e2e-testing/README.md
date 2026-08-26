@@ -20,6 +20,20 @@ npx nx setup twenty-e2e-testing
 npx nx test twenty-e2e-testing
 ```
 
+### Author Playwright tests with the local CLI
+
+Use `tests/agent.seed.spec.ts` as the authenticated starting point. Open a
+debug session with `--debug=cli`, attach with the reported `tw-session`, and
+inspect the page with `snapshot`, `console`, or `requests`. Run the completed
+test normally with the Playwright test command.
+
+```powershell
+yarn --cwd packages/twenty-e2e-testing playwright test tests/agent.seed.spec.ts --project=chrome --debug=cli
+yarn --cwd packages/twenty-e2e-testing playwright cli attach <tw-session>
+yarn --cwd packages/twenty-e2e-testing playwright cli -s=<tw-session> snapshot
+yarn --cwd packages/twenty-e2e-testing playwright test tests/agent.seed.spec.ts --project=chrome
+```
+
 ### Start the interactive UI mode
 
 ```
