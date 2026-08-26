@@ -1,4 +1,21 @@
-## ADDED Requirements
+---
+type: change-spec
+title: "Spec: mercado-publico-v2-legacy-retirement"
+description: "Accepted specification for Mercado Publico V2 Legacy Retirement."
+okf_version: "0.1"
+---
+# Spec: mercado-publico-v2-legacy-retirement
+
+## Purpose
+
+Retire the legacy Mercado Publico V1, CSV, and displaced UI/GraphQL surface
+after G4 gate-close authorization. Each removal batch must prove a documented
+V2 replacement and zero active consumers while preserving V2 evidence,
+committed migrations, and the verified rollback reference. A final
+certification record links all evidence; a human approves it only after all
+automated evidence is green.
+
+## Requirements
 
 ### Requirement: Retirement requires explicit G4 authorization and candidate proof
 The system SHALL NOT remove a legacy Mercado Publico candidate until the G4
