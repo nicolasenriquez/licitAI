@@ -4,7 +4,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import bytes from 'bytes';
 import GraphQLUpload from 'graphql-upload/GraphQLUpload.mjs';
-import omit from 'lodash.omit';
 import { PermissionFlagType } from 'twenty-shared/constants';
 import { SOURCE_LOCALE } from 'twenty-shared/translations';
 import { TwoFactorAuthenticationStrategy } from 'twenty-shared/types';
@@ -162,9 +161,11 @@ export class AuthResolver {
   async getAuthorizationUrlForSSO(
     @Args('input') params: GetAuthorizationUrlForSSOInput,
   ) {
+    const { identityProviderId, ...ssoParameters } = params;
+
     return await this.ssoService.getAuthorizationUrlForSSO(
-      params.identityProviderId,
-      omit(params, ['identityProviderId']),
+      identityProviderId,
+      ssoParameters,
     );
   }
 

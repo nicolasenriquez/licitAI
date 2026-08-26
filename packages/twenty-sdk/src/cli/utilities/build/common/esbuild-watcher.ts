@@ -6,7 +6,6 @@ import { createStubTwentySdkDefinePlugin } from '@/cli/utilities/build/common/pl
 import {
   type OnBuildErrorCallback,
   type OnFileBuiltCallback,
-  type RestartableWatcher,
   type RestartableWatcherOptions,
 } from '@/cli/utilities/build/common/restartable-watcher-interface';
 import { createTypecheckPlugin } from '@/cli/utilities/build/common/typecheck-plugin';
@@ -52,7 +51,7 @@ export type EsbuildWatcherOptions = RestartableWatcherOptions & {
   config: EsbuildWatcherConfig;
 };
 
-export class EsbuildWatcher implements RestartableWatcher {
+export class EsbuildWatcher {
   private appPath: string;
   private sourcePaths: string[];
   private esBuildContext: esbuild.BuildContext | null = null;

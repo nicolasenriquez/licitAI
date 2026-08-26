@@ -1,4 +1,3 @@
-import { isNonEmptyString } from '@sniptt/guards';
 import { clsx } from 'clsx';
 import { type MouseEvent } from 'react';
 
@@ -19,7 +18,7 @@ export const RoundedLink = ({
   onClick,
   className,
 }: RoundedLinkProps) => {
-  if (!isNonEmptyString(label)) {
+  if (typeof label !== 'string' || label.length === 0) {
     return <></>;
   }
 

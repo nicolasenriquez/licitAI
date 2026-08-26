@@ -1,4 +1,3 @@
-import { isNonEmptyString, isNull, isUndefined } from '@sniptt/guards';
 import { clsx } from 'clsx';
 import { useAtom } from 'jotai';
 import { useContext } from 'react';
@@ -50,12 +49,13 @@ export const Avatar = ({
     invalidAvatarUrlsAtomV2,
   );
 
-  const avatarImageURI = isNonEmptyString(avatarUrl)
-    ? getImageAbsoluteURI({
-        imageUrl: avatarUrl,
-        baseUrl: REACT_APP_SERVER_BASE_URL,
-      })
-    : null;
+  const avatarImageURI =
+    typeof avatarUrl === 'string' && avatarUrl.length > 0
+      ? getImageAbsoluteURI({
+          imageUrl: avatarUrl,
+          baseUrl: REACT_APP_SERVER_BASE_URL,
+        })
+      : null;
 
   const placeholderFirstChar = placeholder?.trim()?.charAt(0);
   const isPlaceholderFirstCharEmpty =
@@ -63,10 +63,10 @@ export const Avatar = ({
   const placeholderChar = placeholderFirstChar?.toUpperCase() || '-';
 
   const showPlaceholder =
-    isNull(avatarImageURI) || invalidAvatarUrls.includes(avatarImageURI);
+    avatarImageURI === null || invalidAvatarUrls.includes(avatarImageURI);
 
   const handleImageError = () => {
-    if (isNonEmptyString(avatarImageURI)) {
+    if (typeof avatarImageURI === 'string' && avatarImageURI.length > 0) {
       setInvalidAvatarUrls((prev) => [...prev, avatarImageURI]);
     }
   };
@@ -122,7 +122,7 @@ export const Avatar = ({
     <div
       className={clsx(styles.root, styles[size], className)}
       data-type={type ?? undefined}
-      data-clickable={!isUndefined(onClick) ? true : undefined}
+      data-clickable={onClick !== undefined ? true : undefined}
       onClick={onClick}
       style={avatarStyle}
     >

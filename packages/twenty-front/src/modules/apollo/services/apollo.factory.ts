@@ -19,7 +19,6 @@ import { logDebug } from '~/utils/logDebug';
 import { retryWithBackoff } from '~/utils/retryWithBackoff';
 
 import { REST_API_BASE_URL } from '@/apollo/constant/rest-api-base-url';
-import { type ApolloManager } from '@/apollo/types/apolloManager.interface';
 import { getTokenPair } from '@/apollo/utils/getTokenPair';
 import { loggerLink } from '@/apollo/utils/loggerLink';
 import { StreamingRestLink } from '@/apollo/utils/streamingRestLink';
@@ -65,7 +64,7 @@ export interface Options {
   appVersion?: string;
 }
 
-export class ApolloFactory implements ApolloManager {
+export class ApolloFactory {
   private client: ApolloClient;
   private currentWorkspaceMember: CurrentWorkspaceMember | null = null;
   private currentWorkspace: CurrentWorkspace | null = null;

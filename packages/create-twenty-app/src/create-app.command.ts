@@ -3,8 +3,8 @@ import { convertToLabel } from '@/utils/convert-to-label';
 import { install } from '@/utils/install';
 import { tryGitInit } from '@/utils/try-git-init';
 import chalk from 'chalk';
-import * as fs from 'fs-extra';
 import kebabCase from 'lodash.kebabcase';
+import * as fs from 'node:fs/promises';
 import * as path from 'path';
 import { basename } from 'path';
 import { spawn } from 'node:child_process';
@@ -84,7 +84,7 @@ export class CreateAppCommand {
 
       this.logNextStep('Creating project directory');
 
-      await fs.ensureDir(appDirectory);
+      await fs.mkdir(appDirectory, { recursive: true });
 
       this.logDetail(appDirectory);
 
@@ -218,7 +218,9 @@ export class CreateAppCommand {
   }
 
   private async validateDirectory(appDirectory: string): Promise<void> {
-    if (!(await fs.pathExists(appDirectory))) {
+    try {
+      await fs.access(appDirectory);
+    } catch {
       return;
     }
 

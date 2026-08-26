@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import omit from 'lodash.omit';
 import { FIELD_RESTRICTED_ADDITIONAL_PERMISSIONS_REQUIRED } from 'twenty-shared/constants';
 import { Any, In, type Repository } from 'typeorm';
 
@@ -182,36 +181,40 @@ export class TimelineCalendarEventService {
         );
 
         const timelineCalendarEvents = orderedEvents.map((event) => {
-          const participants = event.calendarEventParticipants.map(
-            (participant) => ({
-              calendarEventId: event.id,
-              personId: participant.personId ?? null,
-              workspaceMemberId: participant.workspaceMemberId ?? null,
-              firstName:
-                participant.person?.name?.firstName ||
-                participant.workspaceMember?.name.firstName ||
-                '',
-              lastName:
-                participant.person?.name?.lastName ||
-                participant.workspaceMember?.name.lastName ||
-                '',
-              displayName:
-                participant.person?.name?.firstName ||
-                participant.person?.name?.lastName ||
-                participant.workspaceMember?.name.firstName ||
-                participant.workspaceMember?.name.lastName ||
-                participant.displayName ||
-                participant.handle ||
-                '',
-              avatarUrl:
-                participant.person?.avatarUrl ||
-                participant.workspaceMember?.avatarUrl ||
-                '',
-              handle: participant.handle ?? '',
-            }),
-          );
+          const {
+            calendarEventParticipants,
+            calendarChannelEventAssociations,
+            ...eventWithoutRelations
+          } = event;
 
-          const hasFullAccess = event.calendarChannelEventAssociations.some(
+          const participants = calendarEventParticipants.map((participant) => ({
+            calendarEventId: event.id,
+            personId: participant.personId ?? null,
+            workspaceMemberId: participant.workspaceMemberId ?? null,
+            firstName:
+              participant.person?.name?.firstName ||
+              participant.workspaceMember?.name.firstName ||
+              '',
+            lastName:
+              participant.person?.name?.lastName ||
+              participant.workspaceMember?.name.lastName ||
+              '',
+            displayName:
+              participant.person?.name?.firstName ||
+              participant.person?.name?.lastName ||
+              participant.workspaceMember?.name.firstName ||
+              participant.workspaceMember?.name.lastName ||
+              participant.displayName ||
+              participant.handle ||
+              '',
+            avatarUrl:
+              participant.person?.avatarUrl ||
+              participant.workspaceMember?.avatarUrl ||
+              '',
+            handle: participant.handle ?? '',
+          }));
+
+          const hasFullAccess = calendarChannelEventAssociations.some(
             (association) => {
               const channel = calendarChannelMap.get(
                 association.calendarChannelId,
@@ -229,10 +232,7 @@ export class TimelineCalendarEventService {
             : CalendarChannelVisibility.METADATA;
 
           return {
-            ...omit(event, [
-              'calendarEventParticipants',
-              'calendarChannelEventAssociations',
-            ]),
+            ...eventWithoutRelations,
             title:
               visibility === CalendarChannelVisibility.METADATA
                 ? FIELD_RESTRICTED_ADDITIONAL_PERMISSIONS_REQUIRED

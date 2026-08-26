@@ -1,5 +1,4 @@
 import { Tooltip } from '@base-ui/react/tooltip';
-import { isNonEmptyString } from '@sniptt/guards';
 import { clsx } from 'clsx';
 import { useEffect, useRef, useState } from 'react';
 import { isDefined } from '@ui/utilities/utils/isDefined';
@@ -110,7 +109,7 @@ export const AppTooltip = ({
   // Track anchors matching the selector, including ones added to the DOM
   // later, like react-tooltip does with its MutationObserver
   useEffect(() => {
-    if (!isNonEmptyString(anchorSelect)) {
+    if (typeof anchorSelect !== 'string' || anchorSelect.length === 0) {
       setAnchorElements([]);
       return;
     }
@@ -256,7 +255,8 @@ export const AppTooltip = ({
   };
 
   // react-tooltip's content priority: content prop wins over children
-  const renderedContent = isNonEmptyString(content) ? content : children;
+  const renderedContent =
+    typeof content === 'string' && content.length > 0 ? content : children;
 
   const isTooltipOpen =
     !hidden &&

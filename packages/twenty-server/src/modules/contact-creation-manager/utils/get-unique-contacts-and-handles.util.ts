@@ -1,4 +1,3 @@
-import uniq from 'lodash.uniq';
 import uniqBy from 'lodash.uniqby';
 
 import { type Contact } from 'src/modules/contact-creation-manager/types/contact.type';
@@ -11,9 +10,11 @@ export function getUniqueContactsAndHandles(contacts: Contact[]): {
     return { uniqueContacts: [], uniqueHandles: [] };
   }
 
-  const uniqueHandles = uniq(
-    contacts.map((participant) => participant.handle.toLocaleLowerCase()),
-  );
+  const uniqueHandles = [
+    ...new Set(
+      contacts.map((participant) => participant.handle.toLocaleLowerCase()),
+    ),
+  ];
 
   const uniqueContacts = uniqBy(contacts, (contact) =>
     contact.handle.toLocaleLowerCase(),

@@ -22,7 +22,6 @@ import { setFrontComponentExecutionContext } from './utils/setFrontComponentExec
 import { type FrontComponentHostCommunicationApi } from '../../types/FrontComponentHostCommunicationApi';
 import { type HostToWorkerRenderContext } from '../../types/HostToWorkerRenderContext';
 import { type WorkerExports } from '../../types/WorkerExports';
-import { exposeGlobals } from '../utils/exposeGlobals';
 import {
   createOpenCommandConfirmationModalAdapter,
   handleCommandConfirmationModalResult,
@@ -32,7 +31,7 @@ import { setWorkerEnv } from './utils/setWorkerEnv';
 installStylePropertyOnRemoteElements();
 patchRemoteElementSetAttribute();
 
-exposeGlobals({
+Object.assign(globalThis, {
   __HTML_TAG_TO_CUSTOM_ELEMENT_TAG__: HTML_TAG_TO_CUSTOM_ELEMENT_TAG,
 });
 

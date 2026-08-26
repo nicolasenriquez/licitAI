@@ -1,4 +1,3 @@
-import { isNumber, isString } from '@sniptt/guards';
 import { type Decorator } from '@storybook/react-vite';
 import { clsx } from 'clsx';
 import { type ComponentProps, type JSX } from 'react';
@@ -12,7 +11,7 @@ const emptyDimension = {
 } as CatalogDimension;
 
 const isStringOrNumber = (term: unknown): term is string | number =>
-  isString(term) || isNumber(term);
+  typeof term === 'string' || typeof term === 'number';
 
 export type CatalogDimension<
   ComponentType extends React.ElementType = () => JSX.Element,

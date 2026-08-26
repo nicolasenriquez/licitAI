@@ -1,16 +1,25 @@
 import { copyBaseApplicationProject } from '@/utils/app-template';
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs/promises';
 import { tmpdir } from 'os';
 import createTwentyAppPackageJson from 'package.json';
 import { join } from 'path';
 
-jest.mock('fs-extra', () => {
-  const actual = jest.requireActual('fs-extra');
+jest.mock('node:fs/promises', () => {
+  const actual = jest.requireActual('node:fs/promises');
   return {
     ...actual,
-    copy: jest.fn().mockResolvedValue(undefined),
+    cp: jest.fn().mockResolvedValue(undefined),
   };
 });
+
+const pathExists = async (filePath: string): Promise<boolean> => {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const UNIVERSAL_IDENTIFIERS_PATH = join(
   'src',
@@ -47,30 +56,31 @@ describe('copyBaseApplicationProject', () => {
       tmpdir(),
       `test-twenty-app-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
-    await fs.ensureDir(testAppDirectory);
+    await fs.mkdir(testAppDirectory, { recursive: true });
 
-    // Seed the files that generateUniversalIdentifiers and updatePackageJson
-    // expect to find (since fs.copy is mocked and won't actually create them)
-    await fs.ensureDir(join(testAppDirectory, 'src', 'constants'));
+    // Seed files that generation steps expect because fs.cp is mocked.
+    await fs.mkdir(join(testAppDirectory, 'src', 'constants'), {
+      recursive: true,
+    });
     await fs.writeFile(
       join(testAppDirectory, UNIVERSAL_IDENTIFIERS_PATH),
       TEMPLATE_UNIVERSAL_IDENTIFIERS,
     );
-    await fs.writeJson(
+    await fs.writeFile(
       join(testAppDirectory, 'package.json'),
-      TEMPLATE_PACKAGE_JSON,
+      JSON.stringify(TEMPLATE_PACKAGE_JSON),
     );
 
     jest.clearAllMocks();
   });
 
   afterEach(async () => {
-    if (testAppDirectory && (await fs.pathExists(testAppDirectory))) {
-      await fs.remove(testAppDirectory);
+    if (testAppDirectory && (await pathExists(testAppDirectory))) {
+      await fs.rm(testAppDirectory, { recursive: true, force: true });
     }
   });
 
-  it('should call fs.copy to copy base application template', async () => {
+  it('should call fs.cp to copy base application template', async () => {
     await copyBaseApplicationProject({
       appName: 'my-test-app',
       appDisplayName: 'My Test App',
@@ -78,15 +88,17 @@ describe('copyBaseApplicationProject', () => {
       appDirectory: testAppDirectory,
     });
 
-    // Two fs.copy calls: (1) the template directory, (2) AGENTS.md → CLAUDE.md
-    expect(fs.copy).toHaveBeenCalledTimes(2);
-    expect(fs.copy).toHaveBeenCalledWith(
+    // Two fs.cp calls: (1) the template directory, (2) AGENTS.md → CLAUDE.md
+    expect(fs.cp).toHaveBeenCalledTimes(2);
+    expect(fs.cp).toHaveBeenCalledWith(
       expect.stringContaining('template'),
       testAppDirectory,
+      { recursive: true },
     );
-    expect(fs.copy).toHaveBeenCalledWith(
+    expect(fs.cp).toHaveBeenCalledWith(
       join(testAppDirectory, 'AGENTS.md'),
       join(testAppDirectory, 'CLAUDE.md'),
+      { recursive: true },
     );
   });
 
@@ -144,9 +156,12 @@ describe('copyBaseApplicationProject', () => {
       appDirectory: testAppDirectory,
     });
 
-    const packageJson = await fs.readJson(
-      join(testAppDirectory, 'package.json'),
-    );
+    const packageJson = JSON.parse(
+      await fs.readFile(join(testAppDirectory, 'package.json'), 'utf8'),
+    ) as {
+      name: string;
+      devDependencies: Record<string, string>;
+    };
     expect(packageJson.name).toBe('my-test-app');
     expect(packageJson.devDependencies['twenty-sdk']).toBe(
       createTwentyAppPackageJson.version,
@@ -166,7 +181,7 @@ describe('copyBaseApplicationProject', () => {
 
     const publicDirectoryPath = join(testAppDirectory, 'public');
 
-    expect(await fs.pathExists(publicDirectoryPath)).toBe(true);
+    expect(await pathExists(publicDirectoryPath)).toBe(true);
 
     const publicDirectoryStats = await fs.stat(publicDirectoryPath);
     expect(publicDirectoryStats.isDirectory()).toBe(true);
@@ -188,12 +203,8 @@ describe('copyBaseApplicationProject', () => {
       appDirectory: testAppDirectory,
     });
 
-    expect(await fs.pathExists(join(testAppDirectory, YARNRC_PATH))).toBe(
-      false,
-    );
-    expect(await fs.pathExists(join(testAppDirectory, '.yarnrc.yml'))).toBe(
-      true,
-    );
+    expect(await pathExists(join(testAppDirectory, YARNRC_PATH))).toBe(false);
+    expect(await pathExists(join(testAppDirectory, '.yarnrc.yml'))).toBe(true);
   });
 
   it('should handle empty description', async () => {
@@ -214,14 +225,16 @@ describe('copyBaseApplicationProject', () => {
 
   it('should generate unique UUIDs across different scaffolds', async () => {
     const firstAppDir = join(testAppDirectory, 'app1');
-    await fs.ensureDir(join(firstAppDir, 'src', 'constants'));
+    await fs.mkdir(join(firstAppDir, 'src', 'constants'), {
+      recursive: true,
+    });
     await fs.writeFile(
       join(firstAppDir, UNIVERSAL_IDENTIFIERS_PATH),
       TEMPLATE_UNIVERSAL_IDENTIFIERS,
     );
-    await fs.writeJson(
+    await fs.writeFile(
       join(firstAppDir, 'package.json'),
-      TEMPLATE_PACKAGE_JSON,
+      JSON.stringify(TEMPLATE_PACKAGE_JSON),
     );
     await copyBaseApplicationProject({
       appName: 'app-one',
@@ -231,14 +244,16 @@ describe('copyBaseApplicationProject', () => {
     });
 
     const secondAppDir = join(testAppDirectory, 'app2');
-    await fs.ensureDir(join(secondAppDir, 'src', 'constants'));
+    await fs.mkdir(join(secondAppDir, 'src', 'constants'), {
+      recursive: true,
+    });
     await fs.writeFile(
       join(secondAppDir, UNIVERSAL_IDENTIFIERS_PATH),
       TEMPLATE_UNIVERSAL_IDENTIFIERS,
     );
-    await fs.writeJson(
+    await fs.writeFile(
       join(secondAppDir, 'package.json'),
-      TEMPLATE_PACKAGE_JSON,
+      JSON.stringify(TEMPLATE_PACKAGE_JSON),
     );
     await copyBaseApplicationProject({
       appName: 'app-two',

@@ -1,7 +1,6 @@
 import { type CSSProperties, type ReactNode, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { isNonEmptyString } from '@sniptt/guards';
 import { clsx } from 'clsx';
 import { LinkifiedText } from '@ui/typography/LinkifiedText/LinkifiedText';
 import { isDefined } from '@ui/utilities/utils/isDefined';
@@ -62,11 +61,12 @@ export const OverflowingTextWithTooltip = ({
     event.preventDefault();
   };
 
-  const tooltipText = isNonEmptyString(tooltipContent)
-    ? tooltipContent
-    : isNonEmptyString(text)
-      ? text
-      : null;
+  const tooltipText =
+    typeof tooltipContent === 'string' && tooltipContent.length > 0
+      ? tooltipContent
+      : typeof text === 'string' && text.length > 0
+        ? text
+        : null;
 
   return (
     <>
@@ -90,7 +90,11 @@ export const OverflowingTextWithTooltip = ({
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          {isNonEmptyString(text) ? <LinkifiedText text={text} /> : text}
+          {typeof text === 'string' && text.length > 0 ? (
+            <LinkifiedText text={text} />
+          ) : (
+            text
+          )}
         </div>
       ) : (
         <div
@@ -105,7 +109,11 @@ export const OverflowingTextWithTooltip = ({
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          {isNonEmptyString(text) ? <LinkifiedText text={text} /> : text}
+          {typeof text === 'string' && text.length > 0 ? (
+            <LinkifiedText text={text} />
+          ) : (
+            text
+          )}
         </div>
       )}
 

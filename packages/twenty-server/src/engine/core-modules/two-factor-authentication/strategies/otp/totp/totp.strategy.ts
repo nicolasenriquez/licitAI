@@ -5,7 +5,6 @@ import { TwoFactorAuthenticationStrategy } from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
 import { type ZodSafeParseResult } from 'zod';
 
-import { type OTPAuthenticationStrategyInterface } from 'src/engine/core-modules/two-factor-authentication/strategies/otp/interfaces/otp.strategy.interface';
 import { type PlaintextString } from 'src/engine/core-modules/secret-encryption/branded-strings/plaintext-string.type';
 
 import { OTPStatus } from 'src/engine/core-modules/two-factor-authentication/strategies/otp/otp.constants';
@@ -21,7 +20,7 @@ import {
 } from './constants/totp.strategy.constants';
 
 @Injectable()
-export class TotpStrategy implements OTPAuthenticationStrategyInterface {
+export class TotpStrategy {
   public readonly name = TwoFactorAuthenticationStrategy.TOTP;
 
   constructor(options?: TOTPStrategyConfig) {

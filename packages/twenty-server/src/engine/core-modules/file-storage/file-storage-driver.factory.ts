@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
+import { resolve } from 'node:path';
 
 import { type StorageDriver } from 'src/engine/core-modules/file-storage/drivers/interfaces/storage-driver.interface';
 import { StorageDriverType } from 'src/engine/core-modules/file-storage/interfaces/file-storage.interface';
@@ -12,7 +13,6 @@ import { DriverFactoryBase } from 'src/engine/core-modules/twenty-config/dynamic
 import { ConfigVariablesGroup } from 'src/engine/core-modules/twenty-config/enums/config-variables-group.enum';
 import { ConfigGroupHashService } from 'src/engine/core-modules/twenty-config/services/config-group-hash.service';
 import { TwentyConfigService } from 'src/engine/core-modules/twenty-config/twenty-config.service';
-import { resolveAbsolutePath } from 'src/utils/resolve-absolute-path';
 
 @Injectable()
 export class FileStorageDriverFactory extends DriverFactoryBase<StorageDriver> {
@@ -52,7 +52,7 @@ export class FileStorageDriverFactory extends DriverFactoryBase<StorageDriver> {
         const storagePath = this.twentyConfigService.get('STORAGE_LOCAL_PATH');
 
         rawDriver = new LocalDriver({
-          storagePath: resolveAbsolutePath(storagePath),
+          storagePath: resolve(storagePath),
         });
         break;
       }
