@@ -80,7 +80,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
     );
   });
 
-  it('offers resume for a discovery cancellation and restores the discovery stage', async () => {
+  it('rejects resume for a discovery-incomplete cancellation', async () => {
     const latestRunQuery = jest
       .fn()
       .mockResolvedValueOnce([
@@ -88,6 +88,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
           id: 'run-1',
           status: 'cancelled',
           error_stage: 'discovering',
+          discovery_complete: false,
           records_discovered: '1',
           records_hydrated: '0',
           records_failed: '0',
@@ -106,9 +107,37 @@ describe('MercadoPublicoV2SyncControlService', () => {
     await expect(
       latestRunService.getLatestRun('workspace-1'),
     ).resolves.toMatchObject({
-      canResume: true,
+      canResume: false,
     });
 
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('INSERT INTO mp.sync_command')) {
+        return Promise.resolve([{ id: 'command-1' }]);
+      }
+      return Promise.resolve([]);
+    });
+    const service = new MercadoPublicoV2SyncControlService(
+      { query, transaction: transactionUsing(query) } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+      {} as never,
+    );
+
+    await expect(
+      service.submitCommand(
+        buildInput({ action: 'resume', confirmed: undefined }),
+      ),
+    ).rejects.toThrow(ConflictException);
+
+    const resumeUpdate = query.mock.calls.find(([sql]) =>
+      sql.includes('WITH resumable_run'),
+    );
+
+    expect(resumeUpdate?.[0]).toContain('discovery_complete = true');
+    expect(resumeUpdate?.[0]).toContain("error_stage = 'hydrating'");
+  });
+
+  it('preserves item attempt checkpoints when resuming hydration', async () => {
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('INSERT INTO mp.sync_command')) {
         return Promise.resolve([{ id: 'command-1' }]);
@@ -126,29 +155,15 @@ describe('MercadoPublicoV2SyncControlService', () => {
       {} as never,
     );
 
-    await expect(
-      service.submitCommand(
-        buildInput({ action: 'resume', confirmed: undefined }),
-      ),
-    ).resolves.toMatchObject({ state: 'queued', syncRunId: 'run-1' });
-
-    const resumeUpdate = query.mock.calls.find(([sql]) =>
-      sql.includes('WITH resumable_run'),
-    );
-
-    expect(resumeUpdate?.[0]).toContain(
-      "WHEN r.error_stage = 'discovering' THEN 'discovering'",
+    await service.submitCommand(
+      buildInput({ action: 'resume', confirmed: undefined }),
     );
 
     const requeueUpdate = query.mock.calls.find(([sql]) =>
       sql.includes('UPDATE mp.sync_run_item'),
     );
 
-    expect(requeueUpdate?.[0]).toContain("status = 'pending', attempts = 0");
-    expect(requeueUpdate?.[0]).toContain(
-      "error_summary LIKE 'retryable%' OR error_summary = 'soft_miss'",
-    );
-    expect(requeueUpdate?.[1]).toContain('run-1');
+    expect(requeueUpdate?.[0]).not.toContain('attempts = 0');
   });
 
   it('rejects a malformed idempotency key before touching the database', async () => {

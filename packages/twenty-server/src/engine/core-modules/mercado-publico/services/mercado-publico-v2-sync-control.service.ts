@@ -762,10 +762,9 @@ export class MercadoPublicoV2SyncControlService {
         row.error_stage,
       ),
       canResume:
-        row.status === 'partial_failed' ||
-        (row.status === 'cancelled' &&
-          (row.error_stage === 'discovering' ||
-            row.error_stage === 'hydrating')),
+        row.discovery_complete &&
+        (row.status === 'partial_failed' ||
+          (row.status === 'cancelled' && row.error_stage === 'hydrating')),
       recordsDiscovered: Number(row.records_discovered ?? 0),
       recordsHydrated: Number(row.records_hydrated ?? 0),
       recordsFailed: Number(row.records_failed ?? 0),
@@ -793,19 +792,17 @@ export class MercadoPublicoV2SyncControlService {
           SELECT id
           FROM mp.sync_run
           WHERE control_workspace_id = $1
+            AND discovery_complete = true
             AND (
               status = 'partial_failed'
-              OR (status = 'cancelled' AND error_stage IN ('discovering', 'hydrating'))
+              OR (status = 'cancelled' AND error_stage = 'hydrating')
             )
           ORDER BY created_at DESC
           LIMIT 1
           FOR UPDATE
         )
         UPDATE mp.sync_run r
-        SET status = CASE
-              WHEN r.error_stage = 'discovering' THEN 'discovering'
-              ELSE 'hydrating'
-            END,
+        SET status = 'hydrating',
             cancellation_requested_at = NULL,
             cancellation_requested_by_user_workspace_id = NULL,
             error_stage = NULL,
@@ -828,7 +825,7 @@ export class MercadoPublicoV2SyncControlService {
     await entityManager.query(
       `
         UPDATE mp.sync_run_item
-        SET status = 'pending', attempts = 0, error_stage = NULL,
+        SET status = 'pending', error_stage = NULL,
             error_summary = NULL, updated_at = now()
         WHERE sync_run_id = $1
           AND status IN ('failed', 'deferred')

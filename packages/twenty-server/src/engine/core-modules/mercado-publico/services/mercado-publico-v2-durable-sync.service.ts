@@ -75,6 +75,7 @@ type SyncRunContext = {
   watermarkBefore: Date | null;
   status: string;
   cancellationRequestedAt: Date | null;
+  discoveryComplete: boolean;
 };
 
 type SyncRunItem = {
@@ -118,6 +119,7 @@ type SyncRunRow = {
   error_retryable: boolean | null;
   status: string;
   cancellation_requested_at: Date | null;
+  discovery_complete: boolean;
 };
 
 const getNonEmptyString = (value: unknown): string | undefined => {
@@ -422,6 +424,15 @@ export class MercadoPublicoV2DurableSyncService {
       );
     }
 
+    if (
+      (context.status === 'partial_failed' || context.status === 'cancelled') &&
+      !context.discoveryComplete
+    ) {
+      throw new Error(
+        `Mercado Publico V2 sync run ${syncRunId} has incomplete discovery and must be rediscovered`,
+      );
+    }
+
     await this.assertActiveAttempt(context);
     const jobRunRecord =
       await this.mercadoPublicoPersistenceService.createJobRun(
@@ -430,7 +441,19 @@ export class MercadoPublicoV2DurableSyncService {
 
     try {
       if (context.status === 'queued') {
-        await this.updateSyncRunStatus(syncRunId, 'discovering');
+        const claimed = await this.claimQueuedRun(syncRunId);
+
+        if (!claimed) {
+          const current = await this.loadSyncRun(syncRunId);
+
+          if (current.status === 'cancelled') {
+            return this.getCancelledRunResult(current);
+          }
+
+          throw new MercadoPublicoV2InactiveSyncAttemptError(
+            `Mercado Publico V2 sync run ${syncRunId} is no longer queued`,
+          );
+        }
         context.status = 'discovering';
         const discovery = await this.discover(context, jobRunRecord.id);
 
@@ -613,6 +636,7 @@ export class MercadoPublicoV2DurableSyncService {
       watermarkBefore,
       status: 'queued',
       cancellationRequestedAt: null,
+      discoveryComplete: false,
     };
   }
 
@@ -691,7 +715,8 @@ export class MercadoPublicoV2DurableSyncService {
     const rows = await this.coreDataSource.query<SyncRunRow[]>(
       `
         SELECT id, intent, scope, request_params, watermark_before, error_stage,
-                error_retryable, status, cancellation_requested_at
+                error_retryable, status, cancellation_requested_at,
+                discovery_complete
         FROM mp.sync_run
         WHERE id = $1
       `,
@@ -712,6 +737,7 @@ export class MercadoPublicoV2DurableSyncService {
       maxPages: getMaxPages(row.request_params.max_pages),
       watermarkBefore: getDate(row.watermark_before),
       cancellationRequestedAt: getDate(row.cancellation_requested_at),
+      discoveryComplete: row.discovery_complete,
     };
   }
 
@@ -1192,6 +1218,9 @@ export class MercadoPublicoV2DurableSyncService {
             );
           }
           await this.updateSyncRunCounters(context.syncRunId);
+          if (failure === 'retryable_failed') {
+            return 'completed';
+          }
           continue;
         }
 
@@ -1261,6 +1290,9 @@ export class MercadoPublicoV2DurableSyncService {
             );
           }
           await this.updateSyncRunCounters(context.syncRunId);
+          if (response.errorSummary === 'retryable_failed') {
+            return 'completed';
+          }
           continue;
         }
 
@@ -1583,6 +1615,27 @@ export class MercadoPublicoV2DurableSyncService {
       `,
       [syncRunId, status],
     );
+  }
+
+  private async claimQueuedRun(syncRunId: string): Promise<boolean> {
+    const rows = await this.coreDataSource.query<{ id: string }[]>(
+      `
+        UPDATE mp.sync_run
+        SET status = 'discovering',
+            error_stage = NULL,
+            error_retryable = NULL,
+            error_summary = NULL,
+            finished_at = NULL,
+            updated_at = now()
+        WHERE id = $1
+          AND status = 'queued'
+          AND cancellation_requested_at IS NULL
+        RETURNING id
+      `,
+      [syncRunId],
+    );
+
+    return rows[0] !== undefined;
   }
 
   private async hydrateOrFinish(
