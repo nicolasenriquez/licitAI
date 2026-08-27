@@ -82,8 +82,8 @@ just dev-up-build
 
 | Service | Image | Port | Health Check | Notes |
 | --- | --- | --- | --- | --- |
-| `server` | `twentycrm/twenty:mp-local` | 3000 | `/healthz` | Compiled API and frontend runtime. |
-| `worker` | `twentycrm/twenty:mp-local` | — | Compose running state | BullMQ worker using the same image. |
+| `server` | `twentycrm/twenty:latest` | 3000 | `/healthz` | Compiled API and frontend runtime. |
+| `worker` | `twentycrm/twenty:latest` | — | Compose running state | BullMQ worker using the same image. |
 | `db` | `postgres:16` | internal | `pg_isready` | Managed by the existing Compose project. |
 | `redis` | `redis:7` | internal | `redis-cli ping` | Managed by the existing Compose project. |
 
@@ -134,7 +134,7 @@ Environment variables are defined in `packages/twenty-docker/.env.example`. Secr
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `TAG` | Yes | Docker image tag used for both build and runtime (local example: `mp-local`) |
+| `TAG` | Yes | Docker image tag used for both build and runtime (local example: `latest`) |
 | `PLATFORM` | Optional | Container platform (default: `linux/amd64`) |
 | `SERVER_URL` | Yes | Public server URL (default: `http://localhost:3000`) |
 | `PG_DATABASE_USER` | Optional | PostgreSQL user (default: `postgres`) |

@@ -50,7 +50,7 @@ Run `just runtime-check` before any runtime, API, or integration diagnosis. If i
 fails, report the existing stack's state; do not silently switch to host-local
 services, `docker-compose.dev.yml`, `docker run`, or a new Compose project.
 `TAG` selects the image for both Compose build and runtime. The local example
-uses `mp-local`. `PLATFORM` defaults to `linux/amd64`.
+uses `latest`. `PLATFORM` defaults to `linux/amd64`.
 
 Build time depends on hardware and cache state. The 2026-08-22 Windows and
 Docker Desktop verification took 7 min 21 s with 36% cached after Dockerfile
