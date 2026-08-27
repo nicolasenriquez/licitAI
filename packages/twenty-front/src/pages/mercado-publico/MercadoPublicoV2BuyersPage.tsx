@@ -1,4 +1,3 @@
-import { gql } from '@apollo/client';
 import { useQuery } from '@apollo/client/react';
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
@@ -18,62 +17,12 @@ import {
   useMercadoPublicoV2UrlState,
   type MercadoPublicoV2Filters,
 } from '@/mercado-publico/hooks/useMercadoPublicoV2UrlState';
+import {
+  MercadoPublicoV2BuyersDocument,
+  type MercadoPublicoV2BuyersQuery,
+  type MercadoPublicoV2BuyersQueryVariables,
+} from '~/generated/graphql';
 
-const MERCADO_PUBLICO_V2_BUYERS_QUERY = gql`
-  query MercadoPublicoV2Buyers(
-    $filter: MercadoPublicoV2OpportunityFilterInput
-    $after: String
-    $first: Int
-  ) {
-    mercadoPublicoV2 {
-      buyers(filter: $filter, after: $after, first: $first) {
-        edges {
-          cursor
-          node {
-            buyerCode
-            buyerName
-            opportunityCount
-            buyerCoverage
-            amountCoverage
-            availability
-            completeness
-            asOf
-          }
-        }
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-      }
-    }
-  }
-`;
-
-type Buyer = {
-  buyerCode: string;
-  buyerName: string | null;
-  opportunityCount: number;
-  buyerCoverage: number;
-  amountCoverage: number;
-  availability: string;
-  completeness: string;
-  asOf: string | null;
-};
-
-type MercadoPublicoV2BuyersQuery = {
-  mercadoPublicoV2: {
-    buyers: {
-      edges: Array<{ cursor: string; node: Buyer }>;
-      pageInfo: { hasNextPage: boolean; endCursor: string | null };
-    };
-  };
-};
-
-type MercadoPublicoV2BuyersQueryVariables = {
-  filter?: MercadoPublicoV2Filters | null;
-  after?: string | null;
-  first?: number;
-};
 
 const StyledTableContainer = styled.div`
   border: 1px solid ${themeCssVariables.border.color.light};
@@ -209,7 +158,7 @@ const toDateTime = (
   value: string | null,
   endOfDay: boolean,
 ): string | undefined => {
-  if (value === null) {
+  if (value === null || value === undefined) {
     return undefined;
   }
 
@@ -233,8 +182,8 @@ const toDateTime = (
   }
 };
 
-const formatDate = (value: string | null): string => {
-  if (value === null) {
+const formatDate = (value: string | null | undefined): string => {
+  if (value === null || value === undefined) {
     return 'No informado por fuente';
   }
 
@@ -300,7 +249,7 @@ export const MercadoPublicoV2BuyersPage = () => {
   const { data, error, loading, refetch } = useQuery<
     MercadoPublicoV2BuyersQuery,
     MercadoPublicoV2BuyersQueryVariables
-  >(MERCADO_PUBLICO_V2_BUYERS_QUERY, {
+  >(MercadoPublicoV2BuyersDocument, {
     client: apolloCoreClient,
     variables: { filter: queryFilter, after: state.after, first: 50 },
   });

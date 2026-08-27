@@ -1,4 +1,3 @@
-import { gql } from '@apollo/client';
 import { useQuery } from '@apollo/client/react';
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
@@ -10,68 +9,12 @@ import { Button } from 'twenty-ui/input';
 
 import { MercadoPublicoV2Nav } from '@/mercado-publico/components/MercadoPublicoV2Nav';
 import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
+import {
+  MercadoPublicoV2HistoryDocument,
+  type MercadoPublicoV2HistoryQuery,
+  type MercadoPublicoV2HistoryQueryVariables,
+} from '~/generated/graphql';
 
-const MERCADO_PUBLICO_V2_HISTORY_QUERY = gql`
-  query MercadoPublicoV2History($codigo: String!, $after: String, $first: Int) {
-    mercadoPublicoV2 {
-      history(codigo: $codigo, after: $after, first: $first) {
-        edges {
-          cursor
-          node {
-            id
-            codigo
-            changedFields
-            previousObservationId
-            newObservationId
-            providerChangedAt
-            observedAt
-            normalizerVersion
-            providerSchemaFingerprint
-            source
-            endpoint
-            snapshotKind
-            createdAt
-          }
-        }
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-      }
-    }
-  }
-`;
-
-type HistoryEvent = {
-  id: string;
-  codigo: string;
-  changedFields: string[];
-  previousObservationId: string | null;
-  newObservationId: string | null;
-  providerChangedAt: string | null;
-  observedAt: string | null;
-  normalizerVersion: string | null;
-  providerSchemaFingerprint: string | null;
-  source: string | null;
-  endpoint: string | null;
-  snapshotKind: string | null;
-  createdAt: string;
-};
-
-type HistoryQuery = {
-  mercadoPublicoV2: {
-    history: {
-      edges: Array<{ cursor: string; node: HistoryEvent }>;
-      pageInfo: { hasNextPage: boolean; endCursor: string | null };
-    };
-  };
-};
-
-type HistoryQueryVariables = {
-  codigo: string;
-  after?: string | null;
-  first?: number;
-};
 
 const StyledPage = styled.main`
   box-sizing: border-box;
@@ -183,7 +126,7 @@ export const getMercadoPublicoV2HistoryReturnTo = (
 };
 
 const valueOrFallback = (
-  value: string | null,
+  value: string | null | undefined,
   t: ReturnType<typeof useLingui>['t'],
 ): string => value ?? t({ message: 'No disponible' });
 
@@ -199,9 +142,9 @@ export const MercadoPublicoV2HistoryPage = () => {
   const apolloCoreClient = useApolloCoreClient();
 
   const { data, error, loading, refetch } = useQuery<
-    HistoryQuery,
-    HistoryQueryVariables
-  >(MERCADO_PUBLICO_V2_HISTORY_QUERY, {
+    MercadoPublicoV2HistoryQuery,
+    MercadoPublicoV2HistoryQueryVariables
+  >(MercadoPublicoV2HistoryDocument, {
     client: apolloCoreClient,
     variables: { codigo: codigo ?? '', after, first: 50 },
     skip: codigo === null || codigo === '',

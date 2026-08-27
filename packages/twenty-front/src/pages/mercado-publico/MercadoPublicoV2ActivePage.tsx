@@ -1,4 +1,3 @@
-import { gql } from '@apollo/client';
 import { useQuery } from '@apollo/client/react';
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
@@ -43,73 +42,17 @@ import { dateLocaleState } from '~/localization/states/dateLocaleState';
 import { formatDateISOStringToRelativeDate } from '~/modules/localization/utils/formatDateISOStringToRelativeDate';
 import { logError } from '~/utils/logError';
 import { isGraphqlErrorOfType } from '~/utils/is-graphql-error-of-type.util';
+import {
+  MercadoPublicoV2ActiveOpportunitiesDocument,
+  type MercadoPublicoV2ActiveOpportunitiesQuery,
+  type MercadoPublicoV2ActiveOpportunitiesQueryVariables,
+  MercadoPublicoV2AnalyticsDocument,
+  type MercadoPublicoV2AnalyticsQuery,
+  type MercadoPublicoV2AnalyticsQueryVariables,
+} from '~/generated/graphql';
 
-const MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY = gql`
-  query MercadoPublicoV2ActiveOpportunities(
-    $filter: MercadoPublicoV2OpportunityFilterInput
-    $after: String
-    $sort: MercadoPublicoV2OpportunitySort
-  ) {
-    mercadoPublicoV2 {
-      opportunities(first: 100, filter: $filter, after: $after, sort: $sort) {
-        edges {
-          cursor
-          node {
-            codigo
-            title
-            state
-            buyerName
-            region
-            publishedAt
-            closingAt
-            amount
-            amountClp
-            currency
-            documentCount
-            llamado
-            availability
-          }
-        }
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-        totalCount
-      }
-    }
-  }
-`;
-
-const MERCADO_PUBLICO_V2_ANALYTICS_QUERY = gql`
-  query MercadoPublicoV2Analytics(
-    $filter: MercadoPublicoV2OpportunityFilterInput
-  ) {
-    mercadoPublicoV2 {
-      analytics(filter: $filter) {
-        population
-        asOf
-        freshness
-        availability
-      }
-    }
-  }
-`;
-
-type Opportunity = {
-  codigo: string;
-  title: string | null;
-  state: string | null;
-  buyerName: string | null;
-  region: number | null;
-  publishedAt: string | null;
-  closingAt: string | null;
-  amount: string | null;
-  amountClp: string | null;
-  currency: string | null;
-  documentCount: number | null;
-  llamado: number | null;
-  availability: string;
-};
+type Opportunity =
+  MercadoPublicoV2ActiveOpportunitiesQuery['mercadoPublicoV2']['opportunities']['edges'][number]['node'];
 
 type DataValueState =
   | 'known'
@@ -118,34 +61,6 @@ type DataValueState =
   | 'unavailable'
   | 'not_applicable';
 
-type MercadoPublicoV2ActiveQuery = {
-  mercadoPublicoV2: {
-    opportunities: {
-      edges: Array<{ cursor: string; node: Opportunity }>;
-      pageInfo: { hasNextPage: boolean; endCursor: string | null };
-      totalCount: number;
-    };
-  };
-};
-
-type MercadoPublicoV2ActiveQueryVariables = {
-  filter?: MercadoPublicoV2Filters | null;
-  after?: string | null;
-  sort?: MercadoPublicoV2Sort;
-};
-
-type MercadoPublicoV2Analytics = {
-  population: number;
-  asOf: string | null;
-  freshness: string;
-  availability: string;
-};
-
-type MercadoPublicoV2AnalyticsQuery = {
-  mercadoPublicoV2: {
-    analytics: MercadoPublicoV2Analytics;
-  };
-};
 
 const StyledCount = styled.span`
   color: ${themeCssVariables.font.color.secondary};
@@ -382,7 +297,7 @@ const toDateTime = (
   value: string | null,
   endOfDay: boolean,
 ): string | undefined => {
-  if (value === null) {
+  if (value === null || value === undefined) {
     return undefined;
   }
 
@@ -491,7 +406,7 @@ const DataValue = ({ value, availability, children }: DataValueProps) => {
   );
 };
 
-const formatDate = (value: string | null): string => {
+const formatDate = (value: string | null | undefined): string => {
   if (!value) return 'No informado por fuente';
 
   const date = new Date(value);
@@ -508,7 +423,7 @@ const formatDate = (value: string | null): string => {
 };
 
 type DateValueProps = {
-  value: string | null;
+  value: string | null | undefined;
   availability: string;
 };
 
@@ -537,7 +452,7 @@ const DateValue = ({ value, availability }: DateValueProps) => {
   const { t } = useLingui();
   const { localeCatalog } = useAtomValue(dateLocaleState.atom);
 
-  if (value === null) {
+  if (value === null || value === undefined) {
     return <DataValue value={value} availability={availability} />;
   }
 
@@ -601,9 +516,9 @@ export const MercadoPublicoV2ActivePage = () => {
     loading,
     refetch: refetchOpportunities,
   } = useQuery<
-    MercadoPublicoV2ActiveQuery,
-    MercadoPublicoV2ActiveQueryVariables
-  >(MERCADO_PUBLICO_V2_OPPORTUNITIES_QUERY, {
+    MercadoPublicoV2ActiveOpportunitiesQuery,
+    MercadoPublicoV2ActiveOpportunitiesQueryVariables
+  >(MercadoPublicoV2ActiveOpportunitiesDocument, {
     client: apolloCoreClient,
     variables: {
       filter: queryFilter,
@@ -613,8 +528,8 @@ export const MercadoPublicoV2ActivePage = () => {
   });
   const { data: analyticsData } = useQuery<
     MercadoPublicoV2AnalyticsQuery,
-    Pick<MercadoPublicoV2ActiveQueryVariables, 'filter'>
-  >(MERCADO_PUBLICO_V2_ANALYTICS_QUERY, {
+    MercadoPublicoV2AnalyticsQueryVariables
+  >(MercadoPublicoV2AnalyticsDocument, {
     client: apolloCoreClient,
     variables: { filter: queryFilter },
   });
@@ -957,13 +872,6 @@ export const MercadoPublicoV2ActivePage = () => {
                           ? `${node.currency} ${node.amount}`
                           : node.amount}
                       </DataValue>
-                      {node.amountClp !== null &&
-                        node.currency !== null &&
-                        node.currency !== 'CLP' && (
-                          <StyledSecondaryText>
-                            {t`≈ CLP ${node.amountClp}`}
-                          </StyledSecondaryText>
-                        )}
                     </StyledCell>
                     <StyledCell data-label={t`Documentos`}>
                       <div>
