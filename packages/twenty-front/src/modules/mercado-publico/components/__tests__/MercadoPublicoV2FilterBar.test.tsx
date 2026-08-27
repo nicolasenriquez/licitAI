@@ -180,11 +180,11 @@ describe('MercadoPublicoV2FilterBar', () => {
       </ThemeProvider>,
     );
 
-    const disclosure = screen.getByText('Quién compra');
+    const disclosure = screen.getByText('Más filtros');
+    const buyerInput = screen.getByLabelText('Filtrar por comprador o RUT');
 
-    expect(disclosure.closest('details')).not.toBeNull();
     await user.click(disclosure);
-    disclosure.focus();
+    await user.click(buyerInput);
     await user.keyboard('{Escape}');
 
     expect(disclosure).toHaveFocus();

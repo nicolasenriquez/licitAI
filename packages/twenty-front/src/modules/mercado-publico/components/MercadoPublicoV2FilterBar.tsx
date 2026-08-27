@@ -350,7 +350,15 @@ export const MercadoPublicoV2FilterBar = ({
         )}
       </StyledRow>
 
-      <StyledAdvancedFilters>
+      <StyledAdvancedFilters
+        onKeyDown={(event) => {
+          if (event.key !== 'Escape' || !event.currentTarget.open) return;
+
+          event.preventDefault();
+          event.currentTarget.open = false;
+          event.currentTarget.querySelector('summary')?.focus();
+        }}
+      >
         <summary>
           {advancedFilterCount > 0
             ? t`Más filtros (${advancedFilterCount})`
