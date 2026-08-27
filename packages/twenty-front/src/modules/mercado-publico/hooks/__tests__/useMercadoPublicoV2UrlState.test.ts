@@ -70,9 +70,7 @@ describe('Mercado Público V2 URL state', () => {
 
   it('keeps sort and process while applying filters resets cursor', () => {
     const current = parseMercadoPublicoV2UrlState(
-      new URLSearchParams(
-        'q=old&orden=AMOUNT_ASC&after=cursor-2&proceso=CA-2',
-      ),
+      new URLSearchParams('q=old&orden=AMOUNT_ASC&after=cursor-2&proceso=CA-2'),
     );
 
     const next = serializeMercadoPublicoV2Filters({
