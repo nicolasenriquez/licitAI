@@ -13,6 +13,10 @@
         "grep": "allow",
         "edit": "deny",
         "external_directory": "deny",
+        "e2e_status": "allow",
+        "e2e_run": "allow",
+        "e2e_prepare": "ask",
+        "e2e_reset": "ask",
         "bash": {
           "*": "deny",
           "yarn --cwd packages/twenty-e2e-testing playwright cli": "allow",
@@ -36,6 +40,10 @@
           "specs/**": "allow"
         },
         "external_directory": "deny",
+        "e2e_status": "allow",
+        "e2e_run": "allow",
+        "e2e_prepare": "ask",
+        "e2e_reset": "ask",
         "bash": {
           "*": "deny",
           "yarn --cwd packages/twenty-e2e-testing playwright cli": "allow",
@@ -61,6 +69,10 @@
           "packages/twenty-e2e-testing/**": "allow"
         },
         "external_directory": "deny",
+        "e2e_status": "allow",
+        "e2e_run": "allow",
+        "e2e_prepare": "ask",
+        "e2e_reset": "ask",
         "bash": {
           "*": "deny",
           "yarn --cwd packages/twenty-e2e-testing playwright cli": "allow",
@@ -86,6 +98,10 @@
           "packages/twenty-e2e-testing/**": "allow"
         },
         "external_directory": "deny",
+        "e2e_status": "allow",
+        "e2e_run": "allow",
+        "e2e_prepare": "ask",
+        "e2e_reset": "ask",
         "bash": {
           "*": "deny",
           "yarn --cwd packages/twenty-e2e-testing playwright cli": "allow",
