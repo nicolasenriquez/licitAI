@@ -1,5 +1,6 @@
 ---
 name: safe-ci-prepush
+description: Run safe local pre-push verification and apply only supported mechanical fixes.
 argument-hint: "[--no-fix]"
 disable-model-invocation: true
 ---

@@ -28,6 +28,12 @@ const isolatedChecks = {
     ['server-lint', ['npx', 'nx', 'lint:diff-with-main', 'twenty-server']],
     ['server-types', ['npx', 'nx', 'typecheck', 'twenty-server']],
   ],
+  'ci-front-lint': [
+    ['front-lint', ['npx', 'nx', 'lint:diff-with-main', 'twenty-front']],
+  ],
+  'ci-front-typecheck': [
+    ['front-types', ['npx', 'nx', 'typecheck', 'twenty-front']],
+  ],
   'ci-shared': [
     ['shared-lint', ['npx', 'nx', 'lint', 'twenty-shared']],
     ['shared-types', ['npx', 'nx', 'typecheck', 'twenty-shared']],
@@ -43,16 +49,57 @@ const isolatedChecks = {
     ['sdk-types', ['npx', 'nx', 'typecheck', 'twenty-sdk']],
     ['sdk-tests', ['npx', 'nx', 'run', 'twenty-sdk:test:unit']],
   ],
+  'ci-server-build': [
+    ['server-build', ['npx', 'nx', 'build', 'twenty-server']],
+  ],
+  'ci-front-build': [['front-build', ['npx', 'nx', 'build', 'twenty-front']]],
+  'ci-server-test': [['server-tests', ['npx', 'nx', 'test', 'twenty-server']]],
+  'ci-front-test': [['front-tests', ['npx', 'nx', 'test', 'twenty-front']]],
 };
 
 const commandText = (command, argumentsList) =>
   [command, ...argumentsList].join(' ');
 
+const commandInvocation = (command) => {
+  if (process.platform !== 'win32') {
+    return { executable: command, argumentsPrefix: [] };
+  }
+
+  if (command === 'npx') {
+    const npxCliPath = join(
+      dirname(process.execPath),
+      'node_modules',
+      'npm',
+      'bin',
+      'npx-cli.js',
+    );
+
+    if (existsSync(npxCliPath)) {
+      return {
+        executable: process.execPath,
+        argumentsPrefix: [npxCliPath],
+      };
+    }
+  }
+
+  const windowsExecutables = {
+    git: 'git.exe',
+    just: 'just.exe',
+    npx: 'npx.cmd',
+  };
+
+  return {
+    executable: windowsExecutables[command] ?? command,
+    argumentsPrefix: [],
+  };
+};
+
 const runGit = (argumentsList) => {
-  const result = spawnSync('git', argumentsList, {
+  const { executable, argumentsPrefix } = commandInvocation('git');
+  const result = spawnSync(executable, [...argumentsPrefix, ...argumentsList], {
     cwd: repositoryRoot,
     encoding: 'utf8',
-    shell: process.platform === 'win32',
+    shell: false,
   });
 
   return result.status === 0
@@ -71,28 +118,42 @@ const workingTreeSourceFiles = workingTreeFiles.filter((filePath) =>
   /\.(cjs|js|mjs|jsx|ts|tsx)$/u.test(filePath),
 );
 
-const packageSourceFiles = new Map();
+const lintSourceFilesByConfigDirectory = new Map();
 const unscopedSourceFiles = [];
 
+const findNearestOxlintConfigDirectory = (filePath) => {
+  let directory = resolve(repositoryRoot, dirname(filePath));
+
+  while (true) {
+    if (existsSync(join(directory, '.oxlintrc.json'))) {
+      return directory;
+    }
+
+    if (directory === repositoryRoot) {
+      return null;
+    }
+
+    const parentDirectory = dirname(directory);
+
+    if (parentDirectory === directory) {
+      return null;
+    }
+
+    directory = parentDirectory;
+  }
+};
+
 for (const filePath of workingTreeSourceFiles) {
-  const [scope, packageName] = filePath.split('/');
+  const configDirectory = findNearestOxlintConfigDirectory(filePath);
 
-  if (scope !== 'packages' || packageName === undefined) {
+  if (configDirectory === null) {
     unscopedSourceFiles.push(filePath);
     continue;
   }
 
-  const packageRoot = join('packages', packageName);
-  const packageConfigPath = join(repositoryRoot, packageRoot, '.oxlintrc.json');
-
-  if (!existsSync(packageConfigPath)) {
-    unscopedSourceFiles.push(filePath);
-    continue;
-  }
-
-  const files = packageSourceFiles.get(packageRoot) ?? [];
+  const files = lintSourceFilesByConfigDirectory.get(configDirectory) ?? [];
   files.push(filePath);
-  packageSourceFiles.set(packageRoot, files);
+  lintSourceFilesByConfigDirectory.set(configDirectory, files);
 }
 
 if (isDryRun) {
@@ -110,12 +171,18 @@ if (isDryRun) {
   });
 
   if (workingTreeSourceFiles.length > 0) {
-    for (const [packageRoot, filePaths] of packageSourceFiles) {
+    for (const [
+      configDirectory,
+      filePaths,
+    ] of lintSourceFilesByConfigDirectory) {
       const relativeFiles = filePaths.map((filePath) =>
-        relative(packageRoot, filePath).replaceAll('\\', '/'),
+        relative(configDirectory, resolve(repositoryRoot, filePath)).replaceAll(
+          '\\',
+          '/',
+        ),
       );
       console.log(
-        `working-tree checks: npx oxlint --type-aware -c .oxlintrc.json ${relativeFiles.join(' ')} (cwd ${packageRoot})`,
+        `working-tree checks: npx oxlint --type-aware -c .oxlintrc.json ${relativeFiles.join(' ')} (cwd ${relative(repositoryRoot, configDirectory).replaceAll('\\', '/')})`,
       );
     }
     console.log(
@@ -124,7 +191,7 @@ if (isDryRun) {
 
     if (unscopedSourceFiles.length > 0) {
       console.log(
-        `working-tree lint skipped for files without package config: ${unscopedSourceFiles.join(' ')}`,
+        `working-tree lint skipped for files without an ancestor .oxlintrc.json: ${unscopedSourceFiles.join(' ')}`,
       );
     }
   }
@@ -147,11 +214,12 @@ const runCommand = (
   sequence,
   workingDirectory = repositoryRoot,
 ) => {
-  const result = spawnSync(command, argumentsList, {
+  const { executable, argumentsPrefix } = commandInvocation(command);
+  const result = spawnSync(executable, [...argumentsPrefix, ...argumentsList], {
     cwd: workingDirectory,
     encoding: 'utf8',
     maxBuffer: 50 * 1024 * 1024,
-    shell: process.platform === 'win32',
+    shell: false,
   });
   const output = [
     result.stdout ?? '',
@@ -191,17 +259,20 @@ console.log(
 const aggregateResult = runCommand('aggregate', 'just', ['ci-prepush'], 1);
 let sequence = 2;
 
-for (const [packageRoot, filePaths] of packageSourceFiles) {
+for (const [configDirectory, filePaths] of lintSourceFilesByConfigDirectory) {
   const relativeFiles = filePaths.map((filePath) =>
-    relative(packageRoot, filePath).replaceAll('\\', '/'),
+    relative(configDirectory, resolve(repositoryRoot, filePath)).replaceAll(
+      '\\',
+      '/',
+    ),
   );
 
   runCommand(
-    `working-tree-lint-${packageRoot.replaceAll('/', '-')}`,
+    `working-tree-lint-${relative(repositoryRoot, configDirectory).replaceAll('\\', '-')}`,
     'npx',
     ['oxlint', '--type-aware', '-c', '.oxlintrc.json', ...relativeFiles],
     sequence,
-    resolve(repositoryRoot, packageRoot),
+    configDirectory,
   );
   sequence += 1;
 }
