@@ -1,28 +1,24 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import {
+  ACTIVE_PATH,
+  buildAnalytics,
+  buildOpportunity as buildBaseOpportunity,
+  getGraphqlRequestBody,
+} from '../fixtures/mercado-publico.fixture';
+
 // Issue 26: structured detail in the SidePanel. Deep link, independent child
 // pagination, explicit sanitized payload disclosure, and keyboard focus return.
 // The flag is build-time (REACT_APP_MERCADO_PUBLICO_V2_ENABLED).
 
-const ACTIVE_PATH = '/mercado-publico';
 const v2FlagOn = process.env.REACT_APP_MERCADO_PUBLICO_V2_ENABLED === 'true';
 
 const buildOpportunity = (overrides: Record<string, unknown> = {}) => ({
-  codigo: 'FIXTURE-CA-001',
-  title: 'Servicio de mantención preventiva',
-  state: 'publicada',
-  buyerName: 'Municipalidad de Ejemplo',
-  region: 13,
-  publishedAt: '2026-06-01T09:30:00.000Z',
-  closingAt: '2026-06-30T16:00:00.000Z',
-  amount: '1500000',
-  currency: 'CLP',
-  documentCount: 3,
-  llamado: 1,
-  observationId: 'observation-1',
-  normalizerVersion: 'mercado-publico-v2-durable-1',
-  providerSchemaFingerprint: 'schema-1',
-  availability: 'available',
+  ...buildBaseOpportunity({
+    amount: '1500000',
+    documentCount: 3,
+    normalizerVersion: 'mercado-publico-v2-durable-1',
+  }),
   description: 'Mantención preventiva de ascensores',
   deliveryAddress: 'Av. Central 123',
   deliveryDays: 15,
@@ -46,31 +42,6 @@ const buildOpportunity = (overrides: Record<string, unknown> = {}) => ({
     asOf: '2026-08-10T12:00:00.000Z',
   },
   ...overrides,
-});
-
-const buildAnalytics = (population: number) => ({
-  population,
-  calculatedAt: '2026-08-10T12:00:00.000Z',
-  asOf: '2026-08-10T11:00:00.000Z',
-  freshness: 'healthy',
-  completeness: 'complete',
-  availability: 'available',
-  coverage: {
-    closingAt: population,
-    state: population,
-    region: population,
-    buyer: population,
-    amount: population,
-    currency: population,
-    documentCount: population,
-    llamado: population,
-  },
-  stateBuckets: [{ key: 'publicada', count: population }],
-  regionBuckets: [{ key: '13', count: population }],
-  currencyBuckets: [{ key: 'CLP', count: population }],
-  closingDateBuckets: [{ key: '2026-08-08', count: population }],
-  documentBuckets: [{ key: 'positive', count: population }],
-  llamadoBuckets: [{ key: '1', count: population }],
 });
 
 const buildRelationPage = (
@@ -108,9 +79,12 @@ const mockGraphql = async (
   let detailRequestCount = 0;
 
   await page.route('**/metadata', async (route) => {
-    const requestBody = route.request().postDataJSON() as {
-      operationName?: string;
-    };
+    const requestBody = getGraphqlRequestBody(route.request());
+
+    if (requestBody === undefined) {
+      await route.continue();
+      return;
+    }
 
     if (requestBody.operationName === 'MercadoPublicoV2ActiveOpportunities') {
       await route.fulfill({
@@ -151,14 +125,17 @@ const mockGraphql = async (
       if (detailRequestCount <= detailFailures) {
         await route.fulfill({
           contentType: 'application/json',
-          body: JSON.stringify({ errors: [{ message: 'fixture detail failure' }] }),
+          body: JSON.stringify({
+            errors: [{ message: 'fixture detail failure' }],
+          }),
         });
 
         return;
       }
 
-      const requestedCodigo = (requestBody as { variables?: { codigo?: string } })
-        .variables?.codigo;
+      const requestedCodigo = (
+        requestBody as { variables?: { codigo?: string } }
+      ).variables?.codigo;
       const requestedOpportunity =
         opportunities.find(({ codigo }) => codigo === requestedCodigo) ??
         opportunity;
@@ -325,7 +302,9 @@ test.describe('Mercado Publico V2 SidePanel structured detail', () => {
     await expect(page.getByRole('tab')).toHaveCount(3);
     await expect(page.getByText('Información técnica')).toBeVisible();
     await expect(
-      page.getByText('Monto publicado por la fuente. La factibilidad no está evaluada.'),
+      page.getByText(
+        'Monto publicado por la fuente. La factibilidad no está evaluada.',
+      ),
     ).toBeVisible();
   });
 
@@ -403,7 +382,9 @@ test.describe('Mercado Publico V2 SidePanel structured detail', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(page.getByRole('alert')).toContainText('Detalle no disponible');
+    await expect(page.getByRole('alert')).toContainText(
+      'Detalle no disponible',
+    );
     await page.getByRole('button', { name: 'Reintentar' }).click();
     await expect(page.getByText(opportunity.title)).toBeVisible();
     await expect(page).toHaveURL(/proceso=FIXTURE-CA-001/);

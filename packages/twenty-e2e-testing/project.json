@@ -43,6 +43,11 @@
       "options": {
         "cwd": "packages/twenty-e2e-testing",
         "command": "node scripts/run-mercado-publico-e2e.mjs all"
+      },
+      "configurations": {
+        "warm": {
+          "command": "node scripts/run-mercado-publico-e2e.mjs all --prepared --keep"
+        }
       }
     },
     "test:mercado-publico:ui-contract": {
@@ -50,6 +55,11 @@
       "options": {
         "cwd": "packages/twenty-e2e-testing",
         "command": "node scripts/run-mercado-publico-e2e.mjs ui-contract"
+      },
+      "configurations": {
+        "warm": {
+          "command": "node scripts/run-mercado-publico-e2e.mjs ui-contract --prepared --keep"
+        }
       }
     },
     "test:mercado-publico:journeys": {
@@ -57,6 +67,11 @@
       "options": {
         "cwd": "packages/twenty-e2e-testing",
         "command": "node scripts/run-mercado-publico-e2e.mjs journeys"
+      },
+      "configurations": {
+        "warm": {
+          "command": "node scripts/run-mercado-publico-e2e.mjs journeys --prepared --keep"
+        }
       }
     },
     "test:mercado-publico:roles": {
@@ -64,6 +79,51 @@
       "options": {
         "cwd": "packages/twenty-e2e-testing",
         "command": "node scripts/run-mercado-publico-e2e.mjs roles"
+      },
+      "configurations": {
+        "warm": {
+          "command": "node scripts/run-mercado-publico-e2e.mjs roles --prepared --keep"
+        }
+      }
+    },
+    "test:mercado-publico:extended": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/twenty-e2e-testing",
+        "command": "node scripts/run-mercado-publico-e2e.mjs extended"
+      },
+      "configurations": {
+        "warm": {
+          "command": "node scripts/run-mercado-publico-e2e.mjs extended --prepared --keep"
+        }
+      }
+    },
+    "test:mercado-publico:prepare": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/twenty-e2e-testing",
+        "command": "node scripts/run-mercado-publico-e2e.mjs prepare"
+      }
+    },
+    "test:mercado-publico:status": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/twenty-e2e-testing",
+        "command": "node scripts/run-mercado-publico-e2e.mjs status"
+      }
+    },
+    "test:mercado-publico:reset": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/twenty-e2e-testing",
+        "command": "node scripts/run-mercado-publico-e2e.mjs reset"
+      }
+    },
+    "test:mercado-publico:clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/twenty-e2e-testing",
+        "command": "node scripts/run-mercado-publico-e2e.mjs clean"
       }
     },
     "test:mercado-publico:release-gate": {

@@ -1,15 +1,20 @@
-import type {
-  Reporter,
-  TestCase,
-  TestResult,
-} from '@playwright/test/reporter';
+import type { Reporter, TestCase, TestResult } from '@playwright/test/reporter';
 
 class LogSummaryReporter implements Reporter {
   private passed: string[] = [];
   private failed: string[] = [];
+  private authenticationDuration = 0;
+  private testDuration = 0;
 
   onTestEnd(test: TestCase, result: TestResult): void {
     const name = test.titlePath().join(' › ');
+    const projectName = test.parent.project()?.name ?? '';
+
+    if (projectName.startsWith('setup-')) {
+      this.authenticationDuration += result.duration;
+    } else {
+      this.testDuration += result.duration;
+    }
 
     if (result.status === 'passed') {
       this.passed.push(name);
@@ -32,8 +37,12 @@ class LogSummaryReporter implements Reporter {
       }
     }
 
-    const uniquePassed = this.passed.filter((testName) => !flaky.includes(testName));
-    const uniqueFailed = this.failed.filter((testName) => !flaky.includes(testName));
+    const uniquePassed = this.passed.filter(
+      (testName) => !flaky.includes(testName),
+    );
+    const uniqueFailed = this.failed.filter(
+      (testName) => !flaky.includes(testName),
+    );
 
     console.log('\n=== Playwright summary ===');
     if (uniquePassed.length) {
@@ -48,6 +57,15 @@ class LogSummaryReporter implements Reporter {
       console.log('Flaky:');
       flaky.forEach((testName) => console.log(`  ⚠️  ${testName}`));
     }
+    console.log(
+      JSON.stringify({
+        event: 'mercado-publico-playwright-timings',
+        timingsMs: {
+          authentication: this.authenticationDuration,
+          tests: this.testDuration,
+        },
+      }),
+    );
   }
 }
 

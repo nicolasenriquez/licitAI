@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import process from 'node:process';
@@ -28,16 +28,6 @@ export const mercadoPublicoReleaseGateManifest = {
   ],
 };
 
-export const visualEvidenceReviewRecord = `# Mercado Publico Visual Evidence Review
-
-- Reviewed at (UTC):
-- Reviewer:
-- Build revision:
-- Evidence path:
-- Decision: approved | rejected
-- Reason:
-`;
-
 const run = (command, cwd) => {
   const result = spawnSync(command, { cwd, shell: true, stdio: 'inherit' });
 
@@ -46,17 +36,66 @@ const run = (command, cwd) => {
   }
 };
 
-const writeVisualEvidenceRecord = () => {
-  const evidenceDirectory = resolve(
-    packageDirectory,
-    'run_results/release-gate',
-  );
-  mkdirSync(evidenceDirectory, { recursive: true });
-  writeFileSync(
-    resolve(evidenceDirectory, 'visual-evidence-review.md'),
-    visualEvidenceReviewRecord,
-    'utf8',
-  );
+const assertEvidenceFile = (evidenceDirectory, evidencePath) => {
+  if (
+    typeof evidencePath !== 'string' ||
+    evidencePath.length === 0 ||
+    !existsSync(resolve(evidenceDirectory, evidencePath))
+  ) {
+    throw new Error(`Missing release-gate evidence file: ${evidencePath}`);
+  }
+};
+
+export const validateReleaseGateEvidence = (evidenceDirectory) => {
+  const manifestPath = resolve(evidenceDirectory, 'release-gate-evidence.json');
+
+  if (!existsSync(manifestPath)) {
+    throw new Error(`Missing release-gate evidence manifest: ${manifestPath}`);
+  }
+
+  const evidence = JSON.parse(readFileSync(manifestPath, 'utf8'));
+
+  for (const key of [
+    'authenticatedParitySmoke',
+    'localHarness',
+    'rollbackDemonstration',
+  ]) {
+    const record = evidence[key];
+
+    if (record?.passed !== true) {
+      throw new Error(`Incomplete release-gate evidence: ${key}`);
+    }
+    assertEvidenceFile(evidenceDirectory, record.evidencePath);
+  }
+
+  const expectedWindows = ['2026-08-12', '2026-08-13'];
+
+  for (const date of expectedWindows) {
+    const record = evidence.publicationWindows?.find(
+      (window) => window.date === date,
+    );
+
+    if (
+      record?.complete !== true ||
+      record.requestedPageSize !== 50 ||
+      record.cohortRecorded !== true ||
+      record.checkpointRecorded !== true ||
+      record.projectionRecorded !== true ||
+      record.watermarkRecorded !== true
+    ) {
+      throw new Error(`Incomplete publication-window evidence: ${date}`);
+    }
+    assertEvidenceFile(evidenceDirectory, record.evidencePath);
+  }
+
+  if (
+    evidence.visualReview?.decision !== 'approved' ||
+    typeof evidence.visualReview.reviewer !== 'string' ||
+    evidence.visualReview.reviewer.trim() === ''
+  ) {
+    throw new Error('Human visual-evidence approval is required');
+  }
+  assertEvidenceFile(evidenceDirectory, evidence.visualReview.evidencePath);
 };
 
 if (process.argv[1] === import.meta.filename) {
@@ -67,9 +106,11 @@ if (process.argv[1] === import.meta.filename) {
         .join('\n'),
     );
   } else {
-    writeVisualEvidenceRecord();
     mercadoPublicoReleaseGateManifest.gates.forEach(({ command, cwd }) =>
       run(command, cwd),
+    );
+    validateReleaseGateEvidence(
+      resolve(packageDirectory, 'run_results/release-gate'),
     );
   }
 }

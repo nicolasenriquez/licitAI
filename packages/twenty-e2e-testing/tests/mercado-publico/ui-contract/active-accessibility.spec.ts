@@ -8,7 +8,9 @@ import {
 } from '../fixtures/mercado-publico.fixture';
 
 test.describe('Mercado Publico Procesos UI contract', () => {
-  test('passes responsive theme matrix and diagnostics', async ({ page }) => {
+  test('@extended passes responsive theme matrix and diagnostics', async ({
+    page,
+  }) => {
     const diagnostics = trackHarnessDiagnostics(page);
     await mockMercadoPublicoGraphql(page);
 
@@ -74,10 +76,6 @@ test.describe('Mercado Publico Procesos UI contract', () => {
         .include('main')
         .analyze();
       expect(accessibilityScanResults.violations).toEqual([]);
-      await page.screenshot({
-        path: `run_results/issue-24-${viewport.width}-${viewport.colorScheme}.png`,
-        fullPage: true,
-      });
     }
 
     diagnostics.assertClean();

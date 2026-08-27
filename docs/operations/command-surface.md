@@ -33,14 +33,18 @@ The repository exposes a structured command surface through Docker Compose, Nx t
 
 Mercado Publico fixture tests use only project `twenty-mp-e2e`, provisioned by
 `packages/twenty-e2e-testing/scripts/provision-mercado-publico-e2e.mjs`. The provisioner
-rejects the canonical project and an active E2E server before cleanup. Use
-`docker compose exec` for commands in an active service; do not use
-`docker compose run`, which creates a one-off container.
+owns prepare, status, and reset. It rejects the canonical project. Use `docker
+compose exec` for commands in an active service; do not use `docker compose
+run`, which creates a one-off container.
 
 Use the Nx targets `test:mercado-publico:ui-contract`,
 `test:mercado-publico:journeys`, `test:mercado-publico:roles`,
-`test:mercado-publico`, and `test:mercado-publico:release-gate`. The aggregate
-provisions once and always cleans up. The release gate runs backend proof first.
+`test:mercado-publico:extended`, `test:mercado-publico`, and
+`test:mercado-publico:release-gate`. Lifecycle targets add
+`test:mercado-publico:{prepare,status,reset,clean}`. Suite targets accept
+`--configuration=warm` after prepare. Warm runs do not build and keep the stack.
+The aggregate provisions once, invokes Playwright once, and always cleans up.
+The release gate runs backend proof first and stays fresh in CI.
 
 Run `just runtime-check` before any runtime, API, or integration diagnosis. If it
 fails, report the existing stack's state; do not silently switch to host-local

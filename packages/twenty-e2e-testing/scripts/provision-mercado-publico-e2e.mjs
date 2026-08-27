@@ -1,12 +1,6 @@
-// Baseline provisioner: disposable env + identities, no versioned secrets.
-// Usage: node scripts/provision-mercado-publico-e2e.mjs [--fixture name] [--fresh]
-//
-// This script builds the fixture frontend with process-scoped configuration.
-// It never changes frontend or E2E .env files.
-
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import process from 'node:process';
 
 import {
@@ -14,38 +8,21 @@ import {
   isolatedE2EComposeProject,
 } from './e2e-compose-preflight.mjs';
 
-const arguments_ = process.argv.slice(2);
-const fixtureOptionIndex = arguments_.indexOf('--fixture');
-const fixtureArg =
-  fixtureOptionIndex === -1 ? undefined : arguments_[fixtureOptionIndex + 1];
-const freshArg = arguments_.includes('--fresh');
-const e2eFixture = 'v2-history-and-buyers';
-const unknownArguments = arguments_.filter(
-  (argument, index) =>
-    argument !== '--fresh' &&
-    argument !== '--fixture' &&
-    index !== fixtureOptionIndex + 1,
-);
-
-if (
-  unknownArguments.length > 0 ||
-  (fixtureOptionIndex !== -1 && fixtureArg === undefined) ||
-  (fixtureArg !== undefined && fixtureArg !== e2eFixture)
-) {
-  console.error(
-    'Usage: node scripts/provision-mercado-publico-e2e.mjs [--fixture v2-history-and-buyers] [--fresh]',
-  );
-  process.exit(1);
-}
-
-// Anchor to the script location so the script works from any cwd.
-const scriptDir = import.meta.dirname;
-const repoRoot = resolve(scriptDir, '../../..');
+const E2E_FIXTURE = 'v2-history-and-buyers';
+const PG_USER = 'postgres';
+const PG_DATABASE = 'default';
+const scriptDirectory = import.meta.dirname;
+const packageDirectory = resolve(scriptDirectory, '..');
+const repositoryDirectory = resolve(scriptDirectory, '../../..');
+const composeDirectory = resolve(scriptDirectory, '../../twenty-docker');
 const frontendBuildIndex = resolve(
-  scriptDir,
+  scriptDirectory,
   '../../twenty-front/build/index.html',
 );
-const composeDir = resolve(scriptDir, '../../twenty-docker');
+const lifecycleStatePath = resolve(
+  repositoryDirectory,
+  '.cache/mercado-publico-e2e-state.json',
+);
 const composeFiles = [
   '-f',
   'docker-compose.yml',
@@ -65,79 +42,140 @@ if (composeProjectError !== undefined) {
   throw new Error(composeProjectError);
 }
 
-// ponytail: compose defaults (PG_DATABASE_USER/PG_DATABASE_NAME). If the
-// twenty-docker .env ever defines them, read them here or fail loudly.
-const PG_USER = 'postgres';
-const PG_DATABASE = 'default';
+const now = () => performance.now();
 
-const execDbSql = (sql) => {
-  const result = spawnSync(
+const createTimings = () => ({
+  database: 0,
+  image: 0,
+  server: 0,
+  frontend: 0,
+  authentication: 0,
+  tests: 0,
+  total: 0,
+});
+
+const measure = (timings, phase, callback) => {
+  const startedAt = now();
+
+  try {
+    return callback();
+  } finally {
+    timings[phase] += Math.round(now() - startedAt);
+  }
+};
+
+const runProcess = (
+  command,
+  arguments_,
+  {
+    allowFailure = false,
+    capture = false,
+    cwd = repositoryDirectory,
+    input,
+  } = {},
+) => {
+  const executable =
+    process.platform === 'win32' && command === 'yarn' ? 'yarn.cmd' : command;
+  const result = spawnSync(executable, arguments_, {
+    cwd,
+    env: process.env,
+    input,
+    encoding: capture || input !== undefined ? 'utf8' : undefined,
+    stdio: capture
+      ? 'pipe'
+      : input === undefined
+        ? 'inherit'
+        : ['pipe', 'pipe', 'pipe'],
+    shell: process.platform === 'win32' && command === 'docker',
+    maxBuffer: 50 * 1024 * 1024,
+  });
+
+  if (!allowFailure && (result.error || result.status !== 0)) {
+    throw (
+      result.error ??
+      new Error(
+        `${command} failed with ${result.status}: ${result.stderr ?? ''}`.trim(),
+      )
+    );
+  }
+
+  return result;
+};
+
+const compose = (arguments_, options = {}) =>
+  runProcess(
     'docker',
-    [
-      'compose',
-      '-p',
-      composeProject,
-      ...composeFiles,
-      'exec',
-      '--no-TTY',
-      'db',
-      'psql',
-      '-U',
-      PG_USER,
-      '-d',
-      'postgres',
-      '-tA',
-    ],
-    { cwd: composeDir, input: sql, encoding: 'utf8' },
+    ['compose', '-p', composeProject, ...composeFiles, ...arguments_],
+    { cwd: composeDirectory, ...options },
   );
 
-  if (result.error || result.status !== 0) {
-    throw result.error ?? new Error(`psql failed: ${result.stderr}`);
-  }
+const execDbSql = (sql) => {
+  const result = compose(
+    ['exec', '--no-TTY', 'db', 'psql', '-U', PG_USER, '-d', 'postgres', '-tA'],
+    { capture: true, input: sql },
+  );
 
   return result.stdout.trim();
 };
 
-const run = (args, allowFailure = false) => {
-  const result = spawnSync(
+const getGitOutput = (arguments_) =>
+  runProcess('git', arguments_, { capture: true }).stdout.trim();
+
+export const getMercadoPublicoRepositoryState = () => {
+  const revision = getGitOutput(['rev-parse', '--short=12', 'HEAD']);
+
+  if (!/^[a-f0-9]{7,40}$/i.test(revision)) {
+    throw new Error(`Unsupported Git revision for E2E lifecycle: ${revision}`);
+  }
+
+  return {
+    revision,
+    dirty:
+      getGitOutput(['status', '--porcelain', '--untracked-files=all']) !== '',
+  };
+};
+
+const getTemplateDatabase = (revision) => `mp_e2e_template_v2hb_${revision}`;
+
+const getImageName = (revision) => `twenty-mp-e2e:${revision}`;
+
+const isDockerImagePresent = (imageName) => {
+  const result = runProcess('docker', ['image', 'inspect', imageName], {
+    allowFailure: true,
+    capture: true,
+  });
+
+  return result.error === undefined && result.status === 0;
+};
+
+export const selectMercadoPublicoServerImageMode = ({ dirty, imageExists }) =>
+  !dirty && imageExists ? 'reuse' : 'build';
+
+const isComposeServiceRunning = (service) => {
+  const result = runProcess(
     'docker',
-    ['compose', '-p', composeProject, ...composeFiles, ...args],
-    { cwd: composeDir, stdio: 'inherit', shell: process.platform === 'win32' },
+    [
+      'ps',
+      '--quiet',
+      '--filter',
+      `label=com.docker.compose.project=${composeProject}`,
+      '--filter',
+      `label=com.docker.compose.service=${service}`,
+      '--filter',
+      'status=running',
+    ],
+    { allowFailure: true, capture: true, cwd: composeDirectory },
   );
 
-  if (result.error || result.status !== 0) {
-    if (allowFailure) {
-      return;
-    }
-
-    throw (
-      result.error ?? new Error(`docker compose failed with ${result.status}`)
-    );
-  }
+  return (
+    result.error === undefined &&
+    result.status === 0 &&
+    result.stdout.trim() !== ''
+  );
 };
 
 const getPublishedServerPort = () => {
-  const result = spawnSync(
-    'docker',
-    [
-      'compose',
-      '-p',
-      composeProject,
-      ...composeFiles,
-      'port',
-      'server',
-      '3000',
-    ],
-    { cwd: composeDir, encoding: 'utf8' },
-  );
-
-  if (result.error || result.status !== 0) {
-    throw (
-      result.error ??
-      new Error(`Could not read E2E server port: ${result.stderr}`)
-    );
-  }
-
+  const result = compose(['port', 'server', '3000'], { capture: true });
   const port = result.stdout.trim().match(/:(\d+)$/)?.[1];
 
   if (port === undefined) {
@@ -147,27 +185,17 @@ const getPublishedServerPort = () => {
   return port;
 };
 
-// ponytail: one retry absorbs the compose --wait "No such container"
-// recreation race; add backoff if it shows up more than once per provision.
-const runServerUp = (extraArgs = []) => {
-  const args = ['up', '--detach', ...extraArgs, '--wait', 'server'];
+const runServerUp = () => {
+  const arguments_ = ['up', '--detach', '--no-build', '--wait', 'server'];
 
-  for (let attempt = 0; ; attempt += 1) {
-    const result = spawnSync(
-      'docker',
-      ['compose', '-p', composeProject, ...composeFiles, ...args],
-      {
-        cwd: composeDir,
-        stdio: 'inherit',
-        shell: process.platform === 'win32',
-      },
-    );
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const result = compose(arguments_, { allowFailure: true });
 
     if (result.error === undefined && result.status === 0) {
       return;
     }
 
-    if (attempt >= 1) {
+    if (attempt === 1) {
       throw (
         result.error ?? new Error(`docker compose failed with ${result.status}`)
       );
@@ -175,137 +203,7 @@ const runServerUp = (extraArgs = []) => {
   }
 };
 
-const isE2EServerRunning = () => {
-  const result = spawnSync(
-    'docker',
-    [
-      'ps',
-      '--quiet',
-      '--filter',
-      `label=com.docker.compose.project=${composeProject}`,
-      '--filter',
-      'label=com.docker.compose.service=server',
-      '--filter',
-      'status=running',
-    ],
-    {
-      cwd: composeDir,
-      encoding: 'utf8',
-    },
-  );
-
-  if (result.error || result.status !== 0) {
-    throw (
-      result.error ??
-      new Error(`Could not inspect E2E server state: ${result.stderr}`)
-    );
-  }
-
-  return result.stdout.trim() !== '';
-};
-
-if (fixtureArg === e2eFixture) {
-  const gitShaResult = spawnSync('git', ['rev-parse', '--short=12', 'HEAD'], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-  });
-  const gitSha =
-    process.env.GIT_SHA ?? gitShaResult.stdout?.trim() ?? 'local-source';
-  process.env.GIT_SHA = gitSha;
-  process.env.APP_VERSION = process.env.APP_VERSION ?? '0.0.0-e2e';
-
-  const runningServerError = getE2EComposePreflightError({
-    composeProject,
-    isServerRunning: isE2EServerRunning(),
-  });
-
-  if (runningServerError !== undefined) {
-    throw new Error(runningServerError);
-  }
-
-  console.log(`Provisioning isolated Compose project ${composeProject}`);
-  console.log(`Source revision: ${gitSha}`);
-
-  run(
-    freshArg
-      ? ['down', '--volumes', '--remove-orphans']
-      : ['down', '--remove-orphans'],
-    true,
-  );
-  run(['up', '--detach', '--wait', 'db']);
-
-  const templateDb = `mp_e2e_template_v2hb_${gitSha}`;
-  const hasTemplate =
-    execDbSql(`SELECT 1 FROM pg_database WHERE datname = '${templateDb}'`) ===
-    '1';
-
-  execDbSql(`DROP DATABASE IF EXISTS ${PG_DATABASE};`);
-
-  if (hasTemplate) {
-    console.log(`Restoring baseline from template ${templateDb}`);
-    execDbSql(`CREATE DATABASE ${PG_DATABASE} TEMPLATE ${templateDb};`);
-    runServerUp(['--build']);
-  } else {
-    const staleTemplates = execDbSql(
-      "SELECT datname FROM pg_database WHERE datname LIKE 'mp_e2e_template_%'",
-    );
-    execDbSql(
-      staleTemplates
-        .split('\n')
-        .filter(Boolean)
-        .map((name) => `DROP DATABASE IF EXISTS ${name};`)
-        .join('\n'),
-    );
-    runServerUp(['--build']);
-    run([
-      'exec',
-      '--no-TTY',
-      'server',
-      'yarn',
-      'command:prod',
-      'run-instance-commands',
-      '--force',
-      '--include-slow',
-    ]);
-    run([
-      'exec',
-      '--no-TTY',
-      'server',
-      'yarn',
-      'command:prod',
-      'workspace:seed:dev',
-      '--light',
-    ]);
-    run([
-      'exec',
-      '--no-TTY',
-      'server',
-      'yarn',
-      'command:prod',
-      'mercado-publico:v2:e2e-read-model-seed',
-    ]);
-    run(['stop', 'server']);
-    execDbSql(`CREATE DATABASE ${templateDb} TEMPLATE ${PG_DATABASE};`);
-    console.log(`Captured baseline template ${templateDb}`);
-    runServerUp();
-  }
-
-  const serverPort = getPublishedServerPort();
-  const frontendBuild = spawnSync(
-    'yarn',
-    ['nx', 'build', 'twenty-front', '--skip-nx-cache'],
-    {
-      cwd: repoRoot,
-      env: process.env,
-      stdio: 'inherit',
-      shell: process.platform === 'win32',
-    },
-  );
-
-  if (frontendBuild.error || frontendBuild.status !== 0) {
-    throw frontendBuild.error ?? new Error('Frontend build failed');
-  }
-
+const configureFrontendRuntime = (serverPort) => {
   const frontendIndex = readFileSync(frontendBuildIndex, 'utf8');
   const configuredFrontendIndex = frontendIndex.replace(
     /<!-- BEGIN: Twenty Config -->[\s\S]*?<!-- END: Twenty Config -->/,
@@ -323,15 +221,343 @@ if (fixtureArg === e2eFixture) {
   }
 
   writeFileSync(frontendBuildIndex, configuredFrontendIndex, 'utf8');
-}
+};
 
-console.log('Next:');
-console.log('  npx nx run twenty-e2e-testing:test:mercado-publico');
+const readLifecycleState = () => {
+  if (!existsSync(lifecycleStatePath)) {
+    return undefined;
+  }
 
-if (fixtureArg === e2eFixture) {
-  console.log('');
-  console.log('V2 fixture:');
-  console.log(
-    '  yarn playwright test --config=playwright.mercado-publico.config.ts tests/mercado-publico/journeys --project=chrome',
+  try {
+    return JSON.parse(readFileSync(lifecycleStatePath, 'utf8'));
+  } catch {
+    return undefined;
+  }
+};
+
+const writeLifecycleState = (state) => {
+  mkdirSync(dirname(lifecycleStatePath), { recursive: true });
+  writeFileSync(
+    lifecycleStatePath,
+    `${JSON.stringify(state, null, 2)}\n`,
+    'utf8',
   );
+};
+
+const getAuthStatus = () => {
+  const stateNames = ['user', 'operator', 'analyst'];
+
+  return Object.fromEntries(
+    stateNames.map((name) => [
+      name,
+      existsSync(resolve(packageDirectory, `.auth/${name}.json`)),
+    ]),
+  );
+};
+
+export const getMercadoPublicoE2EStatus = () => {
+  const repository = getMercadoPublicoRepositoryState();
+  const state = readLifecycleState();
+  const imageName = getImageName(repository.revision);
+  const templateDatabase = getTemplateDatabase(repository.revision);
+  const databaseRunning = isComposeServiceRunning('db');
+  const serverRunning = isComposeServiceRunning('server');
+  const imageExists = isDockerImagePresent(imageName);
+  let templateExists = false;
+
+  if (databaseRunning) {
+    try {
+      templateExists =
+        execDbSql(
+          `SELECT 1 FROM pg_database WHERE datname = '${templateDatabase}'`,
+        ) === '1';
+    } catch {
+      templateExists = false;
+    }
+  }
+
+  const compatible = state?.revision === repository.revision;
+  const expectedServerUrl =
+    compatible && state?.serverPort
+      ? `http://localhost:${state.serverPort}`
+      : undefined;
+  const frontendConfigured =
+    expectedServerUrl !== undefined &&
+    existsSync(frontendBuildIndex) &&
+    readFileSync(frontendBuildIndex, 'utf8').includes(expectedServerUrl);
+  const auth = getAuthStatus();
+  const prepared =
+    compatible &&
+    imageExists &&
+    templateExists &&
+    serverRunning &&
+    frontendConfigured;
+
+  return {
+    prepared,
+    revision: {
+      current: repository.revision,
+      prepared: state?.revision ?? null,
+      compatible,
+    },
+    dirty: repository.dirty,
+    image: { name: imageName, exists: imageExists },
+    database: {
+      running: databaseRunning,
+      template: templateDatabase,
+      prepared: templateExists,
+    },
+    server: {
+      running: serverRunning,
+      port: compatible ? (state?.serverPort ?? null) : null,
+    },
+    frontend: {
+      exists: existsSync(frontendBuildIndex),
+      configured: frontendConfigured,
+    },
+    auth,
+  };
+};
+
+export const assertMercadoPublicoE2EPrepared = (status) => {
+  if (!status.prepared) {
+    throw new Error(
+      'Mercado Publico E2E is not prepared for this revision. Run "yarn nx run twenty-e2e-testing:test:mercado-publico:prepare" first.',
+    );
+  }
+};
+
+const emitTimings = (timings) => {
+  console.log(
+    JSON.stringify({
+      event: 'mercado-publico-e2e-timings',
+      timingsMs: timings,
+    }),
+  );
+};
+
+export const prepareMercadoPublicoE2E = ({ fresh = false } = {}) => {
+  const totalStartedAt = now();
+  const timings = createTimings();
+  const repository = getMercadoPublicoRepositoryState();
+  const templateDatabase = getTemplateDatabase(repository.revision);
+  const imageName = getImageName(repository.revision);
+  process.env.GIT_SHA = repository.revision;
+  process.env.APP_VERSION = process.env.APP_VERSION ?? '0.0.0-e2e';
+
+  console.log(`Preparing isolated Compose project ${composeProject}`);
+  console.log(`Source revision: ${repository.revision}`);
+
+  const imageExists = measure(timings, 'image', () =>
+    isDockerImagePresent(imageName),
+  );
+  const imageMode = selectMercadoPublicoServerImageMode({
+    dirty: repository.dirty,
+    imageExists,
+  });
+
+  measure(timings, 'database', () => {
+    compose(
+      fresh
+        ? ['down', '--volumes', '--remove-orphans']
+        : ['down', '--remove-orphans'],
+      { allowFailure: true },
+    );
+    compose(['up', '--detach', '--wait', 'db']);
+  });
+
+  const hasTemplate = measure(
+    timings,
+    'database',
+    () =>
+      execDbSql(
+        `SELECT 1 FROM pg_database WHERE datname = '${templateDatabase}'`,
+      ) === '1',
+  );
+
+  if (imageMode === 'build') {
+    console.log(
+      repository.dirty
+        ? `Checkout is dirty. Rebuilding ${imageName}.`
+        : `Image ${imageName} is missing. Building it.`,
+    );
+    measure(timings, 'image', () => compose(['build', 'server']));
+  } else {
+    console.log(`Reusing matching image ${imageName}`);
+  }
+
+  measure(timings, 'database', () => {
+    execDbSql(
+      `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${PG_DATABASE}' AND pid <> pg_backend_pid();\nDROP DATABASE IF EXISTS ${PG_DATABASE};`,
+    );
+
+    if (hasTemplate) {
+      console.log(`Restoring baseline from template ${templateDatabase}`);
+      execDbSql(`CREATE DATABASE ${PG_DATABASE} TEMPLATE ${templateDatabase};`);
+      return;
+    }
+
+    const staleTemplates = execDbSql(
+      "SELECT datname FROM pg_database WHERE datname LIKE 'mp_e2e_template_%'",
+    );
+    const dropStatements = staleTemplates
+      .split('\n')
+      .filter(Boolean)
+      .map((name) => `DROP DATABASE IF EXISTS ${name};`)
+      .join('\n');
+
+    if (dropStatements !== '') {
+      execDbSql(dropStatements);
+    }
+  });
+
+  measure(timings, 'server', runServerUp);
+
+  if (!hasTemplate) {
+    measure(timings, 'database', () => {
+      compose([
+        'exec',
+        '--no-TTY',
+        'server',
+        'yarn',
+        'command:prod',
+        'run-instance-commands',
+        '--force',
+        '--include-slow',
+      ]);
+      compose([
+        'exec',
+        '--no-TTY',
+        'server',
+        'yarn',
+        'command:prod',
+        'workspace:seed:dev',
+        '--light',
+      ]);
+      compose([
+        'exec',
+        '--no-TTY',
+        'server',
+        'yarn',
+        'command:prod',
+        'mercado-publico:v2:e2e-read-model-seed',
+      ]);
+      compose(['stop', 'server']);
+      execDbSql(`CREATE DATABASE ${templateDatabase} TEMPLATE ${PG_DATABASE};`);
+      console.log(`Captured baseline template ${templateDatabase}`);
+    });
+    measure(timings, 'server', runServerUp);
+  }
+
+  const serverPort = getPublishedServerPort();
+
+  measure(timings, 'frontend', () => {
+    runProcess('yarn', ['nx', 'build', 'twenty-front']);
+    configureFrontendRuntime(serverPort);
+  });
+
+  writeLifecycleState({
+    fixture: E2E_FIXTURE,
+    revision: repository.revision,
+    dirtyAtPrepare: repository.dirty,
+    image: imageName,
+    serverPort,
+    preparedAt: new Date().toISOString(),
+  });
+
+  timings.total = Math.round(now() - totalStartedAt);
+  emitTimings(timings);
+
+  return { status: getMercadoPublicoE2EStatus(), timings };
+};
+
+export const resetMercadoPublicoE2E = () => {
+  const totalStartedAt = now();
+  const timings = createTimings();
+  const repository = getMercadoPublicoRepositoryState();
+  const state = readLifecycleState();
+
+  if (state?.revision !== repository.revision) {
+    throw new Error(
+      `Prepared revision ${state?.revision ?? 'none'} is incompatible with current revision ${repository.revision}. Run prepare again.`,
+    );
+  }
+
+  const templateDatabase = getTemplateDatabase(repository.revision);
+  process.env.GIT_SHA = repository.revision;
+
+  measure(timings, 'database', () => {
+    compose(['up', '--detach', '--no-build', '--wait', 'db']);
+
+    if (
+      execDbSql(
+        `SELECT 1 FROM pg_database WHERE datname = '${templateDatabase}'`,
+      ) !== '1'
+    ) {
+      throw new Error(
+        `Prepared template ${templateDatabase} is missing. Run prepare again.`,
+      );
+    }
+
+    compose(['stop', 'server'], { allowFailure: true });
+    execDbSql(
+      `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${PG_DATABASE}' AND pid <> pg_backend_pid();\nDROP DATABASE IF EXISTS ${PG_DATABASE};\nCREATE DATABASE ${PG_DATABASE} TEMPLATE ${templateDatabase};`,
+    );
+  });
+  measure(timings, 'server', runServerUp);
+
+  timings.total = Math.round(now() - totalStartedAt);
+  emitTimings(timings);
+
+  return { status: getMercadoPublicoE2EStatus(), timings };
+};
+
+const parseLifecycleArguments = (arguments_) => {
+  const fixtureIndex = arguments_.indexOf('--fixture');
+  const fixture =
+    fixtureIndex === -1 ? E2E_FIXTURE : arguments_[fixtureIndex + 1];
+  const action =
+    arguments_.find(
+      (argument, index) =>
+        !argument.startsWith('--') && index !== fixtureIndex + 1,
+    ) ?? 'prepare';
+  const knownArguments = new Set([
+    'prepare',
+    'status',
+    'reset',
+    '--fresh',
+    '--fixture',
+    E2E_FIXTURE,
+  ]);
+  const unknownArguments = arguments_.filter(
+    (argument) => !knownArguments.has(argument),
+  );
+
+  if (
+    !['prepare', 'status', 'reset'].includes(action) ||
+    fixture !== E2E_FIXTURE ||
+    unknownArguments.length > 0
+  ) {
+    throw new Error(
+      'Usage: node scripts/provision-mercado-publico-e2e.mjs <prepare|status|reset> [--fresh] [--fixture v2-history-and-buyers]',
+    );
+  }
+
+  if (action !== 'prepare' && arguments_.includes('--fresh')) {
+    throw new Error('--fresh is valid only with prepare');
+  }
+
+  return { action, fresh: arguments_.includes('--fresh') };
+};
+
+if (process.argv[1] === import.meta.filename) {
+  const { action, fresh } = parseLifecycleArguments(process.argv.slice(2));
+
+  if (action === 'prepare') {
+    prepareMercadoPublicoE2E({ fresh });
+  } else if (action === 'reset') {
+    resetMercadoPublicoE2E();
+  } else {
+    console.log(JSON.stringify(getMercadoPublicoE2EStatus(), null, 2));
+  }
 }
