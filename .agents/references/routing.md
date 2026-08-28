@@ -12,7 +12,7 @@ surface's local routing/context files before substantive work.
   active change.
 - `packages/`: select the owning package through `packages/index.md` before
   entering a leaf package. Core work most often routes to `twenty-front`,
-  `twenty-server`, `twenty-shared`, `twenty-ui`, or `twenty-design-tokens`.
+  `twenty-server`, `twenty-shared`, or `twenty-ui`.
 - `.agents/`: contains the canonical cross-harness skills. The published Codex
   plugin is a separate package under `packages/twenty-codex-plugin`.
 
