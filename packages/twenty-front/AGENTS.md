@@ -48,5 +48,4 @@ When that happens, return to `../../index.md` first and reroute from there. Do n
 - Declare the routing/context files consulted before responding or editing.
 - State that the selected surface is `packages/twenty-front`.
 - Preserve the distinction between frontend app code and backend, shared-library, or infrastructure-docs work.
-- Before Mercado Público UI work, read `../../docs/design/mercado-publico-v2-ui.md` and follow its Operate-mode contract.
-
+- Before Mercado Público UI work, read `../../docs/design/patterns/mercado-publico-application.md` and follow its product-flow and UI guardrails.
