@@ -1,5 +1,3 @@
-import { isNonEmptyString } from '@sniptt/guards';
-
 import { getSafeUrl } from '@ui/utilities/utils/getSafeUrl';
 import { linkifyText } from '@ui/utilities/utils/linkifyText';
 
@@ -10,7 +8,7 @@ type LinkifiedTextProps = {
 };
 
 export const LinkifiedText = ({ text }: LinkifiedTextProps) => {
-  if (!isNonEmptyString(text)) {
+  if (text.length === 0) {
     return null;
   }
 

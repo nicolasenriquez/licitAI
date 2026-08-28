@@ -15,8 +15,8 @@ services:
       DISABLE_DB_MIGRATIONS: 'false'
       DISABLE_CRON_JOBS_REGISTRATION: 'true'
       SIGN_IN_PREFILLED: 'true'
-      MERCADO_PUBLICO_V2_E2E_FIXTURE_ENABLED: 'true'
-      MERCADO_PUBLICO_V2_E2E_FIXTURE_SCOPE: 'isolated'
+      MERCADO_PUBLICO_V2_E2E_READ_MODEL_SEED_ENABLED: 'true'
+      MERCADO_PUBLICO_V2_E2E_READ_MODEL_SEED_SCOPE: 'isolated'
     volumes:
       - mp-e2e-server-local-data:/app/packages/twenty-server/.local-storage
 

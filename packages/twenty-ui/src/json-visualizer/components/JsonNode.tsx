@@ -1,10 +1,4 @@
 import {
-  isBoolean,
-  isNonEmptyString,
-  isNumber,
-  isString,
-} from '@sniptt/guards';
-import {
   IconCheckbox,
   IconCircleOff,
   IconNumber9,
@@ -44,18 +38,18 @@ export const JsonNode = ({
     );
   }
 
-  if (isString(value)) {
+  if (typeof value === 'string') {
     return (
       <JsonValueNode
         label={label}
-        valueAsString={isNonEmptyString(value) ? value : emptyStringLabel}
+        valueAsString={value.length > 0 ? value : emptyStringLabel}
         Icon={IconTypography}
         highlighting={highlighting}
       />
     );
   }
 
-  if (isNumber(value)) {
+  if (typeof value === 'number') {
     return (
       <JsonValueNode
         label={label}
@@ -66,7 +60,7 @@ export const JsonNode = ({
     );
   }
 
-  if (isBoolean(value)) {
+  if (typeof value === 'boolean') {
     return (
       <JsonValueNode
         label={label}

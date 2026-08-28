@@ -3,6 +3,7 @@ import { coerceToNullableString } from 'src/engine/core-modules/mercado-publico/
 
 export type MercadoPublicoV2LifecycleClassification = {
   includeInCohort: boolean;
+  includeInRun: boolean;
   terminal: boolean;
   reason:
     | 'new_published'
@@ -12,6 +13,13 @@ export type MercadoPublicoV2LifecycleClassification = {
     | 'terminal_selected_with_order'
     | 'unknown_first_seen';
 };
+
+export type MercadoPublicoV2LifecycleClassificationOptions = {
+  includeHistoricalTerminal?: boolean;
+};
+
+export const isHistoricalV2CompraAgilSyncIntent = (intent: string): boolean =>
+  intent === 'backfill' || intent === 'replay';
 
 const normalizeCode = (value: unknown): string | null => {
   const normalized = coerceToNullableString(value);
@@ -98,13 +106,17 @@ const hasVerifiedPurchaseOrder = (
 export const classifyV2CompraAgilLifecycle = (
   record: MercadoPublicoApiV2CompraAgilRecord,
   knownCohort: boolean,
+  options: MercadoPublicoV2LifecycleClassificationOptions = {},
 ): MercadoPublicoV2LifecycleClassification => {
   const stateCode = getStateCode(record);
+  const includeHistoricalTerminal = options.includeHistoricalTerminal ?? false;
+  const includeTerminal = knownCohort || includeHistoricalTerminal;
 
   if (stateCode === 'cancelada') {
     return {
       includeInCohort: knownCohort,
-      terminal: knownCohort,
+      includeInRun: includeTerminal,
+      terminal: includeTerminal,
       reason: 'terminal_cancelled',
     };
   }
@@ -116,7 +128,8 @@ export const classifyV2CompraAgilLifecycle = (
   ) {
     return {
       includeInCohort: knownCohort,
-      terminal: knownCohort,
+      includeInRun: includeTerminal,
+      terminal: includeTerminal,
       reason: 'terminal_deserted_second_call',
     };
   }
@@ -127,7 +140,8 @@ export const classifyV2CompraAgilLifecycle = (
   ) {
     return {
       includeInCohort: knownCohort,
-      terminal: knownCohort,
+      includeInRun: includeTerminal,
+      terminal: includeTerminal,
       reason: 'terminal_selected_with_order',
     };
   }
@@ -135,6 +149,7 @@ export const classifyV2CompraAgilLifecycle = (
   if (knownCohort) {
     return {
       includeInCohort: true,
+      includeInRun: true,
       terminal: false,
       reason: 'known_follow_up',
     };
@@ -143,6 +158,7 @@ export const classifyV2CompraAgilLifecycle = (
   if (stateCode === 'publicada') {
     return {
       includeInCohort: true,
+      includeInRun: true,
       terminal: false,
       reason: 'new_published',
     };
@@ -150,6 +166,7 @@ export const classifyV2CompraAgilLifecycle = (
 
   return {
     includeInCohort: false,
+    includeInRun: includeHistoricalTerminal,
     terminal: false,
     reason: 'unknown_first_seen',
   };
@@ -162,7 +179,7 @@ export const getV2CompraAgilStateCode = (
 export const getV2CompraAgilStateLabel = (
   record: MercadoPublicoApiV2CompraAgilRecord,
 ): string | null => {
-  return typeof record.estado === 'object'
+  return record.estado !== null && typeof record.estado === 'object'
     ? coerceToNullableString(record.estado.glosa)
     : coerceToNullableString(record.estado);
 };

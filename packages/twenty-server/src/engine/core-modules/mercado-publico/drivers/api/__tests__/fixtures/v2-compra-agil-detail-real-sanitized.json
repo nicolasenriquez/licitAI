@@ -19,16 +19,102 @@
       },
       "entrega": { "direccion_entrega": "[string]", "plazo_entrega_dias": 1 },
       "documentos": [
-        { "id": 1, "nombre": "[string]" }, { "id": 2, "nombre": "[string]" }, { "id": 3, "nombre": "[string]" }, { "id": 4, "nombre": "[string]" }, { "id": 5, "nombre": "[string]" }, { "id": 6, "nombre": "[string]" }, { "id": 7, "nombre": "[string]" }, { "id": 8, "nombre": "[string]" }, { "id": 9, "nombre": "[string]" }, { "id": 10, "nombre": "[string]" }, { "id": 11, "nombre": "[string]" }, { "id": 12, "nombre": "[string]" }, { "id": 13, "nombre": "[string]" }, { "id": 14, "nombre": "[string]" }, { "id": 15, "nombre": "[string]" }, { "id": 16, "nombre": "[string]" }, { "id": 17, "nombre": "[string]" }, { "id": 18, "nombre": "[string]" }, { "id": 19, "nombre": "[string]" }, { "id": 20, "nombre": "[string]" }, { "id": 21, "nombre": "[string]" }, { "id": 22, "nombre": "[string]" }, { "id": 23, "nombre": "[string]" }
+        { "id": 1, "nombre": "[string]" },
+        { "id": 2, "nombre": "[string]" },
+        { "id": 3, "nombre": "[string]" },
+        { "id": 4, "nombre": "[string]" },
+        { "id": 5, "nombre": "[string]" },
+        { "id": 6, "nombre": "[string]" },
+        { "id": 7, "nombre": "[string]" },
+        { "id": 8, "nombre": "[string]" },
+        { "id": 9, "nombre": "[string]" },
+        { "id": 10, "nombre": "[string]" },
+        { "id": 11, "nombre": "[string]" },
+        { "id": 12, "nombre": "[string]" },
+        { "id": 13, "nombre": "[string]" },
+        { "id": 14, "nombre": "[string]" },
+        { "id": 15, "nombre": "[string]" },
+        { "id": 16, "nombre": "[string]" },
+        { "id": 17, "nombre": "[string]" },
+        { "id": 18, "nombre": "[string]" },
+        { "id": 19, "nombre": "[string]" },
+        { "id": 20, "nombre": "[string]" },
+        { "id": 21, "nombre": "[string]" },
+        { "id": 22, "nombre": "[string]" },
+        { "id": 23, "nombre": "[string]" }
       ],
-      "presupuesto": { "tipo_presupuesto": "[string]", "moneda": "[string]", "presupuesto_estimado": 1, "monto_disponible": 1, "monto_disponible_clp": 1, "valor_cambio_moneda": null, "fecha_cambio_moneda": null },
+      "presupuesto": {
+        "tipo_presupuesto": "[string]",
+        "moneda": "[string]",
+        "presupuesto_estimado": 1,
+        "monto_disponible": 1,
+        "monto_disponible_clp": 1,
+        "valor_cambio_moneda": null,
+        "fecha_cambio_moneda": null
+      },
       "id_orden_compra": null,
-      "institucion": { "organismo_comprador": "[string]", "rut": "[string]", "unidad_compra": "[string]", "region": 1, "nombre_region": "[string]" },
-      "productos_solicitados": [{ "codigo_producto": 1, "nombre": "[string]", "descripcion": "[string]", "cantidad": 1, "unidad_medida": "[string]" }],
-      "proveedores_cotizando": [{ "id_cotizacion": 1, "codigo_sucursal_empresa": "[string]", "codigo_empresa": "[string]", "es_emt": 1, "razon_social": "[string]", "rut_proveedor": "[string]", "descripcion": "[string]", "fecha_vigencia": "2026-01-02T03:04:05Z", "fecha_creacion": "2026-01-02T03:04:05Z", "valor_neto": 1, "total_impuesto": 1, "monto_despacho": 0, "monto_total": 1, "proveedor_seleccionado": 0, "descripcion_cotizacion": "[string]", "productos_cotizados": [{ "codigo_producto": 1, "nombre_producto": "[string]", "descripcion": "[string]", "cantidad": 1, "precio_unitario": 1, "monto_total_producto": 1 }], "estado": 1, "justificacion_inadmisibilidad": "[string]", "estado_por_comprador": null, "activo": null, "id_oc": null, "nombre_impuesto": "[string]", "porcentaje_impuesto": 1 }],
-      "resumen": { "multa_sancion": 1, "total_ofertas_recibidas": 1, "total_demandas": 0 },
+      "institucion": {
+        "organismo_comprador": "[string]",
+        "rut": "[string]",
+        "unidad_compra": "[string]",
+        "region": 1,
+        "nombre_region": "[string]"
+      },
+      "productos_solicitados": [
+        {
+          "codigo_producto": 1,
+          "nombre": "[string]",
+          "descripcion": "[string]",
+          "cantidad": 1,
+          "unidad_medida": "[string]"
+        }
+      ],
+      "proveedores_cotizando": [
+        {
+          "id_cotizacion": 1,
+          "codigo_sucursal_empresa": "[string]",
+          "codigo_empresa": "[string]",
+          "es_emt": 1,
+          "razon_social": "[string]",
+          "rut_proveedor": "[string]",
+          "descripcion": "[string]",
+          "fecha_vigencia": "2026-01-02T03:04:05Z",
+          "fecha_creacion": "2026-01-02T03:04:05Z",
+          "valor_neto": 1,
+          "total_impuesto": 1,
+          "monto_despacho": 0,
+          "monto_total": 1,
+          "proveedor_seleccionado": 0,
+          "descripcion_cotizacion": "[string]",
+          "productos_cotizados": [
+            {
+              "codigo_producto": 1,
+              "nombre_producto": "[string]",
+              "descripcion": "[string]",
+              "cantidad": 1,
+              "precio_unitario": 1,
+              "monto_total_producto": 1
+            }
+          ],
+          "estado": 1,
+          "justificacion_inadmisibilidad": "[string]",
+          "estado_por_comprador": null,
+          "activo": null,
+          "id_oc": null,
+          "nombre_impuesto": "[string]",
+          "porcentaje_impuesto": 1
+        }
+      ],
+      "resumen": {
+        "multa_sancion": 1,
+        "total_ofertas_recibidas": 1,
+        "total_demandas": 0
+      },
       "motivos": { "motivo_cancelacion": null, "motivo_desierta": "[string]" },
-      "flags": { "considera_requisitos_medioambientales": true, "considera_requisitos_impacto_social_economico": true },
+      "flags": {
+        "considera_requisitos_medioambientales": true,
+        "considera_requisitos_impacto_social_economico": true
+      },
       "region": 1,
       "fecha_publicacion": "2026-01-02T03:04:05Z",
       "fecha_cierre": "2026-01-02T03:04:05Z",
@@ -38,28 +124,66 @@
       "codigo": "CA-DETAIL-WITH-ORDER",
       "nombre": "[string]",
       "estado": "[string]",
-      "convocatoria": { "estado_convocatoria": 1, "descripcion": "[string]", "fecha_cierre_primer_llamado": "2026-01-02T03:04:05Z", "fecha_cierre_segundo_llamado": "2026-01-02T03:04:05Z" },
-      "fechas": { "fecha_publicacion": "2026-01-02T03:04:05Z", "fecha_cierre": "2026-01-02T03:04:05Z", "fecha_ultimo_cambio": "2026-01-02T03:04:05Z", "fecha_cancelacion": null },
+      "convocatoria": {
+        "estado_convocatoria": 1,
+        "descripcion": "[string]",
+        "fecha_cierre_primer_llamado": "2026-01-02T03:04:05Z",
+        "fecha_cierre_segundo_llamado": "2026-01-02T03:04:05Z"
+      },
+      "fechas": {
+        "fecha_publicacion": "2026-01-02T03:04:05Z",
+        "fecha_cierre": "2026-01-02T03:04:05Z",
+        "fecha_ultimo_cambio": "2026-01-02T03:04:05Z",
+        "fecha_cancelacion": null
+      },
       "documentos": [],
-      "presupuesto": { "moneda": "[string]", "monto_disponible": 1, "monto_disponible_clp": 1 },
+      "presupuesto": {
+        "moneda": "[string]",
+        "monto_disponible": 1,
+        "monto_disponible_clp": 1
+      },
       "id_orden_compra": 1,
-      "productos_solicitados": [{ "codigo_producto": 1 }, { "codigo_producto": 2 }],
-      "proveedores_cotizando": [{ "id_cotizacion": 1, "productos_cotizados": [{ "codigo_producto": 1 }, { "codigo_producto": 2 }], "id_oc": 1 }],
+      "productos_solicitados": [
+        { "codigo_producto": 1 },
+        { "codigo_producto": 2 }
+      ],
+      "proveedores_cotizando": [
+        {
+          "id_cotizacion": 1,
+          "productos_cotizados": [
+            { "codigo_producto": 1 },
+            { "codigo_producto": 2 }
+          ],
+          "id_oc": 1
+        }
+      ],
       "motivos": { "motivo_cancelacion": null, "motivo_desierta": null }
     },
     {
       "codigo": "CA-DETAIL-CANCELLED",
       "nombre": "[string]",
       "estado": "[string]",
-      "fechas": { "fecha_publicacion": "2026-01-02T03:04:05Z", "fecha_cierre": "2026-01-02T03:04:05Z", "fecha_ultimo_cambio": "2026-01-02T03:04:05Z", "fecha_cancelacion": "2026-01-02T03:04:05Z" },
+      "fechas": {
+        "fecha_publicacion": "2026-01-02T03:04:05Z",
+        "fecha_cierre": "2026-01-02T03:04:05Z",
+        "fecha_ultimo_cambio": "2026-01-02T03:04:05Z",
+        "fecha_cancelacion": "2026-01-02T03:04:05Z"
+      },
       "documentos": [],
       "presupuesto": { "moneda": "[string]", "monto_disponible": 1 },
       "id_orden_compra": null,
       "productos_solicitados": [{ "codigo_producto": 1 }],
       "proveedores_cotizando": [],
-      "resumen": { "multa_sancion": 1, "total_ofertas_recibidas": 0, "total_demandas": 0 },
+      "resumen": {
+        "multa_sancion": 1,
+        "total_ofertas_recibidas": 0,
+        "total_demandas": 0
+      },
       "motivos": { "motivo_cancelacion": "[string]", "motivo_desierta": null },
-      "flags": { "considera_requisitos_medioambientales": false, "considera_requisitos_impacto_social_economico": false }
+      "flags": {
+        "considera_requisitos_medioambientales": false,
+        "considera_requisitos_impacto_social_economico": false
+      }
     }
   ]
 }

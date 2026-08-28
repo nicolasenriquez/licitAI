@@ -52,5 +52,37 @@ export const getNavigationMenuItemFlatEntitySeeds = ({
       createdAt: now,
       updatedAt: now,
     },
+    // ponytail: dev-seeded workspaces only; add a workspace command when the feature ships to existing workspaces.
+    {
+      id: generateSeedId(
+        workspaceId,
+        NAVIGATION_MENU_ITEM_SEEDS.MERCADO_PUBLICO_PAGE,
+      ),
+      universalIdentifier: generateSeedId(
+        workspaceId,
+        NAVIGATION_MENU_ITEM_SEEDS.MERCADO_PUBLICO_PAGE,
+      ),
+      applicationId: flatApplication.id,
+      applicationUniversalIdentifier: flatApplication.universalIdentifier,
+      workspaceId,
+      type: NavigationMenuItemType.LINK,
+      name: 'Mercado Público',
+      icon: null,
+      color: null,
+      position: 5.5,
+      link: '/mercado-publico',
+      userWorkspaceId: null,
+      targetRecordId: null,
+      targetObjectMetadataId: null,
+      targetObjectMetadataUniversalIdentifier: null,
+      viewId: null,
+      viewUniversalIdentifier: null,
+      folderId: null,
+      folderUniversalIdentifier: null,
+      pageLayoutId: null,
+      pageLayoutUniversalIdentifier: null,
+      createdAt: now,
+      updatedAt: now,
+    },
   ];
 };

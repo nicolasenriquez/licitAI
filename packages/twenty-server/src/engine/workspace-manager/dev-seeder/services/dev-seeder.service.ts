@@ -31,6 +31,7 @@ import { seedApiKeys } from 'src/engine/workspace-manager/dev-seeder/core/utils/
 import { seedEmailingDomains } from 'src/engine/workspace-manager/dev-seeder/core/utils/seed-emailing-domains.util';
 import { seedFeatureFlags } from 'src/engine/workspace-manager/dev-seeder/core/utils/seed-feature-flags.util';
 import { seedMetadataEntities } from 'src/engine/workspace-manager/dev-seeder/core/utils/seed-metadata-entities.util';
+import { seedMercadoPublicoSyncOperators } from 'src/engine/workspace-manager/dev-seeder/core/utils/seed-mercado-publico-sync-operators.util';
 import { seedPageLayouts } from 'src/engine/workspace-manager/dev-seeder/core/utils/seed-page-layouts.util';
 import { seedServerId } from 'src/engine/workspace-manager/dev-seeder/core/utils/seed-server-id.util';
 import { seedTwoFactorAuthenticationMethods } from 'src/engine/workspace-manager/dev-seeder/core/utils/seed-two-factor-authentication-methods.util';
@@ -234,6 +235,7 @@ export class DevSeederService {
       await seedServerId({ queryRunner, schemaName });
       await seedUsers({ queryRunner, schemaName });
       await seedUserWorkspaces({ queryRunner, schemaName, workspaceId });
+      await seedMercadoPublicoSyncOperators({ queryRunner, workspaceId });
       await seedTwoFactorAuthenticationMethods({
         queryRunner,
         schemaName,

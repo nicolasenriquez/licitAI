@@ -16,7 +16,7 @@ import React, {
 } from 'react';
 import { type IconComponent, IconEye, IconEyeOff } from 'twenty-ui/icon';
 import { AutogrowWrapper } from 'twenty-ui/layout';
-import { useCombinedRefs } from '~/hooks/useCombinedRefs';
+import { combineRefs } from '~/utils/combineRefs';
 import { turnIntoEmptyStringIfWhitespacesOnly } from '~/utils/string/turnIntoEmptyStringIfWhitespacesOnly';
 import { ThemeContext, themeCssVariables } from 'twenty-ui/theme-constants';
 const StyledContainer = styled.div<Pick<TextInputComponentProps, 'fullWidth'>>`
@@ -288,7 +288,7 @@ const TextInputComponent = forwardRef<
   ) => {
     const { theme } = useContext(ThemeContext);
     const inputRef = useRef<HTMLInputElement>(null);
-    const combinedRef = useCombinedRefs(ref, inputRef);
+    const combinedRef = combineRefs(ref, inputRef);
 
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [isFocused, setIsFocused] = useState(false);

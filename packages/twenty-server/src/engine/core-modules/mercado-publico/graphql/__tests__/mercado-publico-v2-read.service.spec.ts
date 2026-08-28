@@ -18,6 +18,7 @@ const buildRow = (
   closing_at: new Date('2026-06-30T12:00:00.000Z'),
   amount: '1000',
   amount_sort_key: '1000.00',
+  amount_clp: '1000.00',
   currency_source: 'CLP',
   document_count: 1,
   llamado: null,

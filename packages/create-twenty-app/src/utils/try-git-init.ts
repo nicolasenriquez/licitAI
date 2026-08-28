@@ -1,4 +1,4 @@
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs/promises';
 import { join } from 'path';
 import { promisify } from 'util';
 import { exec } from 'child_process';

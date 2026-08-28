@@ -1,4 +1,11 @@
-import { BadRequestException } from '@nestjs/common';
+import { MercadoPublicoV2ErrorCode } from 'twenty-shared/constants';
+import { UserInputError } from 'src/engine/core-modules/graphql/utils/graphql-errors.util';
+
+const invalidFilter = (message: string): UserInputError =>
+  new UserInputError(message, {
+    subCode: MercadoPublicoV2ErrorCode.INVALID_FILTER,
+    isExpected: true,
+  });
 
 export type MercadoPublicoV2OpportunityFilter = {
   search?: string;
@@ -23,7 +30,7 @@ export const validateMercadoPublicoV2FilterRanges = (
     const value = filter[field];
 
     if (value !== undefined && Number.isNaN(value.getTime())) {
-      throw new BadRequestException(
+      throw invalidFilter(
         `Mercado Publico V2 filter: ${field} must be a valid date`,
       );
     }
@@ -34,7 +41,7 @@ export const validateMercadoPublicoV2FilterRanges = (
     filter.closingAtTo !== undefined &&
     filter.closingAtFrom > filter.closingAtTo
   ) {
-    throw new BadRequestException(
+    throw invalidFilter(
       'Mercado Publico V2 filter: closingAtFrom must not be after closingAtTo',
     );
   }
@@ -43,7 +50,7 @@ export const validateMercadoPublicoV2FilterRanges = (
     const value = filter[field];
 
     if (value !== undefined && value < 0) {
-      throw new BadRequestException(
+      throw invalidFilter(
         `Mercado Publico V2 filter: ${field} must not be negative`,
       );
     }
@@ -54,7 +61,7 @@ export const validateMercadoPublicoV2FilterRanges = (
     filter.documentCountMax !== undefined &&
     filter.documentCountMin > filter.documentCountMax
   ) {
-    throw new BadRequestException(
+    throw invalidFilter(
       'Mercado Publico V2 filter: documentCountMin must not exceed documentCountMax',
     );
   }
@@ -66,7 +73,7 @@ export const validateMercadoPublicoV2FilterRanges = (
       value !== undefined &&
       (!Number.isFinite(Number(value)) || Number(value) < 0)
     ) {
-      throw new BadRequestException(
+      throw invalidFilter(
         `Mercado Publico V2 filter: ${field} must be a decimal string`,
       );
     }
@@ -77,13 +84,13 @@ export const validateMercadoPublicoV2FilterRanges = (
     filter.amountMax !== undefined &&
     Number(filter.amountMin) > Number(filter.amountMax)
   ) {
-    throw new BadRequestException(
+    throw invalidFilter(
       'Mercado Publico V2 filter: amountMin must not exceed amountMax',
     );
   }
 
   if (filter.llamado !== undefined && filter.llamado < 0) {
-    throw new BadRequestException(
+    throw invalidFilter(
       'Mercado Publico V2 filter: llamado must not be negative',
     );
   }
@@ -93,7 +100,7 @@ export const validateMercadoPublicoV2FilterRanges = (
     filter.cohortStatus !== 'active' &&
     filter.cohortStatus !== 'terminal'
   ) {
-    throw new BadRequestException(
+    throw invalidFilter(
       'Mercado Publico V2 filter: cohortStatus must be "active" or "terminal"',
     );
   }

@@ -1,6 +1,9 @@
 .git
 .env
 **/node_modules
+**/coverage
+**/*.log
+packages/twenty-front/build
 .nx/cache
 packages/twenty-server/.env
 graphify-out/

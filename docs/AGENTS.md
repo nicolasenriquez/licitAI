@@ -2,6 +2,7 @@
 type: agent-contract
 title: Docs Surface Contract
 description: Routing contract for durable repository documentation work.
+okf_version: "0.1"
 ---
 
 # Docs Surface Contract

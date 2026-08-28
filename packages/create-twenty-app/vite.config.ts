@@ -1,4 +1,4 @@
-import fs from 'fs-extra';
+import { cp } from 'node:fs/promises';
 import path from 'path';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
@@ -40,9 +40,10 @@ const copyAssetPlugin = (targets: { src: string; dest: string }[]) => {
     name: 'copy-assets',
     closeBundle: async () => {
       for (const target of targets) {
-        await fs.copy(
+        await cp(
           path.resolve(__dirname, target.src),
           path.resolve(__dirname, target.dest),
+          { recursive: true },
         );
       }
     },

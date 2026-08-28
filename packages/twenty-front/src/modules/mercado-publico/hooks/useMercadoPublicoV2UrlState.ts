@@ -1,23 +1,19 @@
 import { useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
-export type MercadoPublicoV2Sort =
-  | 'closing_at_desc'
-  | 'closing_at_asc'
-  | 'published_at_desc'
-  | 'published_at_asc'
-  | 'amount_desc'
-  | 'amount_asc';
+import { MercadoPublicoV2OpportunitySort } from '~/generated/graphql';
+
+export type MercadoPublicoV2Sort = MercadoPublicoV2OpportunitySort;
 
 export type MercadoPublicoV2CohortStatus = 'active' | 'terminal';
 
 const MERCADO_PUBLICO_V2_SORT_VALUES: MercadoPublicoV2Sort[] = [
-  'closing_at_desc',
-  'closing_at_asc',
-  'published_at_desc',
-  'published_at_asc',
-  'amount_desc',
-  'amount_asc',
+  MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC,
+  MercadoPublicoV2OpportunitySort.CLOSING_AT_ASC,
+  MercadoPublicoV2OpportunitySort.PUBLISHED_AT_DESC,
+  MercadoPublicoV2OpportunitySort.PUBLISHED_AT_ASC,
+  MercadoPublicoV2OpportunitySort.AMOUNT_DESC,
+  MercadoPublicoV2OpportunitySort.AMOUNT_ASC,
 ];
 
 export type MercadoPublicoV2Filters = {
@@ -85,7 +81,7 @@ const parseSort = (value: string | null): MercadoPublicoV2Sort =>
   value !== null &&
   MERCADO_PUBLICO_V2_SORT_VALUES.includes(value as MercadoPublicoV2Sort)
     ? (value as MercadoPublicoV2Sort)
-    : 'closing_at_desc';
+    : MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC;
 
 const toSearchParams = (params: URLSearchParams): URLSearchParams =>
   new URLSearchParams(params);
@@ -127,6 +123,13 @@ const FILTER_PARAM_KEYS = [
   'moneda',
 ] as const;
 
+export const MERCADO_PUBLICO_CURSOR_HISTORY_KEY =
+  'mercadoPublicoPreviousCursors';
+
+export type MercadoPublicoNavigationState = Record<string, unknown> & {
+  [MERCADO_PUBLICO_CURSOR_HISTORY_KEY]?: Array<string | null>;
+};
+
 export const serializeMercadoPublicoV2Filters = (
   filters: Partial<MercadoPublicoV2Filters>,
 ): URLSearchParams => {
@@ -160,8 +163,27 @@ export const serializeMercadoPublicoV2Filters = (
   return params;
 };
 
+export const getMercadoPublicoV2SectionSearch = (search: string): string => {
+  const current = new URLSearchParams(search);
+  const params = new URLSearchParams();
+
+  for (const key of [...FILTER_PARAM_KEYS, 'orden']) {
+    const value = current.get(key);
+
+    if (value !== null) {
+      params.set(key, value);
+    }
+  }
+
+  const next = params.toString();
+
+  return next === '' ? '' : `?${next}`;
+};
+
 export const useMercadoPublicoV2UrlState = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const state = useMemo(
     () => parseMercadoPublicoV2UrlState(searchParams),
     [searchParams],
@@ -185,7 +207,10 @@ export const useMercadoPublicoV2UrlState = () => {
       next.set('orden', state.sort);
     }
 
-    setSearchParams(next);
+    navigate(
+      { search: next.toString() },
+      { state: withoutCursorHistory(location.state) },
+    );
   };
 
   const clearFilters = (): void => {
@@ -196,7 +221,10 @@ export const useMercadoPublicoV2UrlState = () => {
     }
 
     next.delete('after');
-    setSearchParams(next);
+    navigate(
+      { search: next.toString() },
+      { state: withoutCursorHistory(location.state) },
+    );
   };
 
   const setSort = (sort: MercadoPublicoV2Sort): void => {
@@ -204,10 +232,16 @@ export const useMercadoPublicoV2UrlState = () => {
 
     next.set('orden', sort);
     next.delete('after');
-    setSearchParams(next);
+    navigate(
+      { search: next.toString() },
+      { state: withoutCursorHistory(location.state) },
+    );
   };
 
-  const setAfter = (after: string | null): void => {
+  const setAfter = (
+    after: string | null,
+    previousCursors?: Array<string | null>,
+  ): void => {
     const next = toSearchParams(searchParams);
 
     if (after === null) {
@@ -216,8 +250,26 @@ export const useMercadoPublicoV2UrlState = () => {
       next.set('after', after);
     }
 
-    setSearchParams(next);
+    navigate(
+      { search: next.toString() },
+      {
+        state: {
+          ...(location.state ?? {}),
+          [MERCADO_PUBLICO_CURSOR_HISTORY_KEY]: previousCursors ?? [],
+        },
+      },
+    );
   };
+
+  const previousCursors = Array.isArray(
+    (location.state as MercadoPublicoNavigationState | null)?.[
+      MERCADO_PUBLICO_CURSOR_HISTORY_KEY
+    ],
+  )
+    ? ((location.state as MercadoPublicoNavigationState)[
+        MERCADO_PUBLICO_CURSOR_HISTORY_KEY
+      ] ?? [])
+    : [];
 
   return {
     state,
@@ -225,5 +277,14 @@ export const useMercadoPublicoV2UrlState = () => {
     clearFilters,
     setSort,
     setAfter,
+    previousCursors,
   };
+};
+
+const withoutCursorHistory = (
+  state: unknown,
+): MercadoPublicoNavigationState => {
+  const next = { ...((state as Record<string, unknown> | null) ?? {}) };
+  delete next[MERCADO_PUBLICO_CURSOR_HISTORY_KEY];
+  return next;
 };

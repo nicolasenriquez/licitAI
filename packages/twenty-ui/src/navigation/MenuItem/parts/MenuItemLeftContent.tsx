@@ -1,4 +1,3 @@
-import { isNonEmptyString, isString } from '@sniptt/guards';
 import { type ReactNode, useContext } from 'react';
 
 import { type IconComponent, IconGripVertical } from '@ui/icon';
@@ -93,7 +92,7 @@ export const MenuItemLeftContent = ({
       )}
       {LeftComponent}
       <StyledMenuItemLabel>
-        {isString(text) ? (
+        {typeof text === 'string' ? (
           <div className={styles.mainText}>
             <OverflowingTextWithTooltip text={text} />
           </div>
@@ -102,8 +101,8 @@ export const MenuItemLeftContent = ({
         )}
         {contextualTextPosition === 'left' && (
           <>
-            {isString(contextualText)
-              ? isNonEmptyString(contextualText) && (
+            {typeof contextualText === 'string'
+              ? contextualText.length > 0 && (
                   <StyledMenuItemContextualText>
                     <OverflowingTextWithTooltip
                       text={`· ${contextualText}`}
@@ -118,7 +117,7 @@ export const MenuItemLeftContent = ({
       {contextualTextPosition === 'right' && (
         <div className={styles.menuItemLabelRight}>
           <StyledRightMenuItemContextualText>
-            {isString(contextualText) ? (
+            {typeof contextualText === 'string' ? (
               <OverflowingTextWithTooltip text={contextualText} />
             ) : (
               contextualText

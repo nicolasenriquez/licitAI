@@ -38,6 +38,7 @@ jobs:
           yq eval '.services.server.build.context = "../../"' -i docker-compose.yml
           yq eval '.services.server.build.dockerfile = "./packages/twenty-docker/twenty/Dockerfile"' -i docker-compose.yml
           yq eval '.services.server.build.target = "twenty"' -i docker-compose.yml
+          yq eval 'del(.services.worker.image) | .services.worker.build = .services.server.build' -i docker-compose.yml
           yq eval '.services.server.restart = "no"' -i docker-compose.yml
 
           echo "Setting up .env file..."

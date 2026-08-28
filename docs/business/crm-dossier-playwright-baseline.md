@@ -2,6 +2,7 @@
 type: qa-baseline
 title: CRM Dossier Playwright Baseline
 description: Read-only end-to-end baseline for the seeded CRM demonstration workspace.
+okf_version: "0.1"
 ---
 
 # CRM Dossier Playwright Baseline
@@ -50,11 +51,11 @@ and Notes:
 4. Open the first record and confirm the expected populated detail labels.
 5. Close the panel with the button, then open it again and close it with Escape.
 6. Scroll the table and confirm that its scroll position changes.
-7. Capture the open detail panel and the scrolled table.
+7. If the test fails, retain the Playwright screenshot and trace for diagnosis.
 
 For each dashboard, the test opens the Dashboards object, selects the named
 dashboard, confirms the full record URL, a named widget, and the `Edit
-Dashboard` action, then captures the page.
+Dashboard` action.
 
 The test does not click create, edit, delete, favourite, filter, sort, or
 options actions. Those actions can change local state. Test them in a separate
@@ -69,9 +70,10 @@ yarn playwright test tests/crm-dossier-baseline.spec.ts --project=chrome
 ```
 
 The login setup runs first and stores local browser state in the ignored
-`.auth/user.json` file. Screenshots are attached to each test result under
-`run_results/`. They are runtime evidence and are not committed. They are not
-pixel-comparison baselines because the seed data, dates, and charts can vary.
+`.auth/user.json` file. The Playwright configuration retains a screenshot and
+trace only when a test fails. These runtime artifacts are not committed and
+are not pixel-comparison baselines because seed data, dates, and charts can
+vary.
 
 ## UI audit flow
 

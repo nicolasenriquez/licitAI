@@ -3,7 +3,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 
-import { DataSource } from 'typeorm';
+import { DataSource, type EntityManager } from 'typeorm';
 
 import {
   MercadoPublicoApiV2CompraAgilClientService,
@@ -14,13 +14,19 @@ import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers
 import {
   type MercadoPublicoV2LifecycleClassification,
   classifyV2CompraAgilLifecycle,
-  getV2CompraAgilProviderOrderId,
+  isHistoricalV2CompraAgilSyncIntent,
 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
 import { createJsonSha256 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/create-json-sha256.util';
 import { extractV2CompraAgilListRecords } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
 import { extractV2CompraAgilPagination } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-pagination.util';
+import { getNextQuotaResetAt } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/get-next-quota-reset-at.util';
+import {
+  getHttpFailureStatus,
+  getTransportFailureCode,
+} from 'src/engine/core-modules/mercado-publico/drivers/api/utils/get-transport-failure-metadata.util';
 import { normalizeV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/normalize-v2-compra-agil-record.util';
 import {
+  MERCADO_PUBLICO_API_V2_COMPRA_AGIL_DETAIL_BY_CODIGO_ENDPOINT,
   MERCADO_PUBLICO_API_V2_COMPRA_AGIL_LIST_ENDPOINT,
   MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
   type MercadoPublicoJobName,
@@ -33,8 +39,10 @@ import { type CompraAgilListParams } from 'src/engine/core-modules/mercado-publi
 
 const WATERMARK_OVERLAP_MS = 5 * 60 * 1000;
 const DEFAULT_PAGE_SIZE = 50;
-const DEFAULT_MAX_PAGES = 50;
+const MAX_BOUNDED_PAGES = 50;
 const HYDRATION_BATCH_SIZE = 100;
+
+export class MercadoPublicoV2InactiveSyncAttemptError extends Error {}
 
 export type MercadoPublicoV2SyncIntent =
   | 'scheduled'
@@ -42,7 +50,8 @@ export type MercadoPublicoV2SyncIntent =
   | 'replay'
   | 'backfill'
   | 'reconcile'
-  | 'fixture';
+  | 'fixture'
+  | 'recovery';
 
 export type MercadoPublicoV2DurableSyncResult = {
   syncRunId: string;
@@ -58,19 +67,28 @@ export type MercadoPublicoV2DurableSyncResult = {
 
 type SyncRunContext = {
   syncRunId: string;
+  executionAttemptId?: string;
+  intent: MercadoPublicoV2SyncIntent;
   scope: string;
   requestParams: CompraAgilListParams;
-  maxPages: number;
+  maxPages: number | undefined;
   watermarkBefore: Date | null;
   status: string;
   cancellationRequestedAt: Date | null;
+  discoveryComplete: boolean;
 };
 
 type SyncRunItem = {
   id: string;
   codigo: string;
   attempts: number;
-  status: 'pending' | 'processing' | 'succeeded' | 'terminal';
+  status:
+    | 'pending'
+    | 'processing'
+    | 'succeeded'
+    | 'lifecycle_terminal'
+    | 'failed'
+    | 'deferred';
 };
 
 type CurrentDetailRow = {
@@ -78,7 +96,6 @@ type CurrentDetailRow = {
   provider_changed_at: Date | string | null;
   state_id: string | null;
   state_code: string | null;
-  id_orden_compra: string | null;
 };
 
 type HydrationPlan = {
@@ -87,9 +104,9 @@ type HydrationPlan = {
     | 'missing_detail_observation'
     | 'provider_change'
     | 'state_drift'
-    | 'order_linkage_drift'
     | 'unchanged_detail'
-    | 'frozen_active_cohort';
+    | 'frozen_active_cohort'
+    | `lifecycle_${MercadoPublicoV2LifecycleClassification['reason']}`;
 };
 
 type SyncRunRow = {
@@ -102,6 +119,7 @@ type SyncRunRow = {
   error_retryable: boolean | null;
   status: string;
   cancellation_requested_at: Date | null;
+  discovery_complete: boolean;
 };
 
 const getNonEmptyString = (value: unknown): string | undefined => {
@@ -124,23 +142,110 @@ const getDate = (value: unknown): Date | null => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
-const getMaxPages = (value: unknown): number => {
+const getMaxPages = (value: unknown): number | undefined => {
   if (value === undefined) {
-    return DEFAULT_MAX_PAGES;
+    return undefined;
   }
 
   if (
     typeof value !== 'number' ||
     !Number.isInteger(value) ||
     value < 1 ||
-    value > DEFAULT_MAX_PAGES
+    value > MAX_BOUNDED_PAGES
   ) {
     throw new Error(
-      `Mercado Publico V2 max pages must be an integer between 1 and ${DEFAULT_MAX_PAGES}`,
+      `Mercado Publico V2 max pages must be an integer between 1 and ${MAX_BOUNDED_PAGES}`,
     );
   }
 
   return value;
+};
+
+const isGlobalIncrementalWindow = (params: CompraAgilListParams): boolean =>
+  (params.cambio_desde === undefined) === (params.cambio_hasta === undefined) &&
+  params.id === undefined &&
+  params.q === undefined &&
+  params.estado === undefined &&
+  params.region === undefined &&
+  params.publicado_desde === undefined &&
+  params.publicado_hasta === undefined;
+
+export const buildCompraAgilRequestParams = (
+  payload: Record<string, unknown>,
+  watermarkBefore: Date | null,
+): CompraAgilListParams => {
+  const hasExplicitId = getNonEmptyString(payload.id) !== undefined;
+  const explicitChangeStart = getNonEmptyString(payload.cambio_desde);
+  const explicitChangeEnd = getNonEmptyString(payload.cambio_hasta);
+  const explicitPublicationStart = getNonEmptyString(payload.publicado_desde);
+  const explicitPublicationEnd = getNonEmptyString(payload.publicado_hasta);
+
+  if (payload.orden !== undefined) {
+    throw new Error('Mercado Publico V2 durable sync does not support "orden"');
+  }
+
+  if (
+    (explicitChangeStart === undefined) !==
+    (explicitChangeEnd === undefined)
+  ) {
+    throw new Error(
+      'Mercado Publico V2 durable sync requires both cambio_desde and cambio_hasta when either is provided',
+    );
+  }
+
+  if (
+    (explicitPublicationStart === undefined) !==
+    (explicitPublicationEnd === undefined)
+  ) {
+    throw new Error(
+      'Mercado Publico V2 durable sync requires both publicado_desde and publicado_hasta when either is provided',
+    );
+  }
+
+  const executionStartedAt = new Date().toISOString();
+  const derivedChangeStart =
+    explicitChangeStart ??
+    (hasExplicitId || watermarkBefore === null
+      ? undefined
+      : new Date(
+          watermarkBefore.getTime() - WATERMARK_OVERLAP_MS,
+        ).toISOString());
+  const pageSize =
+    typeof payload.tamano_pagina === 'number'
+      ? payload.tamano_pagina
+      : DEFAULT_PAGE_SIZE;
+
+  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50) {
+    throw new Error(
+      'Mercado Publico V2 durable page size must be between 1 and 50',
+    );
+  }
+
+  const usesWatermarkWindow =
+    !hasExplicitId &&
+    explicitChangeStart === undefined &&
+    watermarkBefore !== null;
+
+  return {
+    cambio_desde: derivedChangeStart,
+    cambio_hasta:
+      explicitChangeEnd ??
+      (usesWatermarkWindow ? executionStartedAt : undefined),
+    ttl_cambio_ms:
+      !usesWatermarkWindow && typeof payload.ttl_cambio_ms === 'number'
+        ? payload.ttl_cambio_ms
+        : undefined,
+    publicado_desde: explicitPublicationStart,
+    publicado_hasta: explicitPublicationEnd,
+    estado: getNonEmptyString(payload.estado),
+    region: typeof payload.region === 'number' ? payload.region : undefined,
+    id: getNonEmptyString(payload.id),
+    q: getNonEmptyString(payload.q),
+    ordenar_por:
+      getNonEmptyString(payload.ordenar_por) ?? 'FechaUltimaModificacion',
+    tamano_pagina: pageSize,
+    numero_pagina: 1,
+  };
 };
 
 @Injectable()
@@ -203,16 +308,10 @@ export class MercadoPublicoV2DurableSyncService {
       }
 
       if (discovery === 'page_budget_reached') {
-        stage = 'hydrating';
         await this.updateSyncRunStatus(context.syncRunId, 'hydrating');
         context.status = 'hydrating';
-        const hydration = await this.hydrate(context, jobRunRecord.id);
 
-        if (hydration === 'cancelled') {
-          return this.cancelRun(context, jobRunRecord.id, 'hydrating');
-        }
-
-        return this.pauseRun(context, jobRunRecord.id);
+        return this.hydrateOrFinish(context, jobRunRecord.id);
       }
 
       await this.freezeActiveCohort(context);
@@ -291,8 +390,14 @@ export class MercadoPublicoV2DurableSyncService {
 
   async executeExistingRun(
     syncRunId: string,
+    attemptId?: string,
   ): Promise<MercadoPublicoV2DurableSyncResult> {
     const context = await this.loadSyncRun(syncRunId);
+    context.executionAttemptId = attemptId;
+
+    if (context.status === 'cancelled' && context.error_stage === 'queued') {
+      return this.getCancelledRunResult(context);
+    }
 
     if (
       (context.status === 'failed' || context.status === 'cancelled') &&
@@ -319,6 +424,16 @@ export class MercadoPublicoV2DurableSyncService {
       );
     }
 
+    if (
+      (context.status === 'partial_failed' || context.status === 'cancelled') &&
+      !context.discoveryComplete
+    ) {
+      throw new Error(
+        `Mercado Publico V2 sync run ${syncRunId} has incomplete discovery and must be rediscovered`,
+      );
+    }
+
+    await this.assertActiveAttempt(context);
     const jobRunRecord =
       await this.mercadoPublicoPersistenceService.createJobRun(
         'api-v2-compra-agil-incremental',
@@ -326,7 +441,19 @@ export class MercadoPublicoV2DurableSyncService {
 
     try {
       if (context.status === 'queued') {
-        await this.updateSyncRunStatus(syncRunId, 'discovering');
+        const claimed = await this.claimQueuedRun(syncRunId);
+
+        if (!claimed) {
+          const current = await this.loadSyncRun(syncRunId);
+
+          if (current.status === 'cancelled') {
+            return this.getCancelledRunResult(current);
+          }
+
+          throw new MercadoPublicoV2InactiveSyncAttemptError(
+            `Mercado Publico V2 sync run ${syncRunId} is no longer queued`,
+          );
+        }
         context.status = 'discovering';
         const discovery = await this.discover(context, jobRunRecord.id);
 
@@ -337,13 +464,8 @@ export class MercadoPublicoV2DurableSyncService {
         if (discovery === 'page_budget_reached') {
           await this.updateSyncRunStatus(syncRunId, 'hydrating');
           context.status = 'hydrating';
-          const hydration = await this.hydrate(context, jobRunRecord.id);
 
-          if (hydration === 'cancelled') {
-            return this.cancelRun(context, jobRunRecord.id, 'hydrating');
-          }
-
-          return this.pauseRun(context, jobRunRecord.id);
+          return await this.hydrateOrFinish(context, jobRunRecord.id);
         }
 
         await this.freezeActiveCohort(context);
@@ -375,13 +497,8 @@ export class MercadoPublicoV2DurableSyncService {
         if (discovery === 'page_budget_reached') {
           await this.updateSyncRunStatus(syncRunId, 'hydrating');
           context.status = 'hydrating';
-          const hydration = await this.hydrate(context, jobRunRecord.id);
 
-          if (hydration === 'cancelled') {
-            return this.cancelRun(context, jobRunRecord.id, 'hydrating');
-          }
-
-          return this.pauseRun(context, jobRunRecord.id);
+          return await this.hydrateOrFinish(context, jobRunRecord.id);
         }
 
         await this.freezeActiveCohort(context);
@@ -397,6 +514,11 @@ export class MercadoPublicoV2DurableSyncService {
 
       return await this.hydrateOrFinish(context, jobRunRecord.id);
     } catch (error) {
+      if (error instanceof MercadoPublicoV2InactiveSyncAttemptError) {
+        throw error;
+      }
+
+      await this.assertActiveAttempt(context);
       const stage =
         context.status === 'hydrating' ? 'hydrating' : 'discovering';
 
@@ -452,10 +574,15 @@ export class MercadoPublicoV2DurableSyncService {
         response,
         persistenceResult.rawApiPayloadId,
       );
-      await this.projectPendingItems(
-        context.syncRunId,
-        response.compraAgil,
-        persistenceResult.rawApiPayloadId,
+      await this.coreDataSource.query(
+        `
+          UPDATE mp.sync_run_item
+          SET status = 'succeeded', hydrated_at = now(), updated_at = now()
+          WHERE sync_run_id = $1
+            AND status = 'pending'
+            AND observation_id IS NOT NULL
+        `,
+        [context.syncRunId],
       );
 
       return this.finishRun(context, jobRunRecord.id);
@@ -473,7 +600,10 @@ export class MercadoPublicoV2DurableSyncService {
   ): Promise<SyncRunContext> {
     const scope = getNonEmptyString(payload.scope) ?? 'global';
     const watermarkBefore = await this.readWatermark(scope);
-    const requestParams = this.buildRequestParams(payload, watermarkBefore);
+    const requestParams = buildCompraAgilRequestParams(
+      payload,
+      watermarkBefore,
+    );
     const maxPages = getMaxPages(payload.max_pages ?? payload.maxPages);
     const rows = await this.coreDataSource.query<{ id: string }[]>(
       `
@@ -490,7 +620,7 @@ export class MercadoPublicoV2DurableSyncService {
         scope,
         JSON.stringify({
           ...requestParams,
-          max_pages: maxPages,
+          ...(maxPages === undefined ? {} : { max_pages: maxPages }),
         }),
         watermarkBefore,
         executionKey ?? null,
@@ -499,12 +629,14 @@ export class MercadoPublicoV2DurableSyncService {
 
     return {
       syncRunId: rows[0].id,
+      intent,
       scope,
       requestParams,
       maxPages,
       watermarkBefore,
       status: 'queued',
       cancellationRequestedAt: null,
+      discoveryComplete: false,
     };
   }
 
@@ -525,86 +657,6 @@ export class MercadoPublicoV2DurableSyncService {
     return rows[0]?.id ?? null;
   }
 
-  private buildRequestParams(
-    payload: Record<string, unknown>,
-    watermarkBefore: Date | null,
-  ): CompraAgilListParams {
-    const hasExplicitId = getNonEmptyString(payload.id) !== undefined;
-    const explicitChangeStart = getNonEmptyString(payload.cambio_desde);
-    const explicitChangeEnd = getNonEmptyString(payload.cambio_hasta);
-    const explicitPublicationStart = getNonEmptyString(payload.publicado_desde);
-    const explicitPublicationEnd = getNonEmptyString(payload.publicado_hasta);
-
-    if (payload.orden !== undefined) {
-      throw new Error(
-        'Mercado Publico V2 durable sync does not support "orden"',
-      );
-    }
-
-    if (
-      (explicitChangeStart === undefined) !==
-      (explicitChangeEnd === undefined)
-    ) {
-      throw new Error(
-        'Mercado Publico V2 durable sync requires both cambio_desde and cambio_hasta when either is provided',
-      );
-    }
-
-    if (
-      (explicitPublicationStart === undefined) !==
-      (explicitPublicationEnd === undefined)
-    ) {
-      throw new Error(
-        'Mercado Publico V2 durable sync requires both publicado_desde and publicado_hasta when either is provided',
-      );
-    }
-
-    const executionStartedAt = new Date().toISOString();
-    const derivedChangeStart =
-      explicitChangeStart ??
-      (hasExplicitId || watermarkBefore === null
-        ? undefined
-        : new Date(
-            watermarkBefore.getTime() - WATERMARK_OVERLAP_MS,
-          ).toISOString());
-    const pageSize =
-      typeof payload.tamano_pagina === 'number'
-        ? payload.tamano_pagina
-        : DEFAULT_PAGE_SIZE;
-
-    if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50) {
-      throw new Error(
-        'Mercado Publico V2 durable page size must be between 1 and 50',
-      );
-    }
-
-    const usesWatermarkWindow =
-      !hasExplicitId &&
-      explicitChangeStart === undefined &&
-      watermarkBefore !== null;
-
-    return {
-      cambio_desde: derivedChangeStart,
-      cambio_hasta:
-        explicitChangeEnd ??
-        (usesWatermarkWindow ? executionStartedAt : undefined),
-      ttl_cambio_ms:
-        !usesWatermarkWindow && typeof payload.ttl_cambio_ms === 'number'
-          ? payload.ttl_cambio_ms
-          : undefined,
-      publicado_desde: explicitPublicationStart,
-      publicado_hasta: explicitPublicationEnd,
-      estado: getNonEmptyString(payload.estado),
-      region: typeof payload.region === 'number' ? payload.region : undefined,
-      id: getNonEmptyString(payload.id),
-      q: getNonEmptyString(payload.q),
-      ordenar_por:
-        getNonEmptyString(payload.ordenar_por) ?? 'FechaUltimaModificacion',
-      tamano_pagina: pageSize,
-      numero_pagina: 1,
-    };
-  }
-
   private async readWatermark(scope: string): Promise<Date | null> {
     const rows = await this.coreDataSource.query<
       { watermark_at: Date | null }[]
@@ -620,13 +672,51 @@ export class MercadoPublicoV2DurableSyncService {
     return getDate(rows[0]?.watermark_at);
   }
 
+  private async readQuotaResetAt(): Promise<Date | null> {
+    const rows = await this.coreDataSource.query<{ reset_at: Date | null }[]>(
+      `
+        SELECT reset_at
+        FROM mp.gold_api_quota_usage
+        WHERE source = $1
+      `,
+      [MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE],
+    );
+
+    return getDate(rows[0]?.reset_at);
+  }
+
+  private async throwIfQuotaExhausted(
+    response: MercadoPublicoApiV2CompraAgilListResponse,
+    stage: 'discovering' | 'hydrating',
+  ): Promise<void> {
+    if (
+      response.errorSummary !== 'retryable_failed' ||
+      response.httpStatus !== 429 ||
+      response.retryAfterSeconds !== undefined
+    ) {
+      return;
+    }
+
+    const recordedResetAt = await this.readQuotaResetAt();
+
+    throw new MercadoPublicoRecordedJobFailureError(
+      this.buildProviderError(response, stage),
+      true,
+      recordedResetAt ??
+        getNextQuotaResetAt(
+          this.mercadoPublicoConfigService.getSettings().quotaTimezone,
+        ),
+    );
+  }
+
   private async loadSyncRun(
     syncRunId: string,
   ): Promise<SyncRunContext & SyncRunRow> {
     const rows = await this.coreDataSource.query<SyncRunRow[]>(
       `
         SELECT id, intent, scope, request_params, watermark_before, error_stage,
-                error_retryable, status, cancellation_requested_at
+                error_retryable, status, cancellation_requested_at,
+                discovery_complete
         FROM mp.sync_run
         WHERE id = $1
       `,
@@ -642,10 +732,12 @@ export class MercadoPublicoV2DurableSyncService {
     return {
       ...row,
       syncRunId: row.id,
+      intent: row.intent,
       requestParams: this.toCompraAgilListParams(row.request_params),
       maxPages: getMaxPages(row.request_params.max_pages),
       watermarkBefore: getDate(row.watermark_before),
       cancellationRequestedAt: getDate(row.cancellation_requested_at),
+      discoveryComplete: row.discovery_complete,
     };
   }
 
@@ -670,10 +762,14 @@ export class MercadoPublicoV2DurableSyncService {
   }
 
   private async freezeActiveCohort(context: SyncRunContext): Promise<void> {
-    if (context.requestParams.id !== undefined) {
+    if (
+      context.intent !== 'reconcile' ||
+      context.requestParams.id !== undefined
+    ) {
       return;
     }
 
+    await this.assertActiveAttempt(context);
     await this.coreDataSource.query(
       `
         INSERT INTO mp.sync_run_item (
@@ -707,6 +803,7 @@ export class MercadoPublicoV2DurableSyncService {
     while (true) {
       let response: MercadoPublicoApiV2CompraAgilListResponse;
 
+      await this.assertActiveAttempt(context);
       try {
         response =
           await this.mercadoPublicoApiV2CompraAgilClientService.getList({
@@ -714,11 +811,13 @@ export class MercadoPublicoV2DurableSyncService {
             numero_pagina: pageNumber,
           });
       } finally {
-        await this.touchHeartbeat(context.syncRunId);
+        await this.touchHeartbeat(context);
       }
 
       if (response.errorSummary !== undefined) {
         await this.persistApiFailure(jobRunRecordId, response);
+        await this.throwIfQuotaExhausted(response, 'discovering');
+
         if (response.errorSummary === 'retryable_failed') {
           await this.waitBeforeRetry(response.retryAfterSeconds);
         }
@@ -737,6 +836,7 @@ export class MercadoPublicoV2DurableSyncService {
           },
         );
 
+      await this.assertActiveAttempt(context);
       await this.checkpointPage(
         context,
         response,
@@ -760,7 +860,12 @@ export class MercadoPublicoV2DurableSyncService {
         break;
       }
 
-      if (pageNumber - startPageNumber + 1 >= context.maxPages) {
+      if (
+        context.maxPages !== undefined &&
+        pageNumber - startPageNumber + 1 >= context.maxPages
+      ) {
+        await this.completeDiscovery(context.syncRunId, 'page_budget_reached');
+
         return 'page_budget_reached';
       }
 
@@ -783,6 +888,8 @@ export class MercadoPublicoV2DurableSyncService {
       }
     }
 
+    await this.completeDiscovery(context.syncRunId, 'exhausted');
+
     return 'completed';
   }
 
@@ -799,13 +906,15 @@ export class MercadoPublicoV2DurableSyncService {
       response.pagination?.pageSize ?? response.compraAgil.length;
 
     await this.coreDataSource.transaction(async (entityManager) => {
+      await this.assertActiveAttempt(context, entityManager);
       await entityManager.query(
         `
           INSERT INTO mp.sync_run_page (
             sync_run_id, page_number, page_size, total_pages, total_results,
-            request_params, raw_api_payload_id, status, completed_at
+            records_returned, request_params, raw_api_payload_id, status,
+            completed_at
           )
-          VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, 'checkpointed', now())
+          VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, 'checkpointed', now())
           ON CONFLICT (sync_run_id, page_number) DO NOTHING
         `,
         [
@@ -814,6 +923,7 @@ export class MercadoPublicoV2DurableSyncService {
           pageSize,
           response.pagination?.totalPages ?? null,
           response.pagination?.totalResults ?? null,
+          response.compraAgil.length,
           JSON.stringify(response.requestParams),
           rawApiPayloadId,
         ],
@@ -824,13 +934,29 @@ export class MercadoPublicoV2DurableSyncService {
         const classification = classifyV2CompraAgilLifecycle(
           record,
           knownCodes.has(record.codigo) || targetedSync,
+          {
+            includeHistoricalTerminal: isHistoricalV2CompraAgilSyncIntent(
+              context.intent,
+            ),
+          },
         );
 
-        if (!classification.includeInCohort) {
-          continue;
-        }
+        const projectionResult =
+          await this.mercadoPublicoV2ProjectionService.ingestWithEntityManager(
+            entityManager,
+            {
+              syncRunId: context.syncRunId,
+              rawApiPayloadId,
+              response,
+              record,
+              snapshotKind: 'list',
+            },
+          );
 
-        if (classification.reason === 'new_published') {
+        if (
+          classification.includeInRun &&
+          classification.reason === 'new_published'
+        ) {
           await entityManager.query(
             `
               INSERT INTO mp.v2_cohort (
@@ -849,10 +975,15 @@ export class MercadoPublicoV2DurableSyncService {
         }
 
         const normalized = normalizeV2CompraAgilRecord(record);
-        const hydrationPlan = this.getHydrationPlan(
-          record,
-          currentDetailsByCode.get(record.codigo),
-        );
+        const hydrationPlan = classification.includeInRun
+          ? this.getHydrationPlan(
+              record,
+              currentDetailsByCode.get(record.codigo),
+            )
+          : {
+              required: false,
+              reason: `lifecycle_${classification.reason}`,
+            };
 
         await entityManager.query(
           `
@@ -862,7 +993,7 @@ export class MercadoPublicoV2DurableSyncService {
               provider_changed_at_raw, provider_changed_at, status,
               hydration_required, hydration_reason
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', $11, $12)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             ON CONFLICT (sync_run_id, codigo) DO UPDATE SET
               discovery_page = EXCLUDED.discovery_page,
               raw_api_payload_id = EXCLUDED.raw_api_payload_id,
@@ -886,9 +1017,19 @@ export class MercadoPublicoV2DurableSyncService {
             normalized.stateLabel,
             normalized.providerChangedAtRaw,
             normalized.providerChangedAt,
+            classification.includeInRun ? 'pending' : 'succeeded',
             hydrationPlan.required,
             hydrationPlan.reason,
           ],
+        );
+
+        await entityManager.query(
+          `
+            UPDATE mp.sync_run_item
+            SET observation_id = $3, updated_at = now()
+            WHERE sync_run_id = $1 AND codigo = $2
+          `,
+          [context.syncRunId, record.codigo, projectionResult.observationId],
         );
       }
     });
@@ -906,7 +1047,7 @@ export class MercadoPublicoV2DurableSyncService {
     const rows = await this.coreDataSource.query<CurrentDetailRow[]>(
       `
         SELECT c.codigo, c.provider_changed_at, c.state_id,
-               c.estado AS state_code, c.id_orden_compra
+               c.estado AS state_code
         FROM mp.compra_agil c
         INNER JOIN mp.v2_observation o ON o.id = c.observation_id
         WHERE c.codigo = ANY($1::text[])
@@ -945,12 +1086,6 @@ export class MercadoPublicoV2DurableSyncService {
       return { required: true, reason: 'state_drift' };
     }
 
-    if (
-      getV2CompraAgilProviderOrderId(record) !== currentDetail.id_orden_compra
-    ) {
-      return { required: true, reason: 'order_linkage_drift' };
-    }
-
     return { required: false, reason: 'unchanged_detail' };
   }
 
@@ -981,6 +1116,7 @@ export class MercadoPublicoV2DurableSyncService {
     context: SyncRunContext,
     jobRunRecordId: string,
   ): Promise<'completed' | 'cancelled'> {
+    await this.assertActiveAttempt(context);
     await this.completeCarryForwardItems(context.syncRunId);
     const maxAttempts =
       this.mercadoPublicoConfigService.getSettings().httpMaxRetries + 1;
@@ -1001,10 +1137,13 @@ export class MercadoPublicoV2DurableSyncService {
       );
 
       if (items.length === 0) {
-        return 'completed';
+        return (await this.hasCancellationRequest(context.syncRunId))
+          ? 'cancelled'
+          : 'completed';
       }
 
       for (const item of items) {
+        await this.assertActiveAttempt(context);
         if (
           !isFirstItem &&
           (await this.hasCancellationRequest(context.syncRunId))
@@ -1014,7 +1153,7 @@ export class MercadoPublicoV2DurableSyncService {
         isFirstItem = false;
 
         if (item.attempts >= maxAttempts) {
-          await this.markItemTerminal(item.id, 'retryable_failed: exhausted');
+          await this.markItemDeferred(item.id, 'retryable_failed: exhausted');
           await this.updateSyncRunCounters(context.syncRunId);
           continue;
         }
@@ -1028,6 +1167,8 @@ export class MercadoPublicoV2DurableSyncService {
           [item.id],
         );
 
+        const attemptNumber = item.attempts + 1;
+        const requestStartedAt = new Date();
         let response: MercadoPublicoApiV2CompraAgilListResponse;
 
         try {
@@ -1036,7 +1177,20 @@ export class MercadoPublicoV2DurableSyncService {
               item.codigo,
             );
         } catch (error) {
+          await this.touchHeartbeat(context);
           const failure = classifyFailure(error);
+          const transportCode = getTransportFailureCode(error);
+
+          await this.recordItemAttempt({
+            context,
+            item,
+            attemptNumber,
+            requestStartedAt,
+            httpStatus: getHttpFailureStatus(error),
+            transportErrorCode: transportCode,
+            failureClass: failure,
+            retryable: failure === 'retryable_failed',
+          });
 
           if (failure === 'hard_fail' || failure === 'param_error') {
             throw error;
@@ -1048,22 +1202,29 @@ export class MercadoPublicoV2DurableSyncService {
           ) {
             await this.markItemPending(
               item.id,
-              'retryable_failed: detail request failed',
+              `retryable_failed: detail request failed: ${transportCode}`,
               'hydrating',
             );
             await this.waitBeforeRetry();
-          } else {
-            await this.markItemTerminal(
+          } else if (failure === 'retryable_failed') {
+            await this.markItemDeferred(
               item.id,
-              `${failure}: detail request failed`,
+              `retryable_failed: detail request failed: ${transportCode}`,
+            );
+          } else {
+            await this.markItemFailed(
+              item.id,
+              `${failure}: detail request failed: ${transportCode}`,
             );
           }
           await this.updateSyncRunCounters(context.syncRunId);
+          if (failure === 'retryable_failed') {
+            return 'completed';
+          }
           continue;
-        } finally {
-          await this.touchHeartbeat(context.syncRunId);
         }
 
+        await this.touchHeartbeat(context);
         const persistenceResult =
           await this.mercadoPublicoPersistenceService.persistV2CompraAgilSnapshot(
             {
@@ -1076,6 +1237,21 @@ export class MercadoPublicoV2DurableSyncService {
                   : this.buildProviderError(response, 'provider'),
             },
           );
+
+        await this.assertActiveAttempt(context);
+        await this.recordItemAttempt({
+          context,
+          item,
+          attemptNumber,
+          requestStartedAt,
+          httpStatus: response.httpStatus,
+          providerErrorCode: response.errorCode,
+          providerErrorMessage: response.errorMessage,
+          failureClass: response.errorSummary,
+          retryable: response.errorSummary === 'retryable_failed',
+          retryAfterSeconds: response.retryAfterSeconds,
+          rawApiPayloadId: persistenceResult.rawApiPayloadId,
+        });
 
         if (
           response.errorSummary !== undefined ||
@@ -1098,15 +1274,25 @@ export class MercadoPublicoV2DurableSyncService {
               'hydrating',
               persistenceResult.rawApiPayloadId,
             );
+            await this.throwIfQuotaExhausted(response, 'hydrating');
             await this.waitBeforeRetry(response.retryAfterSeconds);
+          } else if (response.errorSummary === 'retryable_failed') {
+            await this.markItemDeferred(
+              item.id,
+              'retryable_failed',
+              persistenceResult.rawApiPayloadId,
+            );
           } else {
-            await this.markItemTerminal(
+            await this.markItemFailed(
               item.id,
               response.errorSummary ?? 'soft_miss',
               persistenceResult.rawApiPayloadId,
             );
           }
           await this.updateSyncRunCounters(context.syncRunId);
+          if (response.errorSummary === 'retryable_failed') {
+            return 'completed';
+          }
           continue;
         }
 
@@ -1115,7 +1301,7 @@ export class MercadoPublicoV2DurableSyncService {
         );
 
         if (detailRecord === undefined) {
-          await this.markItemTerminal(
+          await this.markItemFailed(
             item.id,
             'detail_codigo_mismatch',
             persistenceResult.rawApiPayloadId,
@@ -1125,20 +1311,23 @@ export class MercadoPublicoV2DurableSyncService {
         }
 
         const observationId = await this.recordObservationAndProjection(
-          context.syncRunId,
+          context,
           persistenceResult.rawApiPayloadId,
           response,
           detailRecord,
           'detail',
         );
-        const lifecycle = classifyV2CompraAgilLifecycle(detailRecord, true);
+        const lifecycle = classifyV2CompraAgilLifecycle(detailRecord, true, {
+          includeHistoricalTerminal: isHistoricalV2CompraAgilSyncIntent(
+            context.intent,
+          ),
+        });
         const terminal = lifecycle.terminal;
         await this.markItemSucceeded(
           item.id,
           persistenceResult.rawApiPayloadId,
           observationId,
           terminal,
-          detailRecord,
         );
 
         if (terminal) {
@@ -1184,79 +1373,29 @@ export class MercadoPublicoV2DurableSyncService {
     await this.updateSyncRunCounters(syncRunId);
   }
 
-  private async projectPendingItems(
-    syncRunId: string,
-    records: MercadoPublicoApiV2CompraAgilRecord[],
-    rawApiPayloadId: string,
-  ): Promise<void> {
-    const items = await this.coreDataSource.query<SyncRunItem[]>(
-      `
-        SELECT id, codigo, status
-        FROM mp.sync_run_item
-        WHERE sync_run_id = $1 AND status = 'pending'
-        ORDER BY discovery_page ASC, id ASC
-      `,
-      [syncRunId],
-    );
-    const recordsByCode = new Map(
-      records.map((record) => [record.codigo, record]),
-    );
-
-    for (const item of items) {
-      const record = recordsByCode.get(item.codigo);
-
-      if (record === undefined) {
-        await this.markItemPending(
-          item.id,
-          'fixture record missing',
-          'projecting',
-        );
-        continue;
-      }
-
-      const observationId = await this.recordObservationAndProjection(
-        syncRunId,
-        rawApiPayloadId,
-        {
-          endpoint: MERCADO_PUBLICO_API_V2_COMPRA_AGIL_LIST_ENDPOINT,
-          source: MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
-          requestParams: { fixture: 'mercado-publico-v2-issue-20' },
-          requestFingerprint: createJsonSha256({ fixture: true }),
-          payloadChecksum: createJsonSha256(record),
-          schemaFingerprint: createJsonSha256(record),
-          httpStatus: 200,
-          fetchedAt: new Date(),
-          rawPayload: record,
-          compraAgil: [record],
-        },
-        record,
-        'list',
-      );
-
-      await this.markItemSucceeded(
-        item.id,
-        rawApiPayloadId,
-        observationId,
-        false,
-        record,
-      );
-    }
-  }
-
   private async recordObservationAndProjection(
-    syncRunId: string,
+    context: SyncRunContext,
     rawApiPayloadId: string,
     response: MercadoPublicoApiV2CompraAgilListResponse,
     record: MercadoPublicoApiV2CompraAgilRecord,
     snapshotKind: 'list' | 'detail',
   ): Promise<string> {
-    const result = await this.mercadoPublicoV2ProjectionService.ingest({
-      syncRunId,
-      rawApiPayloadId,
-      response,
-      record,
-      snapshotKind,
-    });
+    const result = await this.coreDataSource.transaction(
+      async (entityManager) => {
+        await this.assertActiveAttempt(context, entityManager);
+
+        return this.mercadoPublicoV2ProjectionService.ingestWithEntityManager(
+          entityManager,
+          {
+            syncRunId: context.syncRunId,
+            rawApiPayloadId,
+            response,
+            record,
+            snapshotKind,
+          },
+        );
+      },
+    );
 
     return result.observationId;
   }
@@ -1294,21 +1433,13 @@ export class MercadoPublicoV2DurableSyncService {
     rawApiPayloadId: string,
     observationId: string,
     terminal: boolean,
-    record: MercadoPublicoApiV2CompraAgilRecord,
   ): Promise<void> {
-    const normalized = normalizeV2CompraAgilRecord(record);
-
     await this.coreDataSource.query(
       `
         UPDATE mp.sync_run_item
         SET status = $2,
             raw_api_payload_id = $3,
             observation_id = $4,
-            state_id = $5,
-            state_code = $6,
-            state_label = $7,
-            provider_changed_at_raw = $8,
-            provider_changed_at = $9,
             error_stage = NULL,
             error_summary = NULL,
             hydrated_at = now(),
@@ -1317,14 +1448,9 @@ export class MercadoPublicoV2DurableSyncService {
       `,
       [
         itemId,
-        terminal ? 'terminal' : 'succeeded',
+        terminal ? 'lifecycle_terminal' : 'succeeded',
         rawApiPayloadId,
         observationId,
-        normalized.stateId,
-        normalized.stateCode,
-        normalized.stateLabel,
-        normalized.providerChangedAtRaw,
-        normalized.providerChangedAt,
       ],
     );
   }
@@ -1349,22 +1475,126 @@ export class MercadoPublicoV2DurableSyncService {
     );
   }
 
-  private async markItemTerminal(
+  private async markItemFailed(
     itemId: string,
+    errorSummary: string,
+    rawApiPayloadId?: string,
+  ): Promise<void> {
+    await this.setItemTerminalStatus(
+      itemId,
+      'failed',
+      errorSummary,
+      rawApiPayloadId,
+    );
+  }
+
+  private async markItemDeferred(
+    itemId: string,
+    errorSummary: string,
+    rawApiPayloadId?: string,
+  ): Promise<void> {
+    await this.setItemTerminalStatus(
+      itemId,
+      'deferred',
+      errorSummary,
+      rawApiPayloadId,
+    );
+  }
+
+  private async setItemTerminalStatus(
+    itemId: string,
+    status: 'failed' | 'deferred',
     errorSummary: string,
     rawApiPayloadId?: string,
   ): Promise<void> {
     await this.coreDataSource.query(
       `
         UPDATE mp.sync_run_item
-        SET status = 'terminal',
+        SET status = $2,
             error_stage = 'hydrating',
-            error_summary = $2,
-            raw_api_payload_id = COALESCE($3, raw_api_payload_id),
+            error_summary = $3,
+            raw_api_payload_id = COALESCE($4, raw_api_payload_id),
             updated_at = now()
         WHERE id = $1
       `,
-      [itemId, errorSummary, rawApiPayloadId ?? null],
+      [itemId, status, errorSummary, rawApiPayloadId ?? null],
+    );
+  }
+
+  private async recordItemAttempt(input: {
+    context: SyncRunContext;
+    item: SyncRunItem;
+    attemptNumber: number;
+    requestStartedAt: Date;
+    httpStatus: number | null;
+    transportErrorCode?: string;
+    providerErrorCode?: string;
+    providerErrorMessage?: string;
+    failureClass?: string;
+    retryable: boolean;
+    retryAfterSeconds?: number;
+    rawApiPayloadId?: string | null;
+  }): Promise<void> {
+    try {
+      const requestFinishedAt = new Date();
+      const latencyMs = Math.max(
+        0,
+        requestFinishedAt.getTime() - input.requestStartedAt.getTime(),
+      );
+
+      await this.coreDataSource.query(
+        `
+          INSERT INTO mp.sync_run_item_attempt (
+            sync_run_id, sync_run_item_id, attempt_number, endpoint,
+            request_started_at, request_finished_at, latency_ms,
+            http_status, transport_error_code, provider_error_code,
+            provider_error_message, failure_class, retryable,
+            retry_after_seconds, raw_api_payload_id
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        `,
+        [
+          input.context.syncRunId,
+          input.item.id,
+          input.attemptNumber,
+          MERCADO_PUBLICO_API_V2_COMPRA_AGIL_DETAIL_BY_CODIGO_ENDPOINT,
+          input.requestStartedAt,
+          requestFinishedAt,
+          latencyMs,
+          input.httpStatus ?? null,
+          input.transportErrorCode ?? null,
+          input.providerErrorCode ?? null,
+          input.providerErrorMessage ?? null,
+          input.failureClass ?? null,
+          input.retryable,
+          input.retryAfterSeconds ?? null,
+          input.rawApiPayloadId ?? null,
+        ],
+      );
+    } catch (error) {
+      // ponytail: attempt telemetry is best-effort so hydration never depends on it.
+      // ceiling: attempt rows can be lost on DB failure.
+      // trigger: promote to a hard dependency when alerting or accounting reads this
+      // table; the debt recovery worker is the first consumer.
+      this.logger.warn(
+        `Failed to record attempt ${input.attemptNumber} for Mercado Publico V2 item ${input.item.codigo}: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  private async completeDiscovery(
+    syncRunId: string,
+    completionReason: 'exhausted' | 'page_budget_reached',
+  ): Promise<void> {
+    await this.coreDataSource.query(
+      `
+        UPDATE mp.sync_run
+        SET discovery_complete = $3,
+            completion_reason = $2,
+            updated_at = now()
+        WHERE id = $1
+      `,
+      [syncRunId, completionReason, completionReason === 'exhausted'],
     );
   }
 
@@ -1387,6 +1617,27 @@ export class MercadoPublicoV2DurableSyncService {
     );
   }
 
+  private async claimQueuedRun(syncRunId: string): Promise<boolean> {
+    const rows = await this.coreDataSource.query<{ id: string }[]>(
+      `
+        UPDATE mp.sync_run
+        SET status = 'discovering',
+            error_stage = NULL,
+            error_retryable = NULL,
+            error_summary = NULL,
+            finished_at = NULL,
+            updated_at = now()
+        WHERE id = $1
+          AND status = 'queued'
+          AND cancellation_requested_at IS NULL
+        RETURNING id
+      `,
+      [syncRunId],
+    );
+
+    return rows[0] !== undefined;
+  }
+
   private async hydrateOrFinish(
     context: SyncRunContext,
     jobRunRecordId: string,
@@ -1397,6 +1648,7 @@ export class MercadoPublicoV2DurableSyncService {
       return this.cancelRun(context, jobRunRecordId, 'hydrating');
     }
 
+    await this.assertActiveAttempt(context);
     return this.finishRun(context, jobRunRecordId);
   }
 
@@ -1440,15 +1692,58 @@ export class MercadoPublicoV2DurableSyncService {
     );
   }
 
-  private async touchHeartbeat(syncRunId: string): Promise<void> {
-    await this.coreDataSource.query(
+  private async assertActiveAttempt(
+    context: SyncRunContext,
+    queryExecutor: Pick<DataSource, 'query'> | EntityManager = this
+      .coreDataSource,
+  ): Promise<void> {
+    if (context.executionAttemptId === undefined) {
+      return;
+    }
+
+    const rows = await queryExecutor.query<{ id: string }[]>(
       `
-        UPDATE mp.sync_run
-        SET heartbeat_at = now(), updated_at = now()
-        WHERE id = $1
+        SELECT id
+        FROM mp.sync_run_attempt
+        WHERE id = $1 AND sync_run_id = $2 AND state = 'running'
+        FOR SHARE
       `,
-      [syncRunId],
+      [context.executionAttemptId, context.syncRunId],
     );
+
+    if (rows.length === 0) {
+      throw new MercadoPublicoV2InactiveSyncAttemptError(
+        `Mercado Publico V2 sync attempt ${context.executionAttemptId} is no longer active`,
+      );
+    }
+  }
+
+  private async touchHeartbeat(context: SyncRunContext): Promise<void> {
+    const rows = await this.coreDataSource.query<{ id: string }[]>(
+      `
+        UPDATE mp.sync_run run
+        SET heartbeat_at = now(), updated_at = now()
+        WHERE run.id = $1
+          AND (
+            $2::uuid IS NULL
+            OR EXISTS (
+              SELECT 1
+              FROM mp.sync_run_attempt attempt
+              WHERE attempt.id = $2
+                AND attempt.sync_run_id = run.id
+                AND attempt.state = 'running'
+            )
+          )
+        RETURNING run.id
+      `,
+      [context.syncRunId, context.executionAttemptId ?? null],
+    );
+
+    if (context.executionAttemptId !== undefined && rows.length === 0) {
+      throw new MercadoPublicoV2InactiveSyncAttemptError(
+        `Mercado Publico V2 sync attempt ${context.executionAttemptId} is no longer active`,
+      );
+    }
   }
 
   private async cancelRun(
@@ -1456,6 +1751,7 @@ export class MercadoPublicoV2DurableSyncService {
     jobRunRecordId: string,
     stage: 'discovering' | 'hydrating',
   ): Promise<MercadoPublicoV2DurableSyncResult> {
+    await this.assertActiveAttempt(context);
     await this.updateSyncRunCounters(context.syncRunId);
     await this.coreDataSource.query(
       `
@@ -1498,69 +1794,6 @@ export class MercadoPublicoV2DurableSyncService {
     return {
       syncRunId: context.syncRunId,
       status: 'cancelled',
-      recordsDiscovered: Number(count.records_discovered ?? 0),
-      recordsHydrated: Number(count.records_hydrated ?? 0),
-      recordsFailed: Number(count.records_failed ?? 0),
-      pagesCheckpointed: Number(count.pages_checkpointed ?? 0),
-      watermarkAfter: null,
-      observationIds: [],
-      recordsProjected: Number(count.records_projected ?? 0),
-    };
-  }
-
-  private async pauseRun(
-    context: SyncRunContext,
-    jobRunRecordId: string,
-  ): Promise<MercadoPublicoV2DurableSyncResult> {
-    await this.updateSyncRunCounters(context.syncRunId);
-    await this.coreDataSource.query(
-      `
-        UPDATE mp.sync_run
-        SET status = 'partial_failed',
-            error_stage = 'discovering',
-            error_retryable = true,
-            error_summary = 'page_budget_reached',
-            finished_at = now(),
-            updated_at = now()
-        WHERE id = $1
-      `,
-      [context.syncRunId],
-    );
-    const counts = await this.coreDataSource.query<
-      {
-        records_discovered?: string;
-        records_hydrated?: string;
-        records_failed?: string;
-        records_projected?: string;
-        pages_checkpointed?: string;
-      }[]
-    >(
-      `
-        SELECT records_discovered, records_hydrated, records_failed,
-               records_projected, pages_checkpointed
-        FROM mp.sync_run
-        WHERE id = $1
-      `,
-      [context.syncRunId],
-    );
-    const count = counts[0] ?? {};
-
-    await this.mercadoPublicoPersistenceService.finalizeJobRun({
-      jobRunRecordId,
-      status: 'failed',
-      finishedAt: new Date(),
-      errorSummary: 'page_budget_reached',
-      recordsFetched: Number(count.records_discovered ?? 0),
-      recordsCanonicalized: Number(count.records_hydrated ?? 0),
-      recordsFailed: Number(count.records_failed ?? 0),
-    });
-    this.logger.log(
-      `Mercado Publico V2 sync ${context.syncRunId} paused at its page budget`,
-    );
-
-    return {
-      syncRunId: context.syncRunId,
-      status: 'partial_failed',
       recordsDiscovered: Number(count.records_discovered ?? 0),
       recordsHydrated: Number(count.records_hydrated ?? 0),
       recordsFailed: Number(count.records_failed ?? 0),
@@ -1614,6 +1847,19 @@ export class MercadoPublicoV2DurableSyncService {
               SELECT COUNT(*) FROM mp.sync_run_item
               WHERE sync_run_id = $1 AND discovery_page > 0
             ),
+            provider_records_seen = (
+              SELECT COALESCE(SUM(records_returned), 0)
+              FROM mp.sync_run_page
+              WHERE sync_run_id = $1
+            ),
+            records_hydration_required = (
+              SELECT COUNT(*) FROM mp.sync_run_item
+              WHERE sync_run_id = $1 AND hydration_required = true
+            ),
+            records_hydration_skipped = (
+              SELECT COUNT(*) FROM mp.sync_run_item
+              WHERE sync_run_id = $1 AND hydration_required = false
+            ),
             records_hydrated = (
               SELECT COUNT(*) FROM mp.sync_run_item
               WHERE sync_run_id = $1 AND hydrated_at IS NOT NULL
@@ -1621,8 +1867,12 @@ export class MercadoPublicoV2DurableSyncService {
             records_failed = (
               SELECT COUNT(*) FROM mp.sync_run_item
               WHERE sync_run_id = $1
-                AND status = 'terminal'
-                AND error_summary IS NOT NULL
+                AND status = 'failed'
+            ),
+            records_deferred = (
+              SELECT COUNT(*) FROM mp.sync_run_item
+              WHERE sync_run_id = $1
+                AND status = 'deferred'
             ),
             records_projected = (
               SELECT COUNT(*) FROM mp.sync_run_item
@@ -1652,13 +1902,16 @@ export class MercadoPublicoV2DurableSyncService {
         records_discovered: string;
         records_hydrated: string;
         records_failed: string;
+        records_deferred: string;
         records_projected: string;
         pages_checkpointed: string;
+        discovery_complete: boolean;
       }[]
     >(
       `
         SELECT records_discovered, records_hydrated, records_failed,
-               records_projected, pages_checkpointed
+               records_deferred, records_projected, pages_checkpointed,
+               discovery_complete
         FROM mp.sync_run
         WHERE id = $1
       `,
@@ -1666,9 +1919,13 @@ export class MercadoPublicoV2DurableSyncService {
     );
     const count = counts[0];
     const recordsFailed = Number(count.records_failed);
-    const status = recordsFailed > 0 ? 'partial_failed' : 'succeeded';
+    const recordsDeferred = Number(count.records_deferred);
+    const status =
+      recordsFailed > 0 || recordsDeferred > 0 ? 'partial_failed' : 'succeeded';
     const watermarkAfter =
-      status === 'succeeded' && context.requestParams.id === undefined
+      count.discovery_complete === true &&
+      context.maxPages === undefined &&
+      isGlobalIncrementalWindow(context.requestParams)
         ? await this.advanceWatermark(context)
         : null;
 
@@ -1692,9 +1949,27 @@ export class MercadoPublicoV2DurableSyncService {
       recordsFailed,
       errorSummary:
         status === 'partial_failed'
-          ? 'partial_failed: one or more detail requests failed'
+          ? recordsFailed > 0
+            ? 'partial_failed: one or more detail requests failed'
+            : 'partial_failed: one or more detail requests were deferred for recovery'
           : undefined,
     });
+    const jobRunRows = await this.coreDataSource.query<{ job_name: string }[]>(
+      `
+        SELECT job_name
+        FROM mp.stg_job_run
+        WHERE id = $1
+      `,
+      [jobRunRecordId],
+    );
+    const jobName = jobRunRows[0]?.job_name;
+
+    if (jobName !== undefined) {
+      await this.mercadoPublicoPersistenceService.recordPipelineHealth({
+        jobName,
+        succeeded: status === 'succeeded',
+      });
+    }
 
     this.logger.log(
       `Mercado Publico V2 sync ${context.syncRunId} finished as ${status}`,
@@ -1734,6 +2009,7 @@ export class MercadoPublicoV2DurableSyncService {
         SELECT MAX(provider_changed_at) AS max_provider_changed_at
         FROM mp.sync_run_item
         WHERE sync_run_id = $1
+          AND discovery_page > 0
       `,
       [context.syncRunId],
     );
@@ -1811,7 +2087,10 @@ export class MercadoPublicoV2DurableSyncService {
       fetchedAt: response.fetchedAt,
       rawPayload: response.rawPayload,
       schemaFingerprint: response.schemaFingerprint,
-      recordsFetched: response.compraAgil.length,
+      recordsFetched: response.recordsFetched,
+      recordsAccepted: response.recordsAccepted,
+      recordsRejected: response.recordsRejected,
+      contractIssues: response.contractIssues,
       errorSummaryText: this.buildProviderError(response, 'provider'),
     });
   }

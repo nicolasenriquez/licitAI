@@ -1,6 +1,9 @@
 import { MercadoPublicoV2SyncCommandJob } from 'src/engine/core-modules/mercado-publico/jobs/mercado-publico-v2-sync-command.job';
 import { type MercadoPublicoV2SyncControlService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-sync-control.service';
-import { type MercadoPublicoV2DurableSyncService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
+import {
+  MercadoPublicoV2InactiveSyncAttemptError,
+  type MercadoPublicoV2DurableSyncService,
+} from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
 import { MercadoPublicoRecordedJobFailureError } from 'src/engine/core-modules/mercado-publico/services/utils/mercado-publico-recorded-job-failure.error';
 
 describe('MercadoPublicoV2SyncCommandJob', () => {
@@ -8,6 +11,7 @@ describe('MercadoPublicoV2SyncCommandJob', () => {
     ({
       claimCommand: jest.fn().mockResolvedValue(claimResult),
       finalizeCommand: jest.fn().mockResolvedValue(undefined),
+      deferCommand: jest.fn().mockResolvedValue(undefined),
     }) as unknown as jest.Mocked<MercadoPublicoV2SyncControlService>;
 
   const buildDurableService = () =>
@@ -35,10 +39,14 @@ describe('MercadoPublicoV2SyncCommandJob', () => {
       'command-1',
       expect.any(String),
     );
-    expect(durableService.executeExistingRun).toHaveBeenCalledWith('run-1');
+    expect(durableService.executeExistingRun).toHaveBeenCalledWith(
+      'run-1',
+      'attempt-1',
+    );
     expect(controlService.finalizeCommand).toHaveBeenCalledWith({
       commandId: 'command-1',
       attemptId: 'attempt-1',
+      attemptNumber: 1,
       status: 'succeeded',
     });
     expect(durableService.start).not.toHaveBeenCalled();
@@ -82,6 +90,7 @@ describe('MercadoPublicoV2SyncCommandJob', () => {
       kind: 'claimed',
       syncRunId: 'run-stale',
       attemptId: 'attempt-2',
+      attemptNumber: 2,
     });
     const durableService = buildDurableService();
     const job = new MercadoPublicoV2SyncCommandJob(
@@ -95,12 +104,40 @@ describe('MercadoPublicoV2SyncCommandJob', () => {
       'command-stale',
       expect.any(String),
     );
-    expect(durableService.executeExistingRun).toHaveBeenCalledWith('run-stale');
+    expect(durableService.executeExistingRun).toHaveBeenCalledWith(
+      'run-stale',
+      'attempt-2',
+    );
     expect(controlService.finalizeCommand).toHaveBeenCalledWith({
       commandId: 'command-stale',
       attemptId: 'attempt-2',
+      attemptNumber: 2,
       status: 'succeeded',
     });
+  });
+
+  it('stops an expired worker without finalizing the replacement attempt', async () => {
+    const controlService = buildControlService({
+      kind: 'claimed',
+      syncRunId: 'run-1',
+      attemptId: 'attempt-1',
+      attemptNumber: 1,
+    });
+    const durableService = buildDurableService();
+    durableService.executeExistingRun.mockRejectedValueOnce(
+      new MercadoPublicoV2InactiveSyncAttemptError('attempt is stale'),
+    );
+    const job = new MercadoPublicoV2SyncCommandJob(
+      controlService,
+      durableService,
+    );
+
+    await expect(
+      job.handle({ commandId: 'command-1' }),
+    ).resolves.toBeUndefined();
+
+    expect(controlService.finalizeCommand).not.toHaveBeenCalled();
+    expect(controlService.deferCommand).not.toHaveBeenCalled();
   });
 
   it('finalizes a claimed attempt as failed when execution throws', async () => {
@@ -126,6 +163,7 @@ describe('MercadoPublicoV2SyncCommandJob', () => {
     expect(controlService.finalizeCommand).toHaveBeenCalledWith({
       commandId: 'command-1',
       attemptId: 'attempt-1',
+      attemptNumber: 1,
       status: 'failed',
       errorSummary: 'failed',
     });
@@ -154,9 +192,43 @@ describe('MercadoPublicoV2SyncCommandJob', () => {
     expect(controlService.finalizeCommand).toHaveBeenCalledWith({
       commandId: 'command-1',
       attemptId: 'attempt-1',
+      attemptNumber: 1,
       status: 'retryable_failed',
       errorSummary: 'provider unavailable',
     });
+  });
+
+  it('defers a rate-limited command to the provider quota reset without throwing', async () => {
+    const retryAt = new Date('2026-08-15T04:00:00.000Z');
+    const controlService = buildControlService({
+      kind: 'claimed',
+      syncRunId: 'run-1',
+      attemptId: 'attempt-1',
+      attemptNumber: 1,
+    });
+    const durableService = buildDurableService();
+    durableService.executeExistingRun.mockRejectedValueOnce(
+      new MercadoPublicoRecordedJobFailureError(
+        'provider rate limit reset required',
+        true,
+        retryAt,
+      ),
+    );
+    const job = new MercadoPublicoV2SyncCommandJob(
+      controlService,
+      durableService,
+    );
+
+    await expect(
+      job.handle({ commandId: 'command-1' }),
+    ).resolves.toBeUndefined();
+
+    expect(controlService.deferCommand).toHaveBeenCalledWith({
+      commandId: 'command-1',
+      attemptId: 'attempt-1',
+      retryAt,
+    });
+    expect(controlService.finalizeCommand).not.toHaveBeenCalled();
   });
 
   it('does not perform provider work itself', async () => {

@@ -1,13 +1,6 @@
 import { type FileFolder } from 'twenty-shared/types';
 import { type Location } from 'esbuild';
 
-export interface RestartableWatcher {
-  restart(sourcePaths: string[]): Promise<void>;
-  start(): Promise<void>;
-  close(): Promise<void>;
-  shouldRestart(sourcePaths: string[]): boolean;
-}
-
 export type OnFileBuiltCallback = (options: {
   fileFolder: FileFolder;
   builtPath: string;

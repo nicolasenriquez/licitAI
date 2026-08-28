@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { isNonEmptyString, isNull } from '@sniptt/guards';
 import chunk from 'lodash.chunk';
-import compact from 'lodash.compact';
 import {
   ConnectedAccountProvider,
   FieldActorSource,
@@ -308,27 +307,28 @@ export class CreateCompanyAndPersonService {
       shouldCreateOrRestorePeopleByHandleMap,
     );
 
-    const workDomainNamesToCreate = compact(
-      [...contactsThatNeedPersonCreate, ...contactsThatNeedPersonRestore]
-        .map((contact) => {
-          const companyDomainName = isWorkEmail(contact.handle)
-            ? getDomainNameFromHandle(contact.handle)
-            : undefined;
+    const workDomainNamesToCreate = [
+      ...contactsThatNeedPersonCreate,
+      ...contactsThatNeedPersonRestore,
+    ]
+      .map((contact) => {
+        const companyDomainName = isWorkEmail(contact.handle)
+          ? getDomainNameFromHandle(contact.handle)
+          : undefined;
 
-          if (!isDefined(companyDomainName) || !isWorkDomain(companyDomainName))
-            return undefined;
+        if (!isDefined(companyDomainName) || !isWorkDomain(companyDomainName))
+          return undefined;
 
-          return {
-            domainName: companyDomainName,
-            createdBySource: source,
-            createdByWorkspaceMember: accountOwner,
-            createdByContext: {
-              provider: connectedAccount.provider,
-            },
-          };
-        })
-        .filter(isDefined),
-    );
+        return {
+          domainName: companyDomainName,
+          createdBySource: source,
+          createdByWorkspaceMember: accountOwner,
+          createdByContext: {
+            provider: connectedAccount.provider,
+          },
+        };
+      })
+      .filter(isDefined);
 
     return {
       contactsThatNeedPersonCreate,

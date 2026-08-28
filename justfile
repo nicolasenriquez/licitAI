@@ -10,7 +10,7 @@
 #   just dev-down            stop app stack
 #   just ci-prepush          gate + static + build + test (~8 min)
 #   just ci                  static + build + test (commit-build, ~8 min)
-#   just ci-full             ci + security + integration (~18 min, needs infra)
+#   just ci-full             ci + full lint + validate + security + integration + emails
 #   just ci-infra-up         start PostgreSQL + Redis + ClickHouse for CI
 #   just ci-infra-down       stop CI infrastructure
 #
@@ -24,7 +24,6 @@
 set windows-shell := ["cmd.exe", "/C"]
 
 PLATFORM := "linux/amd64"
-TAG := "latest"
 DOCKER_NETWORK := "twenty_network"
 COMPOSE_APP := "packages/twenty-docker/docker-compose.yml"
 COMPOSE_DEV := "packages/twenty-docker/docker-compose.dev.yml"
@@ -40,13 +39,14 @@ _default:
 # Start full app stack with cached image. Migrations run automatically on
 # server boot (instance commands are forward-only and immutable by design).
 dev-up: _ensure-env-file
-    docker compose --env-file {{ENV_FILE}} -f {{COMPOSE_APP}} up -d
-    @echo === Waiting for server (migrations run on boot, up to 300s) ===
-    npx wait-on http://localhost:3000/healthz --timeout 300000 --interval 5000
-    @echo === Stack ready. Migrations applied, server healthy. ===
+    docker compose --env-file {{ENV_FILE}} -f {{COMPOSE_APP}} up --detach --no-build --pull never --wait --wait-timeout 300
+    @echo === Stack ready and healthy. ===
 
-# Start full app stack, rebuilding the image first (slow, ~10-20 min)
-dev-up-build: _ensure-env-file prod-build dev-up
+# Build the configured local image and start the full app stack. The first
+# build varies by hardware; an unchanged rebuild uses Docker's layer cache.
+dev-up-build: _ensure-env-file
+    docker compose --env-file {{ENV_FILE}} -f {{COMPOSE_APP}} up --detach --build --pull never --wait --wait-timeout 300
+    @echo === Stack rebuilt and ready. Server healthy. ===
 
 # Stop app stack
 dev-down:
@@ -82,9 +82,10 @@ ci-prepush: ci-gate ci-check ci-build ci-test
 # Standard local CI pipeline (commit-build: no server needed)
 ci: ci-check ci-build ci-test
 
-# Full CI including validate + security + integration. Fail before CI work when
-# the explicitly started CI infrastructure or source server is missing.
-ci-full: _ensure-installed _ensure-ci-prerequisites ci ci-validate ci-security ci-integration
+# Full CI including full lint, validate, security, integration, and emails.
+# Fail before CI work when the explicitly started CI infrastructure or source
+# server is missing.
+ci-full: _ensure-installed _ensure-ci-prerequisites ci ci-server-lint-full ci-server-validate ci-security ci-integration ci-emails
 
 # All static checks across packages
 ci-check: _ensure-installed ci-server-lint ci-front-lint ci-front-typecheck ci-shared ci-ui ci-sdk ci-docs
@@ -113,6 +114,12 @@ ci-server-lint: _ensure-installed
     npx nx build twenty-shared
     npx nx lint:diff-with-main twenty-server
     npx nx typecheck twenty-server
+
+# Full-tree lint used by GitHub's server lint job.
+ci-server-lint-full: _ensure-installed
+    npx nx build twenty-oxlint-rules
+    npx nx build twenty-shared
+    npx nx lint twenty-server
 
 # Mirrors job: server-build
 # Note: _ensure-env copies .env.example only if .env missing (safer than GHA's reset:env overwrite).
@@ -223,6 +230,7 @@ ci-emails: _ensure-installed
     npx nx build twenty-emails
     npx nx typecheck twenty-emails
     npx nx lint twenty-emails
+    npx concurrently --kill-others --success first "npx nx run twenty-emails:start" "npx wait-on http://localhost:4001/preview/test.email --timeout 20000"
 
 # ═════════════════════════════════════════════════════════════════════════════
 # CI — VALIDATE (aggregate)
@@ -323,5 +331,5 @@ _ensure-ci-prerequisites: _ensure-pg _ensure-redis _ensure-clickhouse _ensure-se
 # DOCKER BUILD
 # ═════════════════════════════════════════════════════════════════════════════
 
-prod-build:
-    docker build --target twenty -f ./packages/twenty-docker/twenty/Dockerfile --platform {{PLATFORM}} --tag twentycrm/twenty:{{TAG}} .
+prod-build: _ensure-env-file
+    docker compose --env-file {{ENV_FILE}} -f {{COMPOSE_APP}} build server

@@ -1,5 +1,4 @@
 import { Collapsible } from '@base-ui/react/collapsible';
-import { isNonEmptyString } from '@sniptt/guards';
 import { clsx } from 'clsx';
 import { useState } from 'react';
 import { isDefined } from '@ui/utilities/utils/isDefined';
@@ -51,9 +50,8 @@ export const JsonNestedNode = ({
         />
       ) : (
         elements.map(({ id, label, value }) => {
-          const nextKeyPath = isNonEmptyString(keyPath)
-            ? `${keyPath}.${id}`
-            : String(id);
+          const nextKeyPath =
+            keyPath.length > 0 ? `${keyPath}.${id}` : String(id);
 
           return (
             <JsonNode

@@ -25,6 +25,14 @@ Mercado Publico ingestion depends on understanding that API and CSV are compleme
 
 For the current backbone change, the implementation posture is API-executable and CSV-executable. The backbone includes API V1 date and state jobs, API V2 Compra Agil jobs, CSV download/profiling/raw loading, canonical normalization, reconciliation, and gold/read contracts.
 
+## Retirement Status (2026-08-16)
+
+The API V1 and CSV ingestion runtimes described below were retired by the
+`mercado-publico-v2-legacy-retirement` change (G5) after the G4 cutover gate
+closed; the source-family semantics remain as domain context for retained raw
+evidence and migrations. Evidence and removed scope:
+`openspec/changes/mercado-publico-v2-legacy-retirement/retirement-evidence.md`.
+
 ## Central Principle
 
 Do not treat API and CSV as equivalent replicas.

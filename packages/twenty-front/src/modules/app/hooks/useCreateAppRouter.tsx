@@ -116,14 +116,6 @@ const MercadoPublicoV2ActivePage = lazy(() =>
   ),
 );
 
-const MercadoPublicoCommandCenterPage = lazy(() =>
-  import('~/pages/mercado-publico/MercadoPublicoCommandCenterPage').then(
-    (module) => ({
-      default: module.MercadoPublicoCommandCenterPage,
-    }),
-  ),
-);
-
 const MercadoPublicoV2HistoryPage = lazy(() =>
   import('~/pages/mercado-publico/MercadoPublicoV2HistoryPage').then(
     (module) => ({
@@ -151,7 +143,6 @@ const MercadoPublicoV2SyncControlPage = lazy(() =>
 export const useCreateAppRouter = (
   isFunctionSettingsEnabled?: boolean,
   isAdminPageEnabled?: boolean,
-  isMercadoPublicoV2Enabled?: boolean,
 ) =>
   createBrowserRouter(
     createRoutesFromElements(
@@ -278,56 +269,35 @@ export const useCreateAppRouter = (
                 </LazyRoute>
               }
             />
-            {isMercadoPublicoV2Enabled ? (
-              <>
-                <Route
-                  path={AppPath.MercadoPublico}
-                  element={
-                    <LazyRoute>
-                      <MercadoPublicoV2ActivePage />
-                    </LazyRoute>
-                  }
-                />
-                <Route
-                  path={AppPath.MercadoPublicoV2History}
-                  element={
-                    <LazyRoute>
-                      <MercadoPublicoV2HistoryPage />
-                    </LazyRoute>
-                  }
-                />
-                <Route
-                  path={AppPath.MercadoPublicoV2Buyers}
-                  element={
-                    <LazyRoute>
-                      <MercadoPublicoV2BuyersPage />
-                    </LazyRoute>
-                  }
-                />
-                <Route
-                  path={AppPath.MercadoPublicoV2SyncControl}
-                  element={
-                    <LazyRoute>
-                      <MercadoPublicoV2SyncControlPage />
-                    </LazyRoute>
-                  }
-                />
-              </>
-            ) : (
-              <Route
-                path={AppPath.MercadoPublico}
-                element={
-                  <LazyRoute>
-                    <MercadoPublicoCommandCenterPage />
-                  </LazyRoute>
-                }
-              />
-            )}
             <Route
-              path={AppPath.MercadoPublicoLegacy}
+              path={AppPath.MercadoPublico}
               element={
                 <LazyRoute>
-                  <MercadoPublicoCommandCenterPage />
+                  <MercadoPublicoV2ActivePage />
+                </LazyRoute>
+              }
+            />
+            <Route
+              path={AppPath.MercadoPublicoV2History}
+              element={
+                <LazyRoute>
+                  <MercadoPublicoV2HistoryPage />
+                </LazyRoute>
+              }
+            />
+            <Route
+              path={AppPath.MercadoPublicoV2Buyers}
+              element={
+                <LazyRoute>
+                  <MercadoPublicoV2BuyersPage />
+                </LazyRoute>
+              }
+            />
+            <Route
+              path={AppPath.MercadoPublicoV2SyncControl}
+              element={
+                <LazyRoute>
+                  <MercadoPublicoV2SyncControlPage />
                 </LazyRoute>
               }
             />

@@ -19,7 +19,7 @@ without replacing the existing `docs/README.md` baseline.
 | Architecture | `architecture/` | Current state, target state, topology, security, repository strategy |
 | Business | `business/` | Domain workflows, source contracts, business context |
 | Decisions | `decisions/` | Repository ADRs and long-lived architectural choices |
-| Design | `design/` | Design system and wireframe guidance |
+| Design | `design/` | Design system, wireframe, and UI pattern guidance |
 | Governance | `governance/` | Delivery rules, ownership boundaries, operating model |
 | Operations | `operations/` | Command surface, local development, authoring guidance |
 | Standards | `standards/` | Repository documentation and technology standards |
@@ -28,5 +28,7 @@ without replacing the existing `docs/README.md` baseline.
 ## Routing Rule
 
 - Stay in `docs/` for durable repository docs.
+- For product design, interaction-pattern, or visual-system work, enter
+  `docs/design/index.md` before loading a design guide.
 - Bounce back through root `index.md` if the task is really an active OpenSpec
   change, package implementation work, or repo-local tooling work.

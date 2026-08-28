@@ -1,4 +1,3 @@
-import { millisecondsToSeconds } from 'date-fns';
 import {
   animate,
   type AnimationPlaybackControls,
@@ -27,7 +26,7 @@ export const useProgressAnimation = ({
     if (isDefined(animation)) return;
 
     const duration = isDefined(options?.duration)
-      ? millisecondsToSeconds(options.duration)
+      ? Math.trunc(options.duration / 1000)
       : undefined;
 
     setAnimation(

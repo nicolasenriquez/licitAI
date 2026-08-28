@@ -233,16 +233,16 @@ msgstr ""
 msgid "{0} of {1}"
 msgstr ""
 
-#. js-lingui-id: NVjSKh
-#. placeholder {0}: opportunities.totalCount
-#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
-msgid "{0} oportunidades"
-msgstr ""
-
 #. js-lingui-id: BzvoVr
 #. placeholder {0}: preview.topicUnsubscribed
 #: src/modules/activities/emails/components/CampaignComposerFields.tsx
 msgid "{0} opted out of this topic"
+msgstr ""
+
+#. js-lingui-id: m4FZwQ
+#. placeholder {0}: opportunities.totalCount
+#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
+msgid "{0} procesos"
 msgstr ""
 
 #. js-lingui-id: peiknr
@@ -637,6 +637,12 @@ msgstr ""
 msgid "~ {0} tokens"
 msgstr ""
 
+#. js-lingui-id: 1QvAXl
+#. placeholder {0}: node.amountClp
+#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
+msgid "≈ CLP {0}"
+msgstr ""
+
 #. js-lingui-id: Cx0xl3
 #: src/modules/workflow/workflow-steps/workflow-actions/delay-actions/components/WorkflowEditActionDelay.tsx
 #: src/modules/workflow/workflow-steps/workflow-actions/delay-actions/components/WorkflowEditActionDelay.tsx
@@ -648,6 +654,11 @@ msgstr ""
 #. js-lingui-id: F5VNGT
 #: src/modules/workflow/workflow-trigger/components/WorkflowEditTriggerCronForm.tsx
 msgid "0 */1 * * *"
+msgstr ""
+
+#. js-lingui-id: jZOEGN
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "1 página"
 msgstr ""
 
 #. js-lingui-id: Mkh9C8
@@ -681,6 +692,11 @@ msgstr ""
 msgid "1. Select an object"
 msgstr ""
 
+#. js-lingui-id: MFTyqr
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "10 páginas"
+msgstr ""
+
 #. js-lingui-id: rU05hS
 #: src/modules/settings/experience/components/DateTimeSettingsTimeFormatSelect.tsx
 msgid "12h"
@@ -694,6 +710,11 @@ msgstr ""
 #. js-lingui-id: wk1eMj
 #: src/modules/ai/constants/AgentChatThreadLastActivityFilterLabels.ts
 msgid "1d"
+msgstr ""
+
+#. js-lingui-id: 9wHqgz
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "2 páginas"
 msgstr ""
 
 #. js-lingui-id: 0HAF12
@@ -744,6 +765,11 @@ msgstr ""
 #. js-lingui-id: XO2NLh
 #: src/modules/ai/constants/AgentChatThreadLastActivityFilterLabels.ts
 msgid "3d"
+msgstr ""
+
+#. js-lingui-id: CPnykG
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "50 páginas"
 msgstr ""
 
 #. js-lingui-id: 2Lvxm0
@@ -960,8 +986,6 @@ msgstr ""
 
 #. js-lingui-id: x8a6i/
 #: src/modules/mercado-publico/components/MercadoPublicoV2FilterBar.tsx
-#: src/modules/mercado-publico/components/MercadoPublicoV2Nav.tsx
-#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
 msgid "Activas"
 msgstr ""
 
@@ -2075,6 +2099,11 @@ msgstr ""
 msgid "And"
 msgstr ""
 
+#. js-lingui-id: scHVBb
+#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
+msgid "Anterior"
+msgstr ""
+
 #. js-lingui-id: 9BhGWn
 #. placeholder {0}: fieldLabel ?? ''
 #: src/modules/object-record/advanced-filter/components/AdvancedFilterCompositeSubFieldSelectMenu.tsx
@@ -3173,6 +3202,12 @@ msgstr ""
 msgid "Calendars"
 msgstr ""
 
+#. js-lingui-id: wcjfpO
+#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
+#: src/pages/mercado-publico/MercadoPublicoV2BuyersPage.tsx
+msgid "Calidad de datos"
+msgstr ""
+
 #. js-lingui-id: qIlodj
 #: src/modules/object-record/record-field/ui/form-types/components/FormPhoneFieldInput.tsx
 msgid "Calling Code"
@@ -3387,14 +3422,14 @@ msgstr ""
 msgid "Cargando historial…"
 msgstr ""
 
-#. js-lingui-id: o4/xez
-#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
-msgid "Cargando oportunidades…"
-msgstr ""
-
 #. js-lingui-id: KsCY2Z
 #: src/modules/side-panel/pages/mercado-publico-v2/components/SidePanelMercadoPublicoV2OpportunityPage.tsx
 msgid "Cargando payload…"
+msgstr ""
+
+#. js-lingui-id: wrWtEQ
+#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
+msgid "Cargando procesos…"
 msgstr ""
 
 #. js-lingui-id: M1RLfx
@@ -3422,12 +3457,6 @@ msgstr ""
 #. js-lingui-id: Dgsw8A
 #: src/modules/activities/emails/components/EmailComposerFields.tsx
 msgid "Cc/Bcc"
-msgstr ""
-
-#. js-lingui-id: aCbLKs
-#: src/modules/mercado-publico/components/MercadoPublicoV2Nav.tsx
-#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
-msgid "Centro de control"
 msgstr ""
 
 #. js-lingui-id: YzzR1x
@@ -3784,19 +3813,18 @@ msgstr ""
 
 #. js-lingui-id: YN+DCy
 #: src/pages/mercado-publico/MercadoPublicoV2BuyersPage.tsx
-#: src/pages/mercado-publico/MercadoPublicoV2BuyersPage.tsx
 msgid "Cobertura de comprador"
-msgstr ""
-
-#. js-lingui-id: kD8nun
-#: src/pages/mercado-publico/MercadoPublicoV2BuyersPage.tsx
-msgid "Cobertura de comprador y disponibilidad declaradas para la población filtrada."
 msgstr ""
 
 #. js-lingui-id: 0IwxMi
 #: src/pages/mercado-publico/MercadoPublicoV2BuyersPage.tsx
-#: src/pages/mercado-publico/MercadoPublicoV2BuyersPage.tsx
 msgid "Cobertura de monto"
+msgstr ""
+
+#. js-lingui-id: Dq5DIr
+#. placeholder {0}: latestRun.discoveryComplete ? 'Completa' : 'Parcial'
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Cobertura: {0}"
 msgstr ""
 
 #. js-lingui-id: EWPtMO
@@ -3972,6 +4000,11 @@ msgstr ""
 #. js-lingui-id: s2QZS6
 #: src/modules/sign-in-background-mock/components/BackgroundMockPage.tsx
 msgid "Companies"
+msgstr ""
+
+#. js-lingui-id: lGhHEG
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Completa / sin límite"
 msgstr ""
 
 #. js-lingui-id: 3WrMP5
@@ -5869,6 +5902,16 @@ msgstr ""
 msgid "Description provided by the application"
 msgstr ""
 
+#. js-lingui-id: ywI8Pl
+#. placeholder {0}: latestRun.recordsDiscovered
+#. placeholder {1}: latestRun.recordsHydrated
+#. placeholder {2}: latestRun.recordsDeferred
+#. placeholder {3}: latestRun.recordsFailed
+#. placeholder {4}: latestRun.recordsProjected
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Descubiertos: {0} · Hidratados: {1} · Diferidos: {2} · Fallidos: {3} · Proyectados: {4}"
+msgstr ""
+
 #. js-lingui-id: oNJytT
 #: src/modules/mercado-publico/components/MercadoPublicoV2FilterBar.tsx
 msgid "Desierta"
@@ -5916,10 +5959,10 @@ msgstr ""
 msgid "Details"
 msgstr ""
 
-#. js-lingui-id: mwvifb
+#. js-lingui-id: 54P6o4
 #: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
 #: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
-msgid "Detalle de oportunidad"
+msgid "Detalle del proceso"
 msgstr ""
 
 #. js-lingui-id: X8zQXH
@@ -6042,6 +6085,8 @@ msgstr ""
 #: src/modules/side-panel/pages/mercado-publico-v2/components/SidePanelMercadoPublicoV2OpportunityPage.tsx
 #: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
 #: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
+#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
+#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
 msgid "Documentos"
 msgstr ""
 
@@ -6050,12 +6095,6 @@ msgstr ""
 #. placeholder {1}: analytics.population
 #: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
 msgid "documentos {0}/{1}"
-msgstr ""
-
-#. js-lingui-id: xZHwrO
-#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
-#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
-msgid "Documentos / ofertas"
 msgstr ""
 
 #. js-lingui-id: 68yA2h
@@ -6442,6 +6481,12 @@ msgstr ""
 #. js-lingui-id: hpAStM
 #: src/modules/object-record/record-merge/utils/getPositionWordLabel.ts
 msgid "Eighth"
+msgstr ""
+
+#. js-lingui-id: STLCsK
+#. placeholder {0}: latestRun.safeStatus
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Ejecución: {0}"
 msgstr ""
 
 #. js-lingui-id: RvmROw
@@ -7214,18 +7259,6 @@ msgstr ""
 msgid "estado {0}/{1}"
 msgstr ""
 
-#. js-lingui-id: qrszha
-#: src/pages/mercado-publico/MercadoPublicoV2BuyersPage.tsx
-#: src/pages/mercado-publico/MercadoPublicoV2BuyersPage.tsx
-msgid "Estado y frescura"
-msgstr ""
-
-#. js-lingui-id: cwRLTa
-#. placeholder {0}: latestRun.safeStatus
-#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
-msgid "Estado: {0}"
-msgstr ""
-
 #. js-lingui-id: 8BufAL
 #: src/modules/mercado-publico/components/MercadoPublicoV2FilterBar.tsx
 #: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
@@ -7841,6 +7874,11 @@ msgstr ""
 #: src/modules/side-panel/pages/page-layout/hooks/useChartSettingsValues.ts
 #: src/modules/ui/field/display/components/BooleanDisplay.tsx
 msgid "False"
+msgstr ""
+
+#. js-lingui-id: EtVgw4
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Falta el rol de operador. Contacta a un administrador para solicitar acceso."
 msgstr ""
 
 #. js-lingui-id: XVIZ7v
@@ -8798,7 +8836,6 @@ msgid "Hire a partner to help you implement and customize Twenty."
 msgstr ""
 
 #. js-lingui-id: C9Bfv+
-#: src/modules/mercado-publico/components/MercadoPublicoV2Nav.tsx
 #: src/pages/mercado-publico/MercadoPublicoV2HistoryPage.tsx
 msgid "Historial"
 msgstr ""
@@ -9785,6 +9822,11 @@ msgstr ""
 msgid "Korean"
 msgstr ""
 
+#. js-lingui-id: mIDlmN
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "La acción no se completó. Se conserva la última información. Reintenta cuando el servicio esté disponible."
+msgstr ""
+
 #. js-lingui-id: baVwWf
 #: src/modules/side-panel/pages/mercado-publico-v2/components/SidePanelMercadoPublicoV2OpportunityPage.tsx
 msgid "La fuente no requirió redacción."
@@ -10446,9 +10488,9 @@ msgstr ""
 msgid "loop"
 msgstr ""
 
-#. js-lingui-id: WQtPJ7
+#. js-lingui-id: LLjU3C
 #: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
-msgid "Los filtros ingresados no son válidos; revisa los rangos (desde/hasta o mínimo/máximo)."
+msgid "Los filtros ingresados no son válidos. Revisa que cada valor desde o mínimo no supere su valor hasta o máximo."
 msgstr ""
 
 #. js-lingui-id: MsaCqr
@@ -10575,6 +10617,16 @@ msgstr ""
 #. js-lingui-id: Zt5PUS
 #: src/pages/settings/applications/SettingsApplications.tsx
 msgid "Marketplace"
+msgstr ""
+
+#. js-lingui-id: bi37de
+#: src/modules/mercado-publico/components/MercadoPublicoV2FilterBar.tsx
+msgid "Más filtros"
+msgstr ""
+
+#. js-lingui-id: 8maSJH
+#: src/modules/mercado-publico/components/MercadoPublicoV2FilterBar.tsx
+msgid "Más filtros ({advancedFilterCount})"
 msgstr ""
 
 #. js-lingui-id: 8r6vNs
@@ -11017,6 +11069,12 @@ msgstr ""
 #. js-lingui-id: NNGDUb
 #: src/modules/side-panel/pages/mercado-publico-v2/components/SidePanelMercadoPublicoV2OpportunityPage.tsx
 msgid "Motivo de selección"
+msgstr ""
+
+#. js-lingui-id: 0Pakjl
+#. placeholder {0}: latestRun.completionReason
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Motivo: {0}"
 msgstr ""
 
 #. js-lingui-id: MoN7ZE
@@ -11822,20 +11880,20 @@ msgstr ""
 msgid "No fue posible cargar el historial."
 msgstr ""
 
-#. js-lingui-id: XrYPsL
-#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
-#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
-msgid "No fue posible cargar las oportunidades."
-msgstr ""
-
 #. js-lingui-id: jxuSqo
 #: src/pages/mercado-publico/MercadoPublicoV2BuyersPage.tsx
 msgid "No fue posible cargar los compradores."
 msgstr ""
 
-#. js-lingui-id: edEX6v
+#. js-lingui-id: QvNSCc
+#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
+#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
+msgid "No fue posible cargar los procesos."
+msgstr ""
+
+#. js-lingui-id: KUoZOb
 #: src/pages/mercado-publico/MercadoPublicoV2HistoryPage.tsx
-msgid "No hay cambios semánticos registrados para esta oportunidad."
+msgid "No hay cambios semánticos registrados para este proceso."
 msgstr ""
 
 #. js-lingui-id: jiXwYx
@@ -11853,9 +11911,9 @@ msgstr ""
 msgid "No hay eventos registrados."
 msgstr ""
 
-#. js-lingui-id: ZYjA6O
+#. js-lingui-id: U5KVK7
 #: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
-msgid "No hay oportunidades disponibles."
+msgid "No hay procesos disponibles."
 msgstr ""
 
 #. js-lingui-id: 9kCSLK
@@ -12099,6 +12157,11 @@ msgstr ""
 msgid "No rows with errors"
 msgstr ""
 
+#. js-lingui-id: X/pBSg
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "No se pudo cargar el control de sincronización."
+msgstr ""
+
 #. js-lingui-id: Hsl+kr
 #: src/modules/views/view-picker/components/ViewPickerContentCreateMode.tsx
 msgid "No Select field"
@@ -12122,11 +12185,6 @@ msgstr ""
 #. js-lingui-id: L4Miic
 #: src/modules/side-panel/pages/page-layout/components/dropdown-content/ChartGroupByFieldSelectionMorphRelationFieldView.tsx
 msgid "No targets available"
-msgstr ""
-
-#. js-lingui-id: dRqaVW
-#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
-msgid "No tienes acceso al control de sincronización. Contacta a un administrador para que te asigne como operador."
 msgstr ""
 
 #. js-lingui-id: t0t36i
@@ -12557,7 +12615,6 @@ msgstr ""
 
 #. js-lingui-id: ieCzIR
 #: src/modules/side-panel/pages/mercado-publico-v2/components/SidePanelMercadoPublicoV2OpportunityPage.tsx
-#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
 msgid "Ofertas"
 msgstr ""
 
@@ -12774,17 +12831,6 @@ msgstr ""
 #: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
 #: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
 msgid "Oportunidad"
-msgstr ""
-
-#. js-lingui-id: 6dvqbD
-#: src/pages/mercado-publico/MercadoPublicoV2HistoryPage.tsx
-msgid "Oportunidad {codigo}"
-msgstr ""
-
-#. js-lingui-id: bjvhHe
-#: src/pages/mercado-publico/MercadoPublicoV2BuyersPage.tsx
-#: src/pages/mercado-publico/MercadoPublicoV2BuyersPage.tsx
-msgid "Oportunidades"
 msgstr ""
 
 #. js-lingui-id: W8B1Yf
@@ -13079,6 +13125,11 @@ msgstr ""
 #. js-lingui-id: 2W/hh7
 #: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
 msgid "Paginación de oportunidades"
+msgstr ""
+
+#. js-lingui-id: 5ymYJ6
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Páginas por ejecución"
 msgstr ""
 
 #. js-lingui-id: ijBN4V
@@ -13635,6 +13686,19 @@ msgstr ""
 msgid "Procedencia"
 msgstr ""
 
+#. js-lingui-id: b2YPy4
+#: src/pages/mercado-publico/MercadoPublicoV2HistoryPage.tsx
+msgid "Proceso {codigo}"
+msgstr ""
+
+#. js-lingui-id: gy2rRX
+#: src/modules/mercado-publico/components/MercadoPublicoV2Nav.tsx
+#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
+#: src/pages/mercado-publico/MercadoPublicoV2BuyersPage.tsx
+#: src/pages/mercado-publico/MercadoPublicoV2BuyersPage.tsx
+msgid "Procesos"
+msgstr ""
+
 #. js-lingui-id: k1ifdL
 #: src/modules/spreadsheet-import/steps/components/UploadStep/components/DropZone.tsx
 #: src/modules/workflow/components/WorkflowStepExecutionResult.tsx
@@ -14175,6 +14239,11 @@ msgstr ""
 msgid "Registrado"
 msgstr ""
 
+#. js-lingui-id: z0zOAs
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Reintentar"
+msgstr ""
+
 #. js-lingui-id: uML2Ym
 #: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
 msgid "Reintentar analítica"
@@ -14190,9 +14259,9 @@ msgstr ""
 msgid "Reintentar historial"
 msgstr ""
 
-#. js-lingui-id: F7ySfN
+#. js-lingui-id: d4r5Ee
 #: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
-msgid "Reintentar oportunidades"
+msgid "Reintentar procesos"
 msgstr ""
 
 #. js-lingui-id: h9AYFD
@@ -14598,11 +14667,6 @@ msgstr ""
 #: src/modules/settings/event-logs/components/SettingsLogs.tsx
 #: src/modules/workflow/workflow-steps/workflow-actions/delay-actions/components/WorkflowEditActionDelay.tsx
 msgid "Resume"
-msgstr ""
-
-#. js-lingui-id: 0YWVZR
-#: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
-msgid "Resumen del universo filtrado"
 msgstr ""
 
 #. js-lingui-id: 6gRgw8
@@ -15293,9 +15357,9 @@ msgstr ""
 msgid "Seeded"
 msgstr ""
 
-#. js-lingui-id: Plltum
+#. js-lingui-id: HAOGC5
 #: src/pages/mercado-publico/MercadoPublicoV2HistoryPage.tsx
-msgid "Selecciona una oportunidad para consultar su historial"
+msgid "Selecciona un proceso para consultar su historial"
 msgstr ""
 
 #. js-lingui-id: rG3WVm
@@ -15905,6 +15969,12 @@ msgstr ""
 #. js-lingui-id: Y8VpHP
 #: src/pages/mercado-publico/MercadoPublicoV2ActivePage.tsx
 msgid "sin datos completos"
+msgstr ""
+
+#. js-lingui-id: ZlP5M8
+#: src/modules/mercado-publico/components/MercadoPublicoV2Nav.tsx
+#: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
+msgid "Sincronización"
 msgstr ""
 
 #. js-lingui-id: BZdVGR
@@ -17804,6 +17874,12 @@ msgstr ""
 msgid "ul"
 msgstr ""
 
+#. js-lingui-id: GAliBV
+#: src/pages/mercado-publico/MercadoPublicoV2BuyersPage.tsx
+#: src/pages/mercado-publico/MercadoPublicoV2BuyersPage.tsx
+msgid "Última actualización"
+msgstr ""
+
 #. js-lingui-id: B05EKw
 #: src/pages/mercado-publico/MercadoPublicoV2SyncControlPage.tsx
 msgid "Última ejecución"
@@ -18806,6 +18882,11 @@ msgstr ""
 #. js-lingui-id: VvM/Ty
 #: src/pages/settings/data-model/SettingsObjects.tsx
 msgid "Visualize data model"
+msgstr ""
+
+#. js-lingui-id: E992jb
+#: src/pages/mercado-publico/MercadoPublicoV2HistoryPage.tsx
+msgid "Volver a procesos"
 msgstr ""
 
 #. js-lingui-id: uUehLT

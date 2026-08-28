@@ -1,110 +1,39 @@
-import { gql } from '@apollo/client';
 import { useQuery } from '@apollo/client/react';
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
 import { useCallback } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Temporal } from 'temporal-polyfill';
-import { MOBILE_VIEWPORT, themeCssVariables } from 'twenty-ui/theme-constants';
+import { themeCssVariables } from 'twenty-ui/theme-constants';
 import { Button } from 'twenty-ui/input';
+import { Callout } from 'twenty-ui/feedback';
 import { AppPath } from 'twenty-shared/types';
 
-import { MercadoPublicoV2Nav } from '@/mercado-publico/components/MercadoPublicoV2Nav';
+import { MercadoPublicoV2PageShell } from '@/mercado-publico/components/MercadoPublicoV2PageShell';
+import { MercadoPublicoV2FilterBar } from '@/mercado-publico/components/MercadoPublicoV2FilterBar';
+import { MercadoPublicoV2AppliedFilters } from '@/mercado-publico/components/MercadoPublicoV2AppliedFilters';
 import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
 import {
   useMercadoPublicoV2UrlState,
   type MercadoPublicoV2Filters,
 } from '@/mercado-publico/hooks/useMercadoPublicoV2UrlState';
+import {
+  MercadoPublicoV2BuyersDocument,
+  type MercadoPublicoV2BuyersQuery,
+  type MercadoPublicoV2BuyersQueryVariables,
+} from '~/generated/graphql';
 
-const MERCADO_PUBLICO_V2_BUYERS_QUERY = gql`
-  query MercadoPublicoV2Buyers(
-    $filter: MercadoPublicoV2OpportunityFilterInput
-    $after: String
-    $first: Int
-  ) {
-    mercadoPublicoV2 {
-      buyers(filter: $filter, after: $after, first: $first) {
-        edges {
-          cursor
-          node {
-            buyerCode
-            buyerName
-            opportunityCount
-            buyerCoverage
-            amountCoverage
-            availability
-            completeness
-            asOf
-          }
-        }
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-      }
-    }
-  }
-`;
-
-type Buyer = {
-  buyerCode: string;
-  buyerName: string | null;
-  opportunityCount: number;
-  buyerCoverage: number;
-  amountCoverage: number;
-  availability: string;
-  completeness: string;
-  asOf: string | null;
-};
-
-type MercadoPublicoV2BuyersQuery = {
-  mercadoPublicoV2: {
-    buyers: {
-      edges: Array<{ cursor: string; node: Buyer }>;
-      pageInfo: { hasNextPage: boolean; endCursor: string | null };
-    };
-  };
-};
-
-type MercadoPublicoV2BuyersQueryVariables = {
-  filter?: MercadoPublicoV2Filters | null;
-  after?: string | null;
-  first?: number;
-};
-
-const StyledPage = styled.main`
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: ${themeCssVariables.spacing[4]};
-  min-width: 0;
-  padding: ${themeCssVariables.spacing[6]};
-  width: 100%;
-
-  @media (max-width: ${MOBILE_VIEWPORT}px) {
-    padding: ${themeCssVariables.spacing[4]};
-  }
-`;
-
-const StyledHeader = styled.header`
-  align-items: baseline;
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${themeCssVariables.spacing[3]};
-  justify-content: space-between;
-`;
-
-const StyledHeading = styled.h1`
-  color: ${themeCssVariables.font.color.primary};
-  font-size: ${themeCssVariables.font.size.xl};
-  margin: 0;
-`;
 
 const StyledTableContainer = styled.div`
   border: 1px solid ${themeCssVariables.border.color.light};
   border-radius: ${themeCssVariables.border.radius.md};
   max-width: 100%;
   overflow-x: auto;
+
+  &:focus-visible {
+    outline: 2px solid ${themeCssVariables.border.color.blue};
+    outline-offset: 2px;
+  }
 `;
 
 const StyledTable = styled.table`
@@ -223,16 +152,13 @@ const StyledPagination = styled.nav`
   justify-content: flex-end;
 `;
 
-const formatCoverage = (coverage: number): string =>
-  `${Math.round(coverage * 100)}%`;
-
 const SANTIAGO_TIME_ZONE = 'America/Santiago';
 
 const toDateTime = (
   value: string | null,
   endOfDay: boolean,
 ): string | undefined => {
-  if (value === null) {
+  if (value === null || value === undefined) {
     return undefined;
   }
 
@@ -256,8 +182,8 @@ const toDateTime = (
   }
 };
 
-const formatDate = (value: string | null): string => {
-  if (value === null) {
+const formatDate = (value: string | null | undefined): string => {
+  if (value === null || value === undefined) {
     return 'No informado por fuente';
   }
 
@@ -297,7 +223,6 @@ const toQueryFilter = (
   }
 
   return {
-    ...filters,
     search: filters.search.trim() === '' ? undefined : filters.search.trim(),
     cohortStatus: filters.cohortStatus ?? undefined,
     states: filters.states.length > 0 ? filters.states : undefined,
@@ -314,32 +239,17 @@ const toQueryFilter = (
   } as MercadoPublicoV2Filters;
 };
 
-const getAvailabilityLabel = (
-  availability: string,
-  t: ReturnType<typeof useLingui>['t'],
-): string => {
-  if (availability === 'available') {
-    return t`Disponible`;
-  }
-
-  if (availability === 'partial') {
-    return t`Resultados parciales`;
-  }
-
-  return t`Datos no disponibles`;
-};
-
 export const MercadoPublicoV2BuyersPage = () => {
   const { t } = useLingui();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { state } = useMercadoPublicoV2UrlState();
+  const { state, applyFilters, clearFilters, setAfter, previousCursors } =
+    useMercadoPublicoV2UrlState();
   const queryFilter = toQueryFilter(state);
   const apolloCoreClient = useApolloCoreClient();
 
   const { data, error, loading, refetch } = useQuery<
     MercadoPublicoV2BuyersQuery,
     MercadoPublicoV2BuyersQueryVariables
-  >(MERCADO_PUBLICO_V2_BUYERS_QUERY, {
+  >(MercadoPublicoV2BuyersDocument, {
     client: apolloCoreClient,
     variables: { filter: queryFilter, after: state.after, first: 50 },
   });
@@ -351,31 +261,43 @@ export const MercadoPublicoV2BuyersPage = () => {
       return;
     }
 
-    const next = new URLSearchParams(searchParams);
-    next.set('after', endCursor);
-    setSearchParams(next);
-  }, [data, searchParams, setSearchParams]);
+    setAfter(endCursor, [...previousCursors, state.after]);
+  }, [data, previousCursors, setAfter, state.after]);
 
-  const buildBuyerPath = useCallback(
-    (buyerCode: string): string => {
-      const next = new URLSearchParams(searchParams);
-      next.set('buyer', buyerCode);
-      next.delete('after');
-      next.delete('proceso');
+  const goToPreviousPage = useCallback(() => {
+    const previousCursor = previousCursors.at(-1);
+    if (previousCursor === undefined) return;
+    setAfter(previousCursor, previousCursors.slice(0, -1));
+  }, [previousCursors, setAfter]);
 
-      return `${AppPath.MercadoPublico}?${next.toString()}`;
-    },
-    [searchParams],
-  );
+  const buildBuyerPath = useCallback((buyerCode: string): string => {
+    const next = new URLSearchParams(window.location.search);
+    next.set('buyer', buyerCode);
+    next.delete('after');
+    next.delete('proceso');
+
+    return `${AppPath.MercadoPublico}?${next.toString()}`;
+  }, []);
 
   const connection = data?.mercadoPublicoV2.buyers;
 
   return (
-    <StyledPage>
-      <StyledHeader>
-        <StyledHeading>{t`Compradores`}</StyledHeading>
-        <MercadoPublicoV2Nav />
-      </StyledHeader>
+    <MercadoPublicoV2PageShell title={t`Mercado Público`}>
+      <MercadoPublicoV2FilterBar
+        filters={state}
+        sort={state.sort}
+        showSort={false}
+        notice={null}
+        noticeId="mercado-publico-v2-buyers-filter-notice"
+        onApply={applyFilters}
+        onClear={clearFilters}
+      />
+
+      <MercadoPublicoV2AppliedFilters
+        filters={state}
+        onRemove={applyFilters}
+        onClear={clearFilters}
+      />
 
       {loading && (
         <StyledStateMessage role="status" aria-live="polite">
@@ -385,40 +307,43 @@ export const MercadoPublicoV2BuyersPage = () => {
 
       {!loading && error && (
         <StyledStateMessage role="alert">
-          <span>{t`No fue posible cargar los compradores.`}</span>
-          <Button
-            title={t`Reintentar compradores`}
-            type="button"
-            size="small"
-            variant="secondary"
-            onClick={() => void refetch()}
+          <Callout
+            variant="error"
+            title={t`No fue posible cargar los compradores`}
+            description={t`Reintenta sin perder el contexto actual.`}
+            action={{ label: t`Reintentar`, onClick: () => void refetch() }}
           />
         </StyledStateMessage>
       )}
 
       {!loading && !error && connection?.edges.length === 0 && (
         <StyledStateMessage role="status" aria-live="polite">
-          {t`No hay compradores para la población filtrada.`}
+          <Callout
+            variant="neutral"
+            title={t`No hay compradores`}
+            description={t`No hay compradores para la población filtrada.`}
+          />
         </StyledStateMessage>
       )}
 
       {!loading && !error && connection && connection.edges.length > 0 && (
         <>
-          <StyledStateMessage role="status" aria-live="polite">
-            {t`Cobertura de comprador y disponibilidad declaradas para la población filtrada.`}
-          </StyledStateMessage>
-          <StyledTableContainer>
+          <StyledTableContainer
+            aria-label={t`Compradores de la población filtrada`}
+            role="region"
+            tabIndex={0}
+          >
             <StyledTable>
               <StyledTableCaption>
                 {t`Compradores de la población filtrada`}
               </StyledTableCaption>
               <thead>
                 <tr>
-                  <StyledHeaderCell>{t`Comprador`}</StyledHeaderCell>
-                  <StyledHeaderCell>{t`Oportunidades`}</StyledHeaderCell>
-                  <StyledHeaderCell>{t`Cobertura de comprador`}</StyledHeaderCell>
-                  <StyledHeaderCell>{t`Cobertura de monto`}</StyledHeaderCell>
-                  <StyledHeaderCell>{t`Estado y frescura`}</StyledHeaderCell>
+                  <StyledHeaderCell scope="col">{t`Comprador`}</StyledHeaderCell>
+                  <StyledHeaderCell scope="col">{t`Procesos`}</StyledHeaderCell>
+                  <StyledHeaderCell scope="col">
+                    {t`Última actualización`}
+                  </StyledHeaderCell>
                 </tr>
               </thead>
               <tbody>
@@ -426,29 +351,25 @@ export const MercadoPublicoV2BuyersPage = () => {
                   <tr key={node.buyerCode}>
                     <StyledCell data-label={t`Comprador`}>
                       <StyledBuyerLink to={buildBuyerPath(node.buyerCode)}>
-                        {node.buyerCode}
+                        {node.buyerName ?? node.buyerCode}
                       </StyledBuyerLink>
-                      <StyledSecondaryText>
-                        {node.buyerName ?? t`Nombre no informado por fuente`}
-                      </StyledSecondaryText>
+                      {node.buyerName && (
+                        <StyledSecondaryText>
+                          {node.buyerCode}
+                        </StyledSecondaryText>
+                      )}
                     </StyledCell>
-                    <StyledCell data-label={t`Oportunidades`}>
+                    <StyledCell data-label={t`Procesos`}>
                       {node.opportunityCount}
                     </StyledCell>
-                    <StyledCell data-label={t`Cobertura de comprador`}>
-                      {formatCoverage(node.buyerCoverage)}
-                    </StyledCell>
-                    <StyledCell data-label={t`Cobertura de monto`}>
-                      {formatCoverage(node.amountCoverage)}
-                    </StyledCell>
-                    <StyledCell data-label={t`Estado y frescura`}>
-                      <div>{getAvailabilityLabel(node.availability, t)}</div>
-                      <StyledSecondaryText>
-                        {node.completeness === 'complete'
-                          ? t`Completitud completa`
-                          : t`Completitud parcial`}
-                        {` · ${formatDate(node.asOf)}`}
-                      </StyledSecondaryText>
+                    <StyledCell data-label={t`Última actualización`}>
+                      {node.asOf ? (
+                        <time dateTime={node.asOf}>
+                          {formatDate(node.asOf)}
+                        </time>
+                      ) : (
+                        formatDate(node.asOf)
+                      )}
                     </StyledCell>
                   </tr>
                 ))}
@@ -456,19 +377,28 @@ export const MercadoPublicoV2BuyersPage = () => {
             </StyledTable>
           </StyledTableContainer>
 
-          {connection.pageInfo.hasNextPage && (
+          {(previousCursors.length > 0 || connection.pageInfo.hasNextPage) && (
             <StyledPagination aria-label={t`Paginación de compradores`}>
+              <Button
+                title={t`Anterior`}
+                type="button"
+                size="small"
+                variant="secondary"
+                disabled={previousCursors.length === 0}
+                onClick={goToPreviousPage}
+              />
               <Button
                 title={t`Siguiente`}
                 type="button"
                 size="small"
                 variant="secondary"
+                disabled={!connection.pageInfo.hasNextPage}
                 onClick={goToNextPage}
               />
             </StyledPagination>
           )}
         </>
       )}
-    </StyledPage>
+    </MercadoPublicoV2PageShell>
   );
 };

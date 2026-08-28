@@ -44,6 +44,20 @@ describe('validateCompraAgilListParams', () => {
     ).toEqual([{ field: 'tamano_pagina', code: 'out_of_range' }]);
   });
 
+  it('should reject fractional page and region values', () => {
+    expect(
+      validateCompraAgilListParams({
+        tamano_pagina: 10.5,
+        numero_pagina: 1.5,
+        region: 13.5,
+      }),
+    ).toEqual([
+      { field: 'tamano_pagina', code: 'out_of_range' },
+      { field: 'numero_pagina', code: 'must_start_at_1' },
+      { field: 'region', code: 'out_of_range' },
+    ]);
+  });
+
   it('should return error when numero_pagina is zero', () => {
     expect(
       validateCompraAgilListParams({ tamano_pagina: 25, numero_pagina: 0 }),

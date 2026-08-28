@@ -4,6 +4,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from 'twenty-ui/theme-constants';
 
+import { MercadoPublicoV2OpportunitySort } from '~/generated/graphql';
 import { MercadoPublicoV2FilterBar } from '@/mercado-publico/components/MercadoPublicoV2FilterBar';
 import { type MercadoPublicoV2Filters } from '@/mercado-publico/hooks/useMercadoPublicoV2UrlState';
 
@@ -24,6 +25,109 @@ const filters: MercadoPublicoV2Filters = {
 };
 
 describe('MercadoPublicoV2FilterBar', () => {
+  it('groups secondary controls by operator intent', () => {
+    render(
+      <ThemeProvider colorScheme="light">
+        <I18nProvider i18n={i18n}>
+          <MercadoPublicoV2FilterBar
+            filters={filters}
+            sort={MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC}
+            notice={null}
+            noticeId="notice"
+            onApply={jest.fn()}
+            onClear={jest.fn()}
+            onSortChange={jest.fn()}
+          />
+        </I18nProvider>
+      </ThemeProvider>,
+    );
+
+    expect(
+      screen
+        .getByLabelText('Buscar por código, título o comprador')
+        .closest('details'),
+    ).toBeNull();
+    expect(screen.getByText('Quién compra')).toBeDefined();
+    expect(screen.getByText('Estado del proceso')).toBeDefined();
+    expect(screen.getByText('Tamaño y evidencia')).toBeDefined();
+    expect(
+      screen.getByLabelText('Filtrar por comprador o RUT').closest('details'),
+    ).not.toBeNull();
+    expect(
+      screen.getByLabelText('Cantidad mínima de documentos').closest('details'),
+    ).not.toBeNull();
+  });
+
+  it('uses Todas as the empty situation option', () => {
+    render(
+      <ThemeProvider colorScheme="light">
+        <I18nProvider i18n={i18n}>
+          <MercadoPublicoV2FilterBar
+            filters={filters}
+            sort={MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC}
+            notice={null}
+            noticeId="notice"
+            onApply={jest.fn()}
+            onClear={jest.fn()}
+            onSortChange={jest.fn()}
+          />
+        </I18nProvider>
+      </ThemeProvider>,
+    );
+    expect(screen.getByLabelText('Filtrar por situación')).toHaveValue('');
+    expect(
+      screen.getByLabelText('Filtrar por situación').querySelector('option'),
+    ).toHaveTextContent('Todas');
+  });
+
+  it('keeps amount secondary and hides unsupported buyer sorting', () => {
+    render(
+      <ThemeProvider colorScheme="light">
+        <I18nProvider i18n={i18n}>
+          <MercadoPublicoV2FilterBar
+            filters={filters}
+            sort={MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC}
+            showSort={false}
+            notice={null}
+            noticeId="notice"
+            onApply={jest.fn()}
+            onClear={jest.fn()}
+          />
+        </I18nProvider>
+      </ThemeProvider>,
+    );
+
+    expect(
+      screen.getByLabelText('Monto equivalente CLP mínimo').closest('details'),
+    ).not.toBeNull();
+    expect(screen.queryByLabelText('Orden de resultados')).toBeNull();
+  });
+  it('counts zero-valued numeric filters as active', () => {
+    render(
+      <ThemeProvider colorScheme="light">
+        <I18nProvider i18n={i18n}>
+          <MercadoPublicoV2FilterBar
+            filters={{
+              ...filters,
+              documentCountMin: 0,
+              documentCountMax: 0,
+              llamado: 0,
+            }}
+            sort={MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC}
+            notice={null}
+            noticeId="mercado-publico-v2-filters-notice"
+            onApply={jest.fn()}
+            onClear={jest.fn()}
+            onSortChange={jest.fn()}
+          />
+        </I18nProvider>
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByText('Tamaño y evidencia (2)')).toBeDefined();
+    expect(screen.getByText('Estado del proceso (1)')).toBeDefined();
+  });
+
   it('keeps staged filters when the user enters a search before applying', async () => {
     const onApply = jest.fn();
     const user = userEvent.setup();
@@ -33,7 +137,7 @@ describe('MercadoPublicoV2FilterBar', () => {
         <I18nProvider i18n={i18n}>
           <MercadoPublicoV2FilterBar
             filters={filters}
-            sort="closing_at_desc"
+            sort={MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC}
             notice={null}
             noticeId="mercado-publico-v2-filters-notice"
             onApply={onApply}
@@ -59,5 +163,35 @@ describe('MercadoPublicoV2FilterBar', () => {
     expect(onApply).toHaveBeenCalledWith(
       expect.objectContaining({ region: 13, search: 'obra' }),
     );
+  });
+
+  it('groups advanced filters by operator intent and returns focus on Escape', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ThemeProvider colorScheme="light">
+        <I18nProvider i18n={i18n}>
+          <MercadoPublicoV2FilterBar
+            filters={filters}
+            sort={MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC}
+            notice={null}
+            noticeId="notice"
+            onApply={jest.fn()}
+            onClear={jest.fn()}
+            onSortChange={jest.fn()}
+          />
+        </I18nProvider>
+      </ThemeProvider>,
+    );
+
+    const disclosure = screen.getByText('Quién compra');
+    const buyerInput = screen.getByLabelText('Filtrar por comprador o RUT');
+
+    await user.click(disclosure);
+    await user.click(buyerInput);
+    await user.keyboard('{Escape}');
+
+    expect(disclosure).toHaveFocus();
+    expect(disclosure.closest('details')).not.toHaveAttribute('open');
   });
 });

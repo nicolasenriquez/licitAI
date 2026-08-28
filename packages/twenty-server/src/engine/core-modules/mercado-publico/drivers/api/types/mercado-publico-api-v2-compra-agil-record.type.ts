@@ -5,10 +5,11 @@ export type MercadoPublicoApiV2CompraAgilRecord = {
   estado?:
     | string
     | {
-        id_estado?: number | string;
-        codigo?: string;
-        glosa?: string;
-      };
+        id_estado?: number | string | null;
+        codigo?: string | null;
+        glosa?: string | null;
+      }
+    | null;
   region?: number;
   institucion?: {
     rut?: string;
@@ -20,6 +21,8 @@ export type MercadoPublicoApiV2CompraAgilRecord = {
   fechas?: {
     fecha_publicacion?: string;
     fecha_cierre?: string;
+    fecha_cierre_primer_llamado?: string | null;
+    fecha_cierre_segundo_llamado?: string | null;
     fecha_ultimo_cambio?: string;
     fecha_cancelacion?: string | null;
   };
@@ -110,8 +113,8 @@ export type MercadoPublicoApiV2CompraAgilRecord = {
   cambio_desde?: string;
   cambio_hasta?: string;
   orden_compra?: {
-    id_orden_compra?: string;
-    id_oc?: string;
+    id_orden_compra?: number | string | null;
+    id_oc?: number | string | null;
     codigo_orden_compra?: string;
   };
   fecha_publicacion?: string;

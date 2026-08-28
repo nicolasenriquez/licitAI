@@ -89,147 +89,6 @@ describe('MercadoPublicoPersistenceService', () => {
     expect(executedQueries[1]?.params[3]).toBe('raw-file-id');
   });
 
-  it('should persist raw payload and list snapshots without canonical writes', async () => {
-    const executedSql: string[] = [];
-    const mockEntityManager = {
-      query: jest.fn().mockImplementation(async (sql: string) => {
-        executedSql.push(sql);
-
-        if (sql.includes('INSERT INTO mp.raw_api_payload')) {
-          return [{ id: 'raw-api-payload-id' }];
-        }
-
-        return [];
-      }),
-    };
-    const mockDataSource = {
-      transaction: jest.fn().mockImplementation(async (callback) => {
-        return callback(mockEntityManager);
-      }),
-    };
-    const service = new MercadoPublicoPersistenceService(
-      mockDataSource as never,
-    );
-
-    const result = await service.persistV1LicitacionesSnapshot({
-      jobRunRecordId: 'job-run-record-id',
-      snapshotKind: 'list',
-      apiResponse: {
-        endpoint: 'by-date',
-        source: 'api-v1-licitaciones',
-        requestParams: { fecha: '15062026' },
-        requestFingerprint: 'request-fingerprint',
-        payloadChecksum: 'payload-checksum',
-        schemaFingerprint: 'schema-fingerprint',
-        httpStatus: 200,
-        fetchedAt: new Date('2026-06-15T00:00:00.000Z'),
-        rawPayload: {
-          Listado: [{ CodigoExterno: 'L1' }, { CodigoExterno: 'L2' }],
-        },
-        licitaciones: [
-          {
-            CodigoExterno: 'L1',
-            Codigo: '1',
-            CodigoEstado: '5',
-            Estado: 'Publicada',
-          },
-          {
-            CodigoExterno: 'L2',
-            Codigo: '2',
-            CodigoEstado: '6',
-            Estado: 'Cerrada',
-          },
-        ],
-      },
-    });
-
-    expect(result).toEqual({
-      rawApiPayloadId: 'raw-api-payload-id',
-      recordsFetched: 2,
-      recordsStaged: 2,
-      recordsCanonicalized: 0,
-    });
-    expect(
-      executedSql.some((sql) => sql.includes('INSERT INTO mp.raw_api_payload')),
-    ).toBe(true);
-    expect(
-      executedSql.filter((sql) =>
-        sql.includes('INSERT INTO mp.stg_api_v1_licitacion'),
-      ),
-    ).toHaveLength(1);
-    expect(
-      executedSql.some((sql) => sql.includes('INSERT INTO mp.licitacion')),
-    ).toBe(false);
-  });
-
-  it('should persist OC raw payload and list snapshots', async () => {
-    const executedSql: string[] = [];
-    const mockEntityManager = {
-      query: jest.fn().mockImplementation(async (sql: string) => {
-        executedSql.push(sql);
-
-        if (sql.includes('INSERT INTO mp.raw_api_payload')) {
-          return [{ id: 'raw-api-payload-id' }];
-        }
-
-        return [];
-      }),
-    };
-    const mockDataSource = {
-      transaction: jest.fn().mockImplementation(async (callback) => {
-        return callback(mockEntityManager);
-      }),
-    };
-    const service = new MercadoPublicoPersistenceService(
-      mockDataSource as never,
-    );
-
-    const result = await service.persistV1OrdenesDeCompraSnapshot({
-      jobRunRecordId: 'job-run-record-id',
-      snapshotKind: 'list',
-      apiResponse: {
-        endpoint: 'by-date',
-        source: 'api-v1-oc',
-        requestParams: { fecha: '15062026' },
-        requestFingerprint: 'request-fingerprint',
-        payloadChecksum: 'payload-checksum',
-        schemaFingerprint: 'schema-fingerprint',
-        httpStatus: 200,
-        fetchedAt: new Date('2026-06-15T00:00:00.000Z'),
-        rawPayload: {
-          Listado: [{ Codigo: 'OC-1' }, { Codigo: 'OC-2' }],
-        },
-        ordenesDeCompra: [
-          {
-            Codigo: 'OC-1',
-            CodigoEstado: '4',
-            Estado: 'Enviada a proveedor',
-          },
-          {
-            Codigo: 'OC-2',
-            CodigoEstado: '6',
-            Estado: 'Aceptada',
-          },
-        ],
-      },
-    });
-
-    expect(result).toEqual({
-      rawApiPayloadId: 'raw-api-payload-id',
-      recordsFetched: 2,
-      recordsStaged: 2,
-      recordsCanonicalized: 0,
-    });
-    expect(
-      executedSql.some((sql) => sql.includes('INSERT INTO mp.raw_api_payload')),
-    ).toBe(true);
-    expect(
-      executedSql.filter((sql) =>
-        sql.includes('INSERT INTO mp.stg_api_v1_orden_compra'),
-      ),
-    ).toHaveLength(1);
-  });
-
   it('should persist V2 Compra Agil raw payload and list snapshots', async () => {
     const executedSql: string[] = [];
     const mockEntityManager = {
@@ -238,6 +97,10 @@ describe('MercadoPublicoPersistenceService', () => {
 
         if (sql.includes('INSERT INTO mp.raw_api_payload')) {
           return [{ id: 'raw-api-payload-id' }];
+        }
+
+        if (sql.includes('INSERT INTO mp.stg_api_v2_compra_agil')) {
+          return [{ id: 'staging-id-1' }, { id: 'staging-id-2' }];
         }
 
         return [];
@@ -287,6 +150,7 @@ describe('MercadoPublicoPersistenceService', () => {
       recordsStaged: 2,
       recordsCanonicalized: 0,
     });
+    expect(mockDataSource.transaction).toHaveBeenCalledTimes(2);
     expect(
       executedSql.some((sql) => sql.includes('INSERT INTO mp.raw_api_payload')),
     ).toBe(true);
@@ -295,6 +159,122 @@ describe('MercadoPublicoPersistenceService', () => {
         sql.includes('INSERT INTO mp.stg_api_v2_compra_agil'),
       ),
     ).toHaveLength(1);
+    expect(
+      executedSql.find((sql) =>
+        sql.includes('INSERT INTO mp.stg_api_v2_compra_agil'),
+      ),
+    ).toContain('ON CONFLICT DO NOTHING');
+    const rawInsertCall = mockEntityManager.query.mock.calls.find(([sql]) =>
+      sql.includes('INSERT INTO mp.raw_api_payload'),
+    );
+
+    expect(rawInsertCall?.[1]).toEqual([
+      'api-v2-compra-agil',
+      'list',
+      'request-fingerprint',
+      'payload-checksum',
+      JSON.stringify({ ttl_cambio_ms: 5000 }),
+      200,
+      new Date('2026-06-15T00:00:00.000Z'),
+      JSON.stringify({ Items: [{ codigo: 'CA-1' }, { codigo: 'CA-2' }] }),
+      'schema-fingerprint',
+      'job-run-record-id',
+      null,
+      2,
+      2,
+      0,
+      '[]',
+    ]);
+  });
+
+  it('persists rejected raw contract accounting before failing the run', async () => {
+    const query = jest.fn().mockResolvedValue([{ id: 'raw-api-payload-id' }]);
+    const mockDataSource = {
+      transaction: jest
+        .fn()
+        .mockImplementation(async (callback) => callback({ query })),
+    };
+    const service = new MercadoPublicoPersistenceService(
+      mockDataSource as never,
+    );
+
+    await service.persistApiFailure({
+      jobRunRecordId: 'job-run-record-id',
+      source: 'api-v2-compra-agil',
+      endpoint: 'list',
+      requestFingerprint: 'request-fingerprint',
+      payloadChecksum: 'payload-checksum',
+      requestParams: {},
+      httpStatus: 200,
+      fetchedAt: new Date('2026-06-15T00:00:00.000Z'),
+      rawPayload: { payload: { items: [{ codigo: 'CA-1' }] } },
+      schemaFingerprint: 'schema-fingerprint',
+      recordsFetched: 3,
+      recordsAccepted: 0,
+      recordsRejected: 3,
+      contractIssues: [{ code: 'duplicate_codigo', indices: [0, 1] }],
+      errorSummaryText: 'hard_fail: provider: invalid_list_items',
+    });
+
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('contract_issues'),
+      expect.arrayContaining([
+        3,
+        0,
+        3,
+        JSON.stringify([{ code: 'duplicate_codigo', indices: [0, 1] }]),
+      ]),
+    );
+  });
+
+  it('commits raw evidence before staging fails', async () => {
+    const rawEntityManager = {
+      query: jest.fn().mockResolvedValue([{ id: 'raw-api-payload-id' }]),
+    };
+    const stagingError = new Error('staging failed');
+    const stagingEntityManager = {
+      query: jest.fn().mockRejectedValue(stagingError),
+    };
+    const mockDataSource = {
+      transaction: jest
+        .fn()
+        .mockImplementationOnce(async (callback) => callback(rawEntityManager))
+        .mockImplementationOnce(async (callback) =>
+          callback(stagingEntityManager),
+        ),
+    };
+    const service = new MercadoPublicoPersistenceService(
+      mockDataSource as never,
+    );
+
+    await expect(
+      service.persistV2CompraAgilSnapshot({
+        jobRunRecordId: 'job-run-record-id',
+        snapshotKind: 'list',
+        apiResponse: {
+          endpoint: 'list',
+          source: 'api-v2-compra-agil',
+          requestParams: {},
+          requestFingerprint: 'request-fingerprint',
+          payloadChecksum: 'payload-checksum',
+          schemaFingerprint: 'schema-fingerprint',
+          httpStatus: 200,
+          fetchedAt: new Date('2026-06-15T00:00:00.000Z'),
+          rawPayload: {},
+          compraAgil: [{ codigo: 'CA-1' }],
+        },
+      }),
+    ).rejects.toThrow(stagingError);
+
+    expect(mockDataSource.transaction).toHaveBeenCalledTimes(2);
+    expect(rawEntityManager.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO mp.raw_api_payload'),
+      expect.any(Array),
+    );
+    expect(stagingEntityManager.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO mp.stg_api_v2_compra_agil'),
+      expect.any(Array),
+    );
   });
 
   it('does not insert raw_csv_file_id into stg_csv_orden_compra rows', async () => {

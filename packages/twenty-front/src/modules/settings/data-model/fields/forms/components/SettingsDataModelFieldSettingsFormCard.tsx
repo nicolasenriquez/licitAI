@@ -1,4 +1,3 @@
-import omit from 'lodash.omit';
 import { z } from 'zod';
 
 import { SettingsDataModelPreviewFormCard } from '@/settings/data-model/components/SettingsDataModelPreviewFormCard';
@@ -130,8 +129,9 @@ const filesFieldFormSchema = z
 const otherFieldsFormSchema = z
   .object({
     type: z.enum(
-      Object.keys(
-        omit(SETTINGS_FIELD_TYPE_CONFIGS, [
+      Object.keys(SETTINGS_FIELD_TYPE_CONFIGS).filter(
+        (fieldType) =>
+          ![
           FieldMetadataType.BOOLEAN,
           FieldMetadataType.CURRENCY,
           FieldMetadataType.RELATION,
@@ -147,8 +147,8 @@ const otherFieldsFormSchema = z
           FieldMetadataType.EMAILS,
           FieldMetadataType.LINKS,
           FieldMetadataType.ARRAY,
-          FieldMetadataType.FILES,
-        ]),
+            FieldMetadataType.FILES,
+          ].includes(fieldType as FieldMetadataType),
       ) as [FieldMetadataType, ...FieldMetadataType[]],
     ),
   })

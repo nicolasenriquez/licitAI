@@ -55,6 +55,18 @@ export class MercadoPublicoV2LatestRunDTO {
   @Field(() => Int)
   recordsFailed!: number;
 
+  @Field(() => Int)
+  recordsDeferred!: number;
+
+  @Field(() => Int)
+  recordsProjected!: number;
+
+  @Field()
+  discoveryComplete!: boolean;
+
+  @Field(() => String, { nullable: true })
+  completionReason!: string | null;
+
   @Field(() => GraphQLISODateTime, { nullable: true })
   startedAt!: Date | null;
 

@@ -7,7 +7,11 @@ import {
   createJsonShapeSha256,
   createJsonSha256,
 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/create-json-sha256.util';
-import { extractV2CompraAgilListRecords } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
+import {
+  decodeV2CompraAgilDetailPayload,
+  decodeV2CompraAgilListPayload,
+  type MercadoPublicoV2ContractIssue,
+} from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
 import {
   extractV2CompraAgilPagination,
   type MercadoPublicoApiV2CompraAgilPagination,
@@ -41,6 +45,10 @@ export type MercadoPublicoApiV2CompraAgilListResponse = {
   fetchedAt: Date;
   rawPayload: unknown;
   compraAgil: MercadoPublicoApiV2CompraAgilRecord[];
+  recordsFetched?: number | null;
+  recordsAccepted?: number | null;
+  recordsRejected?: number | null;
+  contractIssues?: MercadoPublicoV2ContractIssue[];
   pagination?: MercadoPublicoApiV2CompraAgilPagination;
   errorSummary?: MercadoPublicoErrorSummary;
   errorMessage?: string;
@@ -155,7 +163,8 @@ export class MercadoPublicoApiV2CompraAgilClientService {
     });
 
     const rawPayload = response.data;
-    const compraAgil = extractV2CompraAgilListRecords(rawPayload);
+    const decoded = decodeV2CompraAgilListPayload(rawPayload);
+    const compraAgil = decoded.records;
     const pagination = extractV2CompraAgilPagination(
       rawPayload,
       appliedParams.numero_pagina ?? 1,
@@ -171,6 +180,9 @@ export class MercadoPublicoApiV2CompraAgilClientService {
     );
     this.tryRecord429(response.status);
 
+    const providerErrorSummary =
+      bodyError?.errorSummary ?? httpStatusErrorSummary;
+
     return {
       endpoint: MERCADO_PUBLICO_API_V2_COMPRA_AGIL_LIST_ENDPOINT,
       source: MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
@@ -182,10 +194,20 @@ export class MercadoPublicoApiV2CompraAgilClientService {
       fetchedAt,
       rawPayload,
       compraAgil,
+      recordsFetched: decoded.recordsFetched,
+      recordsAccepted: decoded.recordsAccepted,
+      recordsRejected: decoded.recordsRejected,
+      contractIssues: decoded.contractIssues,
       pagination,
-      errorSummary: bodyError?.errorSummary ?? httpStatusErrorSummary,
-      errorMessage: bodyError?.message,
-      errorCode: bodyError?.code ?? undefined,
+      errorSummary:
+        providerErrorSummary ??
+        (decoded.errorCode === undefined ? undefined : 'hard_fail'),
+      errorMessage:
+        bodyError?.message ??
+        (providerErrorSummary === undefined ? decoded.errorMessage : undefined),
+      errorCode:
+        bodyError?.code ??
+        (providerErrorSummary === undefined ? decoded.errorCode : undefined),
       retryAfterSeconds: retryAfterSeconds ?? undefined,
     };
   }
@@ -228,7 +250,8 @@ export class MercadoPublicoApiV2CompraAgilClientService {
     });
 
     const rawPayload = response.data;
-    const compraAgil = extractV2CompraAgilListRecords(rawPayload);
+    const decoded = decodeV2CompraAgilDetailPayload(rawPayload);
+    const compraAgil = decoded.records;
     const bodyError = parseMercadoPublicoBodyError(rawPayload);
     const httpStatusErrorSummary = classifyMercadoPublicoHttpStatus(
       response.status,
@@ -237,6 +260,9 @@ export class MercadoPublicoApiV2CompraAgilClientService {
       response.headers?.['retry-after'],
     );
     this.tryRecord429(response.status);
+
+    const providerErrorSummary =
+      bodyError?.errorSummary ?? httpStatusErrorSummary;
 
     return {
       endpoint: MERCADO_PUBLICO_API_V2_COMPRA_AGIL_DETAIL_BY_CODIGO_ENDPOINT,
@@ -249,9 +275,19 @@ export class MercadoPublicoApiV2CompraAgilClientService {
       fetchedAt,
       rawPayload,
       compraAgil,
-      errorSummary: bodyError?.errorSummary ?? httpStatusErrorSummary,
-      errorMessage: bodyError?.message,
-      errorCode: bodyError?.code ?? undefined,
+      recordsFetched: decoded.recordsFetched,
+      recordsAccepted: decoded.recordsAccepted,
+      recordsRejected: decoded.recordsRejected,
+      contractIssues: decoded.contractIssues,
+      errorSummary:
+        providerErrorSummary ??
+        (decoded.errorCode === undefined ? undefined : 'hard_fail'),
+      errorMessage:
+        bodyError?.message ??
+        (providerErrorSummary === undefined ? decoded.errorMessage : undefined),
+      errorCode:
+        bodyError?.code ??
+        (providerErrorSummary === undefined ? decoded.errorCode : undefined),
       retryAfterSeconds: retryAfterSeconds ?? undefined,
     };
   }

@@ -24,6 +24,15 @@ Mercado Publico ingestion uses three source families:
 
 The pipeline is raw-first, idempotent, auditable, tolerant to schema drift, separated by source, and reconciled explicitly. Raw source data is never overwritten destructively.
 
+## Retirement Status (2026-08-16)
+
+The API V1 and Datos Abiertos CSV ingestion runtimes were retired by the
+`mercado-publico-v2-legacy-retirement` change (G5) after the G4 cutover gate
+closed. The V1/CSV sections below remain as historical source-domain evidence;
+API V2 Compra Agil is the active ingestion source. Removed scope, retained
+rollback/recovery procedure, and evidence locations are recorded in
+`openspec/changes/mercado-publico-v2-legacy-retirement/retirement-evidence.md`.
+
 ## Source Boundary
 
 In scope:

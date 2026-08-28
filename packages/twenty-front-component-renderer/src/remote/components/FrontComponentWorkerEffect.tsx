@@ -6,7 +6,9 @@ import { type ConfirmationModalCaller } from 'twenty-shared/types';
 import { type FrontComponentHostCommunicationApi } from '../../types/FrontComponentHostCommunicationApi';
 import { type SdkClientUrls } from '../../types/HostToWorkerRenderContext';
 import { type WorkerExports } from '../../types/WorkerExports';
-import { createRemoteWorker } from '../worker/utils/createRemoteWorker';
+
+// @ts-expect-error - Vite worker inline import
+import RemoteWorker from '../worker/remote-worker?worker&inline';
 
 // Must match COMMAND_MENU_ITEM_CONFIRMATION_MODAL_RESULT_BROWSER_EVENT_NAME in twenty-front
 const COMMAND_MENU_ITEM_CONFIRMATION_MODAL_RESULT_BROWSER_EVENT_NAME =
@@ -69,7 +71,7 @@ export const FrontComponentWorkerEffect = ({
 
     const newReceiver = new RemoteReceiver({ retain, release });
 
-    const worker = createRemoteWorker();
+    const worker = new RemoteWorker();
 
     worker.onerror = (event: ErrorEvent) => {
       const workerError =

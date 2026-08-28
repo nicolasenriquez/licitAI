@@ -15,6 +15,10 @@ import { MpStgApiV2CompraAgilFastInstanceCommand } from 'src/database/commands/u
 import { MpStgJobRunFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007800-mp-stg-job-run';
 import { MpV2CohortFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1786000000000-mp-v2-cohort';
 import { MpV2DetailContractFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1790000000000-mp-v2-detail-contract';
+import { MpV2SyncOperationsFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1791000000000-mp-v2-sync-operations';
+import { MpV2DurableHydrationRecoveryFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1792000000000-mp-v2-durable-hydration-recovery';
+import { MpV2ItemAttemptObservabilityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1793000000000-mp-v2-item-attempt-observability';
+import { MpV2ItemLifecycleStatusSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1794000000000-mp-v2-item-lifecycle-status';
 import { MpV2DurableDiscoveryHydrationFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1785000000000-mp-v2-durable-discovery-hydration';
 import { MpV2EvidenceHistoryReplayFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1787000000000-mp-v2-evidence-history-replay';
 import { MpV2GoldenPathFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1784000000000-mp-v2-golden-path';
@@ -48,6 +52,10 @@ const applyCommands = async (dataSource: DataSource): Promise<void> => {
     await new MpV2EvidenceHistoryReplayFastInstanceCommand().up(queryRunner);
     await new MpV2ActivasFiltersFastInstanceCommand().up(queryRunner);
     await new MpV2DetailContractFastInstanceCommand().up(queryRunner);
+    await new MpV2SyncOperationsFastInstanceCommand().up(queryRunner);
+    await new MpV2DurableHydrationRecoveryFastInstanceCommand().up(queryRunner);
+    await new MpV2ItemAttemptObservabilityFastInstanceCommand().up(queryRunner);
+    await new MpV2ItemLifecycleStatusSlowInstanceCommand().up(queryRunner);
 
     await queryRunner.commitTransaction();
   } catch (error) {
@@ -171,6 +179,7 @@ const truncateTables = async (dataSource: DataSource): Promise<void> => {
       mp.gold_detected_process,
       mp.v2_cohort,
       mp.sync_run_item,
+      mp.sync_run_item_attempt,
       mp.sync_run_page,
       mp.source_watermark,
       mp.v2_history,
@@ -234,6 +243,9 @@ describe('Mercado Publico V2 detail contract (db-backed)', () => {
     }
 
     await applyCommands(dataSource);
+    await new MpV2ItemLifecycleStatusSlowInstanceCommand().runDataMigration(
+      dataSource,
+    );
 
     projection = new MercadoPublicoV2ProjectionService(dataSource);
   });
@@ -271,6 +283,33 @@ describe('Mercado Publico V2 detail contract (db-backed)', () => {
     expect(
       await columnExists(dataSource, 'gold_detected_process', 'fine_penalty'),
     ).toBe(true);
+  });
+
+  it('exposes every column required by the V2 list read model', async () => {
+    const readModelRequiredColumns = [
+      'process_code',
+      'title',
+      'canonical_state',
+      'buyer_name',
+      'region',
+      'published_at',
+      'closing_at',
+      'amount',
+      'amount_raw',
+      'currency_source',
+      'document_count',
+      'llamado',
+      'observation_id',
+      'normalizer_version',
+      'provider_schema_fingerprint',
+      'availability',
+    ];
+
+    for (const column of readModelRequiredColumns) {
+      expect(
+        await columnExists(dataSource, 'gold_detected_process', column),
+      ).toBe(true);
+    }
   });
 
   it('projects child evidence with parent provider keys', async () => {

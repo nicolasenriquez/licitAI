@@ -153,6 +153,7 @@ const toOpportunityDetailDTO = (
   publishedAt: detail.publishedAt,
   closingAt: detail.closingAt,
   amount: detail.amount,
+  amountClp: detail.amountClp,
   currency: detail.currency,
   documentCount: detail.documentCount,
   llamado: detail.llamado,

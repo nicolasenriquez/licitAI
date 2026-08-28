@@ -8,7 +8,7 @@ import {
 import { useRegisterInputEvents } from '@/object-record/record-field/ui/meta-types/input/hooks/useRegisterInputEvents';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 import { isDefined } from 'twenty-shared/utils';
-import { useCombinedRefs } from '~/hooks/useCombinedRefs';
+import { combineRefs } from '~/utils/combineRefs';
 
 const StyledInput = styled.input<{
   withRightComponent?: boolean;
@@ -127,7 +127,7 @@ export const MultiItemBaseInput = forwardRef<
     ref,
   ) => {
     const inputRef = useRef<HTMLInputElement>(null);
-    const combinedRef = useCombinedRefs(ref, inputRef);
+    const combinedRef = combineRefs(ref, inputRef);
 
     useRegisterInputEvents({
       focusId: instanceId,

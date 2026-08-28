@@ -426,11 +426,11 @@ export class MercadoPublicoV2EvidenceReplayService {
             ),
             records_hydrated = (
               SELECT COUNT(*) FROM mp.sync_run_item
-              WHERE sync_run_id = $1 AND status IN ('succeeded', 'terminal')
+              WHERE sync_run_id = $1 AND status IN ('succeeded', 'lifecycle_terminal')
             ),
             records_projected = (
               SELECT COUNT(*) FROM mp.sync_run_item
-              WHERE sync_run_id = $1 AND status IN ('succeeded', 'terminal')
+              WHERE sync_run_id = $1 AND status IN ('succeeded', 'lifecycle_terminal')
             ),
             records_failed = $3,
             finished_at = now(),

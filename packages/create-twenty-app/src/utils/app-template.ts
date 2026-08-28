@@ -1,10 +1,19 @@
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import { join } from 'path';
-import { v4 } from 'uuid';
 
 import createTwentyAppPackageJson from 'package.json';
 
 const SRC_FOLDER = 'src';
+
+const pathExists = async (filePath: string): Promise<boolean> => {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 export const copyBaseApplicationProject = async ({
   appName,
@@ -20,7 +29,9 @@ export const copyBaseApplicationProject = async ({
   onProgress?: (message: string) => void;
 }) => {
   onProgress?.('Copying base template');
-  await fs.copy(join(__dirname, './constants/template'), appDirectory);
+  await fs.cp(join(__dirname, './constants/template'), appDirectory, {
+    recursive: true,
+  });
 
   onProgress?.('Configuring dotfiles (.gitignore, .github, .yarnrc.yml)');
   await renameDotfiles({ appDirectory });
@@ -53,7 +64,7 @@ const renameDotfiles = async ({ appDirectory }: { appDirectory: string }) => {
   for (const { from, to } of renames) {
     const sourcePath = join(appDirectory, from);
 
-    if (await fs.pathExists(sourcePath)) {
+    if (await pathExists(sourcePath)) {
       await fs.rename(sourcePath, join(appDirectory, to));
     }
   }
@@ -66,9 +77,10 @@ const mirrorAgentsToClaude = async ({
 }: {
   appDirectory: string;
 }) => {
-  await fs.copy(
+  await fs.cp(
     join(appDirectory, 'AGENTS.md'),
     join(appDirectory, 'CLAUDE.md'),
+    { recursive: true },
   );
 };
 
@@ -77,7 +89,7 @@ const addEmptyPublicDirectory = async ({
 }: {
   appDirectory: string;
 }) => {
-  await fs.ensureDir(join(appDirectory, 'public'));
+  await fs.mkdir(join(appDirectory, 'public'), { recursive: true });
 };
 
 const generateUniversalIdentifiers = async ({
@@ -106,7 +118,7 @@ const generateUniversalIdentifiers = async ({
     universalIdentifiersFileContent
       .replace('DISPLAY-NAME-TO-BE-GENERATED', appDisplayName)
       .replace('DESCRIPTION-TO-BE-GENERATED', appDescription)
-      .replace(/UUID-TO-BE-GENERATED/g, () => v4()),
+      .replace(/UUID-TO-BE-GENERATED/g, () => randomUUID()),
   );
 };
 
@@ -117,7 +129,12 @@ const updatePackageJson = async ({
   appName: string;
   appDirectory: string;
 }) => {
-  const packageJson = await fs.readJson(join(appDirectory, 'package.json'));
+  const packageJson = JSON.parse(
+    await fs.readFile(join(appDirectory, 'package.json'), 'utf8'),
+  ) as {
+    name: string;
+    devDependencies: Record<string, string>;
+  };
 
   packageJson.name = appName;
   packageJson.devDependencies['twenty-sdk'] =

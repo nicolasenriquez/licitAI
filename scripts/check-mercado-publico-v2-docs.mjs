@@ -22,8 +22,15 @@ for (const claim of requiredClaims) {
   }
 }
 
-if (officialLinks.length < 2 || officialLinks.some((link) => !link.includes('mercadopublico.cl'))) {
-  throw new Error('Compra Agil V2 documentation must retain two official Mercado Publico links');
+if (
+  officialLinks.length < 2 ||
+  officialLinks.some(
+    (link) => !link.includes('mercadopublico.cl') && !link.includes('chilecompra.cl'),
+  )
+) {
+  throw new Error(
+    'Compra Agil V2 documentation must retain two official Mercado Publico links',
+  );
 }
 
 console.log('Compra Agil V2 documentation checks passed.');

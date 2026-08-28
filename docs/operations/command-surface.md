@@ -22,8 +22,8 @@ The repository exposes a structured command surface through Docker Compose, Nx t
 | Command | Purpose | Details |
 | --- | --- | --- |
 | `just runtime-check` | Verify the existing full local runtime | **First runtime command. Read-only:** validates Compose config, prints current service state, and checks `/healthz` without starting or creating containers. |
-| `just dev-up` | Explicitly start the full local runtime | Human-authorized recovery path when the existing Compose project is not already running. Uses the existing `twentycrm/twenty:mp-local` image. |
-| `just dev-up-build` | Explicitly rebuild and start full local runtime | Human-authorized only after a changed image is required. This is not a routine fallback. |
+| `just dev-up` | Explicitly start the full local runtime | Human-authorized recovery path. Uses the image selected by `.env`, does not build or pull it, and waits for service health. |
+| `just dev-up-build` | Explicitly rebuild and start full local runtime | Human-authorized path after source changes. Compose builds and starts the same image tag, then waits for service health. |
 | `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml up -d` | Explicitly start full local runtime directly | Same canonical Compose project; use only when a human has requested a state-changing startup. |
 | `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml ps` | Inspect local runtime | Shows service state and health. |
 | `docker compose --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml logs -f server worker` | Follow application logs | Use for startup and ingestion diagnosis. |
@@ -32,16 +32,30 @@ The repository exposes a structured command surface through Docker Compose, Nx t
 | `just ci-infra-up` | Legacy alternate CI infrastructure | Blocked by default because it creates a second Compose/ClickHouse stack. Requires `ALLOW_EXTRA_CONTAINERS=1` and explicit human authorization. |
 
 Mercado Publico fixture tests use only project `twenty-mp-e2e`, provisioned by
-`packages/twenty-e2e-testing/scripts/provision-baseline.mjs`. The provisioner
-rejects the canonical project and an active E2E server before cleanup. Use
-`docker compose exec` for commands in an active service; do not use
-`docker compose run`, which creates a one-off container.
+`packages/twenty-e2e-testing/scripts/provision-mercado-publico-e2e.mjs`. The provisioner
+owns prepare, status, and reset. It rejects the canonical project. Use `docker
+compose exec` for commands in an active service; do not use `docker compose
+run`, which creates a one-off container.
+
+Use the Nx targets `test:mercado-publico:ui-contract`,
+`test:mercado-publico:journeys`, `test:mercado-publico:roles`,
+`test:mercado-publico:extended`, `test:mercado-publico`, and
+`test:mercado-publico:release-gate`. Lifecycle targets add
+`test:mercado-publico:{prepare,status,reset,clean}`. Suite targets accept
+`--configuration=warm` after prepare. Warm runs do not build and keep the stack.
+The aggregate provisions once, invokes Playwright once, and always cleans up.
+The release gate runs backend proof first and stays fresh in CI.
 
 Run `just runtime-check` before any runtime, API, or integration diagnosis. If it
 fails, report the existing stack's state; do not silently switch to host-local
 services, `docker-compose.dev.yml`, `docker run`, or a new Compose project.
-`TAG` is an optional override for a published image; without it, Compose selects
-the local `mp-local` tag.
+`TAG` selects the image for both Compose build and runtime. The local example
+uses `latest`. `PLATFORM` defaults to `linux/amd64`.
+
+Build time depends on hardware and cache state. The 2026-08-22 Windows and
+Docker Desktop verification took 7 min 21 s with 36% cached after Dockerfile
+and context changes. An unchanged rebuild and healthy startup took 20 s. Use
+these values as a local reference, not as an SLA.
 
 ### Testing Commands
 
@@ -178,9 +192,9 @@ above. Access policy and credentials remain environment-specific.
 
 | Decision | Resolution |
 | --- | --- |
-| `justfile` wrapper | The root `justfile` now provides a CI command surface (`just ci`, `just ci-full`, `just ci-prepush`) mirroring GitHub Actions workflows, plus DEV mode helpers (`just dev-up`, `just dev-down`). Docker service helpers preserved. |
+| `justfile` wrapper | The root `justfile` now provides a CI command surface (`just ci`, `just ci-full`, `just ci-prepush`) mirroring the local-safe GitHub checks, including full server lint, migration/codegen validation, security, integration, and email preview checks. Docker service helpers preserved. |
 | GraphQL codegen in CI | CI verifies generated types are up to date (fails if not). Codegen remains a manual step executed by the developer after schema changes. |
-| `lint:diff-with-main` as default | No. Both `lint:diff-with-main` (fast, preferred for PRs) and `lint` (full, for thorough checks) remain explicit. |
+| `lint:diff-with-main` as default | No. Diff lint remains the fast daily path; `just ci-full` also runs full server lint to catch baseline format drift. |
 
 ## Open Decisions
 

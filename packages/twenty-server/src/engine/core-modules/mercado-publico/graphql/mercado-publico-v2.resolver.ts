@@ -154,6 +154,9 @@ export class MercadoPublicoV2OpportunityDTO {
   amount!: string | null;
 
   @Field(() => String, { nullable: true })
+  amountClp!: string | null;
+
+  @Field(() => String, { nullable: true })
   currency!: string | null;
 
   @Field(() => Int, { nullable: true })
@@ -465,6 +468,7 @@ const toOpportunityDTO = (
   publishedAt: row.published_at,
   closingAt: row.closing_at,
   amount: row.amount,
+  amountClp: row.amount_clp,
   currency: row.currency_source,
   documentCount: row.document_count,
   llamado: row.llamado,

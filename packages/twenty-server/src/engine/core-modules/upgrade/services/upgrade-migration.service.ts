@@ -166,11 +166,18 @@ export class UpgradeMigrationService {
       ? queryRunner.manager.getRepository(UpgradeMigrationEntity)
       : this.upgradeMigrationRepository;
 
-    const existingInitialMigration = await repository.findOne({
-      where: { name, attempt: 1, workspaceId, isInitial: true },
+    const existingMigration = await repository.findOne({
+      where: { name, attempt: 1, workspaceId },
     });
 
-    if (isDefined(existingInitialMigration)) {
+    if (isDefined(existingMigration)) {
+      if (!existingMigration.isInitial) {
+        await repository.update(
+          { id: existingMigration.id },
+          { isInitial: true },
+        );
+      }
+
       return;
     }
 

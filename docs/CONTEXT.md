@@ -2,6 +2,7 @@
 type: context
 title: Docs Surface Context
 description: Scope and reading order for durable repository documentation.
+okf_version: "0.1"
 ---
 
 # Docs Context

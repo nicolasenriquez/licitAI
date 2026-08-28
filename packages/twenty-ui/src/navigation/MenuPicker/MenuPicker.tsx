@@ -1,4 +1,3 @@
-import { isNonEmptyString } from '@sniptt/guards';
 import { clsx } from 'clsx';
 import { useContext } from 'react';
 import { isDefined } from '@ui/utilities/utils/isDefined';
@@ -68,7 +67,7 @@ export const MenuPicker = ({
         )}
       </button>
 
-      {isNonEmptyString(tooltipContent) && (
+      {typeof tooltipContent === 'string' && tooltipContent.length > 0 && (
         <AppTooltip
           anchorSelect={`#${id}`}
           offset={tooltipOffset}

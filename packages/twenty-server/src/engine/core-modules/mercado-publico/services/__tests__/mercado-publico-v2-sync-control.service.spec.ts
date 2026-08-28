@@ -1,3 +1,5 @@
+import { ConflictException } from '@nestjs/common';
+
 import {
   MercadoPublicoV2SyncControlService,
   buildMercadoPublicoV2SyncCommandFingerprint,
@@ -37,6 +39,10 @@ describe('MercadoPublicoV2SyncControlService', () => {
           records_discovered: '3',
           records_hydrated: '2',
           records_failed: '1',
+          records_deferred: '1',
+          records_projected: '2',
+          discovery_complete: true,
+          completion_reason: 'page_budget_reached',
           created_at: null,
           updated_at: null,
         },
@@ -52,6 +58,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await expect(service.getLatestRun('workspace-1')).resolves.toMatchObject({
@@ -59,6 +66,10 @@ describe('MercadoPublicoV2SyncControlService', () => {
       recordsDiscovered: 3,
       recordsHydrated: 2,
       recordsFailed: 1,
+      recordsDeferred: 1,
+      recordsProjected: 2,
+      discoveryComplete: true,
+      completionReason: 'page_budget_reached',
       safeSummary: 'La ejecución no se completó.',
       timeline: [{ operatorName: 'Operator' }],
     });
@@ -69,7 +80,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
     );
   });
 
-  it('offers resume for a discovery cancellation and restores the discovery stage', async () => {
+  it('rejects resume for a discovery-incomplete cancellation', async () => {
     const latestRunQuery = jest
       .fn()
       .mockResolvedValueOnce([
@@ -77,6 +88,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
           id: 'run-1',
           status: 'cancelled',
           error_stage: 'discovering',
+          discovery_complete: false,
           records_discovered: '1',
           records_hydrated: '0',
           records_failed: '0',
@@ -89,14 +101,43 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query: latestRunQuery } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await expect(
       latestRunService.getLatestRun('workspace-1'),
     ).resolves.toMatchObject({
-      canResume: true,
+      canResume: false,
     });
 
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('INSERT INTO mp.sync_command')) {
+        return Promise.resolve([{ id: 'command-1' }]);
+      }
+      return Promise.resolve([]);
+    });
+    const service = new MercadoPublicoV2SyncControlService(
+      { query, transaction: transactionUsing(query) } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+      {} as never,
+    );
+
+    await expect(
+      service.submitCommand(
+        buildInput({ action: 'resume', confirmed: undefined }),
+      ),
+    ).rejects.toThrow(ConflictException);
+
+    const resumeUpdate = query.mock.calls.find(([sql]) =>
+      sql.includes('WITH resumable_run'),
+    );
+
+    expect(resumeUpdate?.[0]).toContain('discovery_complete = true');
+    expect(resumeUpdate?.[0]).toContain("error_stage = 'hydrating'");
+  });
+
+  it('preserves item attempt checkpoints when resuming hydration', async () => {
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('INSERT INTO mp.sync_command')) {
         return Promise.resolve([{ id: 'command-1' }]);
@@ -111,21 +152,34 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
+    );
+
+    await service.submitCommand(
+      buildInput({ action: 'resume', confirmed: undefined }),
+    );
+
+    const requeueUpdate = query.mock.calls.find(([sql]) =>
+      sql.includes('UPDATE mp.sync_run_item'),
+    );
+
+    expect(requeueUpdate?.[0]).not.toContain('attempts = 0');
+  });
+
+  it('rejects a malformed idempotency key before touching the database', async () => {
+    const query = jest.fn();
+    const service = new MercadoPublicoV2SyncControlService(
+      { query, transaction: transactionUsing(query) } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+      {} as never,
     );
 
     await expect(
-      service.submitCommand(
-        buildInput({ action: 'resume', confirmed: undefined }),
-      ),
-    ).resolves.toMatchObject({ state: 'queued', syncRunId: 'run-1' });
+      service.submitCommand(buildInput({ idempotencyKey: 'not-a-uuid' })),
+    ).rejects.toThrow(/valid UUID/);
 
-    const resumeUpdate = query.mock.calls.find(([sql]) =>
-      sql.includes('WITH resumable_run'),
-    );
-
-    expect(resumeUpdate?.[0]).toContain(
-      "WHEN r.error_stage = 'discovering' THEN 'discovering'",
-    );
+    expect(query).not.toHaveBeenCalled();
   });
 
   it('persists the selected page budget with a new run', async () => {
@@ -143,6 +197,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await service.submitCommand(buildInput({ maxPages: 2 }));
@@ -151,7 +206,54 @@ describe('MercadoPublicoV2SyncControlService', () => {
       sql.includes('INSERT INTO mp.sync_run ('),
     );
 
-    expect(runInsert?.[1]).toContain(JSON.stringify({ max_pages: 2 }));
+    const storedParams = JSON.parse(runInsert?.[1][1] as string) as Record<
+      string,
+      unknown
+    >;
+
+    expect(storedParams).toMatchObject({ max_pages: 2 });
+  });
+
+  it('persists a frozen watermark window when an operator starts without a page budget', async () => {
+    const watermarkAt = new Date('2026-08-14T12:00:00.000Z');
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('INSERT INTO mp.sync_command')) {
+        return Promise.resolve([{ id: 'command-1' }]);
+      }
+      if (sql.includes('INSERT INTO mp.sync_run (')) {
+        return Promise.resolve([{ id: 'run-1' }]);
+      }
+      if (sql.includes('FROM mp.source_watermark')) {
+        return Promise.resolve([{ watermark_at: watermarkAt }]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const service = new MercadoPublicoV2SyncControlService(
+      { query, transaction: transactionUsing(query) } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+      {} as never,
+    );
+
+    await service.submitCommand(buildInput());
+
+    const runInsert = query.mock.calls.find(([sql]) =>
+      sql.includes('INSERT INTO mp.sync_run ('),
+    );
+
+    const storedParams = JSON.parse(runInsert?.[1][1] as string) as Record<
+      string,
+      unknown
+    >;
+
+    expect(storedParams).toMatchObject({
+      cambio_desde: expect.any(String),
+      cambio_hasta: expect.any(String),
+    });
+    expect(storedParams).not.toHaveProperty('max_pages');
+    expect(storedParams.cambio_desde).not.toBe(storedParams.cambio_hasta);
+    expect(runInsert?.[1][2]).toEqual(watermarkAt);
   });
 
   it('returns the saved result when an operator replays the same key and request', async () => {
@@ -176,6 +278,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     const result = await service.submitCommand(buildInput());
@@ -206,6 +309,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await expect(
@@ -213,6 +317,44 @@ describe('MercadoPublicoV2SyncControlService', () => {
         buildInput({ idempotencyKey: IDEMPOTENCY_KEY, confirmed: true }),
       ),
     ).rejects.toThrow(/409|conflict/i);
+  });
+
+  it('preserves conflict semantics when a changed request loses the insert race', async () => {
+    let commandReads = 0;
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('FROM mp.sync_command')) {
+        commandReads += 1;
+
+        return Promise.resolve(
+          commandReads === 1
+            ? []
+            : [
+                {
+                  id: 'command-1',
+                  state: 'pending',
+                  request_fingerprint: 'different-fingerprint',
+                  sync_run_id: null,
+                  result: null,
+                },
+              ],
+        );
+      }
+      if (sql.includes('INSERT INTO mp.sync_command')) {
+        return Promise.resolve([]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const service = new MercadoPublicoV2SyncControlService(
+      { query, transaction: transactionUsing(query) } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+      {} as never,
+    );
+
+    await expect(service.submitCommand(buildInput())).rejects.toBeInstanceOf(
+      ConflictException,
+    );
   });
 
   it('reuses a same-workspace active run and returns its safe status', async () => {
@@ -239,6 +381,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     const result = await service.submitCommand(buildInput());
@@ -276,6 +419,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     const result = await service.submitCommand(buildInput());
@@ -311,6 +455,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await expect(service.submitCommand(buildInput())).resolves.toMatchObject({
@@ -337,6 +482,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       messageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     const result = await service.submitCommand(buildInput());
@@ -383,6 +529,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query: coreQuery, transaction } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await expect(
@@ -400,7 +547,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
     ).toBe(true);
   });
 
-  it('keeps retryable provider failures terminal after the worker attempt', async () => {
+  it('keeps the command pending while queue attempts remain and fails on the final attempt', async () => {
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('UPDATE mp.sync_command')) {
         return Promise.resolve([
@@ -414,18 +561,92 @@ describe('MercadoPublicoV2SyncControlService', () => {
       { query, transaction: transactionUsing(query) } as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await service.finalizeCommand({
       commandId: 'command-1',
       attemptId: 'attempt-1',
+      attemptNumber: 2,
       status: 'retryable_failed',
     });
 
-    const commandUpdate = query.mock.calls.find(([sql]) =>
+    const pendingUpdate = query.mock.calls.find(([sql]) =>
       sql.includes('UPDATE mp.sync_command'),
     );
-    expect(commandUpdate?.[1]).toEqual(['command-1', 'failed', null]);
+
+    expect(pendingUpdate?.[1]).toEqual([
+      'command-1',
+      'pending',
+      null,
+      'attempt-1',
+    ]);
+    expect(pendingUpdate?.[0]).toContain(
+      "finished_at = CASE WHEN $2 = 'pending' THEN NULL ELSE now() END",
+    );
+
+    await service.finalizeCommand({
+      commandId: 'command-1',
+      attemptId: 'attempt-2',
+      attemptNumber: 4,
+      status: 'retryable_failed',
+    });
+
+    const commandUpdates = query.mock.calls.filter(([sql]: [string]) =>
+      sql.includes('UPDATE mp.sync_command'),
+    );
+    const failedUpdate = commandUpdates[commandUpdates.length - 1];
+
+    expect(failedUpdate?.[1]).toEqual([
+      'command-1',
+      'failed',
+      null,
+      'attempt-2',
+    ]);
+  });
+
+  it('defers a rate-limited command until the provider quota reset', async () => {
+    const retryAt = new Date(Date.now() + 60_000);
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('UPDATE mp.sync_command')) {
+        return Promise.resolve([
+          { workspace_id: 'workspace-1', sync_run_id: 'run-1' },
+        ]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const add = jest.fn().mockResolvedValue({});
+    const service = new MercadoPublicoV2SyncControlService(
+      { query, transaction: transactionUsing(query) } as never,
+      { add } as unknown as MessageQueueService,
+      queueConfig as never,
+      {} as never,
+    );
+
+    await service.deferCommand({
+      commandId: 'command-1',
+      attemptId: 'attempt-1',
+      retryAt,
+    });
+
+    expect(add).toHaveBeenCalledWith(
+      'mercado-publico-v2-sync-command',
+      { commandId: 'command-1' },
+      expect.objectContaining({ retryLimit: 0 }),
+    );
+    const deferredDelay = add.mock.calls[0]?.[2]?.delay as number;
+
+    expect(deferredDelay).toBeGreaterThanOrEqual(0);
+    expect(deferredDelay).toBeLessThanOrEqual(
+      retryAt.getTime() - Date.now() + 1000,
+    );
+    const attemptUpdate = query.mock.calls.find(([sql]) =>
+      sql.includes('UPDATE mp.sync_run_attempt'),
+    );
+
+    expect(attemptUpdate?.[0]).toContain("state = 'failed'");
+    expect(attemptUpdate?.[1]).toContain('attempt-1');
   });
 
   it('appends audit events and never mutates existing audit rows', async () => {
@@ -445,6 +666,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
         add: jest.fn().mockResolvedValue({}),
       } as unknown as MessageQueueService,
       queueConfig as never,
+      {} as never,
     );
 
     await service.submitCommand(buildInput());
@@ -460,5 +682,60 @@ describe('MercadoPublicoV2SyncControlService', () => {
         (sql) => sql.includes('UPDATE') || sql.includes('DELETE'),
       ),
     ).toBe(false);
+  });
+
+  it('recovers due deferred items as focused recovery runs', async () => {
+    let claimCalls = 0;
+    const query = jest.fn().mockImplementation((sql: string) => {
+      if (sql.includes('ORDER BY updated_at ASC')) {
+        return Promise.resolve([
+          { id: 'item-1', codigo: 'CA-DEFERRED-001' },
+          { id: 'item-2', codigo: 'CA-DEFERRED-002' },
+        ]);
+      }
+      if (sql.includes('RETURNING codigo')) {
+        claimCalls += 1;
+
+        return Promise.resolve([
+          { codigo: claimCalls === 1 ? 'CA-DEFERRED-001' : 'CA-DEFERRED-002' },
+        ]);
+      }
+
+      return Promise.resolve([]);
+    });
+    const start = jest.fn().mockResolvedValue({ status: 'succeeded' });
+    const service = new MercadoPublicoV2SyncControlService(
+      { query } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+      { start } as never,
+    );
+
+    await expect(service.recoverDeferredHydrations()).resolves.toBe(2);
+
+    expect(start).toHaveBeenCalledTimes(2);
+    expect(start).toHaveBeenCalledWith({ id: 'CA-DEFERRED-001' }, 'recovery');
+    expect(start).toHaveBeenCalledWith({ id: 'CA-DEFERRED-002' }, 'recovery');
+    const dueQuery = query.mock.calls.find(([sql]: [string]) =>
+      sql.includes('make_interval(secs => pow(2, LEAST(attempts, 12))'),
+    );
+
+    expect(dueQuery?.[0]).toContain("status = 'deferred'");
+    expect(dueQuery?.[0]).toContain("snapshot_kind = 'detail'");
+  });
+
+  it('does not dispatch a deferred item whose observation is already fresher', async () => {
+    const query = jest.fn().mockResolvedValue([]);
+    const start = jest.fn();
+    const service = new MercadoPublicoV2SyncControlService(
+      { query } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+      { start } as never,
+    );
+
+    await expect(service.recoverDeferredHydrations()).resolves.toBe(0);
+
+    expect(start).not.toHaveBeenCalled();
   });
 });

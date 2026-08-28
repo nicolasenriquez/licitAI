@@ -7,5 +7,8 @@ export const getLinkNavigationMenuItemComputedLink = (
   if (linkUrl.startsWith('http://') || linkUrl.startsWith('https://')) {
     return linkUrl;
   }
+  if (linkUrl.startsWith('/')) {
+    return linkUrl;
+  }
   return linkUrl ? `https://${linkUrl}` : '';
 };

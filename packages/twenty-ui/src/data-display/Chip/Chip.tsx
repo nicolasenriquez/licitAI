@@ -1,6 +1,5 @@
 import { type ReactNode } from 'react';
 
-import { isNonEmptyString } from '@sniptt/guards';
 import { OverflowingTextWithTooltip } from '@ui/surfaces/OverflowingTextWithTooltip/OverflowingTextWithTooltip';
 import { clsx } from 'clsx';
 import { isDefined } from '@ui/utilities/utils/isDefined';
@@ -131,7 +130,10 @@ export const Chip = ({
       }
     >
       {leftComponent}
-      {!isLabelHidden && isDefined(label) && isNonEmptyString(label) ? (
+      {!isLabelHidden &&
+      isDefined(label) &&
+      typeof label === 'string' &&
+      label.length > 0 ? (
         <OverflowingTextWithTooltip
           size={size}
           text={label}

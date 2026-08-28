@@ -87,13 +87,15 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       mockHttpClient.get.mockResolvedValue({
         status: 200,
         data: {
-          Items: [
-            {
-              codigo: 'CA-1',
-              estado: 'publicada',
-              region: 13,
-            },
-          ],
+          payload: {
+            items: [
+              {
+                codigo: 'CA-1',
+                estado: 'publicada',
+                region: 13,
+              },
+            ],
+          },
         },
       });
 
@@ -113,6 +115,56 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       expect(result.compraAgil[0].codigo).toBe('CA-1');
       expect(result.httpStatus).toBe(200);
       expect(result.errorSummary).toBeUndefined();
+      expect(result).toMatchObject({
+        recordsFetched: 1,
+        recordsAccepted: 1,
+        recordsRejected: 0,
+        contractIssues: [],
+      });
+    });
+
+    it('returns all 50 records from a valid LIST envelope', async () => {
+      mockHttpClient.get.mockResolvedValue({
+        status: 200,
+        data: {
+          payload: {
+            items: Array.from({ length: 50 }, (_, index) => ({
+              codigo: `CA-${index + 1}`,
+            })),
+          },
+        },
+      });
+
+      const result = await service.getList({ tamano_pagina: 50 });
+
+      expect(result.compraAgil).toHaveLength(50);
+      expect(result.errorSummary).toBeUndefined();
+    });
+
+    it('fails the complete LIST contract and retains raw when one item is invalid', async () => {
+      const rawPayload = {
+        payload: {
+          items: [{ codigo: 'CA-1' }, { invalid: true }, { codigo: 'CA-3' }],
+        },
+      };
+
+      mockHttpClient.get.mockResolvedValue({ status: 200, data: rawPayload });
+
+      const result = await service.getList({});
+
+      expect(result.compraAgil).toEqual([]);
+      expect(result.errorSummary).toBe('hard_fail');
+      expect(result.errorCode).toBe('invalid_list_items');
+      expect(result.errorMessage).toContain('invalidIndices=[1]');
+      expect(result.rawPayload).toBe(rawPayload);
+      expect(result).toMatchObject({
+        recordsFetched: 3,
+        recordsAccepted: 0,
+        recordsRejected: 3,
+        contractIssues: [
+          { code: 'invalid_field', indices: [1], paths: ['[1].codigo'] },
+        ],
+      });
     });
 
     it('should classify 404 as soft_miss error', async () => {
@@ -193,10 +245,12 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       mockHttpClient.get.mockResolvedValue({
         status: 200,
         data: {
-          codigo: 'CA-1',
-          estado: 'cerrada',
-          orden_compra: {
-            id_orden_compra: 'OC-123',
+          payload: {
+            codigo: 'CA-1',
+            estado: 'cerrada',
+            orden_compra: {
+              id_orden_compra: 'OC-123',
+            },
           },
         },
       });
@@ -217,6 +271,19 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       expect(result.compraAgil[0].codigo).toBe('CA-1');
       expect(result.compraAgil[0].orden_compra?.id_orden_compra).toBe('OC-123');
       expect(result.errorSummary).toBeUndefined();
+    });
+
+    it('rejects an undocumented DETAIL envelope', async () => {
+      mockHttpClient.get.mockResolvedValue({
+        status: 200,
+        data: { data: { codigo: 'CA-1' } },
+      });
+
+      const result = await service.getByCodigo('CA-1');
+
+      expect(result.compraAgil).toEqual([]);
+      expect(result.errorSummary).toBe('hard_fail');
+      expect(result.errorCode).toBe('invalid_detail_envelope');
     });
   });
 });

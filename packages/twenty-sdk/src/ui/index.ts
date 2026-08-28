@@ -1,15 +1,8 @@
 export * from 'twenty-ui/accessibility';
 export * from 'twenty-ui/data-display';
 
-// Selective re-export from twenty-ui's component domains:
-// IconsProvider, useIcons, and iconsState are excluded to avoid bundling
-// the AllIcons module (~5000 Tabler icons) which adds ~4MB to the SDK dist.
-export {
-  Banner,
-  Callout,
-  Info,
-  SidePanelInformationBanner,
-} from 'twenty-ui/feedback';
+// IconsProvider, useIcons, and iconsState are excluded to avoid bundling the
+// AllIcons module (~5000 Tabler icons) which adds ~4MB to the SDK dist.
 export {
   Icon,
   Icon123,
@@ -468,7 +461,6 @@ export {
   IllustrationIconWrapper,
   ThinkingOrbitLoaderIcon,
 } from 'twenty-ui/icon';
-export { HorizontalSeparator } from 'twenty-ui/layout';
 export {
   AppTooltip,
   OverflowingTextWithTooltip,

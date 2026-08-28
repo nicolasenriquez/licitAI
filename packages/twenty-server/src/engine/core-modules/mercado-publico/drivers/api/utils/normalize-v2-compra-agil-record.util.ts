@@ -15,6 +15,7 @@ export type NormalizedV2CompraAgilRecord = {
   providerChangedAtRaw: string | null;
   stateId: string | null;
   amount: string | null;
+  amountRaw: string | null;
   currency: string | null;
   documentCount: number | null;
   description: string | null;
@@ -88,16 +89,23 @@ export const normalizeV2CompraAgilRecord = (
   const providerChangedAt = normalizeV2CompraAgilDate(
     dates?.fecha_ultimo_cambio ?? record.fecha_ultimo_cambio,
   );
-  const amount =
-    record.presupuesto?.monto_disponible ??
+  const sourceAmount =
+    record.presupuesto?.monto_disponible ?? record.montos?.monto_disponible;
+  const clpAmount =
     record.presupuesto?.monto_disponible_clp ??
-    record.montos?.monto_disponible ??
     record.montos?.monto_disponible_clp;
+  const amount = sourceAmount ?? clpAmount;
   const delivery = record.entrega;
   const call = record.convocatoria;
   const budget = record.presupuesto;
   const motives = record.motivos;
   const summary = record.resumen;
+  const currency =
+    sourceAmount !== null && sourceAmount !== undefined
+      ? coerceToText(budget?.moneda ?? record.montos?.moneda)
+      : clpAmount !== null && clpAmount !== undefined
+        ? 'CLP'
+        : null;
 
   return {
     title: coerceToText(record.nombre),
@@ -112,18 +120,17 @@ export const normalizeV2CompraAgilRecord = (
           ? record.region
           : null,
     publishedAt: normalizeV2CompraAgilDate(
-      dates?.fecha_publicacion ??
-        record.fecha_publicacion ??
-        record.publicado_desde,
+      dates?.fecha_publicacion ?? record.fecha_publicacion,
     ).value,
     closingAt: normalizeV2CompraAgilDate(
-      dates?.fecha_cierre ?? record.fecha_cierre ?? record.publicado_hasta,
+      dates?.fecha_cierre ?? record.fecha_cierre,
     ).value,
     providerChangedAt: providerChangedAt.value,
     providerChangedAtRaw: providerChangedAt.raw,
     stateId,
-    amount: toDecimalString(amount),
-    currency: coerceToText(budget?.moneda ?? record.montos?.moneda),
+    amount: toDecimalString(clpAmount ?? (currency === 'CLP' ? amount : null)),
+    amountRaw: toDecimalString(amount),
+    currency,
     documentCount: Array.isArray(record.documentos)
       ? record.documentos.length
       : null,
@@ -133,10 +140,10 @@ export const normalizeV2CompraAgilRecord = (
     cancellationAt: normalizeV2CompraAgilDate(dates?.fecha_cancelacion).value,
     callDescription: coerceToText(call?.descripcion),
     callFirstClosingAt: normalizeV2CompraAgilDate(
-      call?.fecha_cierre_primer_llamado,
+      call?.fecha_cierre_primer_llamado ?? dates?.fecha_cierre_primer_llamado,
     ).value,
     callSecondClosingAt: normalizeV2CompraAgilDate(
-      call?.fecha_cierre_segundo_llamado,
+      call?.fecha_cierre_segundo_llamado ?? dates?.fecha_cierre_segundo_llamado,
     ).value,
     budgetType: coerceToText(budget?.tipo_presupuesto),
     budgetEstimate: toDecimalString(budget?.presupuesto_estimado),

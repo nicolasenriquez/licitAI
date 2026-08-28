@@ -7,6 +7,7 @@ describe('normalizeV2CompraAgilRecord', () => {
 
     expect(normalized).toMatchObject({
       amount: '1',
+      amountRaw: '1',
       currency: '[string]',
       documentCount: 23,
       publishedAt: new Date('2026-01-02T03:04:05Z'),
@@ -105,6 +106,7 @@ describe('normalizeV2CompraAgilRecord', () => {
       providerChangedAtRaw: null,
       stateId: null,
       amount: null,
+      amountRaw: null,
       currency: null,
       documentCount: null,
       description: null,
@@ -123,6 +125,49 @@ describe('normalizeV2CompraAgilRecord', () => {
       totalOffers: null,
       totalDemands: null,
       finePenalty: null,
+    });
+  });
+
+  it('does not turn list query bounds into process dates', () => {
+    expect(
+      normalizeV2CompraAgilRecord({
+        codigo: 'CA-1',
+        publicado_desde: '2026-06-01T00:00:00Z',
+        publicado_hasta: '2026-06-01T23:59:59Z',
+      }),
+    ).toMatchObject({ publishedAt: null, closingAt: null });
+  });
+
+  it('uses DETAIL call closing dates before LIST date fallbacks', () => {
+    const normalized = normalizeV2CompraAgilRecord({
+      codigo: 'CA-1',
+      fechas: {
+        fecha_cierre_primer_llamado: '2026-06-10T10:00:00Z',
+        fecha_cierre_segundo_llamado: '2026-06-11T10:00:00Z',
+      },
+      convocatoria: {
+        fecha_cierre_primer_llamado: '2026-06-12T10:00:00Z',
+      },
+    });
+
+    expect(normalized.callFirstClosingAt).toEqual(
+      new Date('2026-06-12T10:00:00Z'),
+    );
+    expect(normalized.callSecondClosingAt).toEqual(
+      new Date('2026-06-11T10:00:00Z'),
+    );
+  });
+
+  it('keeps a CLP fallback paired with CLP currency', () => {
+    expect(
+      normalizeV2CompraAgilRecord({
+        codigo: 'CA-1',
+        presupuesto: { moneda: 'USD', monto_disponible_clp: 120000 },
+      }),
+    ).toMatchObject({
+      amount: '120000',
+      amountRaw: '120000',
+      currency: 'CLP',
     });
   });
 });

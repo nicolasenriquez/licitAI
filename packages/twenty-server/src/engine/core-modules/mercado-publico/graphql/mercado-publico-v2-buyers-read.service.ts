@@ -1,7 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 
 import { DataSource } from 'typeorm';
+import { MercadoPublicoV2ErrorCode } from 'twenty-shared/constants';
+import { UserInputError } from 'src/engine/core-modules/graphql/utils/graphql-errors.util';
 
 import {
   buildMercadoPublicoV2PopulationWhere,
@@ -55,7 +57,10 @@ const decodeBuyerCursor = (value: string): string => {
 
     return parsed.buyerCode;
   } catch {
-    throw new BadRequestException('Mercado Publico V2 buyer cursor is invalid');
+    throw new UserInputError('Mercado Publico V2 buyer cursor is invalid', {
+      subCode: MercadoPublicoV2ErrorCode.INVALID_CURSOR,
+      isExpected: true,
+    });
   }
 };
 

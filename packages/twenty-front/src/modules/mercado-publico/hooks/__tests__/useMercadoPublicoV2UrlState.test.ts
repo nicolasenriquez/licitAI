@@ -1,4 +1,5 @@
 import {
+  getMercadoPublicoV2SectionSearch,
   parseMercadoPublicoV2UrlState,
   serializeMercadoPublicoV2Filters,
 } from '@/mercado-publico/hooks/useMercadoPublicoV2UrlState';
@@ -7,7 +8,7 @@ describe('Mercado Público V2 URL state', () => {
   it('restores cohort, filters, order, cursor and selected process', () => {
     const state = parseMercadoPublicoV2UrlState(
       new URLSearchParams(
-        'q=computadores&cohorte=terminal&estado=publicada,cerrada&buyer=69000100-1&region=13&desde=2026-07-01&hasta=2026-07-31&docsMin=2&docsMax=5&llamado=1&montoMin=100&montoMax=200&moneda=CLP,UF&orden=amount_asc&after=cursor-2&proceso=CA-2',
+        'q=computadores&cohorte=terminal&estado=publicada,cerrada&buyer=69000100-1&region=13&desde=2026-07-01&hasta=2026-07-31&docsMin=2&docsMax=5&llamado=1&montoMin=100&montoMax=200&moneda=CLP,UF&orden=AMOUNT_ASC&after=cursor-2&proceso=CA-2',
       ),
     );
 
@@ -25,7 +26,7 @@ describe('Mercado Público V2 URL state', () => {
       amountMin: '100',
       amountMax: '200',
       currencies: ['CLP', 'UF'],
-      sort: 'amount_asc',
+      sort: 'AMOUNT_ASC',
       after: 'cursor-2',
       proceso: 'CA-2',
     });
@@ -34,7 +35,7 @@ describe('Mercado Público V2 URL state', () => {
   it('falls back to default order for unknown URL order', () => {
     expect(
       parseMercadoPublicoV2UrlState(new URLSearchParams('orden=unknown')).sort,
-    ).toBe('closing_at_desc');
+    ).toBe('CLOSING_AT_DESC');
   });
 
   it('serializes filters without empty values', () => {
@@ -57,5 +58,30 @@ describe('Mercado Público V2 URL state', () => {
     expect(params.toString()).toBe(
       'q=+computadores+&cohorte=active&estado=publicada%2Ccerrada&buyer=69000100-1&region=13&desde=2026-07-01&hasta=2026-07-31&docsMin=0&montoMin=100&moneda=CLP%2CUF',
     );
+  });
+
+  it('preserves shared context between sections and drops local state', () => {
+    expect(
+      getMercadoPublicoV2SectionSearch(
+        '?q=computadores&region=13&orden=AMOUNT_ASC&after=cursor-2&proceso=CA-2&codigo=CA-2&returnTo=%2Fmercado-publico',
+      ),
+    ).toBe('?q=computadores&region=13&orden=AMOUNT_ASC');
+  });
+
+  it('keeps sort and process while applying filters resets cursor', () => {
+    const current = parseMercadoPublicoV2UrlState(
+      new URLSearchParams('q=old&orden=AMOUNT_ASC&after=cursor-2&proceso=CA-2'),
+    );
+
+    const next = serializeMercadoPublicoV2Filters({
+      ...current,
+      search: 'new',
+    });
+
+    next.delete('after');
+    next.set('orden', current.sort);
+    next.set('proceso', current.proceso ?? '');
+
+    expect(next.toString()).toBe('q=new&orden=AMOUNT_ASC&proceso=CA-2');
   });
 });

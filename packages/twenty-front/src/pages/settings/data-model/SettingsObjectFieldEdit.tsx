@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import omit from 'lodash.omit';
 import { useEffect, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -197,7 +196,7 @@ export const SettingsObjectFieldEdit = () => {
       }
     }
 
-    const otherDirtyFields = omit(dirtyFields, 'relation');
+    const { relation: _relation, ...otherDirtyFields } = dirtyFields;
 
     if (Object.keys(otherDirtyFields).length > 0) {
       const formattedInput = Object.fromEntries(

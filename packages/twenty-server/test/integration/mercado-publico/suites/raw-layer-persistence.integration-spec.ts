@@ -8,6 +8,7 @@ import { MpRawCsvFileFastInstanceCommand } from 'src/database/commands/upgrade-v
 import { MpRawCsvRowFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007700-mp-raw-csv-row';
 import { MpStgJobRunFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007800-mp-stg-job-run';
 import { MpRawCsvFileDedupeModalityFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007920-mp-raw-csv-file-dedupe-modality';
+import { MpV2RawContractAccountingFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1796000000000-mp-v2-raw-contract-accounting';
 import { DropRawCsvFileIngestionJobIdFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1783191615514-drop-raw-csv-file-ingestion-job-id';
 import { MpStgJobRunRawCsvFileLinkSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-slow-1782340007930-mp-stg-job-run-raw-csv-file-link';
 import { rawDataSource } from 'src/database/typeorm/raw/raw.datasource';
@@ -43,6 +44,7 @@ const applyMercadoPublicoRawLayerCommands = async (dataSource: DataSource) => {
     await new MpRawCsvFileFastInstanceCommand().up(queryRunner);
     await new MpRawCsvRowFastInstanceCommand().up(queryRunner);
     await new MpStgJobRunFastInstanceCommand().up(queryRunner);
+    await new MpV2RawContractAccountingFastInstanceCommand().up(queryRunner);
     await new MpRawCsvFileDedupeModalityFastInstanceCommand().up(queryRunner);
     await new MpStgJobRunRawCsvFileLinkSlowInstanceCommand().up(queryRunner);
     await new DropRawCsvFileIngestionJobIdFastInstanceCommand().up(queryRunner);

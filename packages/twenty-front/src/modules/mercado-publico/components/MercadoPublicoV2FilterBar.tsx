@@ -1,8 +1,10 @@
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
-import { useEffect, useState } from 'react';
-import { Button } from 'twenty-ui/input';
+import { type FormEvent, type KeyboardEvent, useEffect, useState } from 'react';
+import { Button, Checkbox, SearchInput } from 'twenty-ui/input';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
+
+import { MercadoPublicoV2OpportunitySort } from '~/generated/graphql';
 
 import {
   type MercadoPublicoV2Filters,
@@ -19,12 +21,9 @@ export const MERCADO_PUBLICO_V2_STATES = [
   'oc_emitida',
 ] as const;
 
-const MERCADO_PUBLICO_V2_COHORTS: Array<{
-  value: MercadoPublicoV2CohortStatus;
-  label: string;
-}> = [
-  { value: 'active', label: 'Activa' },
-  { value: 'terminal', label: 'Terminal' },
+const MERCADO_PUBLICO_V2_COHORTS: MercadoPublicoV2CohortStatus[] = [
+  'active',
+  'terminal',
 ];
 
 const MERCADO_PUBLICO_V2_REGIONS = [
@@ -33,16 +32,13 @@ const MERCADO_PUBLICO_V2_REGIONS = [
 
 const MERCADO_PUBLICO_V2_CURRENCIES = ['CLP', 'UF', 'USD'];
 
-export const MERCADO_PUBLICO_V2_SORTS: Array<{
-  value: MercadoPublicoV2Sort;
-  label: string;
-}> = [
-  { value: 'closing_at_desc', label: 'Cierre más lejano' },
-  { value: 'closing_at_asc', label: 'Cierre más próximo' },
-  { value: 'published_at_desc', label: 'Publicación reciente' },
-  { value: 'published_at_asc', label: 'Publicación antigua' },
-  { value: 'amount_desc', label: 'Monto mayor a menor' },
-  { value: 'amount_asc', label: 'Monto menor a mayor' },
+export const MERCADO_PUBLICO_V2_SORTS: MercadoPublicoV2Sort[] = [
+  MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC,
+  MercadoPublicoV2OpportunitySort.CLOSING_AT_ASC,
+  MercadoPublicoV2OpportunitySort.PUBLISHED_AT_DESC,
+  MercadoPublicoV2OpportunitySort.PUBLISHED_AT_ASC,
+  MercadoPublicoV2OpportunitySort.AMOUNT_DESC,
+  MercadoPublicoV2OpportunitySort.AMOUNT_ASC,
 ];
 
 const StyledForm = styled.form`
@@ -55,6 +51,26 @@ const StyledRow = styled.div`
   display: grid;
   gap: ${themeCssVariables.spacing[3]};
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+`;
+
+const StyledClosingRange = styled.fieldset`
+  border: 0;
+  display: grid;
+  gap: ${themeCssVariables.spacing[2]};
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+
+  legend {
+    color: ${themeCssVariables.font.color.secondary};
+    font-size: ${themeCssVariables.font.size.xs};
+    margin-bottom: ${themeCssVariables.spacing[1]};
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const StyledField = styled.label`
@@ -87,6 +103,10 @@ const StyledInput = styled.input`
   }
 `;
 
+const StyledSearchInput = styled(SearchInput)`
+  width: 100%;
+`;
+
 const StyledSelect = styled.select`
   background: ${themeCssVariables.background.primary};
   border: 1px solid ${themeCssVariables.border.color.medium};
@@ -116,11 +136,6 @@ const StyledCheckbox = styled.label`
   display: inline-flex;
   font-size: ${themeCssVariables.font.size.xs};
   gap: ${themeCssVariables.spacing[1]};
-
-  input:focus-visible {
-    outline: 2px solid ${themeCssVariables.border.color.blue};
-    outline-offset: 2px;
-  }
 `;
 
 const StyledActions = styled.div`
@@ -129,25 +144,50 @@ const StyledActions = styled.div`
   gap: ${themeCssVariables.spacing[2]};
 `;
 
+const StyledAdvancedFilters = styled.details`
+  border-top: 1px solid ${themeCssVariables.border.color.light};
+  padding-top: ${themeCssVariables.spacing[2]};
+
+  summary {
+    color: ${themeCssVariables.font.color.primary};
+    cursor: pointer;
+    font-size: ${themeCssVariables.font.size.sm};
+  }
+
+  summary:focus-visible {
+    outline: 2px solid ${themeCssVariables.border.color.blue};
+    outline-offset: 2px;
+  }
+`;
+
 const StyledNotice = styled.p`
   color: ${themeCssVariables.font.color.danger};
   font-size: ${themeCssVariables.font.size.sm};
   margin: 0;
 `;
 
+const StyledFieldError = styled.p`
+  color: ${themeCssVariables.font.color.danger};
+  font-size: ${themeCssVariables.font.size.xs};
+  grid-column: 1 / -1;
+  margin: 0;
+`;
+
 export type MercadoPublicoV2FilterBarProps = {
   filters: MercadoPublicoV2Filters;
   sort: MercadoPublicoV2Sort;
+  showSort?: boolean;
   notice: string | null;
   noticeId: string;
   onApply: (filters: Partial<MercadoPublicoV2Filters>) => void;
   onClear: () => void;
-  onSortChange: (sort: MercadoPublicoV2Sort) => void;
+  onSortChange?: (sort: MercadoPublicoV2Sort) => void;
 };
 
 export const MercadoPublicoV2FilterBar = ({
   filters,
   sort,
+  showSort = true,
   notice,
   noticeId,
   onApply,
@@ -166,7 +206,24 @@ export const MercadoPublicoV2FilterBar = ({
     proveedor_seleccionado: t`Proveedor seleccionado`,
     oc_emitida: t`Orden de compra emitida`,
   };
+  const cohortLabels: Record<MercadoPublicoV2CohortStatus, string> = {
+    active: t`Activa`,
+    terminal: t`Terminal`,
+  };
+  const sortLabels: Record<MercadoPublicoV2Sort, string> = {
+    [MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC]: t`Cierre más lejano`,
+    [MercadoPublicoV2OpportunitySort.CLOSING_AT_ASC]: t`Cierre más próximo`,
+    [MercadoPublicoV2OpportunitySort.PUBLISHED_AT_DESC]: t`Publicación reciente`,
+    [MercadoPublicoV2OpportunitySort.PUBLISHED_AT_ASC]: t`Publicación antigua`,
+    [MercadoPublicoV2OpportunitySort.AMOUNT_DESC]: t`Monto mayor a menor`,
+    [MercadoPublicoV2OpportunitySort.AMOUNT_ASC]: t`Monto menor a mayor`,
+  };
   const [draft, setDraft] = useState<MercadoPublicoV2Filters>(filters);
+  const [validationErrors, setValidationErrors] = useState({
+    closing: null as string | null,
+    amount: null as string | null,
+    documents: null as string | null,
+  });
 
   useEffect(() => {
     setDraft(filters);
@@ -176,18 +233,78 @@ export const MercadoPublicoV2FilterBar = ({
     setDraft((current) => ({ ...current, ...partial }));
   };
 
+  const buyerFilterCount = draft.buyer.trim() === '' ? 0 : 1;
+  const processStatusFilterCount =
+    draft.states.length + (draft.llamado === null ? 0 : 1);
+  const sizeAndEvidenceFilterCount = [
+    draft.documentCountMin !== null,
+    draft.documentCountMax !== null,
+    draft.amountMin !== null,
+    draft.amountMax !== null,
+    draft.currencies.length > 0,
+  ].filter(Boolean).length;
+
+  const handleDisclosureKeyDown = (
+    event: KeyboardEvent<HTMLDetailsElement>,
+  ): void => {
+    if (event.key !== 'Escape' || !event.currentTarget.open) return;
+
+    event.preventDefault();
+    event.currentTarget.open = false;
+    event.currentTarget.querySelector('summary')?.focus();
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
+    event.preventDefault();
+
+    const nextErrors = {
+      closing:
+        draft.closingAtFrom !== null &&
+        draft.closingAtTo !== null &&
+        draft.closingAtFrom > draft.closingAtTo
+          ? t`La fecha desde no puede superar la fecha hasta.`
+          : null,
+      amount:
+        draft.amountMin !== null &&
+        draft.amountMax !== null &&
+        Number(draft.amountMin) > Number(draft.amountMax)
+          ? t`El mínimo no puede superar el máximo.`
+          : null,
+      documents:
+        draft.documentCountMin !== null &&
+        draft.documentCountMax !== null &&
+        draft.documentCountMin > draft.documentCountMax
+          ? t`El mínimo no puede superar el máximo.`
+          : null,
+    };
+
+    setValidationErrors(nextErrors);
+
+    if (Object.values(nextErrors).some((error) => error !== null)) return;
+
+    onApply(draft);
+  };
+
   return (
     <StyledForm
-      onSubmit={(event) => {
-        event.preventDefault();
-        onApply(draft);
-      }}
+      onSubmit={handleSubmit}
     >
       <StyledRow>
         <StyledField>
-          <StyledFieldLabel>{t`Cohorte`}</StyledFieldLabel>
+          <StyledFieldLabel>
+            {t`Buscar por código, título o comprador`}
+          </StyledFieldLabel>
+          <StyledSearchInput
+            placeholder={t`Buscar por código, título o comprador…`}
+            value={draft.search}
+            onChange={(search) => updateDraft({ search })}
+          />
+        </StyledField>
+
+        <StyledField>
+          <StyledFieldLabel>{t`Situación`}</StyledFieldLabel>
           <StyledSelect
-            aria-label={t`Filtrar por cohorte`}
+            aria-label={t`Filtrar por situación`}
             value={draft.cohortStatus ?? ''}
             onChange={(event) =>
               updateDraft({
@@ -196,37 +313,10 @@ export const MercadoPublicoV2FilterBar = ({
               })
             }
           >
-            <option value="">{t`Activas`}</option>
+            <option value="">{t`Todas`}</option>
             {MERCADO_PUBLICO_V2_COHORTS.map((cohort) => (
-              <option key={cohort.value} value={cohort.value}>
-                {cohort.label}
-              </option>
-            ))}
-          </StyledSelect>
-        </StyledField>
-
-        <StyledField>
-          <StyledFieldLabel>{t`Búsqueda`}</StyledFieldLabel>
-          <StyledInput
-            aria-label={t`Buscar por código, título o comprador`}
-            type="search"
-            value={draft.search}
-            onChange={(event) => updateDraft({ search: event.target.value })}
-          />
-        </StyledField>
-
-        <StyledField>
-          <StyledFieldLabel>{t`Orden`}</StyledFieldLabel>
-          <StyledSelect
-            aria-label={t`Orden de resultados`}
-            value={sort}
-            onChange={(event) =>
-              onSortChange(event.target.value as MercadoPublicoV2Sort)
-            }
-          >
-            {MERCADO_PUBLICO_V2_SORTS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+              <option key={cohort} value={cohort}>
+                {cohortLabels[cohort]}
               </option>
             ))}
           </StyledSelect>
@@ -253,167 +343,257 @@ export const MercadoPublicoV2FilterBar = ({
           </StyledSelect>
         </StyledField>
 
-        <StyledField>
-          <StyledFieldLabel>{t`Llamado`}</StyledFieldLabel>
-          <StyledSelect
-            aria-label={t`Filtrar por número de llamado`}
-            value={draft.llamado === null ? '' : String(draft.llamado)}
-            onChange={(event) =>
-              updateDraft({
-                llamado:
-                  event.target.value === '' ? null : Number(event.target.value),
-              })
-            }
-          >
-            <option value="">{t`Todos`}</option>
-            {[1, 2, 3].map((llamado) => (
-              <option key={llamado} value={llamado}>
-                {t`Llamado ${llamado}`}
-              </option>
-            ))}
-          </StyledSelect>
-        </StyledField>
-
-        <StyledField>
-          <StyledFieldLabel>{t`Cierre desde`}</StyledFieldLabel>
+        <StyledClosingRange>
+          <legend>{t`Cierre`}</legend>
           <StyledInput
             aria-label={t`Fecha de cierre desde`}
+            aria-describedby={
+              validationErrors.closing
+                ? 'mercado-publico-closing-error'
+                : undefined
+            }
+            aria-invalid={validationErrors.closing !== null}
+            lang="es-CL"
             type="date"
             value={draft.closingAtFrom ?? ''}
             onChange={(event) =>
-              updateDraft({
-                closingAtFrom: event.target.value || null,
-              })
+              updateDraft({ closingAtFrom: event.target.value || null })
             }
           />
-        </StyledField>
-
-        <StyledField>
-          <StyledFieldLabel>{t`Cierre hasta`}</StyledFieldLabel>
           <StyledInput
             aria-label={t`Fecha de cierre hasta`}
+            aria-describedby={
+              validationErrors.closing
+                ? 'mercado-publico-closing-error'
+                : undefined
+            }
+            aria-invalid={validationErrors.closing !== null}
+            lang="es-CL"
             type="date"
             value={draft.closingAtTo ?? ''}
             onChange={(event) =>
               updateDraft({ closingAtTo: event.target.value || null })
             }
           />
-        </StyledField>
+          {validationErrors.closing && (
+            <StyledFieldError id="mercado-publico-closing-error" role="alert">
+              {validationErrors.closing}
+            </StyledFieldError>
+          )}
+        </StyledClosingRange>
 
-        <StyledField>
-          <StyledFieldLabel>{t`Documentos mín`}</StyledFieldLabel>
-          <StyledInput
-            aria-label={t`Cantidad mínima de documentos`}
-            type="number"
-            min={0}
-            value={draft.documentCountMin ?? ''}
-            onChange={(event) =>
-              updateDraft({
-                documentCountMin:
-                  event.target.value === '' ? null : Number(event.target.value),
-              })
-            }
-          />
-        </StyledField>
-
-        <StyledField>
-          <StyledFieldLabel>{t`Documentos máx`}</StyledFieldLabel>
-          <StyledInput
-            aria-label={t`Cantidad máxima de documentos`}
-            type="number"
-            min={0}
-            value={draft.documentCountMax ?? ''}
-            onChange={(event) =>
-              updateDraft({
-                documentCountMax:
-                  event.target.value === '' ? null : Number(event.target.value),
-              })
-            }
-          />
-        </StyledField>
-
-        <StyledField>
-          <StyledFieldLabel>{t`Monto mín`}</StyledFieldLabel>
-          <StyledInput
-            aria-label={t`Monto mínimo`}
-            type="number"
-            min={0}
-            value={draft.amountMin ?? ''}
-            onChange={(event) =>
-              updateDraft({ amountMin: event.target.value || null })
-            }
-          />
-        </StyledField>
-
-        <StyledField>
-          <StyledFieldLabel>{t`Monto máx`}</StyledFieldLabel>
-          <StyledInput
-            aria-label={t`Monto máximo`}
-            type="number"
-            min={0}
-            value={draft.amountMax ?? ''}
-            onChange={(event) =>
-              updateDraft({ amountMax: event.target.value || null })
-            }
-          />
-        </StyledField>
+        {showSort && onSortChange && (
+          <StyledField>
+            <StyledFieldLabel>{t`Orden`}</StyledFieldLabel>
+            <StyledSelect
+              aria-label={t`Orden de resultados`}
+              value={sort}
+              onChange={(event) =>
+                onSortChange(event.target.value as MercadoPublicoV2Sort)
+              }
+            >
+              {MERCADO_PUBLICO_V2_SORTS.map((sortOption) => (
+                <option key={sortOption} value={sortOption}>
+                  {sortLabels[sortOption]}
+                </option>
+              ))}
+            </StyledSelect>
+          </StyledField>
+        )}
       </StyledRow>
 
-      <StyledRow>
-        <StyledField>
-          <StyledFieldLabel>{t`Comprador o RUT`}</StyledFieldLabel>
-          <StyledInput
-            aria-label={t`Filtrar por comprador o RUT`}
-            type="search"
-            value={draft.buyer}
-            onChange={(event) => updateDraft({ buyer: event.target.value })}
-          />
-        </StyledField>
+      <StyledAdvancedFilters onKeyDown={handleDisclosureKeyDown}>
+        <summary>
+          {buyerFilterCount > 0
+            ? t`Quién compra (${buyerFilterCount})`
+            : t`Quién compra`}
+        </summary>
+        <StyledRow>
+          <StyledField>
+            <StyledFieldLabel>{t`Comprador o RUT`}</StyledFieldLabel>
+            <StyledInput
+              aria-label={t`Filtrar por comprador o RUT`}
+              type="search"
+              value={draft.buyer}
+              onChange={(event) => updateDraft({ buyer: event.target.value })}
+            />
+          </StyledField>
 
-        <StyledField>
-          <StyledFieldLabel>{t`Estados`}</StyledFieldLabel>
-          <StyledCheckboxGroup aria-label={t`Filtrar por estados`}>
-            {MERCADO_PUBLICO_V2_STATES.map((state) => (
-              <StyledCheckbox key={state}>
-                <input
-                  type="checkbox"
-                  checked={draft.states.includes(state)}
-                  onChange={(event) => {
-                    const states = event.target.checked
-                      ? [...draft.states, state]
-                      : draft.states.filter((item) => item !== state);
+        </StyledRow>
+      </StyledAdvancedFilters>
 
-                    updateDraft({ states });
-                  }}
-                />
-                {stateLabels[state]}
-              </StyledCheckbox>
-            ))}
-          </StyledCheckboxGroup>
-        </StyledField>
+      <StyledAdvancedFilters onKeyDown={handleDisclosureKeyDown}>
+        <summary>
+          {processStatusFilterCount > 0
+            ? t`Estado del proceso (${processStatusFilterCount})`
+            : t`Estado del proceso`}
+        </summary>
+        <StyledRow>
+          <StyledField>
+            <StyledFieldLabel>{t`Llamado`}</StyledFieldLabel>
+            <StyledSelect
+              aria-label={t`Filtrar por número de llamado`}
+              value={draft.llamado === null ? '' : String(draft.llamado)}
+              onChange={(event) =>
+                updateDraft({
+                  llamado:
+                    event.target.value === ''
+                      ? null
+                      : Number(event.target.value),
+                })
+              }
+            >
+              <option value="">{t`Todos`}</option>
+              {[1, 2, 3].map((llamado) => (
+                <option key={llamado} value={llamado}>
+                  {t`Llamado ${llamado}`}
+                </option>
+              ))}
+            </StyledSelect>
+          </StyledField>
 
-        <StyledField>
-          <StyledFieldLabel>{t`Monedas`}</StyledFieldLabel>
-          <StyledCheckboxGroup aria-label={t`Filtrar por moneda`}>
-            {MERCADO_PUBLICO_V2_CURRENCIES.map((currency) => (
-              <StyledCheckbox key={currency}>
-                <input
-                  type="checkbox"
-                  checked={draft.currencies.includes(currency)}
-                  onChange={(event) => {
-                    const currencies = event.target.checked
-                      ? [...draft.currencies, currency]
-                      : draft.currencies.filter((item) => item !== currency);
+          <StyledField>
+            <StyledFieldLabel>{t`Estados`}</StyledFieldLabel>
+            <StyledCheckboxGroup aria-label={t`Filtrar por estados`}>
+              {MERCADO_PUBLICO_V2_STATES.map((state) => (
+                <StyledCheckbox key={state}>
+                  <Checkbox
+                    aria-label={stateLabels[state]}
+                    checked={draft.states.includes(state)}
+                    onCheckedChange={(checked) => {
+                      const states = checked
+                        ? [...draft.states, state]
+                        : draft.states.filter((item) => item !== state);
 
-                    updateDraft({ currencies });
-                  }}
-                />
-                {currency}
-              </StyledCheckbox>
-            ))}
-          </StyledCheckboxGroup>
-        </StyledField>
-      </StyledRow>
+                      updateDraft({ states });
+                    }}
+                  />
+                  {stateLabels[state]}
+                </StyledCheckbox>
+              ))}
+            </StyledCheckboxGroup>
+          </StyledField>
+        </StyledRow>
+      </StyledAdvancedFilters>
+
+      <StyledAdvancedFilters onKeyDown={handleDisclosureKeyDown}>
+        <summary>
+          {sizeAndEvidenceFilterCount > 0
+            ? t`Tamaño y evidencia (${sizeAndEvidenceFilterCount})`
+            : t`Tamaño y evidencia`}
+        </summary>
+        <StyledRow>
+          <StyledClosingRange>
+            <legend>{t`Monto equivalente CLP`}</legend>
+            <StyledInput
+              aria-label={t`Monto equivalente CLP mínimo`}
+              aria-describedby={
+                validationErrors.amount ? 'mercado-publico-amount-error' : undefined
+              }
+              aria-invalid={validationErrors.amount !== null}
+              type="number"
+              min={0}
+              value={draft.amountMin ?? ''}
+              onChange={(event) =>
+                updateDraft({ amountMin: event.target.value || null })
+              }
+            />
+            <StyledInput
+              aria-label={t`Monto equivalente CLP máximo`}
+              aria-describedby={
+                validationErrors.amount ? 'mercado-publico-amount-error' : undefined
+              }
+              aria-invalid={validationErrors.amount !== null}
+              type="number"
+              min={0}
+              value={draft.amountMax ?? ''}
+              onChange={(event) =>
+                updateDraft({ amountMax: event.target.value || null })
+              }
+            />
+            {validationErrors.amount && (
+              <StyledFieldError id="mercado-publico-amount-error" role="alert">
+                {validationErrors.amount}
+              </StyledFieldError>
+            )}
+          </StyledClosingRange>
+
+          <StyledField>
+            <StyledFieldLabel>{t`Documentos mín`}</StyledFieldLabel>
+            <StyledInput
+              aria-label={t`Cantidad mínima de documentos`}
+              aria-describedby={
+                validationErrors.documents
+                  ? 'mercado-publico-documents-error'
+                  : undefined
+              }
+              aria-invalid={validationErrors.documents !== null}
+              type="number"
+              min={0}
+              value={draft.documentCountMin ?? ''}
+              onChange={(event) =>
+                updateDraft({
+                  documentCountMin:
+                    event.target.value === ''
+                      ? null
+                      : Number(event.target.value),
+                })
+              }
+            />
+          </StyledField>
+
+          <StyledField>
+            <StyledFieldLabel>{t`Documentos máx`}</StyledFieldLabel>
+            <StyledInput
+              aria-label={t`Cantidad máxima de documentos`}
+              aria-describedby={
+                validationErrors.documents
+                  ? 'mercado-publico-documents-error'
+                  : undefined
+              }
+              aria-invalid={validationErrors.documents !== null}
+              type="number"
+              min={0}
+              value={draft.documentCountMax ?? ''}
+              onChange={(event) =>
+                updateDraft({
+                  documentCountMax:
+                    event.target.value === ''
+                      ? null
+                      : Number(event.target.value),
+                })
+              }
+            />
+          </StyledField>
+          {validationErrors.documents && (
+            <StyledFieldError id="mercado-publico-documents-error" role="alert">
+              {validationErrors.documents}
+            </StyledFieldError>
+          )}
+
+          <StyledField>
+            <StyledFieldLabel>{t`Monedas`}</StyledFieldLabel>
+            <StyledCheckboxGroup aria-label={t`Filtrar por moneda`}>
+              {MERCADO_PUBLICO_V2_CURRENCIES.map((currency) => (
+                <StyledCheckbox key={currency}>
+                  <Checkbox
+                    aria-label={currency}
+                    checked={draft.currencies.includes(currency)}
+                    onCheckedChange={(checked) => {
+                      const currencies = checked
+                        ? [...draft.currencies, currency]
+                        : draft.currencies.filter((item) => item !== currency);
+
+                      updateDraft({ currencies });
+                    }}
+                  />
+                  {currency}
+                </StyledCheckbox>
+              ))}
+            </StyledCheckboxGroup>
+          </StyledField>
+        </StyledRow>
+      </StyledAdvancedFilters>
 
       <StyledActions>
         <Button

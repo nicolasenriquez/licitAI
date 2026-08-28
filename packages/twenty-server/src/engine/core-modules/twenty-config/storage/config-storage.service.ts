@@ -19,10 +19,8 @@ import {
 } from 'src/engine/core-modules/twenty-config/twenty-config.exception';
 import { TypedReflect } from 'src/utils/typed-reflect';
 
-import { type ConfigStorageInterface } from './interfaces/config-storage.interface';
-
 @Injectable()
-export class ConfigStorageService implements ConfigStorageInterface {
+export class ConfigStorageService {
   private readonly logger = new Logger(ConfigStorageService.name);
 
   constructor(

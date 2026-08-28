@@ -1,4 +1,3 @@
-import omit from 'lodash.omit';
 import { isDefined } from 'twenty-shared/utils';
 
 import { cookieStorage } from '~/utils/cookie-storage';
@@ -68,7 +67,9 @@ export const createJotaiCookieStorage = <ValueType>({
       };
 
       const valueToStore = hasCustomCookieAttributes(newValue)
-        ? omit(newValue, ['cookieAttributes'])
+        ? (({ cookieAttributes: _cookieAttributes, ...value }) => value)(
+            newValue,
+          )
         : newValue;
 
       if (

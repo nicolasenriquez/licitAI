@@ -1,160 +1,92 @@
+---
+type: checklist
+title: Accessibility Checklist
+description: WCAG 2.2-oriented accessibility verification reference for repository UI work.
+okf_version: "0.1"
+---
+
 # Accessibility Checklist
 
-Quick reference for WCAG 2.1 AA compliance. Use alongside the `frontend-ui-engineering` skill.
+Use this checklist with the `frontend-ui-engineering` skill. Treat WCAG 2.2,
+WAI-ARIA Authoring Practices, and native platform semantics as the primary
+references for accessibility behavior.
 
-## Table of Contents
+## Keyboard and focus
 
-- [Essential Checks](#essential-checks)
-- [Common HTML Patterns](#common-html-patterns)
-- [Testing Tools](#testing-tools)
-- [Quick Reference: ARIA Live Regions](#quick-reference-aria-live-regions)
-- [Common Anti-Patterns](#common-anti-patterns)
+- [ ] Every interactive control is reachable and operable with the keyboard.
+- [ ] Focus order follows the logical reading and task order.
+- [ ] Focus is visible and is not removed by custom styling.
+- [ ] Custom widgets support their required keyboard interactions.
+- [ ] Users cannot become trapped inside a component.
+- [ ] Dialog focus enters the dialog, remains appropriately contained, and
+      returns to the invoking control when the dialog closes.
+- [ ] Skip navigation is available where the page structure needs it.
 
-## Essential Checks
+## Semantics and announcements
 
-### Keyboard Navigation
-- [ ] All interactive elements focusable via Tab key
-- [ ] Focus order follows visual/logical order
-- [ ] Focus is visible (outline/ring on focused elements)
-- [ ] Custom widgets have keyboard support (Enter to activate, Escape to close)
-- [ ] No keyboard traps (user can always Tab away from a component)
-- [ ] Skip-to-content link at top of page - visible (at least) on keyboard focus
-- [ ] Modals trap focus while open, return focus on close
+- [ ] Use native HTML elements before adding ARIA roles.
+- [ ] Every input has a programmatically associated label.
+- [ ] Buttons, links, and icon-only controls have clear accessible names.
+- [ ] Headings describe the document structure and do not skip levels without
+      a valid structural reason.
+- [ ] Images have useful alternative text or an empty alternative when
+      decorative.
+- [ ] Tables use a native table structure, a caption when needed, and headers
+      that identify their columns or rows.
+- [ ] Dynamic status changes use an appropriate status or alert mechanism.
+- [ ] Errors identify the problem and provide a recovery path.
 
-### Screen Readers
-- [ ] All images have `alt` text (or `alt=""` for decorative images)
-- [ ] All form inputs have associated labels (`<label>` or `aria-label`)
-- [ ] Buttons and links have descriptive text (not "Click here")
-- [ ] Icon-only buttons have `aria-label`
-- [ ] Page has one `<h1>` and headings don't skip levels
-- [ ] Dynamic content changes announced (`aria-live` regions)
-- [ ] Tables have `<th>` headers with scope
+## Visual and layout
 
-### Visual
-- [ ] Text contrast ≥ 4.5:1 (normal text) or ≥ 3:1 (large text, 18px+)
-- [ ] UI components contrast ≥ 3:1 against background
-- [ ] Color is not the only way to convey information
-- [ ] Text resizable to 200% without breaking layout
-- [ ] No content that flashes more than 3 times per second
+- [ ] Normal text meets a 4.5:1 contrast ratio; large text meets 3:1.
+- [ ] User-interface components and meaningful graphics meet the applicable
+      3:1 contrast requirement.
+- [ ] Color is not the only carrier of meaning.
+- [ ] Content remains usable at 200% text or page zoom.
+- [ ] No content flashes more than three times per second.
+- [ ] Text, controls, and data remain readable at narrow widths.
+- [ ] The implementation respects `prefers-reduced-motion`.
 
-### Forms
-- [ ] Every input has a visible label
-- [ ] Required fields indicated (not by color alone)
-- [ ] Error messages specific and associated with the field
-- [ ] Error state visible by more than color (icon, text, border)
-- [ ] Form submission errors summarized and focusable
-- [ ] Known fields use autocomplete (for example `type="email" autocomplete="email"`)
+## Target size
 
-### Content
-- [ ] Language declared (`<html lang="en">`)
-- [ ] Page has a descriptive `<title>`
-- [ ] Links distinguish from surrounding text (not by color alone)
-- [ ] Touch targets ≥ 44x44px on mobile
-- [ ] Meaningful empty states (not blank screens)
+WCAG 2.2 AA SC 2.5.8 uses a 24 by 24 CSS-pixel minimum target-size baseline
+with defined exceptions. Do not describe 44 by 44 pixels as a universal WCAG
+AA requirement. A larger target can still be the repository's design choice
+when it improves usability and does not damage density or layout.
 
-## Common HTML Patterns
+## Forms and state
 
-### Buttons vs. Links
+- [ ] Required fields are identified without relying on color alone.
+- [ ] Validation occurs at a meaningful boundary and does not punish normal
+      typing or correction.
+- [ ] Field errors are specific, associated with their fields, and announced
+      when needed.
+- [ ] Submission errors have a clear summary or focus target when appropriate.
+- [ ] Disabled and busy states are distinguishable and do not hide the reason
+      an action is unavailable.
+- [ ] Loading, empty, unavailable, and error states are distinct.
+- [ ] Long-running operations expose progress or a usable pending state.
 
-```html
-<!-- Use <button> for actions -->
-<button onClick={handleDelete}>Delete Task</button>
+## Verification references
 
-<!-- Use <a> for navigation -->
-<a href="/tasks/123">View Task</a>
+- WCAG 2.2: `https://www.w3.org/TR/WCAG22/`
+- WAI-ARIA Authoring Practices: `https://www.w3.org/WAI/ARIA/apg/`
+- Native table guidance:
+  `https://www.w3.org/WAI/ARIA/apg/patterns/table/`
+- Modal dialog guidance:
+  `https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/`
 
-<!-- NEVER use div/span as buttons -->
-<div onClick={handleDelete}>Delete</div>  <!-- BAD -->
-```
+Use the repository's supported lint, component, Storybook, and browser checks
+for implementation verification. Do not assume that an automated checker
+replaces keyboard, zoom, screen-reader, or reduced-motion review.
 
-### Form Labels
+## Common anti-patterns
 
-```html
-<!-- Explicit label association -->
-<label htmlFor="email">Email address</label>
-<input id="email" type="email" required />
-
-<!-- Implicit wrapping -->
-<label>
-  Email address
-  <input type="email" required />
-</label>
-
-<!-- Hidden label (visible label preferred) -->
-<input type="search" aria-label="Search tasks" />
-```
-
-### ARIA Roles
-
-```html
-<!-- Navigation -->
-<nav aria-label="Main navigation">...</nav>
-<nav aria-label="Footer links">...</nav>
-
-<!-- Status messages -->
-<div role="status" aria-live="polite">Task saved</div>
-
-<!-- Alert messages -->
-<div role="alert">Error: Title is required</div>
-
-<!-- Modal dialogs -->
-<dialog aria-modal="true" aria-labelledby="dialog-title">
-  <h2 id="dialog-title">Confirm Delete</h2>
-  ...
-</dialog>
-
-<!-- Loading states -->
-<div aria-busy="true" aria-label="Loading tasks">
-  <Spinner />
-</div>
-```
-
-### Accessible Lists
-
-```html
-<ul role="list" aria-label="Tasks">
-  <li>
-    <input type="checkbox" id="task-1" aria-label="Complete: Buy groceries" />
-    <label htmlFor="task-1">Buy groceries</label>
-  </li>
-</ul>
-```
-
-## Testing Tools
-
-```bash
-# Automated audit
-npx axe-core          # Programmatic accessibility testing
-npx pa11y             # CLI accessibility checker
-
-# In browser
-# Chrome DevTools → Lighthouse → Accessibility
-# Chrome DevTools → Elements → Accessibility tree
-
-# Screen reader testing
-# macOS: VoiceOver (Cmd + F5)
-# Windows: NVDA (free) or JAWS
-# Linux: Orca
-```
-
-## Quick Reference: ARIA Live Regions
-
-| Value | Behavior | Use For |
-|-------|----------|---------|
-| `aria-live="polite"` | Announced at next pause | Status updates, saved confirmations |
-| `aria-live="assertive"` | Announced immediately | Errors, time-sensitive alerts |
-| `role="status"` | Same as `polite` | Status messages |
-| `role="alert"` | Same as `assertive` | Error messages |
-
-## Common Anti-Patterns
-
-| Anti-Pattern | Problem | Fix |
-|---|---|---|
-| `div` as button | Not focusable, no keyboard support | Use `<button>` |
-| Missing `alt` text | Images invisible to screen readers | Add descriptive `alt` |
-| Color-only states | Invisible to color-blind users | Add icons, text, or patterns |
-| Autoplaying media | Disorienting, can't be stopped | Add controls, don't autoplay |
-| Custom dropdown with no ARIA | Unusable by keyboard/screen reader | Use native `<select>` or proper ARIA listbox |
-| Removing focus outlines | Users can't see where they are | Style outlines, don't remove them |
-| Empty links/buttons | "Link" announced with no description | Add text or `aria-label` |
-| `tabindex > 0` | Breaks natural tab order | Use `tabindex="0"` or `-1` only |
+| Anti-pattern | Required correction |
+| --- | --- |
+| `div` used as a button | Use a native button or a fully equivalent accessible control. |
+| Hover-only action | Provide focus, keyboard, touch, or always-visible access. |
+| Color-only state | Add text, structure, iconography, or another non-color cue. |
+| Missing dialog focus management | Follow the modal dialog focus and return rules. |
+| Blank loading or error surface | Provide an identified state and recovery behavior. |
+| Arbitrary `tabindex` values | Preserve natural document order; use only `0` or `-1` when needed. |

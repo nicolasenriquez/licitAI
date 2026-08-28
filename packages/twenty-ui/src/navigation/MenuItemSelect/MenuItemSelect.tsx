@@ -1,4 +1,3 @@
-import { isString } from '@sniptt/guards';
 import { IconCheck, IconChevronRight, type IconComponent } from '@ui/icon';
 import { OverflowingTextWithTooltip } from '@ui/surfaces';
 import { type ThemeColor } from '@ui/theme';
@@ -101,7 +100,7 @@ export const MenuItemSelect = ({
       <StyledMenuItemRightContent>
         {contextualTextPosition === 'right' && (
           <StyledMenuItemLabel>
-            {isString(contextualText) ? (
+            {typeof contextualText === 'string' ? (
               <StyledRightMenuItemContextualText>
                 <OverflowingTextWithTooltip text={contextualText} />
               </StyledRightMenuItemContextualText>

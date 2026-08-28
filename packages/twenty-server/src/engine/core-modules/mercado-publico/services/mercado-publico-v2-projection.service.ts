@@ -7,7 +7,7 @@ import { type MercadoPublicoApiV2CompraAgilListResponse } from 'src/engine/core-
 import { type MercadoPublicoApiV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/types/mercado-publico-api-v2-compra-agil-record.type';
 import {
   getV2CompraAgilCallNumber,
-  getV2CompraAgilProviderOrderId,
+  getV2CompraAgilOrderReferences,
 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-v2-compra-agil-lifecycle.util';
 import { coerceToNullableString } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/coerce-to-nullable-string.util';
 import { createJsonSha256 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/create-json-sha256.util';
@@ -17,7 +17,7 @@ import {
 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/normalize-v2-compra-agil-record.util';
 
 export const MERCADO_PUBLICO_V2_NORMALIZER_VERSION =
-  'mercado-publico-v2-durable-1';
+  'mercado-publico-v2-durable-2';
 
 export type MercadoPublicoV2SnapshotKind = 'list' | 'detail';
 
@@ -57,13 +57,51 @@ type SemanticPayload = {
   amount: string | null;
   currency_source: string | null;
   document_count: number | null;
+  id_orden_compra: string | null;
+  id_oc: string | null;
+  description: string | null;
+  delivery_address: string | null;
+  delivery_days: number | null;
+  cancellation_at: string | null;
+  call_description: string | null;
+  call_first_closing_at: string | null;
+  call_second_closing_at: string | null;
+  budget_type: string | null;
+  budget_estimate: string | null;
+  budget_currency: string | null;
+  cancel_motive: string | null;
+  deserted_motive: string | null;
+  selection_motive: string | null;
+  total_offers: number | null;
+  total_demands: number | null;
+  fine_penalty: string | null;
 };
 
 type CompraAgilCurrentRow = SemanticPayload & {
   id: string;
   observation_id: string | null;
+  snapshot_kind: MercadoPublicoV2SnapshotKind | null;
   semantic_fingerprint: string | null;
   amount_raw: string | null;
+};
+
+type GoldDetectedProcessRow = {
+  description: string | null;
+  delivery_address: string | null;
+  delivery_days: number | null;
+  cancellation_at: Date | null;
+  call_description: string | null;
+  call_first_closing_at: Date | null;
+  call_second_closing_at: Date | null;
+  budget_type: string | null;
+  budget_estimate: string | null;
+  budget_currency: string | null;
+  cancel_motive: string | null;
+  deserted_motive: string | null;
+  selection_motive: string | null;
+  total_offers: number | null;
+  total_demands: number | null;
+  fine_penalty: string | null;
 };
 
 const toIsoOrNull = (value: Date | null): string | null =>
@@ -72,6 +110,7 @@ const toIsoOrNull = (value: Date | null): string | null =>
 const buildSemanticPayload = (
   codigo: string,
   normalized: NormalizedV2CompraAgilRecord,
+  orderReferences: ReturnType<typeof getV2CompraAgilOrderReferences>,
 ): SemanticPayload => ({
   codigo,
   estado: normalized.stateCode,
@@ -87,10 +126,29 @@ const buildSemanticPayload = (
   amount: normalized.amount,
   currency_source: normalized.currency,
   document_count: normalized.documentCount,
+  id_orden_compra: orderReferences.idOrdenCompra,
+  id_oc: orderReferences.idOc,
+  description: normalized.description,
+  delivery_address: normalized.deliveryAddress,
+  delivery_days: normalized.deliveryDays,
+  cancellation_at: toIsoOrNull(normalized.cancellationAt),
+  call_description: normalized.callDescription,
+  call_first_closing_at: toIsoOrNull(normalized.callFirstClosingAt),
+  call_second_closing_at: toIsoOrNull(normalized.callSecondClosingAt),
+  budget_type: normalized.budgetType,
+  budget_estimate: normalized.budgetEstimate,
+  budget_currency: normalized.budgetCurrency,
+  cancel_motive: normalized.cancelMotive,
+  deserted_motive: normalized.desertedMotive,
+  selection_motive: normalized.selectionMotive,
+  total_offers: normalized.totalOffers,
+  total_demands: normalized.totalDemands,
+  fine_penalty: normalized.finePenalty,
 });
 
 const rebuildSemanticPayload = (
   row: CompraAgilCurrentRow,
+  goldRow: GoldDetectedProcessRow | undefined,
 ): SemanticPayload => ({
   codigo: row.codigo,
   estado: row.estado,
@@ -106,6 +164,24 @@ const rebuildSemanticPayload = (
   amount: row.amount_raw ?? (row.amount === null ? null : String(row.amount)),
   currency_source: row.currency_source,
   document_count: row.document_count,
+  id_orden_compra: row.id_orden_compra,
+  id_oc: row.id_oc,
+  description: goldRow?.description ?? null,
+  delivery_address: goldRow?.delivery_address ?? null,
+  delivery_days: goldRow?.delivery_days ?? null,
+  cancellation_at: toIsoOrNull(goldRow?.cancellation_at ?? null),
+  call_description: goldRow?.call_description ?? null,
+  call_first_closing_at: toIsoOrNull(goldRow?.call_first_closing_at ?? null),
+  call_second_closing_at: toIsoOrNull(goldRow?.call_second_closing_at ?? null),
+  budget_type: goldRow?.budget_type ?? null,
+  budget_estimate: goldRow?.budget_estimate ?? null,
+  budget_currency: goldRow?.budget_currency ?? null,
+  cancel_motive: goldRow?.cancel_motive ?? null,
+  deserted_motive: goldRow?.deserted_motive ?? null,
+  selection_motive: goldRow?.selection_motive ?? null,
+  total_offers: goldRow?.total_offers ?? null,
+  total_demands: goldRow?.total_demands ?? null,
+  fine_penalty: goldRow?.fine_penalty ?? null,
 });
 
 @Injectable()
@@ -118,17 +194,26 @@ export class MercadoPublicoV2ProjectionService {
   async ingest(
     context: MercadoPublicoV2ProjectionContext,
   ): Promise<MercadoPublicoV2ProjectionResult> {
+    return this.coreDataSource.transaction((entityManager) =>
+      this.ingestWithEntityManager(entityManager, context),
+    );
+  }
+
+  async ingestWithEntityManager(
+    entityManager: EntityManager,
+    context: MercadoPublicoV2ProjectionContext,
+  ): Promise<MercadoPublicoV2ProjectionResult> {
     const normalized = normalizeV2CompraAgilRecord(context.record);
     const semanticPayload = buildSemanticPayload(
       context.record.codigo,
       normalized,
+      getV2CompraAgilOrderReferences(context.record),
     );
     const semanticFingerprint = createJsonSha256(semanticPayload);
     const observedAt = context.response.fetchedAt;
 
-    return this.coreDataSource.transaction(async (entityManager) => {
-      const observationRows = await entityManager.query<{ id: string }[]>(
-        `
+    const observationRows = await entityManager.query<{ id: string }[]>(
+      `
           INSERT INTO mp.v2_observation (
             sync_run_id, raw_api_payload_id, codigo, payload_checksum,
             provider_schema_fingerprint, normalizer_version, observed_at,
@@ -137,33 +222,32 @@ export class MercadoPublicoV2ProjectionService {
           )
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
           RETURNING id
-        `,
-        [
-          context.syncRunId,
-          context.rawApiPayloadId,
-          context.record.codigo,
-          createJsonSha256(context.record),
-          context.response.schemaFingerprint,
-          MERCADO_PUBLICO_V2_NORMALIZER_VERSION,
-          observedAt,
-          context.response.source,
-          context.response.endpoint,
-          context.snapshotKind,
-          context.response.requestFingerprint,
-          normalized.providerChangedAtRaw,
-          normalized.providerChangedAt,
-          semanticFingerprint,
-        ],
-      );
-
-      return this.project(
-        entityManager,
-        observationRows[0].id,
-        context,
-        semanticPayload,
+      `,
+      [
+        context.syncRunId,
+        context.rawApiPayloadId,
+        context.record.codigo,
+        createJsonSha256(context.record),
+        context.response.schemaFingerprint,
+        MERCADO_PUBLICO_V2_NORMALIZER_VERSION,
+        observedAt,
+        context.response.source,
+        context.response.endpoint,
+        context.snapshotKind,
+        context.response.requestFingerprint,
+        normalized.providerChangedAtRaw,
+        normalized.providerChangedAt,
         semanticFingerprint,
-      );
-    });
+      ],
+    );
+
+    return this.project(
+      entityManager,
+      observationRows[0].id,
+      context,
+      semanticPayload,
+      semanticFingerprint,
+    );
   }
 
   async rebuild(
@@ -208,6 +292,7 @@ export class MercadoPublicoV2ProjectionService {
         const semanticPayload = buildSemanticPayload(
           context.record.codigo,
           normalized,
+          getV2CompraAgilOrderReferences(context.record),
         );
 
         results.push(
@@ -235,30 +320,52 @@ export class MercadoPublicoV2ProjectionService {
     const currentRows = await entityManager.query<CompraAgilCurrentRow[]>(
       `
         SELECT
-          id,
-          codigo,
-          estado,
-          state_id,
-          state_label,
-          title,
-          buyer_code,
-          buyer_name,
-          region,
-          published_at,
-          closing_at,
-          provider_changed_at_raw,
-          amount,
-          amount_raw,
-          currency_source,
-          document_count,
-          observation_id,
-          semantic_fingerprint
-        FROM mp.compra_agil
-        WHERE codigo = $1
+          current.id,
+          current.codigo,
+          current.estado,
+          current.state_id,
+          current.state_label,
+          current.title,
+          current.buyer_code,
+          current.buyer_name,
+          current.region,
+          current.published_at,
+          current.closing_at,
+          current.provider_changed_at_raw,
+          current.amount,
+          current.amount_raw,
+          current.currency_source,
+          current.document_count,
+          current.id_orden_compra,
+          current.id_oc,
+          current.observation_id,
+          current.semantic_fingerprint,
+          observation.snapshot_kind
+        FROM mp.compra_agil current
+        LEFT JOIN mp.v2_observation observation
+          ON observation.id = current.observation_id
+        WHERE current.codigo = $1
       `,
       [context.record.codigo],
     );
     const previous = currentRows[0];
+
+    const previousGoldRows =
+      previous === undefined
+        ? []
+        : await entityManager.query<GoldDetectedProcessRow[]>(
+            `
+              SELECT description, delivery_address, delivery_days, cancellation_at,
+                     call_description, call_first_closing_at, call_second_closing_at,
+                     budget_type, budget_estimate, budget_currency, cancel_motive,
+                     deserted_motive, selection_motive, total_offers, total_demands,
+                     fine_penalty
+              FROM mp.gold_detected_process
+              WHERE process_type = 'compra_agil' AND process_code = $1
+            `,
+            [context.record.codigo],
+          );
+    const previousGold = previousGoldRows[0];
 
     if (previous !== undefined && previous.observation_id === observationId) {
       return {
@@ -270,28 +377,54 @@ export class MercadoPublicoV2ProjectionService {
       };
     }
 
+    await this.projectChildren(entityManager, observationId, context);
+    await entityManager.query(
+      `
+        UPDATE mp.stg_api_v2_compra_agil
+        SET observation_id = $1
+        WHERE raw_api_payload_id = $2
+          AND codigo = $3
+          AND observation_id IS NULL
+      `,
+      [observationId, context.rawApiPayloadId, context.record.codigo],
+    );
+
+    if (
+      context.snapshotKind === 'list' &&
+      previous?.snapshot_kind === 'detail'
+    ) {
+      return {
+        observationId,
+        created: false,
+        applied: false,
+        semanticChanged: false,
+        skipped: true,
+      };
+    }
+
     const normalized = normalizeV2CompraAgilRecord(context.record);
     const observedAt = context.response.fetchedAt;
-    const providerOrderId = getV2CompraAgilProviderOrderId(context.record);
+    const orderReferences = getV2CompraAgilOrderReferences(context.record);
     const schemaFingerprint = context.response.schemaFingerprint;
 
     const upsertedRows = await entityManager.query<{ id: string }[]>(
       `
         INSERT INTO mp.compra_agil (
-          codigo, estado, state_id, state_label, id_orden_compra, region, title,
+          codigo, estado, state_id, state_label, id_orden_compra, id_oc, region, title,
           buyer_code, buyer_name, published_at, closing_at, amount, amount_raw,
           currency_source, document_count, observation_id, normalizer_version,
           provider_schema_fingerprint, provider_changed_at_raw,
           provider_changed_at, observed_at, last_seen_at, semantic_fingerprint,
           persisted_at, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-          $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, now(), now())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+          $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, now(), now())
         ON CONFLICT (codigo) DO UPDATE SET
           estado = EXCLUDED.estado,
           state_id = EXCLUDED.state_id,
-          state_label = EXCLUDED.state_label,
-          id_orden_compra = EXCLUDED.id_orden_compra,
+           state_label = EXCLUDED.state_label,
+           id_orden_compra = EXCLUDED.id_orden_compra,
+           id_oc = EXCLUDED.id_oc,
           region = EXCLUDED.region,
           title = EXCLUDED.title,
           buyer_code = EXCLUDED.buyer_code,
@@ -312,7 +445,7 @@ export class MercadoPublicoV2ProjectionService {
           last_seen_at = GREATEST(mp.compra_agil.last_seen_at, EXCLUDED.last_seen_at),
           semantic_fingerprint = EXCLUDED.semantic_fingerprint,
           updated_at = now()
-        WHERE CASE
+        WHERE $25::boolean OR CASE
           WHEN EXCLUDED.provider_changed_at IS NOT NULL
             AND mp.compra_agil.provider_changed_at IS NULL
           THEN TRUE
@@ -346,7 +479,8 @@ export class MercadoPublicoV2ProjectionService {
         normalized.stateCode,
         normalized.stateId,
         normalized.stateLabel,
-        providerOrderId,
+        orderReferences.idOrdenCompra,
+        orderReferences.idOc,
         normalized.region,
         normalized.title,
         normalized.buyerCode,
@@ -354,7 +488,7 @@ export class MercadoPublicoV2ProjectionService {
         normalized.publishedAt,
         normalized.closingAt,
         normalized.amount,
-        normalized.amount,
+        normalized.amountRaw,
         normalized.currency,
         normalized.documentCount,
         observationId,
@@ -365,6 +499,7 @@ export class MercadoPublicoV2ProjectionService {
         observedAt,
         observedAt,
         semanticFingerprint,
+        context.snapshotKind === 'detail' && previous?.snapshot_kind === 'list',
       ],
     );
 
@@ -377,7 +512,7 @@ export class MercadoPublicoV2ProjectionService {
       previous.semantic_fingerprint !== semanticFingerprint;
 
     if (semanticChanged && previous !== undefined) {
-      const previousSemantic = rebuildSemanticPayload(previous);
+      const previousSemantic = rebuildSemanticPayload(previous, previousGold);
 
       await entityManager.query(
         `
@@ -414,17 +549,6 @@ export class MercadoPublicoV2ProjectionService {
         context,
         observationId,
         semanticFingerprint,
-      );
-      await this.projectChildren(entityManager, observationId, context);
-      await entityManager.query(
-        `
-          UPDATE mp.stg_api_v2_compra_agil
-          SET observation_id = $1
-          WHERE raw_api_payload_id = $2
-            AND codigo = $3
-            AND observation_id IS NULL
-        `,
-        [observationId, context.rawApiPayloadId, context.record.codigo],
       );
     }
 
@@ -523,7 +647,7 @@ export class MercadoPublicoV2ProjectionService {
         normalized.publishedAt,
         normalized.closingAt,
         normalized.amount,
-        normalized.amount,
+        normalized.amountRaw,
         normalized.currency,
         normalized.documentCount,
         getV2CompraAgilCallNumber(context.record),

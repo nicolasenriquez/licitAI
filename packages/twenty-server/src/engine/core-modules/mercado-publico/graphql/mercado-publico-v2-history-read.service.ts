@@ -2,6 +2,9 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 
 import { DataSource } from 'typeorm';
+import { MercadoPublicoV2ErrorCode } from 'twenty-shared/constants';
+import { isValidUuid } from 'twenty-shared/utils';
+import { UserInputError } from 'src/engine/core-modules/graphql/utils/graphql-errors.util';
 
 export type MercadoPublicoV2HistoryRow = {
   id: string;
@@ -18,6 +21,7 @@ export type MercadoPublicoV2HistoryRow = {
   normalizer_version: string | null;
   provider_schema_fingerprint: string | null;
   created_at: Date;
+  created_at_text?: string;
   source: string | null;
   endpoint: string | null;
   snapshot_kind: string | null;
@@ -57,7 +61,7 @@ export const encodeMercadoPublicoV2HistoryCursor = (
 ): string =>
   Buffer.from(
     JSON.stringify({
-      createdAt: row.created_at.toISOString(),
+      createdAt: row.created_at_text ?? row.created_at.toISOString(),
       id: row.id,
     } satisfies HistoryCursor),
   ).toString('base64url');
@@ -72,7 +76,7 @@ const decodeHistoryCursor = (value: string): HistoryCursor => {
       typeof parsed.createdAt !== 'string' ||
       Number.isNaN(new Date(parsed.createdAt).getTime()) ||
       typeof parsed.id !== 'string' ||
-      parsed.id.length === 0;
+      !isValidUuid(parsed.id);
 
     if (invalid) {
       throw new Error('invalid history cursor');
@@ -83,9 +87,10 @@ const decodeHistoryCursor = (value: string): HistoryCursor => {
       id: parsed.id as string,
     };
   } catch {
-    throw new BadRequestException(
-      'Mercado Publico V2 history cursor is invalid',
-    );
+    throw new UserInputError('Mercado Publico V2 history cursor is invalid', {
+      subCode: MercadoPublicoV2ErrorCode.INVALID_CURSOR,
+      isExpected: true,
+    });
   }
 };
 
@@ -182,6 +187,7 @@ export class MercadoPublicoV2HistoryReadService {
           history.normalizer_version,
           history.provider_schema_fingerprint,
           history.created_at,
+          to_char(history.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at_text,
           observation.source,
           observation.endpoint,
           observation.snapshot_kind

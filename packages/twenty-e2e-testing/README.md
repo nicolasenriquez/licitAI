@@ -20,6 +20,20 @@ npx nx setup twenty-e2e-testing
 npx nx test twenty-e2e-testing
 ```
 
+### Author Playwright tests with the local CLI
+
+Use `tests/agent.seed.spec.ts` as the authenticated starting point. Open a
+debug session with `--debug=cli`, attach with the reported `tw-session`, and
+inspect the page with `snapshot`, `console`, or `requests`. Run the completed
+test normally with the Playwright test command.
+
+```powershell
+yarn --cwd packages/twenty-e2e-testing playwright test tests/agent.seed.spec.ts --project=chrome --debug=cli
+yarn --cwd packages/twenty-e2e-testing playwright cli attach <tw-session>
+yarn --cwd packages/twenty-e2e-testing playwright cli -s=<tw-session> snapshot
+yarn --cwd packages/twenty-e2e-testing playwright test tests/agent.seed.spec.ts --project=chrome
+```
+
 ### Start the interactive UI mode
 
 ```
@@ -35,6 +49,20 @@ Example (location of the test must be specified from the root of `twenty-e2e-tes
 ```
 npx nx test twenty-e2e-testing tests/login.spec.ts
 ```
+
+### Run the CRM baseline
+
+The CRM baseline reuses two existing suites. It does not duplicate shared
+record-view behaviour for every object.
+
+```powershell
+yarn --cwd packages/twenty-e2e-testing playwright test tests/crm-dossier-baseline.spec.ts tests/crm-dossier-ui-audit.spec.ts --project=chrome
+```
+
+`crm-dossier-baseline.spec.ts` checks the seeded object views and dashboards.
+`crm-dossier-ui-audit.spec.ts` checks the application shell, navigation,
+settings access, shared record-index controls, dashboards, and optional seeded
+objects. Playwright keeps the trace and screenshot only when a test fails.
 
 ### Runs the tests in debug mode.
 ```
@@ -90,16 +118,9 @@ just runtime-check
 curl.exe --fail http://localhost:3000/healthz
 ```
 
-`packages/twenty-docker/.env` must contain:
-
-```env
-DISABLE_DB_MIGRATIONS=true
-DISABLE_CRON_JOBS_REGISTRATION=true
-```
-
-These values target the persisted local `mp-local` database used by this E2E
-baseline. Recreate the canonical server only as an explicit recovery action;
-routine tests must not create another Compose service or one-off container.
+Mercado Publico tests use the isolated `twenty-mp-e2e` Compose project. The
+runner supplies the fixture configuration to the process. It does not change
+package or frontend `.env` files.
 
 ### Local test account
 
@@ -107,9 +128,8 @@ Set `DEFAULT_LOGIN` and `DEFAULT_PASSWORD` in the ignored package `.env` for
 the standard local test account. Generic tests use only this account.
 
 The operator project uses `DEFAULT_LOGIN`. For an authorization-denial test,
-set `ANALYST_LOGIN` in the ignored package `.env` to a seeded user without the
-explicit sync-operator assignment. Do not put role-specific account values in
-a test, probe, README, or committed environment file.
+the fixture identity is `jane.austen@apple.dev`. It has no sync-operator
+assignment. Tim remains the operator fixture.
 
 ### Seed and login smoke
 
@@ -129,7 +149,7 @@ npx playwright test tests/login.setup.ts --project=setup-team
 Then run an authenticated Mercado Publico smoke:
 
 ```powershell
-npx playwright test tests/mercado-publico/baseline.spec.ts --project=chrome
+yarn nx run twenty-e2e-testing:test:mercado-publico:ui-contract
 ```
 
 ### Mercado Publico V2 history and buyers
@@ -139,7 +159,7 @@ because the `mp` schema is deployment-local. The server image must contain the
 same source revision as the frontend so `/metadata` exposes `history` and
 `buyers`.
 
-Seed V2 data through the real ingestion and normalization path. The fixture
+Seed V2 data directly into isolated read models. The fixture
 must contain:
 
 - one opportunity ingested twice with a semantic change;
@@ -147,47 +167,67 @@ must contain:
   amount;
 - one opportunity without `buyerCode`.
 
-The supported provisioner creates only isolated Compose project `twenty-mp-e2e`
-on a Docker-assigned local port,
-builds the current source revision, runs migrations, and
-seeds the fixture through the server-side durable sync path. It requires the
-disposable fixture flags set by `docker-compose.e2e.yml`; it does not use
+The supported provisioner owns `prepare`, `status`, and `reset` for the isolated
+Compose project `twenty-mp-e2e` on a Docker-assigned local port. It builds the
+current source revision when required, runs migrations, and seeds deterministic
+fixture-owned rows without provider or queue calls. It
+requires disposable seed flags set by `docker-compose.e2e.yml`; it does not use
 persisted local Compose data.
 
 Routine provisions reuse the isolated database volume. The provisioner
 restores the active `default` database from a per-revision template
 (`mp_e2e_template_v2hb_<gitSha>`), so repeat runs skip seeding and fixture
-ingestion. A source change creates a new template and drops stale ones. Use
-`--fresh` to force a full reset including the named volumes:
+insertion. A clean checkout reuses `twenty-mp-e2e:<gitSha>` only when that image
+exists. A dirty checkout always rebuilds it. A source change creates a new
+template and drops stale ones.
+
+Prepare and inspect the warm lifecycle through Nx:
 
 ```powershell
-node scripts/provision-baseline.mjs --flag on --fixture v2-history-and-buyers [--fresh]
+yarn nx run twenty-e2e-testing:test:mercado-publico:prepare
+yarn nx run twenty-e2e-testing:test:mercado-publico:status
 ```
+
+Add `-- --fresh` to `prepare` to remove named volumes first. CI selects fresh
+preparation automatically.
 
 Run the isolated fixture through its target:
 
 ```powershell
-npx nx run twenty-e2e-testing:test:mercado-publico
+yarn nx run twenty-e2e-testing:test:mercado-publico
 ```
 
-The target stops the isolated containers after Playwright completes, including
-when a test fails. It preserves the volumes and templates. To inspect a stack,
-run the provisioner and then run Playwright with the flag in the process
-environment. To discard a manually provisioned stack, run:
+The public category targets are:
+
+- `test:mercado-publico:ui-contract`
+- `test:mercado-publico:journeys`
+- `test:mercado-publico:roles`
+- `test:mercado-publico:extended`
+- `test:mercado-publico`
+- `test:mercado-publico:release-gate`
+
+The fast UI target excludes the responsive Axe matrix tagged `@extended`.
+`test:mercado-publico:extended`, the aggregate, and the release gate include it.
+The aggregate passes all three test paths to one Playwright invocation.
+
+Normal targets prepare once and stop the isolated containers in `finally`,
+including when a test fails. They preserve the database volume and template
+cache. A warm target requires a prepared compatible revision and keeps the
+stack:
 
 ```powershell
-$env:REACT_APP_MERCADO_PUBLICO_V2_ENABLED = 'true'
-npx playwright test tests/mercado-publico/history-and-buyers.spec.ts --project=chrome
+yarn nx run twenty-e2e-testing:test:mercado-publico:ui-contract --configuration=warm
+yarn nx run twenty-e2e-testing:test:mercado-publico:reset
+yarn nx run twenty-e2e-testing:test:mercado-publico:journeys --configuration=warm
+yarn nx run twenty-e2e-testing:test:mercado-publico:clean
 ```
 
-Then run:
-
-```powershell
-docker compose -p twenty-mp-e2e --env-file packages/twenty-docker/.env -f packages/twenty-docker/docker-compose.yml -f packages/twenty-docker/docker-compose.e2e.yml down --remove-orphans
-```
-
-To discard it including volumes and templates, add `--volumes` or run the
-provisioner with `--fresh`.
+`reset` restores only the prepared database template. It rejects a different
+revision and never builds. The runner flags are `--prepared`, `--keep`,
+`--reuse-auth`, and `--fresh`. `--reuse-auth` requires every storage state used
+by the selected suite and passes Playwright `--no-deps`; otherwise the normal
+setup dependencies authenticate users. Lifecycle and test runs emit JSON phase
+times for database, image, server, frontend, authentication, tests, and total.
 
 See [local port ownership](../../docs/operations/local-development.md#local-port-ownership)
 before running an E2E workflow that binds a local port.

@@ -81,7 +81,7 @@ npx nx run twenty-server:test:integration:with-db-reset
 npx nx storybook:test twenty-front
 
 # E2E tests
-npx nx test:e2e twenty-e2e-testing
+npx nx test twenty-e2e-testing
 ```
 
 ## Usage Patterns
