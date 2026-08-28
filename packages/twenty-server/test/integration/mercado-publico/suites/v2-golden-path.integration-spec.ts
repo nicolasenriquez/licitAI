@@ -14,6 +14,7 @@ import { MpRawCsvRowFastInstanceCommand } from 'src/database/commands/upgrade-ve
 import { MpSchemaFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007505-mp-schema';
 import { MpStgApiV2CompraAgilFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007830-mp-stg-api-v2-compra-agil';
 import { MpStgJobRunFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1782340007800-mp-stg-job-run';
+import { MpV2RawContractAccountingFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1796000000000-mp-v2-raw-contract-accounting';
 import { MpV2GoldenPathFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1784000000000-mp-v2-golden-path';
 import { RelaxMpV2CanonicalStateAndDocumentCountFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1784000000010-relax-mp-v2-canonical-state-and-document-count';
 import { MpV2DurableDiscoveryHydrationFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-16/2-16-instance-command-fast-1785000000000-mp-v2-durable-discovery-hydration';
@@ -44,6 +45,7 @@ const applyCommands = async (dataSource: DataSource): Promise<void> => {
     await new MpRawCsvFileFastInstanceCommand().up(queryRunner);
     await new MpRawCsvRowFastInstanceCommand().up(queryRunner);
     await new MpStgJobRunFastInstanceCommand().up(queryRunner);
+    await new MpV2RawContractAccountingFastInstanceCommand().up(queryRunner);
     await new MpStgApiV2CompraAgilFastInstanceCommand().up(queryRunner);
     await new MpCanonicalCompraAgilFastInstanceCommand().up(queryRunner);
     await new MpGoldReadObjectsFastInstanceCommand().up(queryRunner);

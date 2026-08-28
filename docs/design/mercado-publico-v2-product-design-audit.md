@@ -2,6 +2,7 @@
 type: design-audit
 title: Auditoría UX/UI de Mercado Público V2
 description: Especificación ejecutable para corregir el flujo de Procesos y conectarlo con investigación CRM.
+okf_version: "0.1"
 status: proposed
 ---
 

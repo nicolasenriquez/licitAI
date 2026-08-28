@@ -2,6 +2,7 @@
 type: design-brief
 title: Mercado Publico V2 UI
 description: Operate-mode contract for the Mercado Publico workspace.
+okf_version: "0.1"
 ---
 
 # Mercado Público V2 UI

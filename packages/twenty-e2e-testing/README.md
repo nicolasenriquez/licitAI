@@ -50,6 +50,20 @@ Example (location of the test must be specified from the root of `twenty-e2e-tes
 npx nx test twenty-e2e-testing tests/login.spec.ts
 ```
 
+### Run the CRM baseline
+
+The CRM baseline reuses two existing suites. It does not duplicate shared
+record-view behaviour for every object.
+
+```powershell
+yarn --cwd packages/twenty-e2e-testing playwright test tests/crm-dossier-baseline.spec.ts tests/crm-dossier-ui-audit.spec.ts --project=chrome
+```
+
+`crm-dossier-baseline.spec.ts` checks the seeded object views and dashboards.
+`crm-dossier-ui-audit.spec.ts` checks the application shell, navigation,
+settings access, shared record-index controls, dashboards, and optional seeded
+objects. Playwright keeps the trace and screenshot only when a test fails.
+
 ### Runs the tests in debug mode.
 ```
 npx nx test:debug twenty-e2e-testing

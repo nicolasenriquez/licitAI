@@ -2,6 +2,7 @@
 type: readme
 title: Documentation Baseline
 description: Durable baseline, reading paths, and documentation layers for the repository.
+okf_version: "0.1"
 ---
 
 # Documentation Baseline

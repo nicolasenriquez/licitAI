@@ -25,7 +25,7 @@ const filters: MercadoPublicoV2Filters = {
 };
 
 describe('MercadoPublicoV2FilterBar', () => {
-  it('keeps only secondary controls inside More filters', () => {
+  it('groups secondary controls by operator intent', () => {
     render(
       <ThemeProvider colorScheme="light">
         <I18nProvider i18n={i18n}>
@@ -47,6 +47,9 @@ describe('MercadoPublicoV2FilterBar', () => {
         .getByLabelText('Buscar por código, título o comprador')
         .closest('details'),
     ).toBeNull();
+    expect(screen.getByText('Quién compra')).toBeDefined();
+    expect(screen.getByText('Estado del proceso')).toBeDefined();
+    expect(screen.getByText('Tamaño y evidencia')).toBeDefined();
     expect(
       screen.getByLabelText('Filtrar por comprador o RUT').closest('details'),
     ).not.toBeNull();
@@ -77,7 +80,7 @@ describe('MercadoPublicoV2FilterBar', () => {
     ).toHaveTextContent('Todas');
   });
 
-  it('labels the normalized amount and hides unsupported buyer sorting', () => {
+  it('keeps amount secondary and hides unsupported buyer sorting', () => {
     render(
       <ThemeProvider colorScheme="light">
         <I18nProvider i18n={i18n}>
@@ -96,7 +99,7 @@ describe('MercadoPublicoV2FilterBar', () => {
 
     expect(
       screen.getByLabelText('Monto equivalente CLP mínimo').closest('details'),
-    ).toBeNull();
+    ).not.toBeNull();
     expect(screen.queryByLabelText('Orden de resultados')).toBeNull();
   });
   it('counts zero-valued numeric filters as active', () => {
@@ -121,7 +124,8 @@ describe('MercadoPublicoV2FilterBar', () => {
       </ThemeProvider>,
     );
 
-    expect(screen.getByText('Más filtros (3)')).toBeDefined();
+    expect(screen.getByText('Tamaño y evidencia (2)')).toBeDefined();
+    expect(screen.getByText('Estado del proceso (1)')).toBeDefined();
   });
 
   it('keeps staged filters when the user enters a search before applying', async () => {
@@ -180,7 +184,7 @@ describe('MercadoPublicoV2FilterBar', () => {
       </ThemeProvider>,
     );
 
-    const disclosure = screen.getByText('Más filtros');
+    const disclosure = screen.getByText('Quién compra');
     const buyerInput = screen.getByLabelText('Filtrar por comprador o RUT');
 
     await user.click(disclosure);

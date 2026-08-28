@@ -71,14 +71,15 @@ const mockGraphql = async (
     opportunities?: ReturnType<typeof buildOpportunity>[];
     detailFailures?: number;
   } = {},
-): Promise<void> => {
+): Promise<{ documentAfterValues: Array<string | null> }> => {
   const documents = [
     { id: '1', name: 'Bases administrativas' },
     { id: '2', name: 'Especificaciones técnicas' },
   ];
   let detailRequestCount = 0;
+  const documentAfterValues: Array<string | null> = [];
 
-  await page.route('**/metadata', async (route) => {
+  await page.route('**/*', async (route) => {
     const requestBody = getGraphqlRequestBody(route.request());
 
     if (requestBody === undefined) {
@@ -151,6 +152,12 @@ const mockGraphql = async (
     }
 
     if (requestBody.operationName === 'MercadoPublicoV2Documents') {
+      documentAfterValues.push(
+        (
+          requestBody as { variables?: { after?: string | null } }
+        ).variables?.after ?? null,
+      );
+
       await route.fulfill({
         contentType: 'application/json',
         body: JSON.stringify({
@@ -199,6 +206,8 @@ const mockGraphql = async (
 
     await route.continue();
   });
+
+  return { documentAfterValues };
 };
 
 test.describe('Mercado Publico V2 SidePanel structured detail', () => {
@@ -351,22 +360,47 @@ test.describe('Mercado Publico V2 SidePanel structured detail', () => {
       title: 'Segundo proceso',
     });
 
-    await mockGraphql(page, firstOpportunity, {
+    const { documentAfterValues } = await mockGraphql(page, firstOpportunity, {
       opportunities: [firstOpportunity, secondOpportunity],
     });
-    await page.goto(`${ACTIVE_PATH}?proceso=${firstOpportunity.codigo}`, {
+    await page.goto(ACTIVE_PATH, {
       waitUntil: 'domcontentloaded',
     });
-    await expect(page.getByText(firstOpportunity.title)).toBeVisible();
-
-    await page.goto(`${ACTIVE_PATH}?proceso=${secondOpportunity.codigo}`, {
-      waitUntil: 'domcontentloaded',
+    const firstRow = page.getByRole('row').filter({
+      hasText: firstOpportunity.codigo,
     });
+    const secondRow = page.getByRole('row').filter({
+      hasText: secondOpportunity.codigo,
+    });
+    await firstRow.getByRole('button').click();
 
-    await expect(page.getByText(secondOpportunity.title)).toBeVisible();
-    await expect(page.getByText(firstOpportunity.title)).toBeHidden();
-    await expect(page.getByRole('tab', { name: 'Resumen' })).toBeVisible();
-    await expect(page.getByTestId('sanitized-payload')).toBeHidden();
+    const panel = page.locator('[data-side-panel]');
+    await expect(panel.getByText(firstOpportunity.title)).toBeVisible();
+
+    await panel.getByTestId('tab-documents').click();
+    await panel.getByTestId('relation-documents').locator('summary').click();
+    await expect(
+      panel.getByRole('button', { name: 'Siguiente página de documentos' }),
+    ).toBeVisible();
+    await panel
+      .getByRole('button', { name: 'Siguiente página de documentos' })
+      .click();
+    await expect.poll(() => documentAfterValues.at(-1)).toBe('document-cursor-2');
+
+    await panel.getByTestId('tab-technical').click();
+    await panel.getByRole('button', { name: 'Ver JSON sanitizado' }).click();
+    await expect(panel.getByTestId('sanitized-payload')).toBeVisible();
+
+    await secondRow.getByRole('button').click();
+
+    await expect(panel.getByText(secondOpportunity.title)).toBeVisible();
+    await expect(panel.getByText(firstOpportunity.title)).toBeHidden();
+    await expect(panel.getByTestId('tab-summary')).toHaveAttribute(
+      'data-active',
+      'true',
+    );
+    await expect(panel.getByTestId('sanitized-payload')).toBeHidden();
+    await expect.poll(() => documentAfterValues.at(-1)).toBe(null);
   });
 
   test('retries detail locally without closing panel', async ({ page }) => {
@@ -386,7 +420,9 @@ test.describe('Mercado Publico V2 SidePanel structured detail', () => {
       'Detalle no disponible',
     );
     await page.getByRole('button', { name: 'Reintentar' }).click();
-    await expect(page.getByText(opportunity.title)).toBeVisible();
+    await expect(
+      page.locator('[data-side-panel]').getByText(opportunity.title),
+    ).toBeVisible();
     await expect(page).toHaveURL(/proceso=FIXTURE-CA-001/);
   });
 });

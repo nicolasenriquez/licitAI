@@ -192,9 +192,9 @@ above. Access policy and credentials remain environment-specific.
 
 | Decision | Resolution |
 | --- | --- |
-| `justfile` wrapper | The root `justfile` now provides a CI command surface (`just ci`, `just ci-full`, `just ci-prepush`) mirroring GitHub Actions workflows, plus DEV mode helpers (`just dev-up`, `just dev-down`). Docker service helpers preserved. |
+| `justfile` wrapper | The root `justfile` now provides a CI command surface (`just ci`, `just ci-full`, `just ci-prepush`) mirroring the local-safe GitHub checks, including full server lint, migration/codegen validation, security, integration, and email preview checks. Docker service helpers preserved. |
 | GraphQL codegen in CI | CI verifies generated types are up to date (fails if not). Codegen remains a manual step executed by the developer after schema changes. |
-| `lint:diff-with-main` as default | No. Both `lint:diff-with-main` (fast, preferred for PRs) and `lint` (full, for thorough checks) remain explicit. |
+| `lint:diff-with-main` as default | No. Diff lint remains the fast daily path; `just ci-full` also runs full server lint to catch baseline format drift. |
 
 ## Open Decisions
 

@@ -214,6 +214,7 @@ describe('2.16 CSV job-link migrations (integration)', () => {
     await queryRunner.connect();
 
     try {
+      await queryRunner.query(`DROP SCHEMA IF EXISTS mp CASCADE`);
       await new MpSchemaFastInstanceCommand().up(queryRunner);
       await new MpRawApiPayloadFastInstanceCommand().up(queryRunner);
       await new MpRawCsvFileFastInstanceCommand().up(queryRunner);

@@ -2,6 +2,7 @@
 type: operations-guide
 title: Compra Agil V2 operator guide
 description: Safe manual execution contract for the Mercado Publico Compra Agil V2 backbone.
+okf_version: "0.1"
 ---
 
 # Compra Agil V2 Operator Guide

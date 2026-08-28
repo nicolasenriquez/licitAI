@@ -194,7 +194,7 @@ the same structural pattern:
 
 All workflows are under `.github/workflows/`. A full inventory with exact
 job graphs and service configurations is maintained in
-`docs/operations/ci-workflows-reference.md`.
+`.github/workflows/`.
 
 ## 4. Local CI and the Existing Runtime
 
@@ -274,12 +274,12 @@ command dependency tree:
 
                             just ci-full
                               │
-                    ci + ci-validate + ci-security + ci-integration
+             ci + ci-server-lint-full + ci-server-validate + ci-security
+                         + ci-integration + ci-emails
                          │             │                  │
                     (see above)   _ensure-           ci-server-integration
                                    server-healthy     (needs gated alternate infra)
-                                  codegen only
-                                  (no migration check)
+                                  migrations + codegen
 ```
 
 ### Daily workflows
@@ -383,6 +383,7 @@ Reasons are documented below.
 |----------|---------------|
 | `ci-breaking-changes.yaml` | Builds both `main` and current branch servers, diffs GraphQL + OpenAPI schemas. Requires pristine checkout of `origin/main` and full `rm -rf node_modules` reinstall. Too destructive for a developer workspace. |
 | `ci-e2e-main.yaml` | Policy-gated artifact uploads and full Playwright setup. The final status reports `PASS`, `FAIL`, or `SKIPPED_BY_POLICY`; a policy skip is not full acceptance. |
+| `ci-test-docker-compose.yaml` | Builds and starts containers. It changes Docker state and remains an explicit GitHub-only gate until a separately authorized local Compose command is added. |
 | `ci-utils.yaml` | Uses `pull_request_target` with GitHub API tokens. Danger.js is a GitHub-native code review bot. |
 | `ci-codex-plugin.yaml` | Internal tooling package. Not relevant to CI pipeline concerns. |
 

@@ -10,7 +10,7 @@
 #   just dev-down            stop app stack
 #   just ci-prepush          gate + static + build + test (~8 min)
 #   just ci                  static + build + test (commit-build, ~8 min)
-#   just ci-full             ci + security + integration (~18 min, needs infra)
+#   just ci-full             ci + full lint + validate + security + integration + emails
 #   just ci-infra-up         start PostgreSQL + Redis + ClickHouse for CI
 #   just ci-infra-down       stop CI infrastructure
 #
@@ -82,9 +82,10 @@ ci-prepush: ci-gate ci-check ci-build ci-test
 # Standard local CI pipeline (commit-build: no server needed)
 ci: ci-check ci-build ci-test
 
-# Full CI including validate + security + integration. Fail before CI work when
-# the explicitly started CI infrastructure or source server is missing.
-ci-full: _ensure-installed _ensure-ci-prerequisites ci ci-validate ci-security ci-integration
+# Full CI including full lint, validate, security, integration, and emails.
+# Fail before CI work when the explicitly started CI infrastructure or source
+# server is missing.
+ci-full: _ensure-installed _ensure-ci-prerequisites ci ci-server-lint-full ci-server-validate ci-security ci-integration ci-emails
 
 # All static checks across packages
 ci-check: _ensure-installed ci-server-lint ci-front-lint ci-front-typecheck ci-shared ci-ui ci-sdk ci-docs
@@ -113,6 +114,12 @@ ci-server-lint: _ensure-installed
     npx nx build twenty-shared
     npx nx lint:diff-with-main twenty-server
     npx nx typecheck twenty-server
+
+# Full-tree lint used by GitHub's server lint job.
+ci-server-lint-full: _ensure-installed
+    npx nx build twenty-oxlint-rules
+    npx nx build twenty-shared
+    npx nx lint twenty-server
 
 # Mirrors job: server-build
 # Note: _ensure-env copies .env.example only if .env missing (safer than GHA's reset:env overwrite).
@@ -223,6 +230,7 @@ ci-emails: _ensure-installed
     npx nx build twenty-emails
     npx nx typecheck twenty-emails
     npx nx lint twenty-emails
+    npx concurrently --kill-others --success first "npx nx run twenty-emails:start" "npx wait-on http://localhost:4001/preview/test.email --timeout 20000"
 
 # ═════════════════════════════════════════════════════════════════════════════
 # CI — VALIDATE (aggregate)

@@ -1,4 +1,4 @@
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const COMPANIES_VIEW_ID = 'd1ef4324-008f-41ce-b739-e92ee4cf88bd';
 
@@ -21,18 +21,6 @@ const objectScenes = [
   },
   { label: 'Notes', path: '/objects/notes', detailLabels: ['Body'] },
 ] as const;
-
-const captureScene = async (
-  page: Page,
-  testInfo: TestInfo,
-  name: string,
-): Promise<void> => {
-  const path = testInfo.outputPath(`${name}.png`);
-
-  // ponytail: evidence only; add visual snapshots when the seed is fixed.
-  await page.screenshot({ path, fullPage: true });
-  await testInfo.attach(name, { contentType: 'image/png', path });
-};
 
 const openFirstRecord = async (page: Page, detailLabels: readonly string[]) => {
   const recordTable = page.locator(
@@ -65,7 +53,7 @@ test.describe('CRM dossier baseline', () => {
   for (const scene of objectScenes) {
     test(`${scene.label} renders seeded records, scrolls, and opens a detail panel`, async ({
       page,
-    }, testInfo) => {
+    }) => {
       await page.goto(scene.path, { waitUntil: 'domcontentloaded' });
       await expect(
         page.getByText(scene.label, { exact: true }).last(),
@@ -75,8 +63,6 @@ test.describe('CRM dossier baseline', () => {
         page,
         scene.detailLabels,
       );
-      await captureScene(page, testInfo, `${scene.label.toLowerCase()}-detail`);
-
       await closePanel.click();
       await expect(closePanel).toBeHidden();
 
@@ -90,11 +76,6 @@ test.describe('CRM dossier baseline', () => {
       await expect
         .poll(() => recordTable.evaluate((element) => element.scrollTop))
         .toBeGreaterThan(0);
-      await captureScene(
-        page,
-        testInfo,
-        `${scene.label.toLowerCase()}-scrolled`,
-      );
     });
   }
 
@@ -105,7 +86,7 @@ test.describe('CRM dossier baseline', () => {
   ] as const) {
     test(`Dashboard ${dashboard.name} is reachable and visible`, async ({
       page,
-    }, testInfo) => {
+    }) => {
       await page.goto('/objects/dashboards', { waitUntil: 'domcontentloaded' });
 
       const dashboardLink = page.getByRole('link', {
@@ -120,11 +101,6 @@ test.describe('CRM dossier baseline', () => {
       await expect(
         page.getByRole('button', { name: 'Edit Dashboard' }),
       ).toBeVisible();
-      await captureScene(
-        page,
-        testInfo,
-        `dashboard-${dashboard.name.toLowerCase().replaceAll(' ', '-')}`,
-      );
     });
   }
 });

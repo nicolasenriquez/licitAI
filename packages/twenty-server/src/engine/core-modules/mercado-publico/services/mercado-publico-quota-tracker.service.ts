@@ -5,19 +5,14 @@ import { DataSource } from 'typeorm';
 
 @Injectable()
 export class MercadoPublicoQuotaTrackerService {
-  private readonly logger = new Logger(
-    MercadoPublicoQuotaTrackerService.name,
-  );
+  private readonly logger = new Logger(MercadoPublicoQuotaTrackerService.name);
 
   constructor(
     @InjectDataSource()
     private readonly coreDataSource: DataSource,
   ) {}
 
-  async record429(
-    source: string,
-    quotaTimezone: string,
-  ): Promise<void> {
+  async record429(source: string, quotaTimezone: string): Promise<void> {
     try {
       await this.coreDataSource.query(
         `
