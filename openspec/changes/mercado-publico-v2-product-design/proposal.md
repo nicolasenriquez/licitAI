@@ -127,9 +127,7 @@ P1 issues, including stale detail state and no explicit, idempotent CRM action.
 
 ## Notes
 
-- Context: normalized from
-  `docs/design/mercado-publico-v2-product-design-audit.md` and
-  `docs/design/mercado-publico-v2-ui.md`.
+- Context: Mercado Público V2 implementation and pattern guidance.
 - Decisions: create Opportunity through existing CRM record APIs; persist
   minimal factual name, amount, close date, process code, and source URL; create
   no buyer; replace a deleted mapped Opportunity; keep History in panel.
