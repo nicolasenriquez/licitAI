@@ -801,7 +801,7 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
     ]);
   });
 
-  it('stops a hydration pass after the first retryable provider failure', async () => {
+  it('keeps retrying hydration until a retryable provider failure is exhausted', async () => {
     let pendingItemReads = 0;
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('SELECT id, codigo')) {
@@ -853,10 +853,14 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
       ).hydrate({ syncRunId: 'run-1' }, 'job-run-1'),
     ).resolves.toBe('completed');
 
-    expect(getByCodigo).toHaveBeenCalledTimes(1);
+    expect(getByCodigo).toHaveBeenCalledTimes(4);
     expect(query).toHaveBeenCalledWith(
       expect.stringContaining("SET status = 'pending'"),
       ['item-1', 'hydrating', 'retryable_failed', 'raw-payload-1'],
+    );
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('SET status = $2'),
+      ['item-1', 'deferred', 'retryable_failed', 'raw-payload-1'],
     );
   });
 

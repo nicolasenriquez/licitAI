@@ -261,6 +261,18 @@ export const useMercadoPublicoV2UrlState = () => {
     );
   };
 
+  const setProceso = (proceso: string | null, replace = false): void => {
+    const next = toSearchParams(searchParams);
+
+    if (proceso === null) {
+      next.delete('proceso');
+    } else {
+      next.set('proceso', proceso);
+    }
+
+    navigate({ search: next.toString() }, { replace, state: location.state });
+  };
+
   const previousCursors = Array.isArray(
     (location.state as MercadoPublicoNavigationState | null)?.[
       MERCADO_PUBLICO_CURSOR_HISTORY_KEY
@@ -277,6 +289,7 @@ export const useMercadoPublicoV2UrlState = () => {
     clearFilters,
     setSort,
     setAfter,
+    setProceso,
     previousCursors,
   };
 };

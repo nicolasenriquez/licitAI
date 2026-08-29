@@ -161,7 +161,7 @@ const rebuildSemanticPayload = (
   published_at: row.published_at,
   closing_at: row.closing_at,
   provider_changed_at_raw: row.provider_changed_at_raw,
-  amount: row.amount_raw ?? (row.amount === null ? null : String(row.amount)),
+  amount: row.amount,
   currency_source: row.currency_source,
   document_count: row.document_count,
   id_orden_compra: row.id_orden_compra,

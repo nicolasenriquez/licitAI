@@ -307,9 +307,9 @@ describe('MercadoPublicoV2ProjectionService', () => {
                 published_at: null,
                 closing_at: null,
                 provider_changed_at_raw: null,
-                amount: null,
-                amount_raw: null,
-                currency_source: null,
+                amount: '1234500',
+                amount_raw: '100',
+                currency_source: 'UTM',
                 document_count: null,
                 id_orden_compra: null,
                 id_oc: null,
@@ -366,7 +366,9 @@ describe('MercadoPublicoV2ProjectionService', () => {
         },
         presupuesto: {
           tipo_presupuesto: 'estimado',
-          moneda: 'CLP',
+          moneda: 'UTM',
+          monto_disponible: 100,
+          monto_disponible_clp: 1234500,
           presupuesto_estimado: 150000,
         },
         resumen: {
@@ -383,10 +385,14 @@ describe('MercadoPublicoV2ProjectionService', () => {
 
     expect(historyQuery).toBeDefined();
     expect(JSON.parse(historyQuery?.params[5] as string)).toMatchObject({
+      amount: '1234500',
+      currency_source: 'UTM',
       description: 'Descripción anterior',
       delivery_days: null,
     });
     expect(JSON.parse(historyQuery?.params[6] as string)).toMatchObject({
+      amount: '1234500',
+      currency_source: 'UTM',
       description: 'Servicio de aseo',
       delivery_address: 'Av. Central 123',
       delivery_days: 15,

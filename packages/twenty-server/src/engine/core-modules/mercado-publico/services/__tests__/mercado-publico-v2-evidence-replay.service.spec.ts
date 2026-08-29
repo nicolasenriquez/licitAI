@@ -4,7 +4,7 @@ import { MercadoPublicoV2EvidenceReplayService } from 'src/engine/core-modules/m
 import { MercadoPublicoV2ProjectionService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-projection.service';
 
 describe('MercadoPublicoV2EvidenceReplayService', () => {
-  it('rebuilds a code from all retained observations in semantic order', async () => {
+  it('rebuilds a code from retained list and detail observations', async () => {
     const observations = [
       {
         id: 'observation-a',
@@ -30,11 +30,11 @@ describe('MercadoPublicoV2EvidenceReplayService', () => {
         normalizer_version: 'v1',
         observed_at: new Date('2026-01-02T00:00:00Z'),
         source: 'api-v2-compra-agil',
-        endpoint: 'list',
-        snapshot_kind: 'list' as const,
+        endpoint: 'detail',
+        snapshot_kind: 'detail' as const,
         request_fingerprint: 'request-b',
         provider_changed_at_raw: '2026-01-02T00:00:00Z',
-        raw_payload: fixture,
+        raw_payload: { payload: fixture.payload.items[0] },
       },
     ];
     const query = jest.fn().mockResolvedValue(observations);
@@ -94,7 +94,10 @@ describe('MercadoPublicoV2EvidenceReplayService', () => {
     expect(projectionService.rebuild).toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({ observationId: 'observation-a' }),
-        expect.objectContaining({ observationId: 'observation-b' }),
+        expect.objectContaining({
+          observationId: 'observation-b',
+          context: expect.objectContaining({ snapshotKind: 'detail' }),
+        }),
       ]),
     );
     expect(counters).toMatchObject({

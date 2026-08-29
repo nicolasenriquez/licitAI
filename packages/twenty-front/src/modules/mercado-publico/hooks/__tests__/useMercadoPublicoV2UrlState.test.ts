@@ -1,7 +1,13 @@
+import { type PropsWithChildren, createElement } from 'react';
+import { act, renderHook } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+
 import {
+  MERCADO_PUBLICO_CURSOR_HISTORY_KEY,
   getMercadoPublicoV2SectionSearch,
   parseMercadoPublicoV2UrlState,
   serializeMercadoPublicoV2Filters,
+  useMercadoPublicoV2UrlState,
 } from '@/mercado-publico/hooks/useMercadoPublicoV2UrlState';
 
 describe('Mercado Público V2 URL state', () => {
@@ -83,5 +89,42 @@ describe('Mercado Público V2 URL state', () => {
     next.set('proceso', current.proceso ?? '');
 
     expect(next.toString()).toBe('q=new&orden=AMOUNT_ASC&proceso=CA-2');
+  });
+
+  it('preserves cursor history when the process panel opens and closes', () => {
+    const previousCursors = [null, 'cursor-1'];
+    const wrapper = ({ children }: PropsWithChildren) =>
+      createElement(
+        MemoryRouter,
+        {
+          future: {
+            v7_relativeSplatPath: true,
+            v7_startTransition: true,
+          },
+          initialEntries: [
+            {
+              pathname: '/mercado-publico',
+              search: '?after=cursor-2',
+              state: {
+                [MERCADO_PUBLICO_CURSOR_HISTORY_KEY]: previousCursors,
+              },
+            },
+          ],
+        },
+        children,
+      );
+    const { result } = renderHook(() => useMercadoPublicoV2UrlState(), {
+      wrapper,
+    });
+
+    act(() => result.current.setProceso('CA-2'));
+
+    expect(result.current.state.proceso).toBe('CA-2');
+    expect(result.current.previousCursors).toEqual(previousCursors);
+
+    act(() => result.current.setProceso(null, true));
+
+    expect(result.current.state.proceso).toBeNull();
+    expect(result.current.previousCursors).toEqual(previousCursors);
   });
 });

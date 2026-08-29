@@ -6,7 +6,10 @@ import { DataSource } from 'typeorm';
 import { type MercadoPublicoApiV2CompraAgilListResponse } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 import { type MercadoPublicoApiV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/types/mercado-publico-api-v2-compra-agil-record.type';
 import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
-import { extractV2CompraAgilListRecords } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
+import {
+  decodeV2CompraAgilDetailPayload,
+  extractV2CompraAgilListRecords,
+} from 'src/engine/core-modules/mercado-publico/drivers/api/utils/extract-v2-compra-agil-list-records.util';
 import { normalizeV2CompraAgilRecord } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/normalize-v2-compra-agil-record.util';
 import {
   MERCADO_PUBLICO_API_V2_COMPRA_AGIL_LIST_ENDPOINT,
@@ -269,9 +272,13 @@ export class MercadoPublicoV2EvidenceReplayService {
     }
 
     const reprojections = observations.map((observation) => {
-      const record = extractV2CompraAgilListRecords(
-        observation.raw_payload,
-      ).find((candidate) => candidate.codigo === item.codigo);
+      const records =
+        observation.snapshot_kind === 'list'
+          ? extractV2CompraAgilListRecords(observation.raw_payload)
+          : decodeV2CompraAgilDetailPayload(observation.raw_payload).records;
+      const record = records.find(
+        (candidate) => candidate.codigo === item.codigo,
+      );
 
       if (record === undefined) {
         throw new Error(`replay evidence record missing for ${item.codigo}`);

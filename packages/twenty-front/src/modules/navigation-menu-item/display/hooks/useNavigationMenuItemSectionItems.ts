@@ -1,4 +1,5 @@
 import { type NavigationMenuItem } from '~/generated-metadata/graphql';
+import { NavigationMenuItemType } from 'twenty-shared/types';
 
 import { isLayoutCustomizationModeEnabledState } from '@/layout-customization/states/isLayoutCustomizationModeEnabledState';
 import { flattenNavigationMenuItemsWithFolderChildren } from '@/navigation-menu-item/common/utils/flattenNavigationMenuItemsWithFolderChildren';
@@ -12,6 +13,18 @@ import { viewsSelector } from '@/views/states/selectors/viewsSelector';
 import { useNavigationMenuItemsByFolder } from '@/navigation-menu-item/display/folder/hooks/useNavigationMenuItemsByFolder';
 import { useNavigationMenuItemsData } from './useNavigationMenuItemsData';
 import { useSortedNavigationMenuItems } from './useSortedNavigationMenuItems';
+
+const MERCADO_PUBLICO_NAVIGATION_ITEM: NavigationMenuItem = {
+  __typename: 'NavigationMenuItem',
+  id: 'mercado-publico-navigation-fallback',
+  type: NavigationMenuItemType.LINK,
+  name: 'Mercado Público',
+  link: '/mercado-publico',
+  icon: 'IconBuildingStore',
+  position: 3,
+  createdAt: '',
+  updatedAt: '',
+};
 
 export type NavigationMenuItemClickParams = {
   item: NavigationMenuItem;
@@ -39,8 +52,12 @@ export const useNavigationMenuItemSectionItems = (): NavigationMenuItem[] => {
     includeInaccessibleObjectBackedItems: isLayoutCustomizationModeEnabled,
   });
 
-  return flattenNavigationMenuItemsWithFolderChildren(
+  const items = flattenNavigationMenuItemsWithFolderChildren(
     flatItems,
     workspaceNavigationMenuItemsByFolder,
   );
+
+  return items.some((item) => item.link === '/mercado-publico')
+    ? items
+    : [...items, MERCADO_PUBLICO_NAVIGATION_ITEM];
 };

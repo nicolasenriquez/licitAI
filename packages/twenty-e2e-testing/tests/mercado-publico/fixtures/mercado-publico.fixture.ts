@@ -105,6 +105,7 @@ export const trackHarnessDiagnostics = (page: Page) => {
     'MercadoPublicoV2ActiveOpportunities',
     'MercadoPublicoV2Analytics',
     'MercadoPublicoV2Opportunity',
+    'MercadoPublicoV2RefreshControl',
   ]);
 
   page.on('request', (request) => {
@@ -151,6 +152,7 @@ export const mockMercadoPublicoGraphql = async (
     activeError,
     activeFailures = 0,
     analyticsError,
+    syncControlError,
     holdActive = false,
   }: {
     opportunities?: ReturnType<typeof buildOpportunity>[];
@@ -158,6 +160,7 @@ export const mockMercadoPublicoGraphql = async (
     activeError?: string;
     activeFailures?: number;
     analyticsError?: string;
+    syncControlError?: string;
     holdActive?: boolean;
   } = {},
 ): Promise<() => void> => {
@@ -246,6 +249,39 @@ export const mockMercadoPublicoGraphql = async (
         body: JSON.stringify({
           data: {
             mercadoPublicoV2: { opportunity: opportunities[0] ?? null },
+          },
+        }),
+      });
+
+      return;
+    }
+
+    if (requestBody.operationName === 'MercadoPublicoV2RefreshControl') {
+      if (syncControlError) {
+        await route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify({
+            errors: [
+              {
+                message:
+                  'Entity performing the request does not have permission',
+                extensions: {
+                  code: 'INTERNAL_SERVER_ERROR',
+                  userFriendlyMessage: syncControlError,
+                },
+              },
+            ],
+          }),
+        });
+
+        return;
+      }
+
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            mercadoPublicoV2SyncControl: { latestRun: null },
           },
         }),
       });

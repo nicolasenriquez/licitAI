@@ -1218,9 +1218,6 @@ export class MercadoPublicoV2DurableSyncService {
             );
           }
           await this.updateSyncRunCounters(context.syncRunId);
-          if (failure === 'retryable_failed') {
-            return 'completed';
-          }
           continue;
         }
 
@@ -1290,9 +1287,6 @@ export class MercadoPublicoV2DurableSyncService {
             );
           }
           await this.updateSyncRunCounters(context.syncRunId);
-          if (response.errorSummary === 'retryable_failed') {
-            return 'completed';
-          }
           continue;
         }
 

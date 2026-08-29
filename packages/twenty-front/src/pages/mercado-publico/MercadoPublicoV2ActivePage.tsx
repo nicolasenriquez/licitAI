@@ -9,7 +9,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { Temporal } from 'temporal-polyfill';
 import { SidePanelPages } from 'twenty-shared/types';
 import { MercadoPublicoV2ErrorCode } from 'twenty-shared/constants';
@@ -25,6 +24,7 @@ import {
 } from '@/mercado-publico/components/MercadoPublicoV2FilterBar';
 import { MercadoPublicoV2AppliedFilters } from '@/mercado-publico/components/MercadoPublicoV2AppliedFilters';
 import { MercadoPublicoV2PageShell } from '@/mercado-publico/components/MercadoPublicoV2PageShell';
+import { MercadoPublicoV2RefreshControl } from '@/mercado-publico/components/MercadoPublicoV2RefreshControl';
 import {
   formatMercadoPublicoAvailability,
   formatMercadoPublicoFreshness,
@@ -60,7 +60,6 @@ type DataValueState =
   | 'null'
   | 'unavailable'
   | 'not_applicable';
-
 
 const StyledCount = styled.span`
   color: ${themeCssVariables.font.color.secondary};
@@ -488,13 +487,13 @@ export const MercadoPublicoV2ActivePage = () => {
   const { navigateSidePanel } = useNavigateSidePanel();
   const { closeSidePanelMenu } = useSidePanelMenu();
   const isSidePanelOpened = useAtomValue(isSidePanelOpenedState.atom);
-  const [searchParams, setSearchParams] = useSearchParams();
   const {
     state,
     applyFilters,
     clearFilters,
     setSort,
     setAfter,
+    setProceso,
     previousCursors,
   } = useMercadoPublicoV2UrlState();
   const [notice, setNotice] = useState<string | null>(null);
@@ -604,26 +603,19 @@ export const MercadoPublicoV2ActivePage = () => {
       return;
     }
 
-    const next = new URLSearchParams(searchParams);
-
-    next.delete('proceso');
-    setSearchParams(next, { replace: true });
+    setProceso(null, true);
   }, [
     hasMounted,
     isSidePanelOpened,
-    searchParams,
-    setSearchParams,
+    setProceso,
     openingOpportunityCode,
     state.proceso,
   ]);
 
   const openOpportunity = useCallback(
     (opportunity: Opportunity) => {
-      const next = new URLSearchParams(searchParams);
-
       setOpeningOpportunityCode(opportunity.codigo);
-      next.set('proceso', opportunity.codigo);
-      setSearchParams(next);
+      setProceso(opportunity.codigo);
 
       navigateSidePanel({
         page: SidePanelPages.MercadoPublicoV2Opportunity,
@@ -633,7 +625,7 @@ export const MercadoPublicoV2ActivePage = () => {
         resetNavigationStack: true,
       });
     },
-    [navigateSidePanel, searchParams, setSearchParams, t],
+    [navigateSidePanel, setProceso, t],
   );
 
   const handleApplyFilters: MercadoPublicoV2FilterBarProps['onApply'] =
@@ -688,6 +680,7 @@ export const MercadoPublicoV2ActivePage = () => {
   return (
     <MercadoPublicoV2PageShell
       title={t`Mercado Público`}
+      topBarRight={<MercadoPublicoV2RefreshControl />}
       tag={
         opportunities || analytics ? (
           <StyledHeaderMeta>
