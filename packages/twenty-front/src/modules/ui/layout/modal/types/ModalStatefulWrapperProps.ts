@@ -3,6 +3,7 @@ import { type ModalProps } from 'twenty-ui/surfaces';
 
 export type ModalStatefulWrapperProps = Pick<
   ModalProps,
+  | 'ariaLabel'
   | 'size'
   | 'padding'
   | 'overlay'

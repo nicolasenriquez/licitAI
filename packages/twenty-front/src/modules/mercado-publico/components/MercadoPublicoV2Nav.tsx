@@ -1,21 +1,9 @@
 import { useLingui } from '@lingui/react/macro';
 import { useLocation } from 'react-router-dom';
-import { gql } from '@apollo/client';
-import { useQuery } from '@apollo/client/react';
 import { AppPath } from 'twenty-shared/types';
 import { StyledTabContainer, TabButton } from 'twenty-ui/input';
-import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
-import { getMercadoPublicoV2SectionSearch } from '@/mercado-publico/hooks/useMercadoPublicoV2UrlState';
 
-const SYNC_ACCESS_PROBE = gql`
-  query MercadoPublicoV2SyncControlNavigationProbe {
-    mercadoPublicoV2SyncControl {
-      latestRun {
-        safeStatus
-      }
-    }
-  }
-`;
+import { getMercadoPublicoV2SectionSearch } from '@/mercado-publico/hooks/useMercadoPublicoV2UrlState';
 
 const isActivePath = (pathname: string, to: string): boolean =>
   to === AppPath.MercadoPublico
@@ -25,11 +13,6 @@ const isActivePath = (pathname: string, to: string): boolean =>
 export const MercadoPublicoV2Nav = () => {
   const { t } = useLingui();
   const { pathname, search } = useLocation();
-  const apolloCoreClient = useApolloCoreClient();
-  const { data: syncAccessData } = useQuery(SYNC_ACCESS_PROBE, {
-    client: apolloCoreClient,
-    errorPolicy: 'ignore',
-  });
   const tabs = [
     {
       id: 'mercado-publico-processes',
@@ -43,16 +26,6 @@ export const MercadoPublicoV2Nav = () => {
       activePath: AppPath.MercadoPublicoV2Buyers,
       title: t`Compradores`,
     },
-    ...(syncAccessData
-      ? [
-          {
-            id: 'mercado-publico-sync',
-            to: AppPath.MercadoPublicoV2SyncControl,
-            activePath: AppPath.MercadoPublicoV2SyncControl,
-            title: t`Sincronización`,
-          },
-        ]
-      : []),
   ];
 
   return (

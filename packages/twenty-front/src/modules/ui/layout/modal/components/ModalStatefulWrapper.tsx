@@ -16,6 +16,7 @@ import { Modal } from 'twenty-ui/surfaces';
 
 export const ModalStatefulWrapper = ({
   modalInstanceId,
+  ariaLabel,
   children,
   size = 'medium',
   padding = 'medium',
@@ -71,6 +72,7 @@ export const ModalStatefulWrapper = ({
           />
         )}
         <Modal
+          ariaLabel={ariaLabel}
           isOpen={isModalOpened}
           size={size}
           padding={padding}
