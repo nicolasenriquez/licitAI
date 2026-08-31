@@ -15,7 +15,6 @@ import {
   type MercadoPublicoV2HistoryQueryVariables,
 } from '~/generated/graphql';
 
-
 const StyledPage = styled.main`
   box-sizing: border-box;
   display: flex;

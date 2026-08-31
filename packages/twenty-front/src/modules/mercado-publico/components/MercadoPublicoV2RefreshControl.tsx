@@ -25,6 +25,7 @@ const REFRESH_STATUS_QUERY = gql`
       latestRun {
         safeStatus
         safeSummary
+        canResume
         recordsDiscovered
         recordsHydrated
         recordsDeferred
@@ -48,6 +49,18 @@ const START_SYNC_MUTATION = gql`
   mutation MercadoPublicoV2StartSync($input: MercadoPublicoV2StartSyncInput!) {
     mercadoPublicoV2SyncControl {
       start(input: $input) {
+        state
+      }
+    }
+  }
+`;
+
+const RESUME_SYNC_MUTATION = gql`
+  mutation MercadoPublicoV2ResumeSync(
+    $input: MercadoPublicoV2ResumeSyncInput!
+  ) {
+    mercadoPublicoV2SyncControl {
+      resume(input: $input) {
         state
       }
     }
@@ -88,7 +101,7 @@ const REFRESH_MODAL_ID = 'mercado-publico-v2-refresh-control';
 const REFRESH_MODAL_CLOSE_TEST_ID = 'mercado-publico-v2-refresh-close';
 
 type RefreshStage = (typeof REFRESH_STAGES)[number];
-type RefreshStageState = 'completed' | 'current' | 'pending' | 'failed';
+type RefreshStageState = 'completed' | 'current' | 'pending' | 'unverified';
 
 type SyncTimelineEvent = {
   eventType: string;
@@ -99,6 +112,7 @@ type SyncTimelineEvent = {
 type LatestRun = {
   safeStatus: string;
   safeSummary?: string | null;
+  canResume: boolean;
   recordsDiscovered: number;
   recordsHydrated: number;
   recordsDeferred: number;
@@ -120,6 +134,12 @@ type RefreshStatusQuery = {
 type StartSyncMutation = {
   mercadoPublicoV2SyncControl: {
     start: { state: string };
+  };
+};
+
+type ResumeSyncMutation = {
+  mercadoPublicoV2SyncControl: {
+    resume: { state: string };
   };
 };
 
@@ -298,13 +318,6 @@ const StyledStageNode = styled.span`
     border-color: ${themeCssVariables.color.blue};
     color: ${themeCssVariables.font.color.inverted};
   }
-
-  &[data-state='failed'] {
-    border-color: ${themeCssVariables.color.red};
-    color: ${themeCssVariables.color.red};
-    font-weight: ${themeCssVariables.font.weight.medium};
-  }
-
 `;
 
 const StyledStageLabel = styled.span`
@@ -329,10 +342,6 @@ const StyledStageState = styled.span`
 
   &[data-state='current'] {
     color: ${themeCssVariables.font.color.primary};
-  }
-
-  &[data-state='failed'] {
-    color: ${themeCssVariables.color.red};
   }
 `;
 
@@ -414,6 +423,11 @@ const StyledSettingLabel = styled.label`
   flex-direction: column;
   font-size: ${themeCssVariables.font.size.sm};
   gap: ${themeCssVariables.spacing[2]};
+`;
+
+const StyledSettingHint = styled.span`
+  color: ${themeCssVariables.font.color.secondary};
+  font-size: ${themeCssVariables.font.size.xs};
 `;
 
 const StyledPageLimitSelect = styled.select`
@@ -535,7 +549,7 @@ const getStageStates = ({
 
   if (isIncompleteStatus(status)) {
     return REFRESH_STAGES.map((_, index) =>
-      discoveryComplete && index < 2 ? 'completed' : 'pending',
+      discoveryComplete && index === 0 ? 'completed' : 'unverified',
     );
   }
 
@@ -549,7 +563,7 @@ const RefreshProgressRail = ({
   ariaLabel,
   completedLabel,
   currentLabel,
-  failedLabel,
+  unverifiedLabel,
   pendingLabel,
 }: {
   status: string;
@@ -558,7 +572,7 @@ const RefreshProgressRail = ({
   ariaLabel: string;
   completedLabel: string;
   currentLabel: string;
-  failedLabel: string;
+  unverifiedLabel: string;
   pendingLabel: string;
 }) => {
   const stageStates = getStageStates({ status, discoveryComplete });
@@ -572,8 +586,8 @@ const RefreshProgressRail = ({
             ? completedLabel
             : state === 'current'
               ? currentLabel
-              : state === 'failed'
-                ? failedLabel
+              : state === 'unverified'
+                ? unverifiedLabel
                 : pendingLabel;
 
         return (
@@ -590,7 +604,6 @@ const RefreshProgressRail = ({
             )}
             <StyledStageNode aria-hidden="true" data-state={state}>
               {state === 'completed' ? <IconCheck size={12} /> : null}
-              {state === 'failed' ? '!' : null}
             </StyledStageNode>
             <StyledStageLabel data-current={state === 'current'}>
               {stage.label}
@@ -664,6 +677,8 @@ export const MercadoPublicoV2RefreshControl = () => {
   const triggerRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isActivityExpanded, setIsActivityExpanded] = useState(false);
+  const [isStartConfirmationVisible, setIsStartConfirmationVisible] =
+    useState(false);
   const [maxPages, setMaxPages] = useState<number | undefined>(undefined);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -683,16 +698,23 @@ export const MercadoPublicoV2RefreshControl = () => {
     StartSyncMutation,
     StartSyncVariables
   >(START_SYNC_MUTATION, { client: apolloCoreClient });
+  const [resumeSync, { loading: isResuming }] = useMutation<
+    ResumeSyncMutation,
+    { input: { idempotencyKey: string } }
+  >(RESUME_SYNC_MUTATION, { client: apolloCoreClient });
   const effectiveData = data ?? previousData;
   const latestRun = effectiveData?.mercadoPublicoV2SyncControl.latestRun;
   const isActive = isActiveStatus(latestRun?.safeStatus);
   const isSuccess = latestRun?.safeStatus === 'succeeded';
   const isIncomplete = isIncompleteStatus(latestRun?.safeStatus);
-  const isUnavailable = error !== undefined;
+  const hasKnownStatus = effectiveData !== undefined;
+  const isStatusUnavailable = error !== undefined && !hasKnownStatus;
+  const isStatusStale = error !== undefined && hasKnownStatus;
   const isOperatorPermissionDenied = isSyncOperatorPermissionError(error);
-  const isLive = isStarting || isActive;
+  const isCommandPending = isStarting || isResuming;
+  const isLive = isCommandPending || isActive;
   const displayedStatus =
-    isStarting && !isActive ? 'queued' : latestRun?.safeStatus;
+    isCommandPending && !isActive ? 'queued' : latestRun?.safeStatus;
 
   useEffect(() => {
     if (isActive) {
@@ -726,6 +748,7 @@ export const MercadoPublicoV2RefreshControl = () => {
 
   const handleOpen = () => {
     setActionError(null);
+    setIsStartConfirmationVisible(false);
     setIsOpen(true);
     openModal(REFRESH_MODAL_ID);
     void refetch().catch(() => undefined);
@@ -734,6 +757,7 @@ export const MercadoPublicoV2RefreshControl = () => {
   const handleClose = () => {
     setIsOpen(false);
     setIsActivityExpanded(false);
+    setIsStartConfirmationVisible(false);
     closeModal(REFRESH_MODAL_ID);
     triggerRef.current?.querySelector('button')?.focus();
   };
@@ -744,6 +768,10 @@ export const MercadoPublicoV2RefreshControl = () => {
   };
 
   const handleStart = async () => {
+    if (isStarting || isActive) {
+      return;
+    }
+
     setActionError(null);
 
     try {
@@ -765,6 +793,26 @@ export const MercadoPublicoV2RefreshControl = () => {
     }
 
     void refetch().catch(() => undefined);
+  };
+
+  const handleResume = async () => {
+    setActionError(null);
+
+    try {
+      await resumeSync({
+        variables: { input: { idempotencyKey: crypto.randomUUID() } },
+      });
+      await refetch();
+    } catch {
+      setActionError(
+        t`No se pudo reanudar la actualización. Reintenta cuando el servicio esté disponible.`,
+      );
+    }
+  };
+
+  const requestStart = () => {
+    setActionError(null);
+    setIsStartConfirmationVisible(true);
   };
 
   const stageLabels = [
@@ -806,19 +854,19 @@ export const MercadoPublicoV2RefreshControl = () => {
         <StyledMetricValue>
           {formatMetric(latestRun.recordsDiscovered)}
         </StyledMetricValue>
-        <StyledMetricLabel>{t`Encontrados`}</StyledMetricLabel>
+        <StyledMetricLabel>{t`Procesos encontrados`}</StyledMetricLabel>
       </StyledMetric>
       <StyledMetric>
         <StyledMetricValue>
           {formatMetric(latestRun.recordsHydrated)}
         </StyledMetricValue>
-        <StyledMetricLabel>{t`Con detalle`}</StyledMetricLabel>
+        <StyledMetricLabel>{t`Detalles descargados`}</StyledMetricLabel>
       </StyledMetric>
       <StyledMetric>
         <StyledMetricValue>
           {formatMetric(latestRun.recordsProjected)}
         </StyledMetricValue>
-        <StyledMetricLabel>{t`Disponibles`}</StyledMetricLabel>
+        <StyledMetricLabel>{t`Preparados para consulta`}</StyledMetricLabel>
       </StyledMetric>
     </StyledMetrics>
   ) : null;
@@ -849,6 +897,7 @@ export const MercadoPublicoV2RefreshControl = () => {
           onClose={handleClose}
           renderInDocumentBody
           size="large"
+          trapFocus
         >
           <ModalHeader>
             <StyledModalHeader>
@@ -870,6 +919,28 @@ export const MercadoPublicoV2RefreshControl = () => {
                 <StyledError role="alert">{actionError}</StyledError>
               )}
 
+              {isStatusStale && (
+                <StyledError role="status">
+                  {t`No se pudo actualizar el monitoreo. Mostrando el último estado conocido.`}
+                </StyledError>
+              )}
+
+              {isStartConfirmationVisible && (
+                <StyledPhase
+                  aria-labelledby="mercado-publico-v2-refresh-confirmation-title"
+                  role="group"
+                >
+                  <StyledPhaseTitle id="mercado-publico-v2-refresh-confirmation-title">
+                    {t`Confirma esta actualización`}
+                  </StyledPhaseTitle>
+                  <StyledDescription>
+                    {maxPages === undefined
+                      ? t`Se consultarán todas las páginas de fuente disponibles.`
+                      : t`Se consultarán hasta ${maxPages} páginas de fuente.`}
+                  </StyledDescription>
+                </StyledPhase>
+              )}
+
               <StyledMonitoringCluster
                 aria-live="polite"
                 data-testid="mercado-publico-v2-refresh-status"
@@ -882,7 +953,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                 />
                 <StyledMonitoringCopy>
                   <StyledMonitoringLabel>
-                    {isUnavailable
+                    {isStatusUnavailable
                       ? t`Estado temporalmente no disponible`
                       : isLive
                         ? phaseCopy.title
@@ -904,7 +975,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                 <div aria-label={t`Cargando actualización…`} role="status">
                   <Loader />
                 </div>
-              ) : isUnavailable ? (
+              ) : isStatusUnavailable ? (
                 <StyledPhase>
                   <StyledPhaseTitle>{t`Estado temporalmente no disponible`}</StyledPhaseTitle>
                   <StyledDescription>
@@ -924,7 +995,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                       completedLabel={t`Completado`}
                       currentLabel={t`Procesando…`}
                       discoveryComplete={latestRun?.discoveryComplete ?? false}
-                      failedLabel={t`Detenido`}
+                      unverifiedLabel={t`No verificado`}
                       pendingLabel={t`Pendiente`}
                       stages={stageLabels}
                       status={displayedStatus}
@@ -957,7 +1028,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                     completedLabel={t`Completado`}
                     currentLabel={t`Procesando…`}
                     discoveryComplete={latestRun.discoveryComplete}
-                    failedLabel={t`Detenido`}
+                    unverifiedLabel={t`No verificado`}
                     pendingLabel={t`Pendiente`}
                     stages={stageLabels}
                     status={latestRun.safeStatus}
@@ -984,7 +1055,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                     completedLabel={t`Completado`}
                     currentLabel={t`Procesando…`}
                     discoveryComplete={latestRun.discoveryComplete}
-                    failedLabel={t`Detenido`}
+                    unverifiedLabel={t`No verificado`}
                     pendingLabel={t`Pendiente`}
                     stages={stageLabels}
                     status={latestRun.safeStatus}
@@ -996,7 +1067,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                 </>
               )}
 
-              {!loading && !isUnavailable && (
+              {hasKnownStatus && !isStatusUnavailable && (
                 <StyledWorkspace>
                   {showConfiguration && (
                     <StyledWorkspaceSection aria-labelledby="refresh-settings-title">
@@ -1004,8 +1075,9 @@ export const MercadoPublicoV2RefreshControl = () => {
                         {t`Configura esta actualización`}
                       </StyledWorkspaceHeading>
                       <StyledSettingLabel htmlFor="mercado-publico-v2-refresh-max-pages">
-                        {t`Páginas`}
+                        {t`Páginas de fuente por ejecución`}
                         <StyledPageLimitSelect
+                          aria-describedby="mercado-publico-v2-refresh-page-limit-hint"
                           data-testid="mercado-publico-v2-refresh-max-pages"
                           id="mercado-publico-v2-refresh-max-pages"
                           onChange={(event) =>
@@ -1024,6 +1096,11 @@ export const MercadoPublicoV2RefreshControl = () => {
                           <option value={50}>{t`50 páginas`}</option>
                         </StyledPageLimitSelect>
                       </StyledSettingLabel>
+                      <StyledSettingHint id="mercado-publico-v2-refresh-page-limit-hint">
+                        {maxPages === undefined
+                          ? t`Sin límite de páginas configurado.`
+                          : t`Límite de ${maxPages} páginas para esta ejecución.`}
+                      </StyledSettingHint>
                     </StyledWorkspaceSection>
                   )}
 
@@ -1094,7 +1171,25 @@ export const MercadoPublicoV2RefreshControl = () => {
 
           <ModalFooter>
             <StyledActions>
-              {isUnavailable ? (
+              {isStartConfirmationVisible ? (
+                <>
+                  <Button
+                    onClick={() => setIsStartConfirmationVisible(false)}
+                    title={t`Cancelar`}
+                    type="button"
+                    variant="secondary"
+                  />
+                  <Button
+                    dataTestId="mercado-publico-v2-refresh-confirm-start"
+                    onClick={() => {
+                      setIsStartConfirmationVisible(false);
+                      void handleStart();
+                    }}
+                    title={t`Confirmar actualización`}
+                    type="button"
+                  />
+                </>
+              ) : isStatusUnavailable || isStatusStale ? (
                 <>
                   <Button
                     onClick={handleRetry}
@@ -1121,7 +1216,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                     dataTestId="mercado-publico-v2-refresh-start"
                     disabled={isStarting}
                     isLoading={isStarting}
-                    onClick={() => void handleStart()}
+                    onClick={requestStart}
                     title={
                       isStarting ? t`Actualizando…` : t`Actualizar de nuevo`
                     }
@@ -1136,6 +1231,16 @@ export const MercadoPublicoV2RefreshControl = () => {
                 </>
               ) : isIncomplete ? (
                 <>
+                  {latestRun?.canResume === true && (
+                    <Button
+                      dataTestId="mercado-publico-v2-refresh-resume"
+                      disabled={isResuming}
+                      isLoading={isResuming}
+                      onClick={() => void handleResume()}
+                      title={t`Reanudar actualización`}
+                      type="button"
+                    />
+                  )}
                   <Button
                     onClick={() => {
                       handleClose();
@@ -1171,7 +1276,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                     dataTestId="mercado-publico-v2-refresh-start"
                     disabled={isStarting}
                     isLoading={isStarting}
-                    onClick={() => void handleStart()}
+                    onClick={requestStart}
                     title={
                       isStarting ? t`Actualizando…` : t`Iniciar actualización`
                     }

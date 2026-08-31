@@ -23,7 +23,6 @@ import {
   type MercadoPublicoV2BuyersQueryVariables,
 } from '~/generated/graphql';
 
-
 const StyledTableContainer = styled.div`
   border: 1px solid ${themeCssVariables.border.color.light};
   border-radius: ${themeCssVariables.border.radius.md};

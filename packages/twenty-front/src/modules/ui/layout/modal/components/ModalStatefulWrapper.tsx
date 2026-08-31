@@ -31,6 +31,7 @@ export const ModalStatefulWrapper = ({
   smallBorderRadius,
   narrowWidth,
   autoHeight,
+  trapFocus,
 }: ModalStatefulWrapperProps) => {
   const isMobile = useIsMobile();
   const modalRef = useRef<HTMLDivElement>(null);
@@ -84,6 +85,7 @@ export const ModalStatefulWrapper = ({
           smallBorderRadius={smallBorderRadius}
           narrowWidth={narrowWidth}
           autoHeight={autoHeight}
+          trapFocus={trapFocus}
           modalZIndex={RootStackingContextZIndices.RootModal}
           backdropZIndex={RootStackingContextZIndices.RootModalBackDrop}
           backdropClickOutsideId={MODAL_BACKDROP_CLICK_OUTSIDE_ID}

@@ -10,10 +10,9 @@ import { useMapViewFiltersToFilters } from '@/views/hooks/useMapViewFiltersToFil
 import { mapViewFieldToRecordField } from '@/views/utils/mapViewFieldToRecordField';
 import { mapViewFilterGroupsToRecordFilterGroups } from '@/views/utils/mapViewFilterGroupsToRecordFilterGroups';
 
-jest.mock(
-  '@/object-record/record-index/contexts/RecordIndexContext',
-  () => ({ useRecordIndexContextOrThrow: jest.fn() }),
-);
+jest.mock('@/object-record/record-index/contexts/RecordIndexContext', () => ({
+  useRecordIndexContextOrThrow: jest.fn(),
+}));
 jest.mock(
   '@/ui/utilities/state/jotai/hooks/useAtomComponentFamilyState',
   () => ({ useAtomComponentFamilyState: jest.fn() }),
@@ -26,10 +25,9 @@ jest.mock(
   '@/ui/utilities/state/jotai/hooks/useAtomFamilySelectorValue',
   () => ({ useAtomFamilySelectorValue: jest.fn() }),
 );
-jest.mock(
-  '@/ui/utilities/state/jotai/hooks/useSetAtomComponentState',
-  () => ({ useSetAtomComponentState: jest.fn() }),
-);
+jest.mock('@/ui/utilities/state/jotai/hooks/useSetAtomComponentState', () => ({
+  useSetAtomComponentState: jest.fn(),
+}));
 jest.mock('@/views/hooks/useMapViewFiltersToFilters', () => ({
   useMapViewFiltersToFilters: jest.fn(),
 }));
@@ -46,16 +44,10 @@ const mockUseRecordIndexContextOrThrow = jest.mocked(
 const mockUseAtomComponentFamilyState = jest.mocked(
   useAtomComponentFamilyState,
 );
-const mockUseAtomComponentStateValue = jest.mocked(
-  useAtomComponentStateValue,
-);
-const mockUseAtomFamilySelectorValue = jest.mocked(
-  useAtomFamilySelectorValue,
-);
+const mockUseAtomComponentStateValue = jest.mocked(useAtomComponentStateValue);
+const mockUseAtomFamilySelectorValue = jest.mocked(useAtomFamilySelectorValue);
 const mockUseSetAtomComponentState = jest.mocked(useSetAtomComponentState);
-const mockUseMapViewFiltersToFilters = jest.mocked(
-  useMapViewFiltersToFilters,
-);
+const mockUseMapViewFiltersToFilters = jest.mocked(useMapViewFiltersToFilters);
 const mockMapViewFieldToRecordField = jest.mocked(mapViewFieldToRecordField);
 const mockMapViewFilterGroupsToRecordFilterGroups = jest.mocked(
   mapViewFilterGroupsToRecordFilterGroups,

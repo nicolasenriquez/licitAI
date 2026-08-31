@@ -40,6 +40,7 @@ const OVERLAY_CLASS_NAMES: Record<ModalOverlay, string | undefined> = {
 
 export const Modal = ({
   isOpen,
+  trapFocus = false,
   ariaLabel,
   children,
   size = 'medium',
@@ -68,11 +69,10 @@ export const Modal = ({
     onBackdropMouseDown?.(e);
   };
 
-  // modal={false} and disablePointerDismissal keep Base UI from trapping
-  // focus, locking scroll or closing on outside press: like the deprecated
-  // Modal, open/close is fully controlled by the isOpen prop
+  // Keep modality opt-in to preserve existing modal behavior for callers that
+  // manage focus and outside interaction themselves.
   return (
-    <Dialog.Root open={isOpen} modal={false} disablePointerDismissal>
+    <Dialog.Root open={isOpen} modal={trapFocus} disablePointerDismissal>
       <Dialog.Portal container={isDefined(container) ? container : undefined}>
         <ModalBackdrop
           data-testid={backdropTestId}

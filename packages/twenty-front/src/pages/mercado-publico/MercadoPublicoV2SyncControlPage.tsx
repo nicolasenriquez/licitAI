@@ -433,6 +433,8 @@ export const MercadoPublicoV2SyncControlPage = () => {
             renderInDocumentBody
             autoHeight
             narrowWidth
+            ariaLabel={confirmationTitle}
+            trapFocus
           >
             <ModalHeader>{confirmationTitle}</ModalHeader>
             <ModalContent>

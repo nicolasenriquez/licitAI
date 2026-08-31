@@ -22,37 +22,45 @@ import { useEffect } from 'react';
 import { isDefined } from 'twenty-shared/utils';
 
 export const ViewBarRecordHydrationEffect = () => {
-  const currentViewId = useAtomComponentStateValue(
+  const contextStoreCurrentViewId = useAtomComponentStateValue(
     contextStoreCurrentViewIdComponentState,
   );
   const { objectMetadataItem, recordIndexId } = useRecordIndexContextOrThrow();
   const currentView = useAtomFamilySelectorValue(viewFromViewIdFamilySelector, {
-    viewId: currentViewId ?? '',
+    viewId: contextStoreCurrentViewId ?? '',
   });
   const initializationParameters = {
-    viewId: currentViewId ?? undefined,
+    viewId: contextStoreCurrentViewId ?? undefined,
   };
 
-  const [hasInitializedFields, setHasInitializedFields] =
-    useAtomComponentFamilyState(
-      hasInitializedCurrentRecordFieldsComponentFamilyState,
-      initializationParameters,
-    );
-  const [hasInitializedFilters, setHasInitializedFilters] =
-    useAtomComponentFamilyState(
-      hasInitializedCurrentRecordFiltersComponentFamilyState,
-      initializationParameters,
-    );
-  const [hasInitializedFilterGroups, setHasInitializedFilterGroups] =
-    useAtomComponentFamilyState(
-      hasInitializedCurrentRecordFilterGroupsComponentFamilyState,
-      initializationParameters,
-    );
-  const [hasInitializedSorts, setHasInitializedSorts] =
-    useAtomComponentFamilyState(
-      hasInitializedCurrentRecordSortsComponentFamilyState,
-      initializationParameters,
-    );
+  const [
+    hasInitializedCurrentRecordFields,
+    setHasInitializedCurrentRecordFields,
+  ] = useAtomComponentFamilyState(
+    hasInitializedCurrentRecordFieldsComponentFamilyState,
+    initializationParameters,
+  );
+  const [
+    hasInitializedCurrentRecordFilters,
+    setHasInitializedCurrentRecordFilters,
+  ] = useAtomComponentFamilyState(
+    hasInitializedCurrentRecordFiltersComponentFamilyState,
+    initializationParameters,
+  );
+  const [
+    hasInitializedCurrentRecordFilterGroups,
+    setHasInitializedCurrentRecordFilterGroups,
+  ] = useAtomComponentFamilyState(
+    hasInitializedCurrentRecordFilterGroupsComponentFamilyState,
+    initializationParameters,
+  );
+  const [
+    hasInitializedCurrentRecordSorts,
+    setHasInitializedCurrentRecordSorts,
+  ] = useAtomComponentFamilyState(
+    hasInitializedCurrentRecordSortsComponentFamilyState,
+    initializationParameters,
+  );
   const [hasInitializedAnyFieldFilter, setHasInitializedAnyFieldFilter] =
     useAtomComponentFamilyState(
       hasInitializedAnyFieldFilterComponentFamilyState,
@@ -88,32 +96,32 @@ export const ViewBarRecordHydrationEffect = () => {
       return;
     }
 
-    if (!hasInitializedFields) {
+    if (!hasInitializedCurrentRecordFields) {
       setCurrentRecordFields(
         currentView.viewFields.map(mapViewFieldToRecordField).filter(isDefined),
       );
-      setHasInitializedFields(true);
+      setHasInitializedCurrentRecordFields(true);
     }
 
-    if (!hasInitializedFilters) {
+    if (!hasInitializedCurrentRecordFilters) {
       setCurrentRecordFilters(
         mapViewFiltersToRecordFilters(currentView.viewFilters),
       );
-      setHasInitializedFilters(true);
+      setHasInitializedCurrentRecordFilters(true);
     }
 
-    if (!hasInitializedFilterGroups) {
+    if (!hasInitializedCurrentRecordFilterGroups) {
       setCurrentRecordFilterGroups(
         mapViewFilterGroupsToRecordFilterGroups(
           currentView.viewFilterGroups ?? [],
         ),
       );
-      setHasInitializedFilterGroups(true);
+      setHasInitializedCurrentRecordFilterGroups(true);
     }
 
-    if (!hasInitializedSorts) {
+    if (!hasInitializedCurrentRecordSorts) {
       setCurrentRecordSorts(currentView.viewSorts);
-      setHasInitializedSorts(true);
+      setHasInitializedCurrentRecordSorts(true);
     }
 
     if (!hasInitializedAnyFieldFilter) {
@@ -123,10 +131,10 @@ export const ViewBarRecordHydrationEffect = () => {
   }, [
     currentView,
     objectMetadataItem.id,
-    hasInitializedFields,
-    hasInitializedFilters,
-    hasInitializedFilterGroups,
-    hasInitializedSorts,
+    hasInitializedCurrentRecordFields,
+    hasInitializedCurrentRecordFilters,
+    hasInitializedCurrentRecordFilterGroups,
+    hasInitializedCurrentRecordSorts,
     hasInitializedAnyFieldFilter,
     mapViewFiltersToRecordFilters,
     setCurrentRecordFields,
@@ -134,10 +142,10 @@ export const ViewBarRecordHydrationEffect = () => {
     setCurrentRecordFilterGroups,
     setCurrentRecordSorts,
     setAnyFieldFilterValue,
-    setHasInitializedFields,
-    setHasInitializedFilters,
-    setHasInitializedFilterGroups,
-    setHasInitializedSorts,
+    setHasInitializedCurrentRecordFields,
+    setHasInitializedCurrentRecordFilters,
+    setHasInitializedCurrentRecordFilterGroups,
+    setHasInitializedCurrentRecordSorts,
     setHasInitializedAnyFieldFilter,
   ]);
 

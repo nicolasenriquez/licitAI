@@ -286,9 +286,7 @@ export const MercadoPublicoV2FilterBar = ({
   };
 
   return (
-    <StyledForm
-      onSubmit={handleSubmit}
-    >
+    <StyledForm onSubmit={handleSubmit}>
       <StyledRow>
         <StyledField>
           <StyledFieldLabel>
@@ -418,7 +416,6 @@ export const MercadoPublicoV2FilterBar = ({
               onChange={(event) => updateDraft({ buyer: event.target.value })}
             />
           </StyledField>
-
         </StyledRow>
       </StyledAdvancedFilters>
 
@@ -488,7 +485,9 @@ export const MercadoPublicoV2FilterBar = ({
             <StyledInput
               aria-label={t`Monto equivalente CLP mínimo`}
               aria-describedby={
-                validationErrors.amount ? 'mercado-publico-amount-error' : undefined
+                validationErrors.amount
+                  ? 'mercado-publico-amount-error'
+                  : undefined
               }
               aria-invalid={validationErrors.amount !== null}
               type="number"
@@ -501,7 +500,9 @@ export const MercadoPublicoV2FilterBar = ({
             <StyledInput
               aria-label={t`Monto equivalente CLP máximo`}
               aria-describedby={
-                validationErrors.amount ? 'mercado-publico-amount-error' : undefined
+                validationErrors.amount
+                  ? 'mercado-publico-amount-error'
+                  : undefined
               }
               aria-invalid={validationErrors.amount !== null}
               type="number"

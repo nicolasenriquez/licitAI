@@ -29,6 +29,7 @@ const mockRefetch = jest.fn().mockResolvedValue({});
 const mockStartPolling = jest.fn();
 const mockStopPolling = jest.fn();
 const mockStartSync = jest.fn().mockResolvedValue({});
+const mockResumeSync = jest.fn().mockResolvedValue({});
 const mockedUseMutation = useMutation as unknown as jest.Mock;
 const mockedUseQuery = useQuery as unknown as jest.Mock;
 
@@ -36,6 +37,7 @@ const makeRun = (
   overrides: Partial<{
     safeStatus: string;
     safeSummary: string | null;
+    canResume: boolean;
     recordsDiscovered: number;
     recordsHydrated: number;
     recordsDeferred: number;
@@ -54,6 +56,7 @@ const makeRun = (
 ) => ({
   safeStatus: 'hydrating',
   safeSummary: null,
+  canResume: false,
   recordsDiscovered: 842,
   recordsHydrated: 537,
   recordsDeferred: 3,
@@ -155,6 +158,11 @@ describe('MercadoPublicoV2RefreshControl', () => {
 
     await user.click(screen.getByRole('button', { name: /Actualizar datos/ }));
     await user.click(screen.getByTestId('mercado-publico-v2-refresh-start'));
+    expect(mockStartSync).not.toHaveBeenCalled();
+    expect(screen.getByText('Confirma esta actualización')).toBeVisible();
+    await user.click(
+      screen.getByTestId('mercado-publico-v2-refresh-confirm-start'),
+    );
 
     const input = mockStartSync.mock.calls[0][0].variables.input;
 
@@ -172,10 +180,13 @@ describe('MercadoPublicoV2RefreshControl', () => {
 
     await user.click(screen.getByRole('button', { name: /Actualizar datos/ }));
     await user.selectOptions(
-      screen.getByLabelText('Páginas'),
+      screen.getByLabelText('Páginas de fuente por ejecución'),
       '10',
     );
     await user.click(screen.getByTestId('mercado-publico-v2-refresh-start'));
+    await user.click(
+      screen.getByTestId('mercado-publico-v2-refresh-confirm-start'),
+    );
 
     expect(mockStartSync.mock.calls[0][0].variables.input).toEqual({
       idempotencyKey: expect.any(String),
@@ -214,8 +225,52 @@ describe('MercadoPublicoV2RefreshControl', () => {
     ).toHaveTextContent('Ejecución preparada');
     expect(screen.getByText(/Última actualización/)).toBeVisible();
     expect(
-      screen.queryByLabelText('Páginas'),
+      screen.queryByLabelText('Páginas de fuente por ejecución'),
     ).not.toBeInTheDocument();
+  });
+
+  it('keeps keyboard focus inside the refresh modal', async () => {
+    const user = userEvent.setup();
+
+    renderControl();
+    await user.click(screen.getByRole('button', { name: /Actualizar datos/ }));
+
+    const dialog = screen.getByRole('dialog', {
+      name: 'Actualizar Mercado Público',
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('mercado-publico-v2-refresh-close'),
+      ).toHaveFocus(),
+    );
+    expect(dialog).toHaveAttribute('data-base-ui-focusable');
+    expect(
+      document.querySelector('[data-base-ui-focus-guard][data-type="inside"]'),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps workspace mounted during background polling', async () => {
+    const user = userEvent.setup();
+    const knownData = makeData(makeRun());
+    queryResult = { ...queryResult, data: knownData };
+    const { rerenderControl } = renderControl();
+
+    await user.click(screen.getByRole('button', { name: /Actualizando/ }));
+
+    queryResult = {
+      ...queryResult,
+      data: undefined,
+      previousData: knownData,
+      loading: true,
+    };
+    rerenderControl();
+
+    expect(screen.getByRole('heading', { name: 'Actividad' })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: /Abrir centro de control/ }),
+    ).toBeVisible();
+    expect(screen.getByText(/La actualización continúa/)).toBeVisible();
   });
 
   it('restores current backend state after close and reopen', async () => {
@@ -270,9 +325,11 @@ describe('MercadoPublicoV2RefreshControl', () => {
     rerenderControl();
 
     expect(
-      screen.getAllByText('Estado temporalmente no disponible')[0],
+      screen.getByText(
+        'No se pudo actualizar el monitoreo. Mostrando el último estado conocido.',
+      ),
     ).toBeVisible();
-    expect(screen.queryByText('Monitoreando')).not.toBeInTheDocument();
+    expect(screen.getByText('Descargando detalles')).toBeVisible();
     expect(screen.getByText(/Última actualización/)).toBeVisible();
   });
 
@@ -295,9 +352,9 @@ describe('MercadoPublicoV2RefreshControl', () => {
       screen.getByRole('list', { name: 'Progreso de actualización' }),
     ).getAllByRole('listitem');
     expect(stages[0]).toHaveTextContent('Buscar cambiosCompletado');
-    expect(stages[1]).toHaveTextContent('Descargar detallesCompletado');
-    expect(stages[2]).toHaveTextContent('Actualizar datosPendiente');
-    expect(stages[3]).toHaveTextContent('VerificarPendiente');
+    expect(stages[1]).toHaveTextContent('Descargar detallesNo verificado');
+    expect(stages[2]).toHaveTextContent('Actualizar datosNo verificado');
+    expect(stages[3]).toHaveTextContent('VerificarNo verificado');
     expect(
       screen.getByRole('button', { name: /Abrir centro de control/ }),
     ).toBeVisible();
@@ -313,7 +370,9 @@ describe('MercadoPublicoV2RefreshControl', () => {
     renderControl();
     await user.click(screen.getByRole('button', { name: /Actualizar datos/ }));
 
-    expect(screen.getByLabelText('Páginas')).toBeVisible();
+    expect(
+      screen.getByLabelText('Páginas de fuente por ejecución'),
+    ).toBeVisible();
     expect(
       screen.getByRole('option', { name: 'Sin límite de páginas' }),
     ).toBeVisible();
@@ -373,6 +432,9 @@ describe('MercadoPublicoV2RefreshControl', () => {
     renderControl();
     await user.click(screen.getByRole('button', { name: /Actualizar datos/ }));
     await user.click(screen.getByTestId('mercado-publico-v2-refresh-start'));
+    await user.click(
+      screen.getByTestId('mercado-publico-v2-refresh-confirm-start'),
+    );
 
     await waitFor(() => expect(mockStartSync).toHaveBeenCalledTimes(1));
     expect(
@@ -396,6 +458,38 @@ describe('MercadoPublicoV2RefreshControl', () => {
         screen.getByRole('list', { name: 'Progreso de actualización' }),
       ).getAllByRole('listitem')[0],
     ).toHaveAttribute('aria-current', 'step');
+  });
+
+  it('offers direct resume when the backend allows it', async () => {
+    const user = userEvent.setup();
+    mockedUseMutation.mockImplementation(
+      (operation: {
+        definitions: readonly {
+          name?: { value?: string };
+        }[];
+      }) =>
+        operation.definitions[0]?.name?.value === 'MercadoPublicoV2ResumeSync'
+          ? [mockResumeSync, { loading: false }]
+          : [mockStartSync, { loading: false }],
+    );
+    queryResult = {
+      ...queryResult,
+      data: makeData(
+        makeRun({
+          safeStatus: 'partial_failed',
+          canResume: true,
+          discoveryComplete: false,
+        }),
+      ),
+    };
+
+    renderControl();
+    await user.click(screen.getByRole('button', { name: /Actualizar datos/ }));
+    await user.click(screen.getByTestId('mercado-publico-v2-refresh-resume'));
+
+    expect(mockResumeSync).toHaveBeenCalledWith({
+      variables: { input: { idempotencyKey: expect.any(String) } },
+    });
   });
 
   it('keeps synchronization out of Mercado Publico navigation', () => {
