@@ -172,7 +172,7 @@ describe('MercadoPublicoV2RefreshControl', () => {
 
     await user.click(screen.getByRole('button', { name: /Actualizar datos/ }));
     await user.selectOptions(
-      screen.getByLabelText('Páginas por ejecución'),
+      screen.getByLabelText('Páginas'),
       '10',
     );
     await user.click(screen.getByTestId('mercado-publico-v2-refresh-start'));
@@ -214,7 +214,7 @@ describe('MercadoPublicoV2RefreshControl', () => {
     ).toHaveTextContent('Ejecución preparada');
     expect(screen.getByText(/Última actualización/)).toBeVisible();
     expect(
-      screen.queryByLabelText('Páginas por ejecución'),
+      screen.queryByLabelText('Páginas'),
     ).not.toBeInTheDocument();
   });
 
@@ -276,7 +276,7 @@ describe('MercadoPublicoV2RefreshControl', () => {
     expect(screen.getByText(/Última actualización/)).toBeVisible();
   });
 
-  it('renders a stopped stage for an incomplete run', async () => {
+  it('renders only known completed stages for an incomplete run', async () => {
     const user = userEvent.setup();
     queryResult = {
       ...queryResult,
@@ -296,7 +296,7 @@ describe('MercadoPublicoV2RefreshControl', () => {
     ).getAllByRole('listitem');
     expect(stages[0]).toHaveTextContent('Buscar cambiosCompletado');
     expect(stages[1]).toHaveTextContent('Descargar detallesCompletado');
-    expect(stages[2]).toHaveTextContent('Actualizar datosDetenido');
+    expect(stages[2]).toHaveTextContent('Actualizar datosPendiente');
     expect(stages[3]).toHaveTextContent('VerificarPendiente');
     expect(
       screen.getByRole('button', { name: /Abrir centro de control/ }),
@@ -313,7 +313,10 @@ describe('MercadoPublicoV2RefreshControl', () => {
     renderControl();
     await user.click(screen.getByRole('button', { name: /Actualizar datos/ }));
 
-    expect(screen.getByLabelText('Páginas por ejecución')).toBeVisible();
+    expect(screen.getByLabelText('Páginas')).toBeVisible();
+    expect(
+      screen.getByRole('option', { name: 'Sin límite de páginas' }),
+    ).toBeVisible();
   });
 
   it('shows four recent events and expands persisted activity', async () => {
@@ -351,13 +354,48 @@ describe('MercadoPublicoV2RefreshControl', () => {
     expect(activity).not.toHaveTextContent('unknown_event');
     await user.click(
       within(activity!).getByRole('button', {
-        name: 'Mostrar toda la actividad',
+        name: 'Mostrar toda',
       }),
     );
     expect(within(activity!).getAllByRole('listitem')).toHaveLength(5);
     expect(
-      within(activity!).getByRole('button', { name: 'Ocultar actividad' }),
+      within(activity!).getByRole('button', { name: 'Mostrar menos' }),
     ).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('does not report a successful start as failed when status refresh fails', async () => {
+    const user = userEvent.setup();
+
+    mockRefetch
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(new Error('offline'));
+
+    renderControl();
+    await user.click(screen.getByRole('button', { name: /Actualizar datos/ }));
+    await user.click(screen.getByTestId('mercado-publico-v2-refresh-start'));
+
+    await waitFor(() => expect(mockStartSync).toHaveBeenCalledTimes(1));
+    expect(
+      screen.queryByText(/No se pudo iniciar la actualización/),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the queued stage while a start request is pending', async () => {
+    const user = userEvent.setup();
+
+    mockedUseMutation.mockReturnValue([mockStartSync, { loading: true }]);
+
+    renderControl();
+    await user.click(screen.getByRole('button', { name: /Actualizar datos/ }));
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Preparando actualización',
+    );
+    expect(
+      within(
+        screen.getByRole('list', { name: 'Progreso de actualización' }),
+      ).getAllByRole('listitem')[0],
+    ).toHaveAttribute('aria-current', 'step');
   });
 
   it('keeps synchronization out of Mercado Publico navigation', () => {

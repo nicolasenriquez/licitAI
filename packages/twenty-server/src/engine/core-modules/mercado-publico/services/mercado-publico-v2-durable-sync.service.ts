@@ -251,6 +251,7 @@ export const buildCompraAgilRequestParams = (
 @Injectable()
 export class MercadoPublicoV2DurableSyncService {
   private readonly logger = new Logger(MercadoPublicoV2DurableSyncService.name);
+  private readonly schemaFingerprintByEndpoint = new Map<string, string>();
 
   constructor(
     private readonly mercadoPublicoApiV2CompraAgilClientService: MercadoPublicoApiV2CompraAgilClientService,
@@ -569,6 +570,8 @@ export class MercadoPublicoV2DurableSyncService {
           },
         );
 
+      this.warnOnContractDrift(response);
+
       await this.checkpointPage(
         context,
         response,
@@ -835,6 +838,8 @@ export class MercadoPublicoV2DurableSyncService {
             snapshotKind: 'list',
           },
         );
+
+      this.warnOnContractDrift(response);
 
       await this.assertActiveAttempt(context);
       await this.checkpointPage(
@@ -1234,6 +1239,8 @@ export class MercadoPublicoV2DurableSyncService {
                   : this.buildProviderError(response, 'provider'),
             },
           );
+
+        this.warnOnContractDrift(response);
 
         await this.assertActiveAttempt(context);
         await this.recordItemAttempt({
@@ -1912,8 +1919,8 @@ export class MercadoPublicoV2DurableSyncService {
       [context.syncRunId],
     );
     const count = counts[0];
-    const recordsFailed = Number(count.records_failed);
-    const recordsDeferred = Number(count.records_deferred);
+    const recordsFailed = Number(count.records_failed ?? 0);
+    const recordsDeferred = Number(count.records_deferred ?? 0);
     const status =
       recordsFailed > 0 || recordsDeferred > 0 ? 'partial_failed' : 'succeeded';
     const watermarkAfter =
@@ -1966,7 +1973,20 @@ export class MercadoPublicoV2DurableSyncService {
     }
 
     this.logger.log(
-      `Mercado Publico V2 sync ${context.syncRunId} finished as ${status}`,
+      `Mercado Publico V2 sync completed ${JSON.stringify({
+        syncRunId: context.syncRunId,
+        status,
+        recordsDiscovered: Number(count.records_discovered),
+        recordsHydrated: Number(count.records_hydrated),
+        recordsFailed,
+        recordsDeferred,
+        recordsProjected: Number(count.records_projected ?? 0),
+        pagesCheckpointed: Number(count.pages_checkpointed),
+        discoveryComplete: count.discovery_complete === true,
+        watermarkAdvanced:
+          watermarkAfter !== null &&
+          watermarkAfter.getTime() !== context.watermarkBefore?.getTime(),
+      })}`,
     );
     const observationRows = await this.coreDataSource.query<
       { observation_id: string }[]
@@ -1991,6 +2011,46 @@ export class MercadoPublicoV2DurableSyncService {
       observationIds: observationRows.map((row) => row.observation_id),
       recordsProjected: Number(count.records_projected ?? 0),
     };
+  }
+
+  private warnOnContractDrift(
+    response: MercadoPublicoApiV2CompraAgilListResponse,
+  ): void {
+    const recordsRejected = response.recordsRejected ?? 0;
+    const contractIssueCount = response.contractIssues?.length ?? 0;
+
+    if (recordsRejected > 0 || contractIssueCount > 0) {
+      this.logger.warn(
+        `Mercado Publico V2 contract rejection ${JSON.stringify({
+          endpoint: response.endpoint,
+          recordsRejected,
+          contractIssueCount,
+          schemaFingerprint: response.schemaFingerprint,
+        })}`,
+      );
+    }
+
+    const endpointKey = `${response.source}:${response.endpoint}`;
+    const previousSchemaFingerprint =
+      this.schemaFingerprintByEndpoint.get(endpointKey);
+
+    if (
+      previousSchemaFingerprint !== undefined &&
+      previousSchemaFingerprint !== response.schemaFingerprint
+    ) {
+      this.logger.warn(
+        `Mercado Publico V2 schema changed ${JSON.stringify({
+          endpoint: response.endpoint,
+          previousSchemaFingerprint,
+          schemaFingerprint: response.schemaFingerprint,
+        })}`,
+      );
+    }
+
+    this.schemaFingerprintByEndpoint.set(
+      endpointKey,
+      response.schemaFingerprint,
+    );
   }
 
   private async advanceWatermark(

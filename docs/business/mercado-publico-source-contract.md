@@ -16,13 +16,15 @@ Backend engineers, data engineers, reviewers, product owners, and AI agents impl
 
 ## Executive Summary
 
-Mercado Publico ingestion uses three source families:
+Mercado Publico domain evidence covers three source families:
 
 - API V1 Mercado Publico for operational licitaciones and ordenes de compra.
 - API V2 Compra Agil for Compra Agil processes only.
 - Datos Abiertos CSV downloads for historical licitaciones and ordenes de compra.
 
-The pipeline is raw-first, idempotent, auditable, tolerant to schema drift, separated by source, and reconciled explicitly. Raw source data is never overwritten destructively.
+Only API V2 Compra Agil has an active ingestion runtime. That runtime is
+raw-first, idempotent, auditable, and tolerant to schema drift. Raw source data
+is never overwritten destructively.
 
 ## Retirement Status (2026-08-16)
 
@@ -209,6 +211,32 @@ OC linkage rule:
 - Do not depend only on state `oc_emitida`.
 
 All Compra Agil fields are modeled as optional unless fixtures prove they are always present.
+
+### Observed API Compatibility Matrix
+
+This matrix separates repository proof from observations reported by the
+external `ssolis-ti/compra-agil-mcp` project. External observations are useful
+test candidates. They are not official provider guarantees and must not change
+production behavior without local fixture or runtime evidence.
+
+| Behavior | Evidence status | Repository action |
+| --- | --- | --- |
+| Page size is at most 50 | Repository-verified validation | Enforce before request. |
+| Small page sizes may return HTTP 400 | External author observation | Keep as a probe candidate. Do not enforce a new minimum yet. |
+| An unfiltered request may return HTTP 500 | External author observation | Keep bounded smoke runs and durable retry behavior. |
+| Some documented states may be rejected as filters | External author observation | Preserve provider errors. Do not narrow the accepted state list without local evidence. |
+| Detail may return HTTP 200 with no record | Repository-verified test | Persist Raw evidence and classify the item as `soft_miss`. |
+| Award or winning offer is not exposed | External author observation | Never infer a winner from quotations. |
+| Quotation availability varies by process state | External author observation from a limited sample | Expose availability. Do not treat missing quotations as zero offers. |
+| OC linkage needs `id_orden_compra` or `id_oc` | Repository contract | Require an explicit identifier. |
+
+Evidence labels:
+
+- **Repository-verified**: implemented behavior with a local automated test.
+- **External author observation**: reported by the external project author;
+  not independently verified in this repository.
+- **Official**: supported by current ChileCompra documentation.
+- **Unknown**: no sufficient evidence.
 
 ## CSV Datos Abiertos
 
@@ -531,9 +559,11 @@ Required fixtures:
 
 Fixtures must not contain real tickets or secrets.
 
-## Definition Of Done
+## Historical Definition Of Done
 
-The source contract is implementation-ready when:
+The list below records the original multi-source backbone acceptance contract.
+API V1, CSV, and cross-source reconciliation entries are historical because
+their runtimes are retired. Active readiness is defined by the API V2 runbook.
 
 - API V1 Licitaciones supports query by date.
 - API V1 Licitaciones supports query by state.

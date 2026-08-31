@@ -186,6 +186,22 @@ const StyledMonitoringCluster = styled.div`
 const StyledMonitoringIcon = styled(IconRefresh)`
   color: ${themeCssVariables.font.color.secondary};
   flex: 0 0 auto;
+
+  &[data-active='true'] {
+    animation: refreshMonitoringSpin 1800ms linear infinite;
+  }
+
+  @keyframes refreshMonitoringSpin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[data-active='true'] {
+      animation: none;
+    }
+  }
 `;
 
 const StyledMonitoringCopy = styled.div`
@@ -213,6 +229,10 @@ const StyledProgressRail = styled.ol`
   list-style: none;
   margin: 0;
   padding: 0;
+
+  @media (max-width: 400px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 `;
 
 const StyledStage = styled.li`
@@ -247,6 +267,10 @@ const StyledConnector = styled.span`
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+
+  @media (max-width: 400px) {
+    display: none;
+  }
 `;
 
 const StyledStageNode = styled.span`
@@ -275,39 +299,12 @@ const StyledStageNode = styled.span`
     color: ${themeCssVariables.font.color.inverted};
   }
 
-  &[data-state='current']::after {
-    border: 1px solid ${themeCssVariables.color.blue};
-    border-radius: ${themeCssVariables.border.radius.rounded};
-    content: '';
-    inset: -5px;
-    opacity: 0.35;
-    position: absolute;
-    animation: refreshActiveStageRing 1800ms ease-out infinite;
-  }
-
   &[data-state='failed'] {
     border-color: ${themeCssVariables.color.red};
     color: ${themeCssVariables.color.red};
     font-weight: ${themeCssVariables.font.weight.medium};
   }
 
-  @keyframes refreshActiveStageRing {
-    0%,
-    100% {
-      opacity: 0.2;
-    }
-
-    50% {
-      opacity: 0.55;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    &[data-state='current']::after {
-      animation: none;
-      opacity: 0.35;
-    }
-  }
 `;
 
 const StyledStageLabel = styled.span`
@@ -342,7 +339,7 @@ const StyledStageState = styled.span`
 const StyledMetrics = styled.div`
   display: grid;
   gap: ${themeCssVariables.spacing[3]};
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
 `;
 
 const StyledMetric = styled.div`
@@ -402,6 +399,7 @@ const StyledDisclosureButton = styled.button`
   color: ${themeCssVariables.font.color.secondary};
   cursor: pointer;
   font: inherit;
+  min-height: 40px;
   padding: ${themeCssVariables.spacing[1]};
 
   &:focus-visible {
@@ -536,14 +534,8 @@ const getStageStates = ({
   }
 
   if (isIncompleteStatus(status)) {
-    const failedIndex = discoveryComplete ? 2 : 0;
-
     return REFRESH_STAGES.map((_, index) =>
-      index < failedIndex
-        ? 'completed'
-        : index === failedIndex
-          ? 'failed'
-          : 'pending',
+      discoveryComplete && index < 2 ? 'completed' : 'pending',
     );
   }
 
@@ -699,6 +691,8 @@ export const MercadoPublicoV2RefreshControl = () => {
   const isUnavailable = error !== undefined;
   const isOperatorPermissionDenied = isSyncOperatorPermissionError(error);
   const isLive = isStarting || isActive;
+  const displayedStatus =
+    isStarting && !isActive ? 'queued' : latestRun?.safeStatus;
 
   useEffect(() => {
     if (isActive) {
@@ -731,6 +725,7 @@ export const MercadoPublicoV2RefreshControl = () => {
   }
 
   const handleOpen = () => {
+    setActionError(null);
     setIsOpen(true);
     openModal(REFRESH_MODAL_ID);
     void refetch().catch(() => undefined);
@@ -761,12 +756,15 @@ export const MercadoPublicoV2RefreshControl = () => {
           },
         },
       });
-      await refetch();
     } catch {
       setActionError(
         t`No se pudo iniciar la actualización. Reintenta cuando el servicio esté disponible.`,
       );
+
+      return;
     }
+
+    void refetch().catch(() => undefined);
   };
 
   const stageLabels = [
@@ -777,22 +775,22 @@ export const MercadoPublicoV2RefreshControl = () => {
   ];
 
   const phaseCopy =
-    latestRun?.safeStatus === 'queued'
+    displayedStatus === 'queued'
       ? {
           title: t`Preparando actualización`,
           description: t`La actualización está esperando comenzar.`,
         }
-      : latestRun?.safeStatus === 'discovering'
+      : displayedStatus === 'discovering'
         ? {
             title: t`Buscando cambios`,
             description: t`Consultando nuevos procesos y cambios disponibles en Mercado Público.`,
           }
-        : latestRun?.safeStatus === 'hydrating'
+        : displayedStatus === 'hydrating'
           ? {
               title: t`Descargando detalles`,
               description: t`Obteniendo la información completa de los procesos encontrados.`,
             }
-          : latestRun?.safeStatus === 'projecting'
+          : displayedStatus === 'projecting'
             ? {
                 title: t`Actualizando datos`,
                 description: t`Preparando los procesos para mostrarlos en la aplicación.`,
@@ -875,14 +873,19 @@ export const MercadoPublicoV2RefreshControl = () => {
               <StyledMonitoringCluster
                 aria-live="polite"
                 data-testid="mercado-publico-v2-refresh-status"
+                role="status"
               >
-                <StyledMonitoringIcon aria-hidden="true" size={20} />
+                <StyledMonitoringIcon
+                  aria-hidden="true"
+                  data-active={isLive}
+                  size={20}
+                />
                 <StyledMonitoringCopy>
                   <StyledMonitoringLabel>
                     {isUnavailable
                       ? t`Estado temporalmente no disponible`
                       : isLive
-                        ? t`Actualización en curso`
+                        ? phaseCopy.title
                         : isSuccess
                           ? t`Actualización completada`
                           : isIncomplete
@@ -908,6 +911,32 @@ export const MercadoPublicoV2RefreshControl = () => {
                     {t`Conservamos la última información conocida. Puedes reintentar ahora.`}
                   </StyledDescription>
                 </StyledPhase>
+              ) : isLive ? (
+                <>
+                  <StyledPhase>
+                    <StyledDescription>
+                      {phaseCopy.description}
+                    </StyledDescription>
+                  </StyledPhase>
+                  {displayedStatus && (
+                    <RefreshProgressRail
+                      ariaLabel={t`Progreso de actualización`}
+                      completedLabel={t`Completado`}
+                      currentLabel={t`Procesando…`}
+                      discoveryComplete={latestRun?.discoveryComplete ?? false}
+                      failedLabel={t`Detenido`}
+                      pendingLabel={t`Pendiente`}
+                      stages={stageLabels}
+                      status={displayedStatus}
+                    />
+                  )}
+                  {metrics}
+                  {latestRun && (
+                    <StyledSecondaryInfo>
+                      {t`${formatMetric(latestRun.recordsDeferred)} diferidos · ${formatMetric(latestRun.recordsFailed)} fallidos`}
+                    </StyledSecondaryInfo>
+                  )}
+                </>
               ) : latestRun === null || latestRun === undefined ? (
                 <StyledPhase>
                   <StyledPhaseTitle>{t`Obtén los últimos cambios disponibles`}</StyledPhaseTitle>
@@ -915,31 +944,6 @@ export const MercadoPublicoV2RefreshControl = () => {
                     {t`Configura el alcance de la próxima ejecución.`}
                   </StyledDescription>
                 </StyledPhase>
-              ) : isActive ? (
-                <>
-                  <StyledPhase>
-                    <StyledPhaseTitle aria-live="polite" role="status">
-                      {phaseCopy.title}
-                    </StyledPhaseTitle>
-                    <StyledDescription>
-                      {phaseCopy.description}
-                    </StyledDescription>
-                  </StyledPhase>
-                  <RefreshProgressRail
-                    ariaLabel={t`Progreso de actualización`}
-                    completedLabel={t`Completado`}
-                    currentLabel={t`Procesando…`}
-                    discoveryComplete={latestRun.discoveryComplete}
-                    failedLabel={t`Detenido`}
-                    pendingLabel={t`Pendiente`}
-                    stages={stageLabels}
-                    status={latestRun.safeStatus}
-                  />
-                  {metrics}
-                  <StyledSecondaryInfo>
-                    {t`${formatMetric(latestRun.recordsDeferred)} diferidos · ${formatMetric(latestRun.recordsFailed)} fallidos`}
-                  </StyledSecondaryInfo>
-                </>
               ) : isSuccess ? (
                 <>
                   <StyledPhase>
@@ -997,10 +1001,10 @@ export const MercadoPublicoV2RefreshControl = () => {
                   {showConfiguration && (
                     <StyledWorkspaceSection aria-labelledby="refresh-settings-title">
                       <StyledWorkspaceHeading id="refresh-settings-title">
-                        {t`Configuración de la próxima ejecución`}
+                        {t`Configura esta actualización`}
                       </StyledWorkspaceHeading>
                       <StyledSettingLabel htmlFor="mercado-publico-v2-refresh-max-pages">
-                        {t`Páginas por ejecución`}
+                        {t`Páginas`}
                         <StyledPageLimitSelect
                           data-testid="mercado-publico-v2-refresh-max-pages"
                           id="mercado-publico-v2-refresh-max-pages"
@@ -1013,7 +1017,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                           }
                           value={maxPages ?? ''}
                         >
-                          <option value="">{t`Completa / sin límite`}</option>
+                          <option value="">{t`Sin límite de páginas`}</option>
                           <option value={1}>{t`1 página`}</option>
                           <option value={2}>{t`2 páginas`}</option>
                           <option value={10}>{t`10 páginas`}</option>
@@ -1039,8 +1043,8 @@ export const MercadoPublicoV2RefreshControl = () => {
                             type="button"
                           >
                             {isActivityExpanded
-                              ? t`Ocultar actividad`
-                              : t`Mostrar toda la actividad`}
+                              ? t`Mostrar menos`
+                              : t`Mostrar toda`}
                           </StyledDisclosureButton>
                         )}
                       </StyledSectionHeader>
@@ -1067,7 +1071,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                       </StyledTimelineList>
                     </StyledWorkspaceSection>
                   )}
-                  {latestRun && (
+                  {latestRun && !isIncomplete && (
                     <Button
                       onClick={() => {
                         handleClose();
@@ -1122,6 +1126,24 @@ export const MercadoPublicoV2RefreshControl = () => {
                       isStarting ? t`Actualizando…` : t`Actualizar de nuevo`
                     }
                     type="button"
+                  />
+                  <Button
+                    onClick={handleClose}
+                    title={t`Cerrar`}
+                    type="button"
+                    variant="secondary"
+                  />
+                </>
+              ) : isIncomplete ? (
+                <>
+                  <Button
+                    onClick={() => {
+                      handleClose();
+                      navigate(AppPath.MercadoPublicoV2SyncControl);
+                    }}
+                    title={t`Abrir centro de control`}
+                    type="button"
+                    variant="tertiary"
                   />
                   <Button
                     onClick={handleClose}

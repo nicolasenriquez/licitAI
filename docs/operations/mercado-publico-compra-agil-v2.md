@@ -203,6 +203,25 @@ block the discovery watermark. Serial requests protect provider quota. Add
 bounded concurrency only after a successful run exceeds its agreed duration SLO
 and quota telemetry shows available capacity.
 
+A successful exhaustive global discovery may therefore advance the watermark
+when detail items remain `deferred`. The debt recovery cron owns those items. A
+`failed` item also produces `partial_failed`, but it is terminal and does not
+enter automatic debt recovery.
+
+An HTTP 200 detail response with no matching process is valid provider
+evidence, not a successful hydration. Persist its Raw payload, mark the item as
+`failed` with `soft_miss`, and do not synthesize a process.
+
+## Run Completion Telemetry
+
+The completion log reports the existing durable counters: status, discovered,
+hydrated, failed, deferred, projected, checkpointed pages, discovery completion,
+and whether the watermark advanced. Warnings are emitted when a provider
+response rejects records or its schema fingerprint differs from the previous
+response observed by the same worker for that source and endpoint. Raw evidence
+retains fingerprints for durable analysis. Logs contain identifiers and counts,
+not tickets or raw payloads.
+
 ## Deferred Hydration Debt Recovery
 
 - **Implemented**: the one-minute `MercadoPublicoV2DebtRecoveryCronJob`

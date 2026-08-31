@@ -85,6 +85,7 @@ export type MercadoPublicoV2Detail = MercadoPublicoV2DetailRow & {
 
 export type MercadoPublicoV2RelationAvailability = {
   availability: 'available' | 'unavailable';
+  reason: 'published' | 'not_published_by_provider' | 'not_observed_in_source';
   totalCount: number | null;
   sourceKind: 'list' | 'detail' | null;
   asOf: Date | null;
@@ -503,24 +504,23 @@ export class MercadoPublicoV2DetailReadService {
     const snapshot = snapshotRows[0];
 
     if (!snapshot || snapshot.availability === 'unavailable') {
+      const sourceKind = snapshot?.source_kind ?? null;
+
       return {
         edges: [],
         hasNextPage: false,
         startCursor: null,
         endCursor: null,
-        availability: snapshot
-          ? {
-              availability: 'unavailable',
-              totalCount: null,
-              sourceKind: snapshot.source_kind,
-              asOf: toDate(snapshot.projected_at),
-            }
-          : {
-              availability: 'unavailable',
-              totalCount: null,
-              sourceKind: null,
-              asOf: null,
-            },
+        availability: {
+          availability: 'unavailable',
+          reason:
+            sourceKind === 'detail'
+              ? 'not_published_by_provider'
+              : 'not_observed_in_source',
+          totalCount: null,
+          sourceKind,
+          asOf: snapshot ? toDate(snapshot.projected_at) : null,
+        },
       };
     }
 
@@ -559,6 +559,7 @@ export class MercadoPublicoV2DetailReadService {
       endCursor: edges[edges.length - 1]?.cursor ?? null,
       availability: {
         availability: 'available',
+        reason: 'published',
         totalCount: snapshot.total_count,
         sourceKind: snapshot.source_kind,
         asOf: toDate(snapshot.projected_at),
@@ -617,6 +618,7 @@ export class MercadoPublicoV2DetailReadService {
       endCursor: null,
       availability: {
         availability: 'unavailable',
+        reason: 'not_observed_in_source',
         totalCount: null,
         sourceKind: null,
         asOf: null,

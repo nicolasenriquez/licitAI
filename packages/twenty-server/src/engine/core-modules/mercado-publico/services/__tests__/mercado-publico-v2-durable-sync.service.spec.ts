@@ -395,6 +395,48 @@ describe('MercadoPublicoV2DurableSyncService', () => {
     expect(failureUpdate?.[0]).not.toContain('observation_id');
   });
 
+  it('warns when the provider contract rejects records or changes shape', async () => {
+    const service = new MercadoPublicoV2DurableSyncService(
+      {} as MercadoPublicoApiV2CompraAgilClientService,
+      syncConfig as never,
+      {} as MercadoPublicoPersistenceService,
+      {} as never,
+      {} as MercadoPublicoV2ProjectionService,
+    );
+    const logger = (
+      service as unknown as {
+        logger: { warn: (message: string) => void };
+      }
+    ).logger;
+    const warn = jest.spyOn(logger, 'warn').mockImplementation();
+
+    const warnOnContractDrift = (
+      service as unknown as {
+        warnOnContractDrift: (response: Record<string, unknown>) => void;
+      }
+    ).warnOnContractDrift.bind(service);
+
+    warnOnContractDrift({
+      endpoint: 'detail',
+      source: 'api-v2-compra-agil',
+      schemaFingerprint: 'previous-detail-schema',
+    });
+    warnOnContractDrift({
+      endpoint: 'detail',
+      source: 'api-v2-compra-agil',
+      schemaFingerprint: 'current-detail-schema',
+      recordsRejected: 1,
+      contractIssues: [{ code: 'invalid_detail_record' }],
+    });
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('contract rejection'),
+    );
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('schema changed'),
+    );
+  });
+
   it('checks cancellation before completing after the final hydration item', async () => {
     let pendingItemReads = 0;
     const query = jest.fn().mockImplementation((sql: string) => {

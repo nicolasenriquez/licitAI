@@ -33,6 +33,9 @@ export class MercadoPublicoV2RelationAvailabilityDTO {
   @Field()
   availability!: string;
 
+  @Field()
+  reason!: 'published' | 'not_published_by_provider' | 'not_observed_in_source';
+
   @Field(() => Int, { nullable: true })
   totalCount!: number | null;
 

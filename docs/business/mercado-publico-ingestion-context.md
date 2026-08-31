@@ -23,7 +23,10 @@ Mercado Publico ingestion depends on understanding that API and CSV are compleme
 - Compra Agil is a separate process family from classical licitacion and must not be modeled as a subtype of licitacion.
 - Reconciliation must be explicit, auditable, and reversible.
 
-For the current backbone change, the implementation posture is API-executable and CSV-executable. The backbone includes API V1 date and state jobs, API V2 Compra Agil jobs, CSV download/profiling/raw loading, canonical normalization, reconciliation, and gold/read contracts.
+The active runtime ingests Compra Agil through API V2. It persists raw
+evidence, stages provider records, projects canonical observations and history,
+and serves Gold/read contracts. API V1 and CSV behavior below is retained only
+as historical source context and for existing raw evidence and migrations.
 
 ## Retirement Status (2026-08-16)
 
@@ -42,13 +45,20 @@ API = recent operations, discovery, point detail, and monitoring
 CSV = historical completeness, batch backfill, offers, and later reconciliation
 ```
 
-This implies a layered pipeline:
+The long-term, cross-source model uses these conceptual layers:
 
 ```text
 Raw -> Canonical -> Reconciled -> Gold
 ```
 
 Raw preserves provenance. Canonical normalizes entities. Reconciliation makes cross-source decisions explicit. Gold serves downstream consumers.
+
+The active Compra Agil V2 runtime does not run a separate cross-source
+reconciliation stage. Its effective flow is:
+
+```text
+API V2 -> Raw -> Staging -> Observation/Canonical -> Gold/read
+```
 
 ## Source Families
 
@@ -99,7 +109,9 @@ Expected use:
 - offer evidence
 - reconciliation against API snapshots
 
-This source is important for long-range truth. The current backbone change executes the first CSV ingestion path: download, checksum, decompression when needed, encoding detection, delimiter detection, header capture, raw row preservation, schema fingerprinting, and canonical mapping for validated fields.
+This source remains important domain context for long-range truth. Its runtime
+is retired. Existing CSV rows, profiling evidence, and migrations remain for
+audit and recovery.
 
 Observed June 2026 CSV files add concrete parsing and grain evidence, including latin-1 encoding, semicolon delimiter, quotechar, comma decimals, sentinel dates, OC item grain, and licitacion item/supplier/offer grain. These details are maintained in `docs/business/mercado-publico-source-contract.md`.
 
@@ -206,21 +218,25 @@ Do not destructively merge away provenance.
 - Do not count item-grain rows as process counts.
 - Do not derive header-level truth from accidental row-grain aggregation.
 
-## Implementation Posture For The Current Backbone Change
+## Active Implementation Posture
 
 This repository change is intentionally narrower than the full long-term ingestion vision.
 
-Included now:
+Active now:
 
 - deployment-local shared `mp` schema
-- API-executable ingestion backbone
-- CSV-executable raw ingestion and file profiling
-- canonical normalization
-- reconciliation storage and read contracts
+- API V2 Compra Agil durable ingestion
+- raw evidence, staging, observations, history, projection, and Gold/read contracts
 - operational traceability, idempotency, and quota handling
-- API V1 by-date and by-state jobs
-- API V2 Compra Agil incremental and detail jobs
-- API and CSV fixtures for behavior verification
+- API V2 Compra Agil incremental, publication-window, and detail jobs
+- deferred hydration debt recovery
+- retained V2 fixtures for behavior verification
+
+Retired runtime context:
+
+- API V1 licitacion and orden de compra jobs
+- Datos Abiertos CSV download, profiling, and loading jobs
+- cross-source reconciliation execution
 
 Deferred now:
 
@@ -240,15 +256,14 @@ That does not conflict with a shared `mp` schema if the rule is interpreted corr
 
 ## Operational Defaults For This Backbone Change
 
-- High-frequency API jobs run every `1 hour`.
-- Lower-frequency API sweeps run every `24 hours`.
-- CSV jobs may run on-demand or daily, but health is measured against configured cadence, not a guessed source-publication SLA.
+- API V2 cadence comes from the active sync-control and cron configuration.
+- Retired API V1 and CSV cadence values are historical only.
 - Gold pipeline freshness is cadence-relative:
   - `healthy`: last success at or under `1.5x` expected cadence
   - `degraded`: over `1.5x` and at or under `3x` expected cadence
   - `stale`: over `3x` expected cadence
-- CSV reruns keep both raw files when checksum changes for the same source period.
-- Canonical and reconciliation refresh always run from raw lineage, never from destructive raw replacement.
+- Existing CSV evidence keeps both raw files when checksums differ for the same source period.
+- Active projections refresh from raw lineage, never from destructive raw replacement.
 
 ## Related Documents
 

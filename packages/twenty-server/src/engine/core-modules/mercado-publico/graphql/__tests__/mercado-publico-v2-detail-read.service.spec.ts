@@ -132,9 +132,64 @@ describe('MercadoPublicoV2DetailReadService', () => {
     expect(result?.edges[0]?.node.name).toBe('Bases');
     expect(result?.availability).toMatchObject({
       availability: 'available',
+      reason: 'published',
       totalCount: 2,
     });
     expect(result?.hasNextPage).toBe(true);
+  });
+
+  it('explains why relation evidence is unavailable', async () => {
+    const detailSourceQuery = jest
+      .fn()
+      .mockResolvedValueOnce([detailRow])
+      .mockResolvedValueOnce([
+        {
+          availability: 'unavailable',
+          total_count: 0,
+          source_kind: 'detail',
+          projected_at: new Date('2026-08-01T10:00:00.000Z'),
+        },
+      ]);
+    const detailSourceService = new MercadoPublicoV2DetailReadService({
+      query: detailSourceQuery,
+    } as unknown as DataSource);
+
+    const detailResult = await detailSourceService.listOpportunityRelation({
+      codigo: 'CA-1',
+      relation: 'offers',
+    });
+
+    expect(detailResult?.availability).toMatchObject({
+      availability: 'unavailable',
+      reason: 'not_published_by_provider',
+      sourceKind: 'detail',
+    });
+
+    const listSourceQuery = jest
+      .fn()
+      .mockResolvedValueOnce([detailRow])
+      .mockResolvedValueOnce([
+        {
+          availability: 'unavailable',
+          total_count: 0,
+          source_kind: 'list',
+          projected_at: new Date('2026-08-01T10:00:00.000Z'),
+        },
+      ]);
+    const listSourceService = new MercadoPublicoV2DetailReadService({
+      query: listSourceQuery,
+    } as unknown as DataSource);
+
+    const listResult = await listSourceService.listOpportunityRelation({
+      codigo: 'CA-1',
+      relation: 'offers',
+    });
+
+    expect(listResult?.availability).toMatchObject({
+      availability: 'unavailable',
+      reason: 'not_observed_in_source',
+      sourceKind: 'list',
+    });
   });
 
   it('redacts payload only through explicit payload read', async () => {
