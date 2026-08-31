@@ -5,6 +5,8 @@ import { msg } from '@lingui/core/macro';
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AppPath } from 'twenty-shared/types';
 import { Loader } from 'twenty-ui/feedback';
 import { IconCheck, IconRefresh, IconX } from 'twenty-ui/icon';
 import { Button, IconButton } from 'twenty-ui/input';
@@ -12,7 +14,6 @@ import { ModalContent, ModalFooter, ModalHeader } from 'twenty-ui/surfaces';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 
 import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
-import { ConfirmationModal } from '@/ui/layout/modal/components/ConfirmationModal';
 import { ModalStatefulWrapper } from '@/ui/layout/modal/components/ModalStatefulWrapper';
 import { useModal } from '@/ui/layout/modal/hooks/useModal';
 import { getGraphqlErrorExtensionsFromError } from '~/utils/get-graphql-error-extensions-from-error.util';
@@ -24,7 +25,6 @@ const REFRESH_STATUS_QUERY = gql`
       latestRun {
         safeStatus
         safeSummary
-        canResume
         recordsDiscovered
         recordsHydrated
         recordsDeferred
@@ -48,30 +48,6 @@ const START_SYNC_MUTATION = gql`
   mutation MercadoPublicoV2StartSync($input: MercadoPublicoV2StartSyncInput!) {
     mercadoPublicoV2SyncControl {
       start(input: $input) {
-        state
-      }
-    }
-  }
-`;
-
-const CANCEL_SYNC_MUTATION = gql`
-  mutation MercadoPublicoV2CancelSync(
-    $input: MercadoPublicoV2CancelSyncInput!
-  ) {
-    mercadoPublicoV2SyncControl {
-      cancel(input: $input) {
-        state
-      }
-    }
-  }
-`;
-
-const RESUME_SYNC_MUTATION = gql`
-  mutation MercadoPublicoV2ResumeSync(
-    $input: MercadoPublicoV2ResumeSyncInput!
-  ) {
-    mercadoPublicoV2SyncControl {
-      resume(input: $input) {
         state
       }
     }
@@ -109,13 +85,10 @@ const STAGE_INDEX = {
 } as const;
 
 const REFRESH_MODAL_ID = 'mercado-publico-v2-refresh-control';
-const CANCEL_CONFIRMATION_MODAL_ID =
-  'mercado-publico-v2-refresh-cancel-confirmation';
 const REFRESH_MODAL_CLOSE_TEST_ID = 'mercado-publico-v2-refresh-close';
 
 type RefreshStage = (typeof REFRESH_STAGES)[number];
 type RefreshStageState = 'completed' | 'current' | 'pending' | 'failed';
-type HeartbeatMode = 'live' | 'frozen' | 'success' | 'hidden';
 
 type SyncTimelineEvent = {
   eventType: string;
@@ -126,7 +99,6 @@ type SyncTimelineEvent = {
 type LatestRun = {
   safeStatus: string;
   safeSummary?: string | null;
-  canResume: boolean;
   recordsDiscovered: number;
   recordsHydrated: number;
   recordsDeferred: number;
@@ -156,31 +128,6 @@ type StartSyncVariables = {
     idempotencyKey: string;
     confirmed: boolean;
     maxPages?: number;
-  };
-};
-
-type CancelSyncMutation = {
-  mercadoPublicoV2SyncControl: {
-    cancel: { state: string };
-  };
-};
-
-type CancelSyncVariables = {
-  input: {
-    idempotencyKey: string;
-    confirmed: boolean;
-  };
-};
-
-type ResumeSyncMutation = {
-  mercadoPublicoV2SyncControl: {
-    resume: { state: string };
-  };
-};
-
-type ResumeSyncVariables = {
-  input: {
-    idempotencyKey: string;
   };
 };
 
@@ -229,81 +176,16 @@ const StyledDescription = styled.p`
 `;
 
 const StyledMonitoringCluster = styled.div`
-  align-items: flex-start;
+  align-items: center;
   color: ${themeCssVariables.font.color.secondary};
   display: flex;
   gap: ${themeCssVariables.spacing[3]};
   min-width: 0;
 `;
 
-const StyledMonitoringEcg = styled.svg`
-  display: block;
+const StyledMonitoringIcon = styled(IconRefresh)`
+  color: ${themeCssVariables.font.color.secondary};
   flex: 0 0 auto;
-  height: 20px;
-  margin-top: 2px;
-  overflow: visible;
-  width: 56px;
-
-  .heartbeatBaseline {
-    fill: none;
-    opacity: 0.3;
-    stroke: currentColor;
-    stroke-width: 1;
-  }
-
-  .heartbeatSignal {
-    fill: none;
-    stroke: currentColor;
-    stroke-dasharray: 22 50;
-    stroke-dashoffset: 72;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 1.5;
-  }
-
-  &[data-mode='live'] .heartbeatSignal {
-    animation: refreshHeartbeatSweep 1800ms ease-out infinite;
-  }
-
-  &[data-mode='frozen'] .heartbeatSignal {
-    opacity: 0.8;
-    stroke-dashoffset: 0;
-  }
-
-  &[data-mode='success'] .heartbeatSignal {
-    animation: refreshHeartbeatSweep 1800ms ease-out 1;
-    animation-fill-mode: forwards;
-  }
-
-  @keyframes refreshHeartbeatSweep {
-    0% {
-      opacity: 0;
-      stroke-dashoffset: 72;
-    }
-
-    12% {
-      opacity: 1;
-    }
-
-    55% {
-      opacity: 1;
-      stroke-dashoffset: 0;
-    }
-
-    75%,
-    100% {
-      opacity: 0;
-      stroke-dashoffset: -72;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .heartbeatSignal {
-      animation: none;
-      opacity: 0.8;
-      stroke-dashoffset: 0;
-    }
-  }
 `;
 
 const StyledMonitoringCopy = styled.div`
@@ -460,7 +342,7 @@ const StyledStageState = styled.span`
 const StyledMetrics = styled.div`
   display: grid;
   gap: ${themeCssVariables.spacing[3]};
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 `;
 
 const StyledMetric = styled.div`
@@ -485,14 +367,10 @@ const StyledMetricLabel = styled.span`
 
 const StyledWorkspace = styled.div`
   border-top: 1px solid ${themeCssVariables.border.color.light};
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: ${themeCssVariables.spacing[5]};
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   padding-top: ${themeCssVariables.spacing[5]};
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-  }
 `;
 
 const StyledWorkspaceSection = styled.section`
@@ -509,6 +387,27 @@ const StyledWorkspaceHeading = styled.h3`
   letter-spacing: 0.04em;
   margin: 0;
   text-transform: uppercase;
+`;
+
+const StyledSectionHeader = styled.div`
+  align-items: center;
+  display: flex;
+  gap: ${themeCssVariables.spacing[3]};
+  justify-content: space-between;
+`;
+
+const StyledDisclosureButton = styled.button`
+  background: none;
+  border: 0;
+  color: ${themeCssVariables.font.color.secondary};
+  cursor: pointer;
+  font: inherit;
+  padding: ${themeCssVariables.spacing[1]};
+
+  &:focus-visible {
+    outline: 2px solid ${themeCssVariables.border.color.strong};
+    outline-offset: 2px;
+  }
 `;
 
 const StyledSettingLabel = styled.label`
@@ -542,15 +441,24 @@ const StyledTimelineList = styled.ol`
 `;
 
 const StyledTimelineItem = styled.li`
+  align-items: start;
   color: ${themeCssVariables.font.color.secondary};
   display: grid;
   gap: ${themeCssVariables.spacing[2]};
-  grid-template-columns: max-content minmax(0, 1fr);
+  grid-template-columns: max-content auto minmax(0, 1fr) minmax(0, 0.75fr);
   min-width: 0;
 
   @media (max-width: 400px) {
     grid-template-columns: minmax(0, 1fr);
   }
+`;
+
+const StyledTimelineMarker = styled.span`
+  background: ${themeCssVariables.border.color.strong};
+  border-radius: ${themeCssVariables.border.radius.rounded};
+  height: ${themeCssVariables.spacing[2]};
+  margin-top: ${themeCssVariables.spacing[1]};
+  width: ${themeCssVariables.spacing[2]};
 `;
 
 const StyledTimelineTime = styled.time`
@@ -565,6 +473,11 @@ const StyledTimelineTime = styled.time`
 
 const StyledTimelineCopy = styled.span`
   overflow-wrap: anywhere;
+`;
+
+const StyledTimelineOperator = styled.span`
+  overflow-wrap: anywhere;
+  text-align: right;
 `;
 
 const StyledSecondaryInfo = styled.p`
@@ -586,30 +499,6 @@ const StyledActions = styled.div`
   justify-content: flex-end;
   width: 100%;
 `;
-
-const MonitoringEcg = ({ mode }: { mode: HeartbeatMode }) => {
-  if (mode === 'hidden') {
-    return null;
-  }
-
-  return (
-    <StyledMonitoringEcg
-      aria-hidden="true"
-      data-mode={mode}
-      focusable="false"
-      height="20"
-      viewBox="0 0 56 20"
-      width="56"
-    >
-      <path className="heartbeatBaseline" d="M0 10H56" pathLength="72" />
-      <path
-        className="heartbeatSignal"
-        d="M0 10H18L22 10L25 2L28 18L31 10H56"
-        pathLength="72"
-      />
-    </StyledMonitoringEcg>
-  );
-};
 
 const isStatusInList = <TStatus extends string>(
   status: string | undefined,
@@ -745,23 +634,21 @@ const formatMetric = (value: number): string =>
   new Intl.NumberFormat('es-CL').format(value);
 
 const TIMELINE_EVENT_LABELS: Record<string, MessageDescriptor> = {
-  command_created: msg`Actualización solicitada`,
-  run_created: msg`Actualización iniciada`,
-  reused: msg`Actualización reutilizada`,
-  dispatched: msg`Actualización enviada`,
-  dispatch_failed: msg`No se pudo enviar la actualización`,
+  command_created: msg`Solicitud creada`,
+  run_created: msg`Ejecución preparada`,
+  reused: msg`Ejecución existente reutilizada`,
+  dispatched: msg`Enviada a procesamiento`,
+  dispatch_failed: msg`No se pudo iniciar el procesamiento`,
   cancellation_requested: msg`Cancelación solicitada`,
-  claimed: msg`Actualización tomada por el proceso`,
-  heartbeat_recovery: msg`Actualización recuperada`,
+  claimed: msg`Procesamiento iniciado`,
+  heartbeat_recovery: msg`Ejecución recuperada`,
 };
 
 const getTimelineEventLabel = (
   eventType: string,
   translate: (message: MessageDescriptor) => string,
 ): string =>
-  translate(
-    TIMELINE_EVENT_LABELS[eventType] ?? msg`Actividad de actualización`,
-  );
+  translate(TIMELINE_EVENT_LABELS[eventType] ?? msg`Actividad registrada`);
 
 const isSyncOperatorPermissionError = (error: unknown): boolean => {
   if (isGraphqlErrorOfType(error, 'PERMISSION_DENIED')) {
@@ -780,11 +667,11 @@ const isSyncOperatorPermissionError = (error: unknown): boolean => {
 export const MercadoPublicoV2RefreshControl = () => {
   const { i18n, t } = useLingui();
   const apolloCoreClient = useApolloCoreClient();
+  const navigate = useNavigate();
   const { closeModal, openModal } = useModal();
   const triggerRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [isSuccessHeartbeatVisible, setIsSuccessHeartbeatVisible] =
-    useState(false);
+  const [isActivityExpanded, setIsActivityExpanded] = useState(false);
   const [maxPages, setMaxPages] = useState<number | undefined>(undefined);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -804,15 +691,6 @@ export const MercadoPublicoV2RefreshControl = () => {
     StartSyncMutation,
     StartSyncVariables
   >(START_SYNC_MUTATION, { client: apolloCoreClient });
-  const [cancelSync, { loading: isCancelling }] = useMutation<
-    CancelSyncMutation,
-    CancelSyncVariables
-  >(CANCEL_SYNC_MUTATION, { client: apolloCoreClient });
-  const [resumeSync, { loading: isResuming }] = useMutation<
-    ResumeSyncMutation,
-    ResumeSyncVariables
-  >(RESUME_SYNC_MUTATION, { client: apolloCoreClient });
-
   const effectiveData = data ?? previousData;
   const latestRun = effectiveData?.mercadoPublicoV2SyncControl.latestRun;
   const isActive = isActiveStatus(latestRun?.safeStatus);
@@ -821,15 +699,6 @@ export const MercadoPublicoV2RefreshControl = () => {
   const isUnavailable = error !== undefined;
   const isOperatorPermissionDenied = isSyncOperatorPermissionError(error);
   const isLive = isStarting || isActive;
-  const heartbeatMode: HeartbeatMode = isUnavailable
-    ? 'frozen'
-    : isLive
-      ? 'live'
-      : isSuccess && isSuccessHeartbeatVisible
-        ? 'success'
-        : isIncomplete
-          ? 'frozen'
-          : 'hidden';
 
   useEffect(() => {
     if (isActive) {
@@ -840,20 +709,6 @@ export const MercadoPublicoV2RefreshControl = () => {
 
     return () => stopPolling();
   }, [isActive, startPolling, stopPolling]);
-
-  useEffect(() => {
-    if (!isSuccess || !isOpen) {
-      setIsSuccessHeartbeatVisible(false);
-      return;
-    }
-
-    setIsSuccessHeartbeatVisible(true);
-    const successHeartbeatTimer = window.setTimeout(() => {
-      setIsSuccessHeartbeatVisible(false);
-    }, 1800);
-
-    return () => window.clearTimeout(successHeartbeatTimer);
-  }, [isOpen, isSuccess, latestRun?.updatedAt]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -883,6 +738,7 @@ export const MercadoPublicoV2RefreshControl = () => {
 
   const handleClose = () => {
     setIsOpen(false);
+    setIsActivityExpanded(false);
     closeModal(REFRESH_MODAL_ID);
     triggerRef.current?.querySelector('button')?.focus();
   };
@@ -909,45 +765,6 @@ export const MercadoPublicoV2RefreshControl = () => {
     } catch {
       setActionError(
         t`No se pudo iniciar la actualización. Reintenta cuando el servicio esté disponible.`,
-      );
-    }
-  };
-
-  const handleCancel = async () => {
-    setActionError(null);
-
-    try {
-      await cancelSync({
-        variables: {
-          input: {
-            confirmed: true,
-            idempotencyKey: crypto.randomUUID(),
-          },
-        },
-      });
-      await refetch();
-    } catch {
-      setActionError(
-        t`No se pudo cancelar la actualización. Conservamos el estado conocido.`,
-      );
-    }
-  };
-
-  const handleResume = async () => {
-    if (latestRun?.canResume !== true) {
-      return;
-    }
-
-    setActionError(null);
-
-    try {
-      await resumeSync({
-        variables: { input: { idempotencyKey: crypto.randomUUID() } },
-      });
-      await refetch();
-    } catch {
-      setActionError(
-        t`No se pudo reanudar la actualización. Conservamos el estado conocido.`,
       );
     }
   };
@@ -991,13 +808,13 @@ export const MercadoPublicoV2RefreshControl = () => {
         <StyledMetricValue>
           {formatMetric(latestRun.recordsDiscovered)}
         </StyledMetricValue>
-        <StyledMetricLabel>{t`Descubiertos`}</StyledMetricLabel>
+        <StyledMetricLabel>{t`Encontrados`}</StyledMetricLabel>
       </StyledMetric>
       <StyledMetric>
         <StyledMetricValue>
           {formatMetric(latestRun.recordsHydrated)}
         </StyledMetricValue>
-        <StyledMetricLabel>{t`Detalles descargados`}</StyledMetricLabel>
+        <StyledMetricLabel>{t`Con detalle`}</StyledMetricLabel>
       </StyledMetric>
       <StyledMetric>
         <StyledMetricValue>
@@ -1005,22 +822,12 @@ export const MercadoPublicoV2RefreshControl = () => {
         </StyledMetricValue>
         <StyledMetricLabel>{t`Disponibles`}</StyledMetricLabel>
       </StyledMetric>
-      <StyledMetric>
-        <StyledMetricValue>
-          {formatMetric(latestRun.recordsFailed)}
-        </StyledMetricValue>
-        <StyledMetricLabel>{t`Fallidos`}</StyledMetricLabel>
-      </StyledMetric>
-      <StyledMetric>
-        <StyledMetricValue>
-          {formatMetric(latestRun.recordsDeferred)}
-        </StyledMetricValue>
-        <StyledMetricLabel>{t`Diferidos`}</StyledMetricLabel>
-      </StyledMetric>
     </StyledMetrics>
   ) : null;
 
   const timeline = latestRun?.timeline ?? [];
+  const visibleEvents = isActivityExpanded ? timeline : timeline.slice(-4);
+  const showConfiguration = !isLive && (latestRun === null || isSuccess);
 
   return (
     <>
@@ -1067,9 +874,9 @@ export const MercadoPublicoV2RefreshControl = () => {
 
               <StyledMonitoringCluster
                 aria-live="polite"
-                data-testid="mercado-publico-v2-refresh-heartbeat"
+                data-testid="mercado-publico-v2-refresh-status"
               >
-                <MonitoringEcg mode={heartbeatMode} />
+                <StyledMonitoringIcon aria-hidden="true" size={20} />
                 <StyledMonitoringCopy>
                   <StyledMonitoringLabel>
                     {isUnavailable
@@ -1083,9 +890,9 @@ export const MercadoPublicoV2RefreshControl = () => {
                             : t`Lista para actualizar`}
                   </StyledMonitoringLabel>
                   <StyledMonitoringMeta>
-                    {latestRun?.updatedAt
-                      ? t`Último cambio: ${formatRunTime(latestRun.updatedAt)}`
-                      : t`Último cambio: —`}
+                    {latestRun?.startedAt
+                      ? t`Iniciada ${formatRunTime(latestRun.startedAt)} · Última actualización ${formatRunTime(latestRun.updatedAt)}`
+                      : t`Última actualización —`}
                   </StyledMonitoringMeta>
                 </StyledMonitoringCopy>
               </StyledMonitoringCluster>
@@ -1105,7 +912,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                 <StyledPhase>
                   <StyledPhaseTitle>{t`Obtén los últimos cambios disponibles`}</StyledPhaseTitle>
                   <StyledDescription>
-                    {t`La actualización continuará en segundo plano aunque cierres esta ventana.`}
+                    {t`Configura el alcance de la próxima ejecución.`}
                   </StyledDescription>
                 </StyledPhase>
               ) : isActive ? (
@@ -1129,9 +936,9 @@ export const MercadoPublicoV2RefreshControl = () => {
                     status={latestRun.safeStatus}
                   />
                   {metrics}
-                  <StyledDescription>
-                    {t`Puedes cerrar esta ventana. La actualización continuará en segundo plano.`}
-                  </StyledDescription>
+                  <StyledSecondaryInfo>
+                    {t`${formatMetric(latestRun.recordsDeferred)} diferidos · ${formatMetric(latestRun.recordsFailed)} fallidos`}
+                  </StyledSecondaryInfo>
                 </>
               ) : isSuccess ? (
                 <>
@@ -1152,6 +959,9 @@ export const MercadoPublicoV2RefreshControl = () => {
                     status={latestRun.safeStatus}
                   />
                   {metrics}
+                  <StyledSecondaryInfo>
+                    {t`${formatMetric(latestRun.recordsDeferred)} diferidos · ${formatMetric(latestRun.recordsFailed)} fallidos`}
+                  </StyledSecondaryInfo>
                 </>
               ) : (
                 <>
@@ -1176,72 +986,103 @@ export const MercadoPublicoV2RefreshControl = () => {
                     status={latestRun.safeStatus}
                   />
                   {metrics}
+                  <StyledSecondaryInfo>
+                    {t`${formatMetric(latestRun.recordsDeferred)} diferidos · ${formatMetric(latestRun.recordsFailed)} fallidos`}
+                  </StyledSecondaryInfo>
                 </>
               )}
 
               {!loading && !isUnavailable && (
                 <StyledWorkspace>
-                  <StyledWorkspaceSection aria-labelledby="refresh-settings-title">
-                    <StyledWorkspaceHeading id="refresh-settings-title">
-                      {t`Configuración`}
-                    </StyledWorkspaceHeading>
-                    <StyledSettingLabel htmlFor="mercado-publico-v2-refresh-max-pages">
-                      {t`Alcance de actualización`}
-                      <StyledPageLimitSelect
-                        data-testid="mercado-publico-v2-refresh-max-pages"
-                        disabled={isLive}
-                        id="mercado-publico-v2-refresh-max-pages"
-                        onChange={(event) =>
-                          setMaxPages(
-                            event.target.value === ''
-                              ? undefined
-                              : Number(event.target.value),
-                          )
-                        }
-                        value={maxPages ?? ''}
-                      >
-                        <option value="">{t`Completa / sin límite`}</option>
-                        <option value={1}>1</option>
-                        <option value={2}>2</option>
-                        <option value={10}>10</option>
-                        <option value={50}>50</option>
-                      </StyledPageLimitSelect>
-                    </StyledSettingLabel>
-                    <StyledSecondaryInfo>
-                      {t`La actualización continúa aunque cierres esta ventana.`}
-                    </StyledSecondaryInfo>
-                  </StyledWorkspaceSection>
+                  {showConfiguration && (
+                    <StyledWorkspaceSection aria-labelledby="refresh-settings-title">
+                      <StyledWorkspaceHeading id="refresh-settings-title">
+                        {t`Configuración de la próxima ejecución`}
+                      </StyledWorkspaceHeading>
+                      <StyledSettingLabel htmlFor="mercado-publico-v2-refresh-max-pages">
+                        {t`Páginas por ejecución`}
+                        <StyledPageLimitSelect
+                          data-testid="mercado-publico-v2-refresh-max-pages"
+                          id="mercado-publico-v2-refresh-max-pages"
+                          onChange={(event) =>
+                            setMaxPages(
+                              event.target.value === ''
+                                ? undefined
+                                : Number(event.target.value),
+                            )
+                          }
+                          value={maxPages ?? ''}
+                        >
+                          <option value="">{t`Completa / sin límite`}</option>
+                          <option value={1}>{t`1 página`}</option>
+                          <option value={2}>{t`2 páginas`}</option>
+                          <option value={10}>{t`10 páginas`}</option>
+                          <option value={50}>{t`50 páginas`}</option>
+                        </StyledPageLimitSelect>
+                      </StyledSettingLabel>
+                    </StyledWorkspaceSection>
+                  )}
 
-                  <StyledWorkspaceSection aria-labelledby="refresh-activity-title">
-                    <StyledWorkspaceHeading id="refresh-activity-title">
-                      {t`Actividad reciente`}
-                    </StyledWorkspaceHeading>
-                    {timeline.length > 0 ? (
-                      <StyledTimelineList>
-                        {timeline.map((event, index) => (
+                  {timeline.length > 0 && (
+                    <StyledWorkspaceSection aria-labelledby="refresh-activity-title">
+                      <StyledSectionHeader>
+                        <StyledWorkspaceHeading id="refresh-activity-title">
+                          {t`Actividad`}
+                        </StyledWorkspaceHeading>
+                        {timeline.length > 4 && (
+                          <StyledDisclosureButton
+                            aria-controls="mercado-publico-refresh-activity-list"
+                            aria-expanded={isActivityExpanded}
+                            onClick={() =>
+                              setIsActivityExpanded((isExpanded) => !isExpanded)
+                            }
+                            type="button"
+                          >
+                            {isActivityExpanded
+                              ? t`Ocultar actividad`
+                              : t`Mostrar toda la actividad`}
+                          </StyledDisclosureButton>
+                        )}
+                      </StyledSectionHeader>
+                      <StyledTimelineList id="mercado-publico-refresh-activity-list">
+                        {visibleEvents.map((event, index) => (
                           <StyledTimelineItem
                             key={`${event.eventType}-${event.at}-${index}`}
                           >
                             <StyledTimelineTime dateTime={event.at}>
                               {formatRunTime(event.at)}
                             </StyledTimelineTime>
+                            <StyledTimelineMarker aria-hidden="true" />
                             <StyledTimelineCopy>
                               {getTimelineEventLabel(
                                 event.eventType,
                                 (message) => i18n._(message),
                               )}
-                              {' · '}
-                              {event.operatorName ?? t`Sistema`}
                             </StyledTimelineCopy>
+                            <StyledTimelineOperator>
+                              {event.operatorName ?? t`Sistema`}
+                            </StyledTimelineOperator>
                           </StyledTimelineItem>
                         ))}
                       </StyledTimelineList>
-                    ) : (
-                      <StyledSecondaryInfo>
-                        {t`Sin actividad adicional`}
-                      </StyledSecondaryInfo>
-                    )}
-                  </StyledWorkspaceSection>
+                    </StyledWorkspaceSection>
+                  )}
+                  {latestRun && (
+                    <Button
+                      onClick={() => {
+                        handleClose();
+                        navigate(AppPath.MercadoPublicoV2SyncControl);
+                      }}
+                      title={t`Abrir centro de control`}
+                      type="button"
+                      variant="tertiary"
+                    />
+                  )}
+                  {isLive && (
+                    <StyledSecondaryInfo>
+                      {t`La actualización continúa aunque cierres el modal.`}
+                    </StyledSecondaryInfo>
+                  )}
                 </StyledWorkspace>
               )}
             </StyledBody>
@@ -1264,22 +1105,12 @@ export const MercadoPublicoV2RefreshControl = () => {
                   />
                 </>
               ) : isLive ? (
-                <>
-                  <Button
-                    disabled={isCancelling}
-                    isLoading={isCancelling}
-                    onClick={() => openModal(CANCEL_CONFIRMATION_MODAL_ID)}
-                    title={t`Cancelar proceso`}
-                    type="button"
-                    variant="secondary"
-                  />
-                  <Button
-                    onClick={handleClose}
-                    title={t`Cerrar`}
-                    type="button"
-                    variant="secondary"
-                  />
-                </>
+                <Button
+                  onClick={handleClose}
+                  title={t`Cerrar`}
+                  type="button"
+                  variant="secondary"
+                />
               ) : isSuccess ? (
                 <>
                   <Button
@@ -1299,44 +1130,13 @@ export const MercadoPublicoV2RefreshControl = () => {
                     variant="secondary"
                   />
                 </>
-              ) : latestRun?.canResume === true ? (
-                <>
-                  <Button
-                    dataTestId="mercado-publico-v2-refresh-resume"
-                    disabled={isResuming}
-                    isLoading={isResuming}
-                    onClick={() => void handleResume()}
-                    title={
-                      isResuming ? t`Reanudando…` : t`Reanudar actualización`
-                    }
-                    type="button"
-                  />
-                  <Button
-                    onClick={handleClose}
-                    title={t`Cerrar`}
-                    type="button"
-                    variant="secondary"
-                  />
-                </>
               ) : latestRun ? (
-                <>
-                  <Button
-                    dataTestId="mercado-publico-v2-refresh-start"
-                    disabled={isStarting}
-                    isLoading={isStarting}
-                    onClick={() => void handleStart()}
-                    title={
-                      isStarting ? t`Actualizando…` : t`Actualizar de nuevo`
-                    }
-                    type="button"
-                  />
-                  <Button
-                    onClick={handleClose}
-                    title={t`Cerrar`}
-                    type="button"
-                    variant="secondary"
-                  />
-                </>
+                <Button
+                  onClick={handleClose}
+                  title={t`Cerrar`}
+                  type="button"
+                  variant="secondary"
+                />
               ) : (
                 <>
                   <Button
@@ -1361,17 +1161,6 @@ export const MercadoPublicoV2RefreshControl = () => {
           </ModalFooter>
         </ModalStatefulWrapper>
       )}
-
-      <ConfirmationModal
-        confirmButtonText={t`Cancelar actualización`}
-        loading={isCancelling}
-        modalInstanceId={CANCEL_CONFIRMATION_MODAL_ID}
-        onConfirmClick={() => {
-          void handleCancel();
-        }}
-        subtitle={t`¿Confirmas cancelar la actualización activa? Se conservará la evidencia registrada.`}
-        title={t`Cancelar actualización`}
-      />
     </>
   );
 };

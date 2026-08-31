@@ -29,11 +29,8 @@ const mockRefetch = jest.fn().mockResolvedValue({});
 const mockStartPolling = jest.fn();
 const mockStopPolling = jest.fn();
 const mockStartSync = jest.fn().mockResolvedValue({});
-const mockCancelSync = jest.fn().mockResolvedValue({});
-const mockResumeSync = jest.fn().mockResolvedValue({});
 const mockedUseMutation = useMutation as unknown as jest.Mock;
 const mockedUseQuery = useQuery as unknown as jest.Mock;
-let mutationInvocation = 0;
 
 const makeRun = (
   overrides: Partial<{
@@ -44,7 +41,6 @@ const makeRun = (
     recordsDeferred: number;
     recordsFailed: number;
     recordsProjected: number;
-    canResume: boolean;
     discoveryComplete: boolean;
     startedAt: string;
     updatedAt: string;
@@ -63,7 +59,6 @@ const makeRun = (
   recordsDeferred: 3,
   recordsFailed: 0,
   recordsProjected: 421,
-  canResume: false,
   discoveryComplete: true,
   startedAt: '2026-08-28T18:42:00.000Z',
   updatedAt: '2026-08-28T18:44:00.000Z',
@@ -147,17 +142,7 @@ describe('MercadoPublicoV2RefreshControl', () => {
       stopPolling: mockStopPolling,
     };
     mockedUseQuery.mockImplementation(() => queryResult);
-    mutationInvocation = 0;
-    mockedUseMutation.mockImplementation(() => {
-      const mutationIndex = mutationInvocation % 3;
-      mutationInvocation += 1;
-
-      return [
-        [mockStartSync, { loading: false }],
-        [mockCancelSync, { loading: false }],
-        [mockResumeSync, { loading: false }],
-      ][mutationIndex];
-    });
+    mockedUseMutation.mockReturnValue([mockStartSync, { loading: false }]);
   });
 
   it('starts a full refresh without maxPages', async () => {
@@ -187,7 +172,7 @@ describe('MercadoPublicoV2RefreshControl', () => {
 
     await user.click(screen.getByRole('button', { name: /Actualizar datos/ }));
     await user.selectOptions(
-      screen.getByLabelText('Alcance de actualización'),
+      screen.getByLabelText('Páginas por ejecución'),
       '10',
     );
     await user.click(screen.getByTestId('mercado-publico-v2-refresh-start'));
@@ -222,12 +207,15 @@ describe('MercadoPublicoV2RefreshControl', () => {
     expect(stages[2]).toHaveTextContent('Actualizar datosPendiente');
     expect(stages[3]).toHaveTextContent('VerificarPendiente');
     expect(
-      screen.getByTestId('mercado-publico-v2-refresh-heartbeat'),
+      screen.getByTestId('mercado-publico-v2-refresh-status'),
     ).toHaveAttribute('aria-live', 'polite');
     expect(
-      screen.getByRole('heading', { name: 'Actividad reciente' }).parentElement,
-    ).toHaveTextContent('Actualización iniciada');
-    expect(screen.getByText(/Último cambio:/)).toBeVisible();
+      screen.getByRole('heading', { name: 'Actividad' }).closest('section'),
+    ).toHaveTextContent('Ejecución preparada');
+    expect(screen.getByText(/Última actualización/)).toBeVisible();
+    expect(
+      screen.queryByLabelText('Páginas por ejecución'),
+    ).not.toBeInTheDocument();
   });
 
   it('restores current backend state after close and reopen', async () => {
@@ -270,7 +258,7 @@ describe('MercadoPublicoV2RefreshControl', () => {
 
     await user.click(screen.getByRole('button', { name: /Actualizando/ }));
     expect(
-      screen.getByTestId('mercado-publico-v2-refresh-heartbeat'),
+      screen.getByTestId('mercado-publico-v2-refresh-status'),
     ).toBeVisible();
 
     queryResult = {
@@ -285,17 +273,16 @@ describe('MercadoPublicoV2RefreshControl', () => {
       screen.getAllByText('Estado temporalmente no disponible')[0],
     ).toBeVisible();
     expect(screen.queryByText('Monitoreando')).not.toBeInTheDocument();
-    expect(screen.getByText(/Último cambio:/)).toBeVisible();
+    expect(screen.getByText(/Última actualización/)).toBeVisible();
   });
 
-  it('renders a frozen ECG and stopped stage for an incomplete run', async () => {
+  it('renders a stopped stage for an incomplete run', async () => {
     const user = userEvent.setup();
     queryResult = {
       ...queryResult,
       data: makeData(
         makeRun({
           safeStatus: 'partial_failed',
-          canResume: true,
           recordsFailed: 2,
         }),
       ),
@@ -303,12 +290,6 @@ describe('MercadoPublicoV2RefreshControl', () => {
 
     renderControl();
     await user.click(screen.getByRole('button', { name: /Actualizar datos/ }));
-
-    expect(
-      screen
-        .getByTestId('mercado-publico-v2-refresh-heartbeat')
-        .querySelector('svg[data-mode="frozen"]'),
-    ).toBeInTheDocument();
 
     const stages = within(
       screen.getByRole('list', { name: 'Progreso de actualización' }),
@@ -318,11 +299,11 @@ describe('MercadoPublicoV2RefreshControl', () => {
     expect(stages[2]).toHaveTextContent('Actualizar datosDetenido');
     expect(stages[3]).toHaveTextContent('VerificarPendiente');
     expect(
-      screen.getByRole('button', { name: /Reanudar actualización/ }),
+      screen.getByRole('button', { name: /Abrir centro de control/ }),
     ).toBeVisible();
   });
 
-  it('shows one final ECG sweep and then hides it after success', async () => {
+  it('shows next-run configuration after success', async () => {
     const user = userEvent.setup();
     queryResult = {
       ...queryResult,
@@ -332,61 +313,51 @@ describe('MercadoPublicoV2RefreshControl', () => {
     renderControl();
     await user.click(screen.getByRole('button', { name: /Actualizar datos/ }));
 
-    expect(
-      screen
-        .getByTestId('mercado-publico-v2-refresh-heartbeat')
-        .querySelector('svg[data-mode="success"]'),
-    ).toBeInTheDocument();
-    await waitFor(
-      () =>
-        expect(
-          screen
-            .getByTestId('mercado-publico-v2-refresh-heartbeat')
-            .querySelector('svg[data-mode="success"]'),
-        ).not.toBeInTheDocument(),
-      { timeout: 2500 },
-    );
+    expect(screen.getByLabelText('Páginas por ejecución')).toBeVisible();
   });
 
-  it('confirms cancellation with the native Twenty confirmation modal', async () => {
-    const user = userEvent.setup();
-    queryResult = { ...queryResult, data: makeData(makeRun()) };
-
-    renderControl();
-    await user.click(screen.getByRole('button', { name: /Actualizando/ }));
-    await user.click(screen.getByRole('button', { name: /Cancelar proceso/ }));
-
-    expect(
-      screen.getByText(
-        '¿Confirmas cancelar la actualización activa? Se conservará la evidencia registrada.',
-      ),
-    ).toBeVisible();
-    await user.click(screen.getByTestId('confirmation-modal-confirm-button'));
-
-    expect(mockCancelSync.mock.calls[0][0].variables.input).toEqual({
-      idempotencyKey: expect.any(String),
-      confirmed: true,
-    });
-  });
-
-  it('resumes a run only when the backend marks it resumable', async () => {
+  it('shows four recent events and expands persisted activity', async () => {
     const user = userEvent.setup();
     queryResult = {
       ...queryResult,
       data: makeData(
-        makeRun({ safeStatus: 'partial_failed', canResume: true }),
+        makeRun({
+          timeline: [
+            'command_created',
+            'run_created',
+            'dispatched',
+            'claimed',
+            'unknown_event',
+          ].map((eventType, index) => ({
+            eventType,
+            at: `2026-08-28T18:4${index}:00.000Z`,
+            operatorName: index === 4 ? null : 'Sistema de prueba',
+          })),
+        }),
       ),
     };
 
     renderControl();
-    await user.click(screen.getByRole('button', { name: /Actualizar datos/ }));
-    await user.click(
-      screen.getByRole('button', { name: /Reanudar actualización/ }),
-    );
+    await user.click(screen.getByRole('button', { name: /Actualizando/ }));
 
-    expect(mockResumeSync.mock.calls[0][0].variables.input).toEqual({
-      idempotencyKey: expect.any(String),
-    });
+    const activity = screen
+      .getByRole('heading', {
+        name: 'Actividad',
+      })
+      .closest('section');
+
+    expect(within(activity!).getAllByRole('listitem')).toHaveLength(4);
+    expect(activity).toHaveTextContent('Actividad registrada');
+    expect(activity).not.toHaveTextContent('unknown_event');
+    await user.click(
+      within(activity!).getByRole('button', {
+        name: 'Mostrar toda la actividad',
+      }),
+    );
+    expect(within(activity!).getAllByRole('listitem')).toHaveLength(5);
+    expect(
+      within(activity!).getByRole('button', { name: 'Ocultar actividad' }),
+    ).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('keeps synchronization out of Mercado Publico navigation', () => {
