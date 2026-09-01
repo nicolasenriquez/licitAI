@@ -30,11 +30,13 @@ const mockStartPolling = jest.fn();
 const mockStopPolling = jest.fn();
 const mockStartSync = jest.fn().mockResolvedValue({});
 const mockResumeSync = jest.fn().mockResolvedValue({});
+const mockCancelSync = jest.fn().mockResolvedValue({});
 const mockedUseMutation = useMutation as unknown as jest.Mock;
 const mockedUseQuery = useQuery as unknown as jest.Mock;
 
 const makeRun = (
   overrides: Partial<{
+    runId: string;
     safeStatus: string;
     safeSummary: string | null;
     canResume: boolean;
@@ -52,8 +54,18 @@ const makeRun = (
       at: string;
       operatorName: string | null;
     }>;
+    httpAttempts: Array<{
+      at: string;
+      endpoint: string;
+      httpStatus: number | null;
+      latencyMs: number;
+      attemptNumber: number;
+      retryable: boolean;
+      failureClass: string | null;
+    }>;
   }> = {},
 ) => ({
+  runId: '8f2b91aa-0000-4000-8000-000000000000',
   safeStatus: 'hydrating',
   safeSummary: null,
   canResume: false,
@@ -73,6 +85,7 @@ const makeRun = (
       operatorName: 'Operador de prueba',
     },
   ],
+  httpAttempts: [],
   ...overrides,
 });
 
@@ -489,6 +502,62 @@ describe('MercadoPublicoV2RefreshControl', () => {
 
     expect(mockResumeSync).toHaveBeenCalledWith({
       variables: { input: { idempotencyKey: expect.any(String) } },
+    });
+  });
+
+  it('shows observability attempts and confirms cancellation', async () => {
+    const user = userEvent.setup();
+
+    mockedUseMutation.mockImplementation(
+      (operation: {
+        definitions: readonly { name?: { value?: string } }[];
+      }) => {
+        const operationName = operation.definitions[0]?.name?.value;
+
+        if (operationName === 'MercadoPublicoV2CancelSync') {
+          return [mockCancelSync, { loading: false }];
+        }
+
+        return [mockStartSync, { loading: false }];
+      },
+    );
+    queryResult = {
+      ...queryResult,
+      data: makeData(
+        makeRun({
+          httpAttempts: [
+            {
+              at: '2026-08-28T18:44:00.000Z',
+              endpoint: '/compra-agil',
+              httpStatus: 429,
+              latencyMs: 212,
+              attemptNumber: 1,
+              retryable: true,
+              failureClass: 'rate_limit',
+            },
+          ],
+        }),
+      ),
+    };
+
+    renderControl();
+    await user.click(screen.getByRole('button', { name: /Actualizando/ }));
+    await user.click(screen.getByRole('tab', { name: 'Observabilidad' }));
+
+    expect(screen.getByRole('columnheader', { name: 'HTTP' })).toBeVisible();
+    expect(screen.getByText('/compra-agil')).toBeVisible();
+    expect(screen.getByText('Reintento')).toBeVisible();
+
+    await user.click(screen.getByTestId('mercado-publico-v2-refresh-cancel'));
+    expect(screen.getByText('Confirma la cancelación')).toBeVisible();
+    await user.click(
+      screen.getByTestId('mercado-publico-v2-refresh-confirm-cancel'),
+    );
+
+    expect(mockCancelSync).toHaveBeenCalledWith({
+      variables: {
+        input: { confirmed: true, idempotencyKey: expect.any(String) },
+      },
     });
   });
 

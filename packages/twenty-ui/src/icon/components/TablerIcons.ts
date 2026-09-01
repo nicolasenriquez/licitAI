@@ -1,6 +1,7 @@
 /* oxlint-disable no-restricted-imports */
 export {
   IconNumber123 as Icon123,
+  IconActivityHeartbeat,
   IconAdjustments,
   IconAlertCircle,
   IconAlertTriangle,

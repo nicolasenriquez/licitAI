@@ -304,7 +304,7 @@ stack is not using the CI ports.
 ```text
 Terminal 1
 set ALLOW_EXTRA_CONTAINERS=1 && just ci-infra-up
-npx nx start:ci twenty-server
+just ci-server-start
 
 Terminal 2
 just ci-full

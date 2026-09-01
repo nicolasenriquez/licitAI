@@ -136,8 +136,15 @@ ci-server-test: _ensure-installed
 # Mirrors job: server-validation.
 # Requires: an explicitly authorized CI infrastructure stack AND a dev server
 # started in a SECOND terminal.
-#   Terminal 1: set ALLOW_EXTRA_CONTAINERS=1 && just ci-infra-up && npx nx start:ci twenty-server
+#   Terminal 1: set ALLOW_EXTRA_CONTAINERS=1 && just ci-infra-up && just ci-server-start
 #   Terminal 2: just ci-server-validate
+
+# Initialize CI database from current source, then start current source server.
+ci-server-start: _ensure-installed (_ensure-env "twenty-server") _ensure-pg _ensure-redis
+    @echo === Initializing CI database from current source ===
+    set NODE_ENV=development&& npx nx run twenty-server:database:init
+    npx nx start:ci twenty-server
+
 ci-server-validate: _ensure-pg _ensure-redis _ensure-server-healthy
     @echo === Checking pending migrations ===
     npx nx database:migrate:generate twenty-server -- --name pending-migration-check
@@ -155,7 +162,7 @@ ci-server-integration: _ensure-pg _ensure-redis _ensure-clickhouse
     npx nx build twenty-shared
     npx nx build twenty-emails
     npx nx build twenty-server
-    cmd /C "set NODE_ENV=test&& set ANALYTICS_ENABLED=true&& set CLICKHOUSE_URL=http://default:clickhousePassword@localhost:8123/twenty&& set CLICKHOUSE_PASSWORD=clickhousePassword&& npx nx clickhouse:migrate twenty-server && npx nx clickhouse:seed twenty-server && npx nx run twenty-server:test:integration:with-db-reset"
+    set NODE_ENV=test&& set ANALYTICS_ENABLED=true&& set CLICKHOUSE_URL=http://default:clickhousePassword@localhost:8123/twenty&& set CLICKHOUSE_PASSWORD=clickhousePassword&& npx nx clickhouse:migrate twenty-server && npx nx clickhouse:seed twenty-server && npx nx run twenty-server:test:integration:with-db-reset
 
 # Full server pipeline (lint + build + test)
 ci-server: ci-server-lint ci-server-build ci-server-test
@@ -230,7 +237,7 @@ ci-emails: _ensure-installed
     npx nx build twenty-emails
     npx nx typecheck twenty-emails
     npx nx lint twenty-emails
-    npx concurrently --kill-others --success first "npx nx run twenty-emails:start" "npx wait-on http://localhost:4001/preview/test.email --timeout 20000"
+    node scripts/ci-email-smoke.mjs
 
 # ═════════════════════════════════════════════════════════════════════════════
 # CI — VALIDATE (aggregate)
@@ -241,7 +248,7 @@ ci-emails: _ensure-installed
 #   IMPORTANT: the server must be npx nx start:ci twenty-server, NOT the
 #   dev-up Docker image (which runs stale code). This recipe introspects
 #   the running server's GraphQL schema.
-#   Terminal 1: set ALLOW_EXTRA_CONTAINERS=1 && just ci-infra-up && npx nx start:ci twenty-server
+#   Terminal 1: set ALLOW_EXTRA_CONTAINERS=1 && just ci-infra-up && just ci-server-start
 #   Terminal 2: just ci-validate
 ci-validate: _ensure-installed _ensure-server-healthy
     npx nx run twenty-front:graphql:generate
@@ -256,7 +263,7 @@ ci-validate: _ensure-installed _ensure-server-healthy
 
 ci-security:
     @echo === yarn npm audit (HIGH/CRITICAL) ===
-    cmd /C "set NODE_OPTIONS=--use-system-ca&& yarn npm audit --severity high"
+    set NODE_OPTIONS=--use-system-ca&& yarn npm audit --severity high
     @echo === Secret scan of staged changes ===
     docker run --rm --platform {{PLATFORM}} --mount type=bind,source=%CD%,target=/repo,readonly -w /repo ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f git --pre-commit --redact --staged --verbose
     @echo === SBOM ===
@@ -280,7 +287,7 @@ ci-infra-up:
     docker compose -f {{COMPOSE_DEV}} up -d
     @echo === Waiting for PostgreSQL and Redis ===
     npx wait-on tcp:5432 tcp:6379 --timeout 60000
-    docker compose -f {{COMPOSE_DEV}} exec -T db psql -U postgres -d postgres -c "CREATE DATABASE \"test\" WITH OWNER postgres;" 2>nul || echo test DB already exists
+    powershell -NoProfile -File scripts/ensure-ci-test-database.ps1
     @echo === Starting ClickHouse (25.8.8, matches CI) ===
     @-docker rm -f twenty_clickhouse
     docker run -d --network {{DOCKER_NETWORK}} --name twenty_clickhouse -p 8123:8123 -p 9000:9000 -e CLICKHOUSE_PASSWORD=clickhousePassword clickhouse/clickhouse-server:25.8.8

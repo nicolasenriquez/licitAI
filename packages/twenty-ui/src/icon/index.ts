@@ -55,6 +55,7 @@ export { IllustrationIconWrapper } from './components/IllustrationIconWrapper';
 export type { TablerIconsProps } from './components/TablerIcons';
 export {
   Icon123,
+  IconActivityHeartbeat,
   IconAdjustments,
   IconAlertCircle,
   IconAlertTriangle,

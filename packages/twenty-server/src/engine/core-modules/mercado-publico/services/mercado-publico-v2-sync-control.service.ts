@@ -52,6 +52,7 @@ export type MercadoPublicoV2SubmitCommandResult = {
 };
 
 export type MercadoPublicoV2LatestRun = {
+  runId: string;
   safeStatus: string;
   safeSummary: string | null;
   canResume: boolean;
@@ -68,6 +69,15 @@ export type MercadoPublicoV2LatestRun = {
     eventType: string;
     at: Date;
     operatorName: string | null;
+  }[];
+  httpAttempts: {
+    at: Date;
+    endpoint: string;
+    httpStatus: number | null;
+    latencyMs: number;
+    attemptNumber: number;
+    retryable: boolean;
+    failureClass: string | null;
   }[];
 };
 
@@ -857,8 +867,30 @@ export class MercadoPublicoV2SyncControlService {
       `,
       [workspaceId, row.id],
     );
+    const httpAttemptRows = await this.coreDataSource.query<
+      {
+        request_started_at: Date;
+        endpoint: string;
+        http_status: number | null;
+        latency_ms: number;
+        attempt_number: number;
+        retryable: boolean;
+        failure_class: string | null;
+      }[]
+    >(
+      `
+        SELECT request_started_at, endpoint, http_status, latency_ms,
+               attempt_number, retryable, failure_class
+        FROM mp.sync_run_item_attempt
+        WHERE sync_run_id = $1
+        ORDER BY request_started_at DESC
+        LIMIT 100
+      `,
+      [row.id],
+    );
 
     return {
+      runId: row.id,
       safeStatus: row.status,
       safeSummary: getMercadoPublicoV2SyncSafeSummary(
         row.status,
@@ -881,6 +913,15 @@ export class MercadoPublicoV2SyncControlService {
         eventType: timelineRow.event_type,
         at: timelineRow.created_at,
         operatorName: timelineRow.operator_name,
+      })),
+      httpAttempts: httpAttemptRows.map((attempt) => ({
+        at: attempt.request_started_at,
+        endpoint: attempt.endpoint,
+        httpStatus: attempt.http_status,
+        latencyMs: attempt.latency_ms,
+        attemptNumber: attempt.attempt_number,
+        retryable: attempt.retryable,
+        failureClass: attempt.failure_class,
       })),
     };
   }

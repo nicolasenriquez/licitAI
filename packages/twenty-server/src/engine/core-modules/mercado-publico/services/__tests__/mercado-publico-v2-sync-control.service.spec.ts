@@ -53,6 +53,17 @@ describe('MercadoPublicoV2SyncControlService', () => {
           created_at: new Date('2026-08-13T00:00:00.000Z'),
           operator_name: 'Operator',
         },
+      ])
+      .mockResolvedValueOnce([
+        {
+          request_started_at: new Date('2026-08-13T00:00:01.000Z'),
+          endpoint: '/compra-agil',
+          http_status: 429,
+          latency_ms: 212,
+          attempt_number: 1,
+          retryable: true,
+          failure_class: 'rate_limit',
+        },
       ]);
     const service = new MercadoPublicoV2SyncControlService(
       { query } as never,
@@ -72,6 +83,9 @@ describe('MercadoPublicoV2SyncControlService', () => {
       completionReason: 'page_budget_reached',
       safeSummary: 'La ejecución no se completó.',
       timeline: [{ operatorName: 'Operator' }],
+      httpAttempts: [
+        { endpoint: '/compra-agil', httpStatus: 429, retryable: true },
+      ],
     });
     expect(query.mock.calls[0][0]).not.toContain('error_summary');
     expect(query.mock.calls[1][0]).toContain('core."userWorkspace"');
@@ -97,6 +111,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
         },
       ])
       .mockResolvedValueOnce([]);
+    latestRunQuery.mockResolvedValueOnce([]);
     const latestRunService = new MercadoPublicoV2SyncControlService(
       { query: latestRunQuery } as never,
       { add: jest.fn() } as unknown as MessageQueueService,

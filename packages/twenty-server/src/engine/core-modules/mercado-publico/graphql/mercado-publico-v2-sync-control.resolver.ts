@@ -36,7 +36,34 @@ export class MercadoPublicoV2SyncTimelineEventDTO {
 }
 
 @ObjectType()
+export class MercadoPublicoV2SyncHttpAttemptDTO {
+  @Field(() => GraphQLISODateTime)
+  at!: Date;
+
+  @Field()
+  endpoint!: string;
+
+  @Field(() => Int, { nullable: true })
+  httpStatus!: number | null;
+
+  @Field(() => Int)
+  latencyMs!: number;
+
+  @Field(() => Int)
+  attemptNumber!: number;
+
+  @Field()
+  retryable!: boolean;
+
+  @Field(() => String, { nullable: true })
+  failureClass!: string | null;
+}
+
+@ObjectType()
 export class MercadoPublicoV2LatestRunDTO {
+  @Field()
+  runId!: string;
+
   @Field()
   safeStatus!: string;
 
@@ -75,6 +102,9 @@ export class MercadoPublicoV2LatestRunDTO {
 
   @Field(() => [MercadoPublicoV2SyncTimelineEventDTO])
   timeline!: MercadoPublicoV2SyncTimelineEventDTO[];
+
+  @Field(() => [MercadoPublicoV2SyncHttpAttemptDTO])
+  httpAttempts!: MercadoPublicoV2SyncHttpAttemptDTO[];
 }
 
 @ObjectType()
