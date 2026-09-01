@@ -21,6 +21,28 @@ export const parseMercadoPublicoBodyError = (
   }
 
   const payloadRecord = payload as Record<string, unknown>;
+  const success = coerceToNullableString(payloadRecord.success)?.toUpperCase();
+
+  if (success === 'NOK' || success === 'ERROR') {
+    const errors = Array.isArray(payloadRecord.errors)
+      ? payloadRecord.errors
+      : [];
+    const firstError = errors.find(
+      (error): error is Record<string, unknown> =>
+        error !== null && typeof error === 'object' && !Array.isArray(error),
+    );
+    const code = coerceToNullableString(firstError?.codigo ?? firstError?.code);
+    const message = coerceToNullableString(
+      firstError?.mensaje ?? firstError?.message,
+    );
+
+    return {
+      code,
+      message: message ?? `Mercado Publico V2 provider returned ${success}`,
+      errorSummary: 'hard_fail',
+    };
+  }
+
   const code = coerceToNullableString(payloadRecord.Codigo);
   const message = coerceToNullableString(payloadRecord.Mensaje);
 

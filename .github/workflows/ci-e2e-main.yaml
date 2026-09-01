@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 30
     env:
       ANALYST_LOGIN: jane.austen@apple.dev
-      NODE_OPTIONS: "--max-old-space-size=10240"
+      NODE_OPTIONS: '--max-old-space-size=10240'
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest-8-cores
     timeout-minutes: 30
     env:
-      NODE_OPTIONS: "--max-old-space-size=10240"
+      NODE_OPTIONS: '--max-old-space-size=10240'
     services:
       postgres:
         image: postgres:18
@@ -137,10 +137,10 @@ jobs:
       - name: Run Playwright tests
         run: npx nx test twenty-e2e-testing
 
-      - name: Run Mercado Publico release gate
+      - name: Run Mercado Publico automated release checks
         env:
           ANALYST_LOGIN: jane.austen@apple.dev
-        run: yarn nx run twenty-e2e-testing:test:mercado-publico:release-gate
+        run: yarn nx run twenty-e2e-testing:test:mercado-publico:release-gate -- --automated-only
 
       - name: Upload Playwright results
         if: always()

@@ -684,7 +684,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
     ).toBe(false);
   });
 
-  it('recovers due deferred items as focused recovery runs', async () => {
+  it('settles only successful focused recovery runs', async () => {
     let claimCalls = 0;
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('ORDER BY updated_at ASC')) {
@@ -700,12 +700,30 @@ describe('MercadoPublicoV2SyncControlService', () => {
           { codigo: claimCalls === 1 ? 'CA-DEFERRED-001' : 'CA-DEFERRED-002' },
         ]);
       }
+      if (sql.includes('RETURNING original.sync_run_id')) {
+        return Promise.resolve([{ sync_run_id: 'original-run-1' }]);
+      }
 
       return Promise.resolve([]);
     });
-    const start = jest.fn().mockResolvedValue({ status: 'succeeded' });
+    const dataSource = {
+      query,
+      transaction: jest
+        .fn()
+        .mockImplementation(async (callback) => callback({ query })),
+    };
+    const start = jest
+      .fn()
+      .mockResolvedValueOnce({
+        status: 'succeeded',
+        syncRunId: 'recovery-run-1',
+      })
+      .mockResolvedValueOnce({
+        status: 'partial_failed',
+        syncRunId: 'recovery-run-2',
+      });
     const service = new MercadoPublicoV2SyncControlService(
-      { query } as never,
+      dataSource as never,
       { add: jest.fn() } as unknown as MessageQueueService,
       queueConfig as never,
       { start } as never,
@@ -722,6 +740,18 @@ describe('MercadoPublicoV2SyncControlService', () => {
 
     expect(dueQuery?.[0]).toContain("status = 'deferred'");
     expect(dueQuery?.[0]).toContain("snapshot_kind = 'detail'");
+    expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+    const settledItemQuery = query.mock.calls.find(([sql]: [string]) =>
+      sql.includes('UPDATE mp.sync_run_item original'),
+    );
+    const refreshedRunQuery = query.mock.calls.find(([sql]: [string]) =>
+      sql.includes('UPDATE mp.sync_run run'),
+    );
+
+    expect(settledItemQuery?.[1]).toEqual(['item-1', 'recovery-run-1']);
+    expect(refreshedRunQuery?.[0]).toContain('records_deferred');
+    expect(refreshedRunQuery?.[0]).toContain("run.status = 'partial_failed'");
+    expect(refreshedRunQuery?.[1]).toEqual(['original-run-1']);
   });
 
   it('does not dispatch a deferred item whose observation is already fresher', async () => {

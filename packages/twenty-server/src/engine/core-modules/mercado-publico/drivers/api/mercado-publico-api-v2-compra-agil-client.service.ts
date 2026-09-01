@@ -22,6 +22,7 @@ import {
 } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/validate-compra-agil-params.util';
 import { classifyMercadoPublicoHttpStatus } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-mercado-publico-http-status.util';
 import { parseMercadoPublicoBodyError } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/parse-mercado-publico-body-error.util';
+import { normalizeMercadoPublicoTransportError } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/mercado-publico-transport.error';
 import { parseRetryAfterSeconds } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/parse-retry-after-seconds.util';
 import {
   MERCADO_PUBLICO_API_V2_COMPRA_AGIL_DETAIL_BY_CODIGO_ENDPOINT,
@@ -155,12 +156,16 @@ export class MercadoPublicoApiV2CompraAgilClientService {
       validateStatus: () => true,
     });
 
-    const response = await httpClient.get<unknown>(endpointUrl, {
-      headers: {
-        ticket: settings.compraAgilApiTicket,
-      },
-      params: sanitizedParams,
-    });
+    const response = await httpClient
+      .get<unknown>(endpointUrl, {
+        headers: {
+          ticket: settings.compraAgilApiTicket,
+        },
+        params: sanitizedParams,
+      })
+      .catch((error: unknown) => {
+        throw normalizeMercadoPublicoTransportError(error);
+      });
 
     const rawPayload = response.data;
     const decoded = decodeV2CompraAgilListPayload(rawPayload);
@@ -243,11 +248,15 @@ export class MercadoPublicoApiV2CompraAgilClientService {
       validateStatus: () => true,
     });
 
-    const response = await httpClient.get<unknown>(endpointUrl, {
-      headers: {
-        ticket: settings.compraAgilApiTicket,
-      },
-    });
+    const response = await httpClient
+      .get<unknown>(endpointUrl, {
+        headers: {
+          ticket: settings.compraAgilApiTicket,
+        },
+      })
+      .catch((error: unknown) => {
+        throw normalizeMercadoPublicoTransportError(error);
+      });
 
     const rawPayload = response.data;
     const decoded = decodeV2CompraAgilDetailPayload(rawPayload);

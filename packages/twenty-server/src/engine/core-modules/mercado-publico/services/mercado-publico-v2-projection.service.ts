@@ -55,6 +55,7 @@ type SemanticPayload = {
   closing_at: string | null;
   provider_changed_at_raw: string | null;
   amount: string | null;
+  amount_raw: string | null;
   currency_source: string | null;
   document_count: number | null;
   id_orden_compra: string | null;
@@ -124,6 +125,7 @@ const buildSemanticPayload = (
   closing_at: toIsoOrNull(normalized.closingAt),
   provider_changed_at_raw: normalized.providerChangedAtRaw,
   amount: normalized.amount,
+  amount_raw: normalized.amountRaw,
   currency_source: normalized.currency,
   document_count: normalized.documentCount,
   id_orden_compra: orderReferences.idOrdenCompra,
@@ -162,6 +164,7 @@ const rebuildSemanticPayload = (
   closing_at: row.closing_at,
   provider_changed_at_raw: row.provider_changed_at_raw,
   amount: row.amount,
+  amount_raw: row.amount_raw,
   currency_source: row.currency_source,
   document_count: row.document_count,
   id_orden_compra: row.id_orden_compra,
@@ -505,15 +508,18 @@ export class MercadoPublicoV2ProjectionService {
 
     const applied = upsertedRows.length > 0;
     const created = applied && previous === undefined;
+    const previousSemantic =
+      previous === undefined
+        ? undefined
+        : rebuildSemanticPayload(previous, previousGold);
     const semanticChanged =
       applied &&
-      previous !== undefined &&
+      previousSemantic !== undefined &&
       previous.semantic_fingerprint !== null &&
-      previous.semantic_fingerprint !== semanticFingerprint;
+      previous.semantic_fingerprint !== semanticFingerprint &&
+      createJsonSha256(previousSemantic) !== semanticFingerprint;
 
-    if (semanticChanged && previous !== undefined) {
-      const previousSemantic = rebuildSemanticPayload(previous, previousGold);
-
+    if (semanticChanged && previousSemantic !== undefined) {
       await entityManager.query(
         `
           INSERT INTO mp.v2_history (

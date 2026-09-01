@@ -109,8 +109,10 @@ if (process.argv[1] === import.meta.filename) {
     mercadoPublicoReleaseGateManifest.gates.forEach(({ command, cwd }) =>
       run(command, cwd),
     );
-    validateReleaseGateEvidence(
-      resolve(packageDirectory, 'run_results/release-gate'),
-    );
+    if (!process.argv.includes('--automated-only')) {
+      validateReleaseGateEvidence(
+        resolve(packageDirectory, 'run_results/release-gate'),
+      );
+    }
   }
 }

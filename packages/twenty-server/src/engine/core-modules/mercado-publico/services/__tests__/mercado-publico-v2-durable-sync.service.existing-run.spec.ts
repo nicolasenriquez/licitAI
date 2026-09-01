@@ -495,6 +495,56 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
     );
   });
 
+  it('fails uncapped discovery before checkpointing a provider total of 10000', async () => {
+    const getList = jest.fn().mockResolvedValue({
+      ...buildListResponse(true),
+      pagination: {
+        ...buildListResponse(true).pagination,
+        totalResults: 10_000,
+      },
+    });
+    const query = jest.fn().mockResolvedValue([]);
+    const entityManagerQuery = jest.fn().mockResolvedValue([]);
+    const service = buildService({
+      query,
+      entityManagerQuery,
+      getList,
+      getByCodigo: jest.fn(),
+    });
+
+    await expect(
+      (
+        service as unknown as {
+          discover: (
+            context: {
+              syncRunId: string;
+              scope: string;
+              requestParams: { tamano_pagina: number };
+              maxPages: undefined;
+            },
+            jobRunRecordId: string,
+          ) => Promise<unknown>;
+        }
+      ).discover(
+        {
+          syncRunId: 'run-1',
+          scope: 'global',
+          requestParams: { tamano_pagina: 50 },
+          maxPages: undefined,
+        },
+        'job-run-1',
+      ),
+    ).rejects.toThrow('may be capped at 10000 results');
+    expect(entityManagerQuery).not.toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO mp.sync_run_page'),
+      expect.anything(),
+    );
+    expect(query).not.toHaveBeenCalledWith(
+      expect.stringContaining('completion_reason = $2'),
+      expect.anything(),
+    );
+  });
+
   it('advances the watermark on a first unfiltered global run without a change window', async () => {
     const query = jest.fn().mockImplementation((sql: string) => {
       if (sql.includes('records_discovered')) {

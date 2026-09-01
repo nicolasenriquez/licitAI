@@ -830,6 +830,17 @@ export class MercadoPublicoV2DurableSyncService {
         );
       }
 
+      if (
+        context.maxPages === undefined &&
+        response.pagination?.totalResults !== null &&
+        response.pagination?.totalResults !== undefined &&
+        response.pagination.totalResults >= 10_000
+      ) {
+        throw new Error(
+          'Mercado Publico V2 discovery may be capped at 10000 results; use a narrower change window',
+        );
+      }
+
       const persistenceResult =
         await this.mercadoPublicoPersistenceService.persistV2CompraAgilSnapshot(
           {

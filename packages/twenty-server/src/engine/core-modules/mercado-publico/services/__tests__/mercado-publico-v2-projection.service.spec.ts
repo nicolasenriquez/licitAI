@@ -280,8 +280,9 @@ describe('MercadoPublicoV2ProjectionService', () => {
     );
   });
 
-  it('includes detail fields in the semantic history payloads', async () => {
+  it('includes source amount and detail fields in semantic history payloads', async () => {
     const queries: QueryCall[] = [];
+    let previousMatchesCurrent = false;
     const entityManager = {
       query: jest
         .fn()
@@ -307,8 +308,8 @@ describe('MercadoPublicoV2ProjectionService', () => {
                 published_at: null,
                 closing_at: null,
                 provider_changed_at_raw: null,
-                amount: '1234500',
-                amount_raw: '100',
+                amount: null,
+                amount_raw: previousMatchesCurrent ? '100' : '90',
                 currency_source: 'UTM',
                 document_count: null,
                 id_orden_compra: null,
@@ -322,22 +323,26 @@ describe('MercadoPublicoV2ProjectionService', () => {
           if (sql.includes('FROM mp.gold_detected_process')) {
             return [
               {
-                description: 'Descripción anterior',
-                delivery_address: null,
-                delivery_days: null,
+                description: previousMatchesCurrent
+                  ? 'Servicio de aseo'
+                  : 'Descripción anterior',
+                delivery_address: previousMatchesCurrent
+                  ? 'Av. Central 123'
+                  : null,
+                delivery_days: previousMatchesCurrent ? 15 : null,
                 cancellation_at: null,
                 call_description: null,
                 call_first_closing_at: null,
                 call_second_closing_at: null,
-                budget_type: null,
-                budget_estimate: null,
-                budget_currency: null,
+                budget_type: previousMatchesCurrent ? 'estimado' : null,
+                budget_estimate: previousMatchesCurrent ? '150000' : null,
+                budget_currency: previousMatchesCurrent ? 'UTM' : null,
                 cancel_motive: null,
                 deserted_motive: null,
                 selection_motive: null,
-                total_offers: null,
-                total_demands: null,
-                fine_penalty: null,
+                total_offers: previousMatchesCurrent ? 3 : null,
+                total_demands: previousMatchesCurrent ? 0 : null,
+                fine_penalty: previousMatchesCurrent ? '0' : null,
               },
             ];
           }
@@ -355,29 +360,27 @@ describe('MercadoPublicoV2ProjectionService', () => {
         .mockImplementation(async (callback) => callback(entityManager)),
     };
     const service = new MercadoPublicoV2ProjectionService(dataSource as never);
+    const record = {
+      codigo: 'CA-HISTORY',
+      descripcion: 'Servicio de aseo',
+      entrega: {
+        direccion_entrega: 'Av. Central 123',
+        plazo_entrega_dias: 15,
+      },
+      presupuesto: {
+        tipo_presupuesto: 'estimado',
+        moneda: 'UTM',
+        monto_disponible: 100,
+        presupuesto_estimado: 150000,
+      },
+      resumen: {
+        multa_sancion: 0,
+        total_ofertas_recibidas: 3,
+        total_demandas: 0,
+      },
+    };
 
-    await service.ingest(
-      buildContext({
-        codigo: 'CA-HISTORY',
-        descripcion: 'Servicio de aseo',
-        entrega: {
-          direccion_entrega: 'Av. Central 123',
-          plazo_entrega_dias: 15,
-        },
-        presupuesto: {
-          tipo_presupuesto: 'estimado',
-          moneda: 'UTM',
-          monto_disponible: 100,
-          monto_disponible_clp: 1234500,
-          presupuesto_estimado: 150000,
-        },
-        resumen: {
-          multa_sancion: 0,
-          total_ofertas_recibidas: 3,
-          total_demandas: 0,
-        },
-      }),
-    );
+    await service.ingest(buildContext(record));
 
     const historyQuery = queries.find((query) =>
       query.sql.includes('INSERT INTO mp.v2_history'),
@@ -385,13 +388,15 @@ describe('MercadoPublicoV2ProjectionService', () => {
 
     expect(historyQuery).toBeDefined();
     expect(JSON.parse(historyQuery?.params[5] as string)).toMatchObject({
-      amount: '1234500',
+      amount: null,
+      amount_raw: '90',
       currency_source: 'UTM',
       description: 'Descripción anterior',
       delivery_days: null,
     });
     expect(JSON.parse(historyQuery?.params[6] as string)).toMatchObject({
-      amount: '1234500',
+      amount: null,
+      amount_raw: '100',
       currency_source: 'UTM',
       description: 'Servicio de aseo',
       delivery_address: 'Av. Central 123',
@@ -400,6 +405,15 @@ describe('MercadoPublicoV2ProjectionService', () => {
       total_offers: 3,
       fine_penalty: '0',
     });
+
+    previousMatchesCurrent = true;
+    queries.length = 0;
+
+    await service.ingest(buildContext(record));
+
+    expect(
+      queries.some((query) => query.sql.includes('INSERT INTO mp.v2_history')),
+    ).toBe(false);
   });
 
   it('records relation availability snapshots for every observed array', async () => {

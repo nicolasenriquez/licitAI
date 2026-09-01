@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 import { classifyFailure } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/classify-http-failure.util';
+import { MercadoPublicoTransportError } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/mercado-publico-transport.error';
 
 const createAxiosError = (status: number) =>
   new axios.AxiosError(
@@ -77,6 +78,15 @@ describe('classifyFailure', () => {
     expect(classifyFailure(createAxiosCodeError('ERR_NETWORK'))).toBe(
       'retryable_failed',
     );
+  });
+
+  it('classifies normalized transport errors without retaining Axios data', () => {
+    expect(
+      classifyFailure(new MercadoPublicoTransportError('ERR_NETWORK', null)),
+    ).toBe('retryable_failed');
+    expect(
+      classifyFailure(new MercadoPublicoTransportError('unknown', 404)),
+    ).toBe('soft_miss');
   });
 
   it('should classify unknown status 418 as hard_fail', () => {

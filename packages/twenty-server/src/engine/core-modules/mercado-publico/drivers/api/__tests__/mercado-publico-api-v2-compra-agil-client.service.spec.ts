@@ -1,3 +1,5 @@
+import { AxiosError } from 'axios';
+
 import { MercadoPublicoApiV2CompraAgilClientService } from 'src/engine/core-modules/mercado-publico/drivers/api/mercado-publico-api-v2-compra-agil-client.service';
 
 describe('MercadoPublicoApiV2CompraAgilClientService', () => {
@@ -167,6 +169,31 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       });
     });
 
+    it.each(['NOK', 'ERROR'])(
+      'classifies a %s envelope as a provider error instead of contract drift',
+      async (success) => {
+        mockHttpClient.get.mockResolvedValue({
+          status: 200,
+          data: {
+            success,
+            payload: null,
+            errors: [
+              { codigo: 'PROVIDER-1', mensaje: 'Provider rejected request' },
+            ],
+          },
+        });
+
+        const result = await service.getList({});
+
+        expect(result).toMatchObject({
+          compraAgil: [],
+          errorSummary: 'hard_fail',
+          errorCode: 'PROVIDER-1',
+          errorMessage: 'Provider rejected request',
+        });
+      },
+    );
+
     it('should classify 404 as soft_miss error', async () => {
       mockHttpClient.get.mockResolvedValue({
         status: 404,
@@ -199,6 +226,20 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       const result = await service.getList({});
 
       expect(result.errorSummary).toBe('retryable_failed');
+    });
+
+    it('removes request headers from thrown transport errors', async () => {
+      const transportError = new AxiosError('request failed', 'ERR_NETWORK', {
+        headers: { ticket: 'sentinel-secret-ticket' },
+      } as never);
+
+      mockHttpClient.get.mockRejectedValue(transportError);
+
+      const error = await service.getList({}).catch((caught) => caught);
+
+      expect(error).toBeInstanceOf(Error);
+      expect(JSON.stringify(error)).not.toContain('sentinel-secret-ticket');
+      expect(error).toMatchObject({ code: 'ERR_NETWORK', httpStatus: null });
     });
 
     it('should resolve normally when quota settings lookup throws during 429 tracking', async () => {
@@ -284,6 +325,26 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       expect(result.compraAgil).toEqual([]);
       expect(result.errorSummary).toBe('hard_fail');
       expect(result.errorCode).toBe('invalid_detail_envelope');
+    });
+
+    it('classifies a DETAIL error envelope as a provider error', async () => {
+      mockHttpClient.get.mockResolvedValue({
+        status: 200,
+        data: {
+          success: 'NOK',
+          payload: null,
+          errors: [{ code: 'NOT-FOUND', message: 'Process unavailable' }],
+        },
+      });
+
+      const result = await service.getByCodigo('CA-1');
+
+      expect(result).toMatchObject({
+        compraAgil: [],
+        errorSummary: 'hard_fail',
+        errorCode: 'NOT-FOUND',
+        errorMessage: 'Process unavailable',
+      });
     });
   });
 });

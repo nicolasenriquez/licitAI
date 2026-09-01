@@ -683,10 +683,14 @@ export class MercadoPublicoV2SyncControlService {
       }
 
       try {
-        await this.mercadoPublicoV2DurableSyncService.start(
+        const recovery = await this.mercadoPublicoV2DurableSyncService.start(
           { id: claimed[0].codigo },
           'recovery',
         );
+
+        if (recovery.status === 'succeeded') {
+          await this.settleRecoveredDeferredItem(row.id, recovery.syncRunId);
+        }
         dispatched += 1;
       } catch (error) {
         this.logger.warn(
@@ -696,6 +700,105 @@ export class MercadoPublicoV2SyncControlService {
     }
 
     return dispatched;
+  }
+
+  private async settleRecoveredDeferredItem(
+    itemId: string,
+    recoverySyncRunId: string,
+  ): Promise<void> {
+    await this.coreDataSource.transaction(async (entityManager) => {
+      const settledRows = await entityManager.query<{ sync_run_id: string }[]>(
+        `
+          UPDATE mp.sync_run_item original
+          SET status = recovered.status,
+              raw_api_payload_id = recovered.raw_api_payload_id,
+              observation_id = recovered.observation_id,
+              error_stage = NULL,
+              error_summary = NULL,
+              hydrated_at = recovered.hydrated_at,
+              updated_at = now()
+          FROM mp.sync_run_item recovered
+          WHERE original.id = $1
+            AND original.status = 'deferred'
+            AND recovered.sync_run_id = $2
+            AND recovered.codigo = original.codigo
+            AND recovered.status IN ('succeeded', 'lifecycle_terminal')
+          RETURNING original.sync_run_id
+        `,
+        [itemId, recoverySyncRunId],
+      );
+      const originalSyncRunId = settledRows[0]?.sync_run_id;
+
+      if (originalSyncRunId === undefined) {
+        return;
+      }
+
+      await entityManager.query(
+        `
+          UPDATE mp.sync_run run
+          SET records_hydrated = counts.records_hydrated,
+              records_failed = counts.records_failed,
+              records_deferred = counts.records_deferred,
+              records_projected = counts.records_projected,
+              status = CASE
+                WHEN run.status = 'partial_failed'
+                  AND run.discovery_complete
+                  AND counts.records_failed = 0
+                  AND counts.records_deferred = 0
+                THEN 'succeeded'
+                ELSE run.status
+              END,
+              error_stage = CASE
+                WHEN run.status = 'partial_failed'
+                  AND run.discovery_complete
+                  AND counts.records_failed = 0
+                  AND counts.records_deferred = 0
+                THEN NULL
+                ELSE run.error_stage
+              END,
+              error_retryable = CASE
+                WHEN run.status = 'partial_failed'
+                  AND run.discovery_complete
+                  AND counts.records_failed = 0
+                  AND counts.records_deferred = 0
+                THEN NULL
+                ELSE run.error_retryable
+              END,
+              error_summary = CASE
+                WHEN run.status = 'partial_failed'
+                  AND run.discovery_complete
+                  AND counts.records_failed = 0
+                  AND counts.records_deferred = 0
+                THEN NULL
+                ELSE run.error_summary
+              END,
+              finished_at = CASE
+                WHEN run.status = 'partial_failed'
+                  AND run.discovery_complete
+                  AND counts.records_failed = 0
+                  AND counts.records_deferred = 0
+                THEN now()
+                ELSE run.finished_at
+              END,
+              updated_at = now()
+          FROM (
+            SELECT
+              COUNT(*) FILTER (WHERE hydrated_at IS NOT NULL)::integer
+                AS records_hydrated,
+              COUNT(*) FILTER (WHERE status = 'failed')::integer
+                AS records_failed,
+              COUNT(*) FILTER (WHERE status = 'deferred')::integer
+                AS records_deferred,
+              COUNT(*) FILTER (WHERE observation_id IS NOT NULL)::integer
+                AS records_projected
+            FROM mp.sync_run_item
+            WHERE sync_run_id = $1
+          ) counts
+          WHERE run.id = $1
+        `,
+        [originalSyncRunId],
+      );
+    });
   }
 
   async getLatestRun(
