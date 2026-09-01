@@ -98,14 +98,22 @@ For runtime setup and recovery, read `docs/operations/local-development.md`.
 ## Architecture Overview
 
 ### Tech Stack
-- **Frontend:** React + TypeScript, Jotai, Linaria (zero-runtime CSS-in-JS), Vite, Apollo Client, Lingui.
+- **Frontend:** React + TypeScript, Jotai, Linaria (zero-runtime CSS-in-JS) in `twenty-front` and `twenty-website`, SCSS Modules in `twenty-ui`, Vite, Apollo Client, Lingui.
 - **Backend:** NestJS, TypeORM, PostgreSQL, Redis, BullMQ, GraphQL (code-first via `@nestjs/graphql` + GraphQL Yoga).
+- **Observability:** Optional OpenTelemetry and Prometheus metric drivers in `twenty-server`; collector and Grafana datasource configuration in `packages/twenty-docker/`. These are not services in the default Compose stack.
 - **Monorepo:** Nx workspace, Yarn 4 workspaces.
 
 ### Package Routing
 
 For package ownership and leaf-package instructions, read `packages/index.md`.
 It is the canonical package map.
+
+### Frontend and Design Guidance
+
+- For product UI work, read `docs/design/index.md` after the selected package contract.
+- Use `docs/design/patterns/index.md` to select one matching thematic guide; do not load all 73 `library/` leaves by default.
+- Open a `docs/design/patterns/library/` leaf only when a named pattern needs deeper review.
+- For Mercado Público UI, also read `docs/design/patterns/mercado-publico-application.md`.
 
 ### Conventions That Differ From Defaults
 
@@ -119,7 +127,7 @@ It is the canonical package map.
 - Component prop types suffixed `Props` (`ButtonProps`).
 - TypeScript generics get descriptive names (`TData` not `T`).
 - Use `twenty-shared` helpers instead of manual type guards: `isDefined`, `isNonEmptyString`, `isNonEmptyArray`.
-- Styling: **Linaria** only.
+- Styling: **Linaria** in `twenty-front` and `twenty-website`; SCSS Modules in `twenty-ui`.
 - i18n: **Lingui** (run `lingui:extract` / `lingui:compile` targets).
 
 ## Database & Upgrade Commands

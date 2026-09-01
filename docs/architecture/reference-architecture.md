@@ -28,7 +28,7 @@ flowchart TB
         React["React 19"]
         Jotai["Jotai State"]
         Apollo["Apollo Client"]
-        Linaria["Linaria CSS"]
+        Styling["Linaria (twenty-front)\nSCSS Modules (twenty-ui)"]
     end
 
     subgraph API_Layer["API Layer (NestJS 11)"]
@@ -112,7 +112,7 @@ flowchart TB
 | React 19 | UI framework. 56 feature modules, 6 route pages. |
 | Jotai | Atomic state management. Atoms, selectors, atom families for global state. |
 | Apollo Client | GraphQL data fetching. Cache management. Typed hooks from codegen. |
-| Linaria | Zero-runtime CSS-in-JS. styled-components API. Theme tokens from `twenty-ui`. |
+| Styling | `twenty-front` uses Linaria with the styled-components API. `twenty-ui` uses SCSS Modules and exposes shared theme tokens. |
 
 ### API Layer (NestJS 11)
 
@@ -210,7 +210,7 @@ flowchart TB
 | Worker | BullMQ single process | Horizontal scaling if needed. |
 | Apps | 12 internal, 1 community, 2 examples | Marketplace with discovery and ratings. |
 | AI | Agent chat, tool provider, code interpreter | Deeper integration: autonomous actions by risk level. |
-| Observability | OpenTelemetry, Sentry, Grafana | Enhanced metrics and alerting. |
+| Observability | Optional OpenTelemetry and Prometheus drivers, OTLP collector config, Sentry, Grafana datasource provisioning | Metrics and error reporting surfaces; collector and Grafana are not enabled by the default Compose stack. |
 
 ## Current Assumptions
 

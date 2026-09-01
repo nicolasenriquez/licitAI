@@ -33,8 +33,10 @@ as historical source context and for existing raw evidence and migrations.
 The API V1 and CSV ingestion runtimes described below were retired by the
 `mercado-publico-v2-legacy-retirement` change (G5) after the G4 cutover gate
 closed; the source-family semantics remain as domain context for retained raw
-evidence and migrations. Evidence and removed scope:
-`openspec/changes/mercado-publico-v2-legacy-retirement/retirement-evidence.md`.
+evidence and migrations. The change specification is retained at
+`openspec/changes/mercado-publico-v2-legacy-retirement/specs/mercado-publico-v2-legacy-retirement/spec.md`.
+The certification record required by that specification,
+`retirement-evidence.md`, is not present in the current checkout.
 
 ## Central Principle
 
@@ -273,4 +275,4 @@ That does not conflict with a shared `mp` schema if the rule is interpreted corr
 - `docs/business/mercado-publico-source-contract.md`
 - `docs/architecture/data-model.md`
 - `docs/operations/data-operations.md`
-- `openspec/changes/mercado-publico-ingestion-backbone/`
+- `openspec/changes/archive/2026-08-16-mercado-publico-v2-sync-operations/`

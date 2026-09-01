@@ -13,7 +13,7 @@ Define which technology standards are present in the Twenty CRM monorepo, their 
 Engineers, reviewers, architects, and AI agents working on the Twenty codebase.
 
 ## Executive Summary
-Twenty's technology stack is mature and ratified. The backend is NestJS 11 with a custom TwentyORM layer on TypeORM for multi-tenant PostgreSQL. The frontend is React 19 with Jotai state management and Linaria styling. The monorepo is managed by Nx 22.7.7 with Yarn 4. Code quality is enforced through oxlint, oxfmt, and tsgo. This document inventories every technology in the stack and its governing standards.
+Twenty's technology stack is mature and ratified. The backend is NestJS 11 with a custom TwentyORM layer on TypeORM for multi-tenant PostgreSQL. The frontend is React 19 with Jotai state management and Linaria styling in `twenty-front`; `twenty-ui` uses SCSS Modules. The monorepo is managed by Nx 22.7.7 with Yarn 4. Code quality is enforced through oxlint, oxfmt, and tsgo. This document inventories every technology in the stack and its governing standards.
 
 ## Existing Standards
 
@@ -51,7 +51,8 @@ Twenty's technology stack is mature and ratified. The backend is NestJS 11 with 
 | React | 19 | UI framework | `.cursor/rules/react-general-guidelines.mdc`, `.cursor/rules/react-state-management.mdc` |
 | Jotai | — | Atomic state management | Atoms, selectors, atom families |
 | Apollo Client | 4 | GraphQL data fetching | Cache management, typed hooks |
-| Linaria | — | Zero-runtime CSS-in-JS | styled-components API. `DESIGN.md` for visual rules |
+| Linaria | — | Zero-runtime CSS-in-JS in `twenty-front` and `twenty-website` | styled-components API. `docs/design/design-system.md` for visual rules |
+| SCSS Modules | — | Component styling in `twenty-ui` | Existing `*.module.scss` files and `docs/design/design-system.md` |
 | Lingui | — | Internationalization | Extract/compile workflow. `.cursor/rules/translations.mdc` |
 | Vite | — | Build tool / dev server | `vite.config.ts` per package |
 | React Router | 6 | Client-side routing | `packages/twenty-front/src/pages/` |
@@ -78,11 +79,11 @@ Twenty's technology stack is mature and ratified. The backend is NestJS 11 with 
 
 | Technology | Purpose | Configuration |
 | --- | --- | --- |
-| Docker + Docker Compose | Containerization | `packages/twenty-docker/docker-compose.yml`, `docker-compose.dev.yml` |
-| Kubernetes | Production orchestration | `packages/twenty-docker/helm/`, `k8s/` |
-| OpenTelemetry | Distributed tracing | `packages/twenty-docker/otel-collector/` |
+| Docker + Docker Compose | Containerization | `packages/twenty-docker/docker-compose.yml`, `packages/twenty-docker/docker-compose.dev.yml` |
+| Kubernetes | Production orchestration | `packages/twenty-docker/helm/`, `packages/twenty-docker/k8s/` |
+| OpenTelemetry | Optional metrics export and OTLP collector configuration | `packages/twenty-server/src/instrument.ts`, `packages/twenty-docker/otel-collector/` |
 | Sentry | Error tracking | `packages/twenty-server/src/engine/core-modules/sentry/` |
-| Grafana | Monitoring dashboards | `packages/twenty-docker/grafana/` |
+| Grafana | ClickHouse datasource provisioning | `packages/twenty-docker/grafana/` (no dashboard definitions currently tracked) |
 | Prometheus | Metrics | `packages/twenty-server/src/engine/core-modules/metrics/` |
 | Resend | Transactional email | `packages/twenty-server/src/engine/core-modules/email/` |
 | Stripe | Billing | `packages/twenty-server/src/engine/core-modules/billing/` |
@@ -122,7 +123,8 @@ Enforced by lint and typecheck, documented in `AGENTS.md`, `.cursor/rules/`, and
 | Barrel exports | `index.ts` for clean imports |
 | Import order | External libraries → internal (`@/`) → relative |
 | Short-form comments | `//` not JSDoc. Explain WHY, not WHAT |
-| Linaria styled-components | For all styling in React components |
+| Linaria styled-components | Styling in `twenty-front` and `twenty-website` |
+| SCSS Modules | Styling in `twenty-ui` |
 | Functional state updates | `setState(prev => prev + 1)` |
 | 70/20/10 test pyramid | 70% unit, 20% integration, 10% E2E |
 
@@ -174,7 +176,7 @@ Technology in the "Existing Standards" tables above is **binding** unless otherw
 - oxlint + oxfmt remain the authoritative lint and format tools. ESLint and Prettier are not used.
 - tsgo remains the authoritative TypeScript type checker.
 - PostgreSQL 16 is the minimum required version. Compose pins Redis 7.
-- Linaria is the styling solution for all React components in the monorepo.
+- Linaria is the styling solution for `twenty-front` and `twenty-website`; `twenty-ui` uses SCSS Modules.
 - `docs/standards/` is the authoritative source for technology standards. `.cursor/rules/` serves as indexes referencing `docs/standards/` without duplicating content.
 - ClickHouse is optional for development environments. Enable only when analytics features are needed.
 

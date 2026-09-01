@@ -8,7 +8,7 @@ okf_version: "0.1"
 
 ## Overview
 
-Twenty uses **React 19** with a functional-component-only approach. Components are organized in feature modules under `packages/twenty-front/src/modules/`. The design system lives in `packages/twenty-ui/`. State management uses Jotai for global state and Apollo Client for GraphQL cache. Styling uses Linaria (zero-runtime CSS-in-JS).
+Twenty uses **React 19** with a functional-component-only approach. Components are organized in feature modules under `packages/twenty-front/src/modules/`. The design system lives in `packages/twenty-ui/`. State management uses Jotai for global state and Apollo Client for GraphQL cache. `twenty-front` uses Linaria (zero-runtime CSS-in-JS); `twenty-ui` uses SCSS Modules.
 
 ## Core Principles
 
@@ -153,7 +153,8 @@ my-feature/
 
 - Do use functional state updates: `setState(prev => prev + 1)`.
 - Do use Jotai for global state, Apollo cache for GraphQL data, `useState`/`useReducer` for component-local state.
-- Do use Linaria `styled` components for all styling.
+- Do use Linaria `styled` components for styling in `twenty-front`.
+- Do use existing SCSS Modules when changing `twenty-ui` components.
 - Do import from `twenty-ui` sub-paths: `import { Button } from 'twenty-ui/input'`.
 - Do use `@tabler/icons-react` for icons.
 - Do use React Testing Library for tests. Query by text, role, or label.
@@ -168,8 +169,9 @@ my-feature/
 - Don't use `any` in props, state, or hooks.
 - Don't exceed 300 lines per component. Split into smaller components.
 - Don't abbreviate names (`btn` not `Button`, `usr` not `User`).
-- Don't use CSS-in-JS libraries other than Linaria (no Emotion, no styled-components).
-- Don't use Tailwind CSS or utility-class frameworks in the product UI. Linaria only.
+- Don't use CSS-in-JS libraries other than Linaria in `twenty-front` (no Emotion or additional styling systems).
+- Don't introduce a second styling system into `twenty-ui`; follow its existing SCSS Modules.
+- Don't use Tailwind CSS or utility-class frameworks in the product UI.
 - Don't hardcode schema shapes. Use metadata-driven rendering.
 
 ## References

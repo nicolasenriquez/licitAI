@@ -253,9 +253,11 @@ I just want to run it ─────────────────► jus
 
 ## 5. justfile Command Surface
 
-Each local command mirrors a specific GitHub Actions job. The mapping is
-documented in `docs/operations/command-surface.md`. Below is the CI pipeline
-command dependency tree:
+Local commands cover selected GitHub Actions jobs and combine them into useful
+developer lanes. They do not mirror every workflow step: Storybook, SDK
+integration/E2E, and several policy or infrastructure gates remain separate.
+The mapping is documented in `docs/operations/command-surface.md`. Below is the
+CI pipeline command dependency tree:
 
 ```
                             just ci
@@ -372,7 +374,7 @@ docker compose exec server yarn database:migrate:prod
 | CI integration tests fail locally but pass in GHA | The local runtime and GHA service topology differ. | Keep local diagnostics on the canonical Compose; use the gated alternate CI infrastructure only with explicit authorization. |
 | `graphql:generate` fails with "No schema found" | Codegen introspects the running server. Requires CURRENT SOURCE server, not the `dev-up` Docker image (stale code). | Start source server in a second terminal: `npx nx start:ci twenty-server` |
 | `yarn npm audit` reports `UNABLE_TO_VERIFY_LEAF_SIGNATURE` | Node does not trust the local system CA chain. | `ci-security` uses Node 24 `--use-system-ca`; for a manual audit, set `NODE_OPTIONS=--use-system-ca` first. |
-| `ci-gate` fails with YN0028 or YN0028 | `yarn.lock` is stale (e.g., after switching branches or rebasing). | Run `yarn install` to regenerate the lockfile. |
+| `ci-gate` fails with YN0028 | `yarn.lock` is stale (e.g., after switching branches or rebasing). | Run `yarn install` to regenerate the lockfile. |
 
 ## 8. What Is Not Covered Locally
 

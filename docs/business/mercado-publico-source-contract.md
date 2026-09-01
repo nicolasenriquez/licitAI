@@ -31,9 +31,13 @@ is never overwritten destructively.
 The API V1 and Datos Abiertos CSV ingestion runtimes were retired by the
 `mercado-publico-v2-legacy-retirement` change (G5) after the G4 cutover gate
 closed. The V1/CSV sections below remain as historical source-domain evidence;
-API V2 Compra Agil is the active ingestion source. Removed scope, retained
-rollback/recovery procedure, and evidence locations are recorded in
-`openspec/changes/mercado-publico-v2-legacy-retirement/retirement-evidence.md`.
+API V2 Compra Agil is the active ingestion source. The retirement specification
+is retained at
+`openspec/changes/mercado-publico-v2-legacy-retirement/specs/mercado-publico-v2-legacy-retirement/spec.md`,
+and the rollback procedure is in
+`openspec/changes/archive/2026-08-16-mercado-publico-v2-cutover-gate/pre-cutover-evidence.md`.
+The certification record required by the G5 specification is not present in the
+current checkout.
 
 ## Source Boundary
 

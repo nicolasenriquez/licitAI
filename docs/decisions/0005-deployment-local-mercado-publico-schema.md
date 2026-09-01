@@ -81,5 +81,4 @@ Rules:
 - `docs/business/mercado-publico-source-contract.md` — Source-level API and CSV contract.
 - `docs/architecture/data-model.md` — Data model and schema boundaries.
 - `docs/operations/data-operations.md` — Database operation rules.
-- `openspec/changes/mercado-publico-ingestion-backbone/` — Implementation change definition.
-- `openspec/changes/mercado-publico-ingestion-backbone/schema-catalog.md` — Binding column-level SQL schema for the `mp` tables.
+- `packages/twenty-server/src/database/commands/upgrade-version-command/2-16/` — Committed instance commands that define and evolve the `mp` schema.

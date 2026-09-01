@@ -13,7 +13,7 @@ Describe the current architecture of the Twenty CRM monorepo as visible in the c
 AI agents, engineers, architects onboarding to the Twenty codebase.
 
 ## Executive Summary
-Twenty is a production-grade, open-source CRM with a 22-package Nx monorepo. The architecture follows a metadata-driven design: object definitions, field definitions, views, roles, and permissions are stored as metadata and drive both the backend API and the frontend UI dynamically. The backend is a NestJS application with a custom ORM layer (TwentyORM) for multi-tenant per-workspace PostgreSQL schemas. The frontend is a React 19 SPA using Jotai for state management and Linaria for styling. Background jobs run via BullMQ with Redis. The monorepo is managed by Nx with Yarn 4.
+Twenty is a production-grade, open-source CRM with a 22-package Nx monorepo. The architecture follows a metadata-driven design: object definitions, field definitions, views, roles, and permissions are stored as metadata and drive both the backend API and the frontend UI dynamically. The backend is a NestJS application with a custom ORM layer (TwentyORM) for multi-tenant per-workspace PostgreSQL schemas. The frontend is a React 19 SPA using Jotai for state management and Linaria in `twenty-front`; the shared `twenty-ui` library uses SCSS Modules. Background jobs run via BullMQ with Redis. The monorepo is managed by Nx with Yarn 4.
 
 ## Confirmed Current State
 
@@ -38,8 +38,8 @@ Twenty is a production-grade, open-source CRM with a 22-package Nx monorepo. The
 | ORM | TypeORM 0.3.26 (patched) with custom TwentyORM layer for multi-tenant schema isolation. |
 | Database | PostgreSQL 16. Multi-tenant via per-workspace schemas. Optional ClickHouse for analytics. |
 | Cache & queues | Redis 7. BullMQ for background job processing (queue worker process). |
-| Frontend framework | React 19 SPA with Vite. Jotai for state, Apollo Client for GraphQL, Linaria for CSS. |
-| Styling | Linaria (zero-runtime CSS-in-JS), styled-components API. CSS variables for theming. |
+| Frontend framework | React 19 SPA with Vite. Jotai for state, Apollo Client for GraphQL, Linaria in `twenty-front`. |
+| Styling | `twenty-front` uses Linaria (zero-runtime CSS-in-JS); `twenty-ui` uses SCSS Modules. CSS variables provide theme tokens. |
 | i18n | Lingui. Extract/compile workflow. Crowdin for translations. |
 | Testing | Jest (unit/integration), Playwright (E2E), Vitest (Vite-native). |
 | CI/CD | GitHub Actions (22 workflows). Per-package CI, E2E, deploy, release, i18n. |
@@ -120,7 +120,7 @@ The frontend (`packages/twenty-front/src/`) is organized around feature modules:
 - **State management**: Jotai atoms for global state, Apollo Client cache for GraphQL data
 - **Metadata-driven UI**: Object and field definitions from the metadata API drive form rendering, table columns, and record detail layouts
 - **Code generation**: Three GraphQL codegen configs (`codegen.cjs`, `codegen-metadata.cjs`, `codegen-admin.cjs`) generate typed hooks and fragments into `generated/`, `generated-metadata/`, `generated-admin/`
-- **Styling**: Linaria styled-components with theme tokens from `twenty-ui`
+- **Styling**: Linaria styled-components in `twenty-front`; SCSS Modules in `twenty-ui`, with shared theme tokens
 - **i18n**: Lingui with extract/compile workflow. Translation catalog in `src/locales/`
 
 ### App System
@@ -157,7 +157,7 @@ Apps are installed via `npx twenty app:install` and published with `npx twenty a
 
 - **Development**: Docker Compose with PostgreSQL 16 + Redis 7. `setup-dev-env.sh` for one-command setup.
 - **Production**: Docker Compose with server + worker + PostgreSQL + Redis. Kubernetes Helm charts available.
-- **Monitoring**: OpenTelemetry collector, Grafana dashboards, Sentry error tracking, Prometheus metrics.
+- **Observability**: `twenty-server` supports optional OpenTelemetry and Prometheus metric drivers. `twenty-docker` contains an OTLP collector config and Grafana ClickHouse datasource provisioning; these are not services in the default Compose stack.
 - **CI/CD**: GitHub Actions (22 workflows). Per-package CI (lint, typecheck, test, build), E2E, deploy to main/tag, release drafter, i18n sync, app testing.
 
 ### Quality Gates
@@ -186,4 +186,4 @@ Apps are installed via `npx twenty app:install` and published with `npx twenty a
 - BullMQ + Redis is the preferred job queue for the foreseeable future.
 - The app system (SDK-based extensions) is the primary extensibility mechanism, not direct code modification of core packages.
 - GraphQL with runtime schema generation per workspace is the API strategy; REST and MCP are complementary.
-- Linaria for styling and Jotai for state management are ratified and stable choices.
+- Linaria in `twenty-front`, SCSS Modules in `twenty-ui`, and Jotai for state management are ratified and stable choices.

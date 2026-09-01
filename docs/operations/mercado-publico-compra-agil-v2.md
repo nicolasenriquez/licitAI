@@ -282,9 +282,10 @@ New V1/CSV ingestion requires the rollback deployment by design.
 
 ## Evidence and Execution Authorities
 
-- Evidence: `openspec/changes/mercado-publico-v2-legacy-retirement/retirement-evidence.md`
-  is the certification record (candidate manifest, zero-consumer proof, smoke,
-  visual evidence, rollback reference).
+- Certification specification: `openspec/changes/mercado-publico-v2-legacy-retirement/specs/mercado-publico-v2-legacy-retirement/spec.md`.
+  The required `retirement-evidence.md` certification record is not present in
+  the current checkout, so candidate-manifest and zero-consumer certification
+  cannot be verified from this tree.
 - PRD: `.scratch/mercado-publico-v2-reconstruction/PRD.md`.
 - Source issues: 32-35 under `.scratch/mercado-publico-v2-reconstruction/issues/`.
 - OpenSpec decisions: `mercado-publico-v2-cutover-gate` (G4, archived),

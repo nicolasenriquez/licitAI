@@ -10,7 +10,7 @@ okf_version: "0.1"
 Accepted (2026-06-20)
 
 ## Purpose
-Formalize the decision to use Nx 22.7.5 with Yarn 4 for the Twenty CRM monorepo.
+Formalize the decision to use Nx with Yarn 4 for the Twenty CRM monorepo.
 
 ## Context
 Twenty is a multi-package project with 22 packages spanning a backend API, frontend SPA, design system, SDK, marketing website, documentation, and infrastructure. The project needed a monorepo tool that provides:
@@ -25,7 +25,7 @@ At the time of initial architecture (circa 2023), the viable monorepo tools were
 
 ## Decision
 
-**Use Nx 22.7.5 as the monorepo orchestration tool and Yarn 4.13.0 (Berry) as the package manager.**
+**Use Nx as the monorepo orchestration tool and Yarn 4.13.0 (Berry) as the package manager.** The current repository version is Nx 22.7.7.
 
 Key specifics:
 - All packages live under `packages/` with Nx inferring project configuration from `project.json` or `package.json`.

@@ -64,7 +64,7 @@ twenty/
 | Libraries | `twenty-emails`, `twenty-client-sdk`, `twenty-front-component-renderer`, `twenty-oxlint-rules` | Shared code consumed by applications. |
 | SDK | `twenty-sdk`, `twenty-cli`, `create-twenty-app` | Public developer tooling. `twenty-sdk` is published to npm. |
 | Apps | `twenty-apps/` | App definitions (internal 12, community 1, examples 2, fixtures 4). Not Nx workspaces; managed by `twenty-sdk` CLI. |
-| Infrastructure | `twenty-docker` | Docker Compose, Kubernetes Helm charts, Grafana dashboards, OTEL config. Treated as separate infrastructure (not part of the Nx dependency graph). |
+| Infrastructure | `twenty-docker` | Docker Compose, Kubernetes Helm charts, Grafana datasource provisioning, OTEL collector config. Treated as separate infrastructure (not part of the Nx dependency graph). |
 | Testing | `twenty-e2e-testing` | Playwright end-to-end tests against the full stack. |
 | Tooling | `twenty-utils`, `twenty-zapier`, `twenty-codex-plugin`, `twenty-claude-skills` | Dev utilities, integrations, AI tooling. |
 

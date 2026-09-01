@@ -201,7 +201,7 @@ just runtime-check
 - React SPA in `packages/twenty-front/`.
 - Entry point: `src/index.tsx`.
 - State management: Jotai atoms + Apollo Client cache.
-- Styling: Linaria zero-runtime CSS-in-JS (styled-components API).
+- Styling: Linaria zero-runtime CSS-in-JS in `twenty-front`; SCSS Modules in `twenty-ui`.
 - i18n: Lingui with extract/compile workflow.
 - Code generation: three GraphQL codegen configs for typed hooks.
 

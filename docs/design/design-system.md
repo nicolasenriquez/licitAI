@@ -25,7 +25,7 @@ Twenty has two design registers: the **product UI** (`twenty-front`, served by `
 | Default theme | System-aware (light/dark via CSS variables) | Light-first (dark available but deferred) |
 | Interaction posture | Read-explore-edit. Dense tables, forms, record panels. | Read-evaluate. Browsing partner profiles. |
 | Design system package | `twenty-ui` (20 component modules) | `twenty-website` (standalone, NOT using `twenty-ui`) |
-| Styling engine | Linaria (zero-runtime CSS-in-JS) | Linaria (zero-runtime CSS-in-JS) |
+| Styling engine | Linaria (zero-runtime CSS-in-JS) in `twenty-front`; SCSS Modules in `twenty-ui` | Linaria (zero-runtime CSS-in-JS) |
 | Icon library | `@tabler/icons-react` | `@tabler/icons-react` |
 
 ## Experience Principles
@@ -43,7 +43,7 @@ Twenty has two design registers: the **product UI** (`twenty-front`, served by `
 
 ### Color Strategy
 
-The product UI uses a **restrained neutral palette** with semantic accent colors. Tokens are defined as CSS variables in `twenty-ui` and consumed via Linaria `styled` components.
+The product UI uses a **restrained neutral palette** with semantic accent colors. Tokens are defined as CSS variables in `twenty-ui`; `twenty-front` consumes them through Linaria `styled` components, while `twenty-ui` components use SCSS Modules.
 
 **Neutrals** (the workhorses, from `DESIGN.md`):
 
@@ -318,12 +318,12 @@ Shared utility functions for color computation, responsive behavior, device dete
 
 ## Current Assumptions
 
-- Linaria remains the styling engine for all React components in the monorepo.
+- Linaria remains the styling engine for `twenty-front` and `twenty-website`; `twenty-ui` uses SCSS Modules.
 - `twenty-ui` continues to be the single component library for the product UI.
 - The marketing site and product UI remain separate design registers with shared token philosophy.
 - `@tabler/icons-react` remains the icon library for both product and marketing.
 - Light-first design for marketing; system-aware (light/dark) for product.
-- Tailwind CSS or other utility-class frameworks are not used in the product UI (Linaria styled-components only).
+- Tailwind CSS or other utility-class frameworks are not used in the product UI. `twenty-front` uses Linaria and `twenty-ui` uses SCSS Modules.
 - Visual regression testing for `twenty-ui` uses Storybook + Chromatic (or equivalent) for automated visual diff in CI.
 
 ## Resolved Decisions

@@ -2,8 +2,8 @@
 type: decision
 title: Local CI Surface via justfile
 description: >-
-  ADR 0007 — Establishing a justfile-based local CI command surface that
-  mirrors the repository's GitHub Actions workflows.
+  ADR 0007 — Establishing a justfile-based local CI command surface that covers
+  selected repository GitHub Actions jobs.
 okf_version: "0.1"
 ---
 
@@ -19,9 +19,9 @@ Proposed
 
 ## Purpose
 
-Provide a local, reproducible CI command surface that faithfully mirrors the
-repository's GitHub Actions workflows, enabling developers to run CI checks
-before pushing without pushing to CI.
+Provide a local, reproducible CI command surface that covers selected GitHub
+Actions jobs, enabling developers to run common checks before pushing without
+claiming full workflow parity.
 
 ## Primary Audience
 
@@ -30,22 +30,19 @@ monorepo CI surface.
 
 ## Executive Summary
 
-The repository has 22 GitHub Actions workflows but no single local command to
-run CI checks. Developers must remember and sequence 5+ disparate `npx nx`
-commands. A `justfile` already exists for Docker service orchestration and
-provides a natural home for CI commands. The decision is to extend the
-existing justfile with CI recipes that map 1:1 to GitHub Actions jobs,
-organized in two mutually exclusive local modes (DEV for app runtime, CI for
-test infrastructure).
+The repository has 22 GitHub Actions workflows and a justfile with local CI
+recipes. Developers still need explicit lanes for common static, build, and
+unit-test checks, while Storybook, SDK integration/E2E, policy, and
+infrastructure gates remain separate. The decision is to keep CI recipes in the
+existing justfile and organize them in two mutually exclusive local modes (DEV
+for app runtime, CI for test infrastructure).
 
 ## Context
 
-**Problem**: 22 GitHub Actions workflows exist with no local equivalent.
-Developers rely on CI feedback loops (push → wait → see failure → fix) instead
-of local pre-push verification. The command surface is fragmented: lint uses
-`lint:diff-with-main`, typecheck uses `tsgo`, tests use `jest` with specific
-configs, migration validation requires PostgreSQL, and integration tests need
-PostgreSQL, Redis, and ClickHouse.
+**Problem**: Common local checks are fragmented across `npx nx` commands, while
+some GitHub Actions jobs need services, policy context, or destructive checkout
+operations that are not suitable for routine local execution. Developers need a
+pre-push lane without implying that it replaces every GitHub Actions workflow.
 
 **Discovery**: The full application `docker-compose.yml` does not expose Redis
 to the host machine (only the dev compose `docker-compose.dev.yml` does). This
@@ -55,8 +52,8 @@ infrastructure mode is required for CI.
 **Constraints**:
 - Windows is the primary local development platform (`windows-shell: cmd.exe`).
 - `npx wait-on` is already a project dependency (used in root `yarn start`).
-- The existing `justfile` already wraps `docker run` commands for PostgreSQL,
-  Redis, ClickHouse, Grafana, and OpenTelemetry.
+- The existing `justfile` wraps the application and development Compose files,
+   plus a ClickHouse `docker run` for the gated CI infrastructure path.
 - Nx provides automatic dependency ordering (`dependsOn: ["^build"]`), so
   justfile recipes do not need to reproduce the full dependency graph.
 - Background process management is unreliable in `cmd.exe` (no `nohup`, `&`
@@ -77,10 +74,11 @@ infrastructure mode is required for CI.
 
    The two modes are mutually exclusive because both bind host port 5432.
 
-2. **GitHub Actions mirroring**: Each local command corresponds to a specific
-   GHA job. Static checks (lint, typecheck) use `lint:diff-with-main` matching
-   CI. Builds, tests, and validation follow the same step order as the
-   workflow they mirror.
+2. **Selected GitHub Actions coverage**: Local recipes correspond to selected
+   GHA jobs. Static checks (lint, typecheck) use `lint:diff-with-main` where the
+   workflow does. Builds and unit tests follow the relevant package commands.
+   Storybook, SDK integration/E2E, policy, and infrastructure gates remain
+   explicitly outside the routine local lanes.
 
 3. **Health checking**: All infrastructure readiness uses `npx wait-on`
    (already a project dependency). No custom retry loops. No `timeout`
@@ -105,7 +103,7 @@ infrastructure mode is required for CI.
 ### Positive
 
 - Single `just ci-prepush` replaces 5+ manual commands for pre-push verification.
-- CI failures reproduce deterministically on the developer's machine.
+- Many CI failures reproduce deterministically on the developer's machine.
 - Two-mode architecture documents and enforces the Redis exposure constraint
   that was previously implicit.
 - `just dev-up` / `just dev-down` provide cleaner aliases for the developer's

@@ -28,7 +28,7 @@ Twenty isolates tenant data using PostgreSQL schemas:
 
 **Key design**: Each request resolves the workspace from the auth context, then TwentyORM creates or fetches a per-workspace TypeORM DataSource connected to the `workspace_<id>` schema. Entity schemas are compiled at runtime from ObjectMetadata and FieldMetadata definitions. The `mp` schema is a documented exception for deployment-local public Mercado Publico reference data; it must not be generalized to tenant-owned CRM records.
 
-For column-level definitions of `mp` tables, see the active change's schema catalog at `openspec/changes/mercado-publico-ingestion-backbone/schema-catalog.md`. This reference will be promoted to `docs/architecture/` during Phase 5 closeout if the implementation confirms the schema.
+Column-level definitions of `mp` tables are encoded in the committed instance commands under `packages/twenty-server/src/database/commands/upgrade-version-command/2-16/`. No standalone schema catalog is currently tracked.
 
 ## Entity Inheritance Hierarchy
 
