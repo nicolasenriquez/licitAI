@@ -3,7 +3,7 @@ import axios from 'axios';
 import { type MercadoPublicoErrorSummary } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 import { MercadoPublicoTransportError } from 'src/engine/core-modules/mercado-publico/drivers/api/utils/mercado-publico-transport.error';
 
-const RETRYABLE_HTTP_STATUS_CODES = new Set([429, 500, 503, 504]);
+const RETRYABLE_HTTP_STATUS_CODES = new Set([429, 502, 503, 504]);
 const RETRYABLE_ERROR_CODES = new Set([
   'ECONNABORTED',
   'ECONNRESET',

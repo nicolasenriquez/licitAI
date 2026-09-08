@@ -77,6 +77,13 @@ const StyledHeaderMeta = styled.span`
   gap: ${themeCssVariables.spacing[2]};
 `;
 
+const StyledSectionHeading = styled.h1`
+  color: ${themeCssVariables.font.color.primary};
+  font-size: ${themeCssVariables.font.size.lg};
+  font-weight: ${themeCssVariables.font.weight.medium};
+  margin: 0;
+`;
+
 const StyledBuyerContext = styled.div`
   align-items: center;
   background: ${themeCssVariables.background.secondary};
@@ -601,7 +608,7 @@ export const MercadoPublicoV2ActivePage = () => {
       return;
     }
 
-    setNotice('No fue posible cargar los procesos.');
+    setNotice(t`No fue posible cargar los procesos.`);
   }, [error, setAfter, t]);
 
   useEffect(() => {
@@ -733,10 +740,10 @@ export const MercadoPublicoV2ActivePage = () => {
     state.cohortStatus === 'active' &&
     state.states.length === 1 &&
     state.states[0] === 'publicada'
-      ? 'Procesos publicados'
+      ? t`Procesos publicados`
       : state.cohortStatus === 'active' && state.states.length === 0
-        ? 'Procesos en seguimiento'
-        : 'Procesos filtrados';
+        ? t`Procesos en seguimiento`
+        : t`Procesos filtrados`;
 
   const goToNextPage = useCallback(() => {
     if (
@@ -764,7 +771,7 @@ export const MercadoPublicoV2ActivePage = () => {
 
   return (
     <MercadoPublicoV2PageShell
-      title="Procesos"
+      title={t`Procesos`}
       topBarRight={<MercadoPublicoV2RefreshControl />}
       tag={
         opportunities || analytics ? (
@@ -785,6 +792,7 @@ export const MercadoPublicoV2ActivePage = () => {
         ) : undefined
       }
     >
+      <StyledSectionHeading>{t`Mercado Público`}</StyledSectionHeading>
       {state.buyer.trim() !== '' && (
         <StyledBuyerContext>
           <span>{t`Comprador filtrado: ${state.buyer.trim()}`}</span>
@@ -812,7 +820,7 @@ export const MercadoPublicoV2ActivePage = () => {
       {loading && (
         <StyledTableContainer
           role="status"
-          aria-label="Cargando procesos…"
+          aria-label={t`Cargando procesos…`}
           aria-live="polite"
         >
           <StyledTable aria-hidden="true">
@@ -832,10 +840,10 @@ export const MercadoPublicoV2ActivePage = () => {
         <StyledStateMessage role="alert">
           <Callout
             variant="error"
-            title="No fue posible cargar los procesos"
-            description="Reintenta sin perder los filtros ni el orden actual."
+            title={t`No fue posible cargar los procesos`}
+            description={t`Reintenta sin perder los filtros ni el orden actual.`}
             action={{
-              label: 'Reintentar',
+              label: t`Reintentar`,
               onClick: () => void refetchOpportunities(),
             }}
           />
@@ -845,8 +853,8 @@ export const MercadoPublicoV2ActivePage = () => {
         <StyledStateMessage role="status" aria-live="polite">
           <Callout
             variant="neutral"
-            title="No hay procesos disponibles"
-            description="Ajusta los filtros o limpia la búsqueda para ampliar los resultados."
+            title={t`No hay procesos disponibles`}
+            description={t`Ajusta los filtros o limpia la búsqueda para ampliar los resultados.`}
           />
         </StyledStateMessage>
       )}
@@ -861,23 +869,23 @@ export const MercadoPublicoV2ActivePage = () => {
           >
             <StyledTable>
               <StyledTableCaption>
-                Tabla de procesos. Cuatro columnas en escritorio; cada fila se
-                apila en móvil.
+                {t`Tabla de procesos. Cuatro columnas en escritorio; cada fila se
+                apila en móvil.`}
               </StyledTableCaption>
               <thead>
                 <tr>
-                  <StyledHeaderCell scope="col">Oportunidad</StyledHeaderCell>
-                  <StyledHeaderCell scope="col">Estado</StyledHeaderCell>
-                  <StyledHeaderCell scope="col">Cierre</StyledHeaderCell>
+                  <StyledHeaderCell scope="col">{t`Oportunidad`}</StyledHeaderCell>
+                  <StyledHeaderCell scope="col">{t`Estado`}</StyledHeaderCell>
+                  <StyledHeaderCell scope="col">{t`Cierre`}</StyledHeaderCell>
                   <StyledHeaderCell scope="col">
-                    Monto publicado
+                    {t`Monto publicado`}
                   </StyledHeaderCell>
                 </tr>
               </thead>
               <tbody>
                 {opportunities.edges.map(({ node }) => (
                   <tr key={node.codigo}>
-                    <StyledCell data-label="Oportunidad">
+                    <StyledCell data-label={t`Oportunidad`}>
                       <StyledOpportunityButton
                         aria-label={t`Abrir ${node.title ?? node.codigo}`}
                         data-mercado-publico-opportunity-code={node.codigo}
@@ -928,7 +936,7 @@ export const MercadoPublicoV2ActivePage = () => {
                         </StyledSecondaryText>
                       )}
                     </StyledCell>
-                    <StyledCell data-label="Estado">
+                    <StyledCell data-label={t`Estado`}>
                       <DataValue
                         value={node.state}
                         availability={node.availability}
@@ -936,13 +944,13 @@ export const MercadoPublicoV2ActivePage = () => {
                         {node.state && <ProcessStatus state={node.state} />}
                       </DataValue>
                     </StyledCell>
-                    <StyledCell data-label="Cierre">
+                    <StyledCell data-label={t`Cierre`}>
                       <DateValue
                         value={node.closingAt}
                         availability={node.availability}
                       />
                     </StyledCell>
-                    <StyledCell data-label="Monto publicado">
+                    <StyledCell data-label={t`Monto publicado`}>
                       <DataValue
                         value={node.amount}
                         availability={node.availability}
@@ -957,7 +965,7 @@ export const MercadoPublicoV2ActivePage = () => {
           </StyledTableContainer>
         )}
       {!loading && !error && opportunities?.edges.length ? (
-        <StyledPagination aria-label="Paginación de procesos">
+        <StyledPagination aria-label={t`Paginación de procesos`}>
           <Button
             title={t`Anterior`}
             type="button"

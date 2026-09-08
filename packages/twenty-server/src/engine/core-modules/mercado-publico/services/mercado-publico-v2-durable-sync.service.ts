@@ -41,6 +41,8 @@ const WATERMARK_OVERLAP_MS = 5 * 60 * 1000;
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_BOUNDED_PAGES = 50;
 const HYDRATION_BATCH_SIZE = 100;
+const HYDRATION_CONCURRENCY = 4;
+const MAX_NORMAL_ATTEMPTS = 3;
 
 export class MercadoPublicoV2InactiveSyncAttemptError extends Error {}
 
@@ -88,7 +90,9 @@ type SyncRunItem = {
     | 'succeeded'
     | 'lifecycle_terminal'
     | 'failed'
-    | 'deferred';
+    | 'deferred'
+    | 'dead_letter';
+  max_attempts: number;
 };
 
 type CurrentDetailRow = {
@@ -252,6 +256,8 @@ export const buildCompraAgilRequestParams = (
 export class MercadoPublicoV2DurableSyncService {
   private readonly logger = new Logger(MercadoPublicoV2DurableSyncService.name);
   private readonly schemaFingerprintByEndpoint = new Map<string, string>();
+  private activeApiRequests = 0;
+  private readonly apiRequestWaiters: (() => void)[] = [];
 
   constructor(
     private readonly mercadoPublicoApiV2CompraAgilClientService: MercadoPublicoApiV2CompraAgilClientService,
@@ -602,7 +608,8 @@ export class MercadoPublicoV2DurableSyncService {
     executionKey?: string,
   ): Promise<SyncRunContext> {
     const scope = getNonEmptyString(payload.scope) ?? 'global';
-    const watermarkBefore = await this.readWatermark(scope);
+    const watermarkBefore =
+      payload.mode === 'backfill' ? null : await this.readWatermark(scope);
     const requestParams = buildCompraAgilRequestParams(
       payload,
       watermarkBefore,
@@ -805,17 +812,21 @@ export class MercadoPublicoV2DurableSyncService {
 
     while (true) {
       let response: MercadoPublicoApiV2CompraAgilListResponse;
+      const pageStartedAt = Date.now();
+      const httpStartedAt = Date.now();
 
       await this.assertActiveAttempt(context);
       try {
-        response =
-          await this.mercadoPublicoApiV2CompraAgilClientService.getList({
+        response = await this.withApiRequest(() =>
+          this.mercadoPublicoApiV2CompraAgilClientService.getList({
             ...context.requestParams,
             numero_pagina: pageNumber,
-          });
+          }),
+        );
       } finally {
         await this.touchHeartbeat(context);
       }
+      const httpDurationMs = Date.now() - httpStartedAt;
 
       if (response.errorSummary !== undefined) {
         await this.persistApiFailure(jobRunRecordId, response);
@@ -841,6 +852,7 @@ export class MercadoPublicoV2DurableSyncService {
         );
       }
 
+      const persistenceStartedAt = Date.now();
       const persistenceResult =
         await this.mercadoPublicoPersistenceService.persistV2CompraAgilSnapshot(
           {
@@ -849,14 +861,32 @@ export class MercadoPublicoV2DurableSyncService {
             snapshotKind: 'list',
           },
         );
+      const persistenceDurationMs = Date.now() - persistenceStartedAt;
 
       this.warnOnContractDrift(response);
 
       await this.assertActiveAttempt(context);
+      const checkpointStartedAt = Date.now();
       await this.checkpointPage(
         context,
         response,
         persistenceResult.rawApiPayloadId,
+      );
+      const checkpointDurationMs = Date.now() - checkpointStartedAt;
+      this.logger.log(
+        JSON.stringify({
+          event: 'mercado_publico_v2_stage_timing',
+          syncRunId: context.syncRunId,
+          stage: 'discovery',
+          page: pageNumber,
+          records: response.compraAgil.length,
+          httpDurationMs,
+          persistenceDurationMs,
+          projectionAndCountersDurationMs: checkpointDurationMs,
+          throughputRecordsPerSecond:
+            response.compraAgil.length /
+            Math.max((Date.now() - pageStartedAt) / 1000, 0.001),
+        }),
       );
 
       const pagination = response.pagination;
@@ -1134,14 +1164,11 @@ export class MercadoPublicoV2DurableSyncService {
   ): Promise<'completed' | 'cancelled'> {
     await this.assertActiveAttempt(context);
     await this.completeCarryForwardItems(context.syncRunId);
-    const maxAttempts =
-      this.mercadoPublicoConfigService.getSettings().httpMaxRetries + 1;
-    let isFirstItem = true;
-
+    const maxAttempts = MAX_NORMAL_ATTEMPTS;
     while (true) {
       const items = await this.coreDataSource.query<SyncRunItem[]>(
         `
-          SELECT id, codigo, attempts, status
+          SELECT id, codigo, attempts, status, max_attempts
           FROM mp.sync_run_item
           WHERE sync_run_id = $1
             AND status = 'pending'
@@ -1158,196 +1185,291 @@ export class MercadoPublicoV2DurableSyncService {
           : 'completed';
       }
 
-      for (const item of items) {
-        await this.assertActiveAttempt(context);
-        if (
-          !isFirstItem &&
-          (await this.hasCancellationRequest(context.syncRunId))
-        ) {
-          return 'cancelled';
-        }
-        isFirstItem = false;
+      if (await this.hasCancellationRequest(context.syncRunId)) {
+        return 'cancelled';
+      }
 
-        if (item.attempts >= maxAttempts) {
-          await this.markItemDeferred(item.id, 'retryable_failed: exhausted');
-          await this.updateSyncRunCounters(context.syncRunId);
-          continue;
-        }
+      const batchStartedAt = Date.now();
+      await Promise.all(
+        items.map(async (item) => {
+          await this.assertActiveAttempt(context);
 
-        await this.coreDataSource.query(
-          `
+          const exhaustedRows = await this.coreDataSource.query<
+            { id: string }[]
+          >(
+            `
             UPDATE mp.sync_run_item
-            SET status = 'processing', attempts = attempts + 1, updated_at = now()
-            WHERE id = $1 AND status = 'pending'
+            SET status = 'dead_letter',
+                error_stage = 'hydrating',
+                error_summary = 'retryable_failed: exhausted',
+                failure_class = 'retryable_failed',
+                updated_at = now()
+            WHERE id = $1 AND status = 'pending' AND attempts >= $2
+            RETURNING id
           `,
-          [item.id],
-        );
+            [item.id, maxAttempts],
+          );
 
-        const attemptNumber = item.attempts + 1;
-        const requestStartedAt = new Date();
-        let response: MercadoPublicoApiV2CompraAgilListResponse;
+          if (exhaustedRows.length > 0) {
+            return;
+          }
 
-        try {
-          response =
-            await this.mercadoPublicoApiV2CompraAgilClientService.getByCodigo(
-              item.codigo,
+          const claimedRows = await this.coreDataSource.query<SyncRunItem[]>(
+            `
+            UPDATE mp.sync_run_item
+            SET status = 'processing', attempts = attempts + 1,
+                max_attempts = COALESCE(max_attempts, $2), updated_at = now()
+            WHERE id = $1 AND status = 'pending'
+              AND attempts < COALESCE(max_attempts, $2)
+              AND (next_retry_at IS NULL OR next_retry_at <= now())
+            RETURNING id, codigo, attempts, status, max_attempts
+          `,
+            [item.id, maxAttempts],
+          );
+
+          const claimedItem = claimedRows[0];
+
+          if (claimedItem === undefined) {
+            return;
+          }
+
+          const attemptNumber = claimedItem.attempts;
+          const requestStartedAt = new Date();
+          let response: MercadoPublicoApiV2CompraAgilListResponse;
+
+          try {
+            response = await this.withApiRequest(() =>
+              this.mercadoPublicoApiV2CompraAgilClientService.getByCodigo(
+                item.codigo,
+              ),
             );
-        } catch (error) {
-          await this.touchHeartbeat(context);
-          const failure = classifyFailure(error);
-          const transportCode = getTransportFailureCode(error);
+          } catch (error) {
+            await this.touchHeartbeat(context);
+            const failure = classifyFailure(error);
+            const transportCode = getTransportFailureCode(error);
 
+            await this.recordItemAttempt({
+              context,
+              item,
+              attemptNumber,
+              requestStartedAt,
+              httpStatus: getHttpFailureStatus(error),
+              transportErrorCode: transportCode,
+              failureClass: failure,
+              retryable: failure === 'retryable_failed',
+            });
+
+            if (failure === 'hard_fail' || failure === 'param_error') {
+              throw error;
+            }
+
+            if (
+              failure === 'retryable_failed' &&
+              getHttpFailureStatus(error) === 429
+            ) {
+              await this.markItemDeferred(
+                item.id,
+                'rate_limit: detail request deferred',
+                undefined,
+                await this.getRateLimitRetryAt(),
+                'rate_limit',
+              );
+              return;
+            }
+
+            if (failure === 'retryable_failed' && attemptNumber < maxAttempts) {
+              await this.markItemPending(
+                item.id,
+                `retryable_failed: detail request failed: ${transportCode}`,
+                'hydrating',
+              );
+              await this.waitBeforeRetry();
+            } else if (failure === 'retryable_failed') {
+              await this.markItemDeadLetter(
+                item.id,
+                `retryable_failed: detail request failed: ${transportCode}`,
+              );
+            } else {
+              await this.markItemFailed(
+                item.id,
+                `${failure}: detail request failed: ${transportCode}`,
+              );
+            }
+            return;
+          }
+
+          await this.touchHeartbeat(context);
+          const persistenceResult =
+            await this.mercadoPublicoPersistenceService.persistV2CompraAgilSnapshot(
+              {
+                jobRunRecordId,
+                apiResponse: response,
+                snapshotKind: 'detail',
+                errorSummaryText:
+                  response.errorSummary === undefined
+                    ? undefined
+                    : this.buildProviderError(response, 'provider'),
+              },
+            );
+
+          this.warnOnContractDrift(response);
+
+          await this.assertActiveAttempt(context);
           await this.recordItemAttempt({
             context,
             item,
             attemptNumber,
             requestStartedAt,
-            httpStatus: getHttpFailureStatus(error),
-            transportErrorCode: transportCode,
-            failureClass: failure,
-            retryable: failure === 'retryable_failed',
+            httpStatus: response.httpStatus,
+            providerErrorCode: response.errorCode,
+            providerErrorMessage: response.errorMessage,
+            failureClass: response.errorSummary,
+            retryable: response.errorSummary === 'retryable_failed',
+            retryAfterSeconds: response.retryAfterSeconds,
+            rawApiPayloadId: persistenceResult.rawApiPayloadId,
           });
 
-          if (failure === 'hard_fail' || failure === 'param_error') {
-            throw error;
-          }
-
           if (
-            failure === 'retryable_failed' &&
-            item.attempts + 1 < maxAttempts
+            response.errorSummary !== undefined ||
+            response.compraAgil.length === 0
           ) {
-            await this.markItemPending(
-              item.id,
-              `retryable_failed: detail request failed: ${transportCode}`,
-              'hydrating',
-            );
-            await this.waitBeforeRetry();
-          } else if (failure === 'retryable_failed') {
-            await this.markItemDeferred(
-              item.id,
-              `retryable_failed: detail request failed: ${transportCode}`,
-            );
-          } else {
-            await this.markItemFailed(
-              item.id,
-              `${failure}: detail request failed: ${transportCode}`,
-            );
-          }
-          await this.updateSyncRunCounters(context.syncRunId);
-          continue;
-        }
+            if (
+              response.errorSummary === 'hard_fail' ||
+              response.errorSummary === 'param_error'
+            ) {
+              throw new Error('systemic detail configuration failure');
+            }
 
-        await this.touchHeartbeat(context);
-        const persistenceResult =
-          await this.mercadoPublicoPersistenceService.persistV2CompraAgilSnapshot(
-            {
-              jobRunRecordId,
-              apiResponse: response,
-              snapshotKind: 'detail',
-              errorSummaryText:
-                response.errorSummary === undefined
-                  ? undefined
-                  : this.buildProviderError(response, 'provider'),
-            },
+            if (
+              response.errorSummary === 'retryable_failed' &&
+              response.httpStatus === 429
+            ) {
+              await this.markItemDeferred(
+                item.id,
+                'rate_limit: detail request deferred',
+                persistenceResult.rawApiPayloadId,
+                await this.getRateLimitRetryAt(response.retryAfterSeconds),
+                'rate_limit',
+              );
+              return;
+            }
+
+            if (
+              response.errorSummary === 'retryable_failed' &&
+              attemptNumber < maxAttempts
+            ) {
+              await this.markItemPending(
+                item.id,
+                'retryable_failed',
+                'hydrating',
+                persistenceResult.rawApiPayloadId,
+              );
+              await this.throwIfQuotaExhausted(response, 'hydrating');
+              await this.waitBeforeRetry(response.retryAfterSeconds);
+            } else if (response.errorSummary === 'retryable_failed') {
+              await this.markItemDeadLetter(
+                item.id,
+                'retryable_failed',
+                persistenceResult.rawApiPayloadId,
+              );
+            } else {
+              await this.markItemFailed(
+                item.id,
+                response.errorSummary ?? 'soft_miss',
+                persistenceResult.rawApiPayloadId,
+              );
+            }
+            return;
+          }
+
+          const detailRecord = response.compraAgil.find(
+            (record) => record.codigo === item.codigo,
           );
 
-        this.warnOnContractDrift(response);
-
-        await this.assertActiveAttempt(context);
-        await this.recordItemAttempt({
-          context,
-          item,
-          attemptNumber,
-          requestStartedAt,
-          httpStatus: response.httpStatus,
-          providerErrorCode: response.errorCode,
-          providerErrorMessage: response.errorMessage,
-          failureClass: response.errorSummary,
-          retryable: response.errorSummary === 'retryable_failed',
-          retryAfterSeconds: response.retryAfterSeconds,
-          rawApiPayloadId: persistenceResult.rawApiPayloadId,
-        });
-
-        if (
-          response.errorSummary !== undefined ||
-          response.compraAgil.length === 0
-        ) {
-          if (
-            response.errorSummary === 'hard_fail' ||
-            response.errorSummary === 'param_error'
-          ) {
-            throw new Error('systemic detail configuration failure');
-          }
-
-          if (
-            response.errorSummary === 'retryable_failed' &&
-            item.attempts + 1 < maxAttempts
-          ) {
-            await this.markItemPending(
-              item.id,
-              'retryable_failed',
-              'hydrating',
-              persistenceResult.rawApiPayloadId,
-            );
-            await this.throwIfQuotaExhausted(response, 'hydrating');
-            await this.waitBeforeRetry(response.retryAfterSeconds);
-          } else if (response.errorSummary === 'retryable_failed') {
-            await this.markItemDeferred(
-              item.id,
-              'retryable_failed',
-              persistenceResult.rawApiPayloadId,
-            );
-          } else {
+          if (detailRecord === undefined) {
             await this.markItemFailed(
               item.id,
-              response.errorSummary ?? 'soft_miss',
+              'detail_codigo_mismatch',
               persistenceResult.rawApiPayloadId,
             );
+            return;
           }
-          await this.updateSyncRunCounters(context.syncRunId);
-          continue;
-        }
 
-        const detailRecord = response.compraAgil.find(
-          (record) => record.codigo === item.codigo,
-        );
-
-        if (detailRecord === undefined) {
-          await this.markItemFailed(
-            item.id,
-            'detail_codigo_mismatch',
+          const observationId = await this.recordObservationAndProjection(
+            context,
             persistenceResult.rawApiPayloadId,
+            response,
+            detailRecord,
+            'detail',
           );
-          await this.updateSyncRunCounters(context.syncRunId);
-          continue;
-        }
+          const lifecycle = classifyV2CompraAgilLifecycle(detailRecord, true, {
+            includeHistoricalTerminal: isHistoricalV2CompraAgilSyncIntent(
+              context.intent,
+            ),
+          });
+          const terminal = lifecycle.terminal;
+          await this.markItemSucceeded(
+            item.id,
+            persistenceResult.rawApiPayloadId,
+            observationId,
+            terminal,
+          );
 
-        const observationId = await this.recordObservationAndProjection(
-          context,
-          persistenceResult.rawApiPayloadId,
-          response,
-          detailRecord,
-          'detail',
-        );
-        const lifecycle = classifyV2CompraAgilLifecycle(detailRecord, true, {
-          includeHistoricalTerminal: isHistoricalV2CompraAgilSyncIntent(
-            context.intent,
-          ),
-        });
-        const terminal = lifecycle.terminal;
-        await this.markItemSucceeded(
-          item.id,
-          persistenceResult.rawApiPayloadId,
-          observationId,
-          terminal,
-        );
+          if (terminal) {
+            await this.markCohortTerminal(
+              context,
+              item.codigo,
+              lifecycle.reason,
+            );
+          }
+        }),
+      );
 
-        if (terminal) {
-          await this.markCohortTerminal(context, item.codigo, lifecycle.reason);
-        }
+      const countersStartedAt = Date.now();
+      await this.updateSyncRunCounters(context.syncRunId);
+      this.logger.log(
+        JSON.stringify({
+          event: 'mercado_publico_v2_stage_timing',
+          syncRunId: context.syncRunId,
+          stage: 'hydration',
+          records: items.length,
+          batchDurationMs: Date.now() - batchStartedAt,
+          countersDurationMs: Date.now() - countersStartedAt,
+          throughputRecordsPerSecond:
+            items.length /
+            Math.max((Date.now() - batchStartedAt) / 1000, 0.001),
+        }),
+      );
+    }
+  }
 
-        await this.updateSyncRunCounters(context.syncRunId);
-      }
+  private async getRateLimitRetryAt(retryAfterSeconds?: number): Promise<Date> {
+    if (retryAfterSeconds !== undefined) {
+      return new Date(Date.now() + retryAfterSeconds * 1000);
+    }
+
+    return (
+      (await this.readQuotaResetAt()) ??
+      getNextQuotaResetAt(
+        this.mercadoPublicoConfigService.getSettings().quotaTimezone,
+      )
+    );
+  }
+
+  private async withApiRequest<T>(request: () => Promise<T>): Promise<T> {
+    if (this.activeApiRequests >= HYDRATION_CONCURRENCY) {
+      await new Promise<void>((resolve) => {
+        this.apiRequestWaiters.push(resolve);
+      });
+    }
+
+    this.activeApiRequests += 1;
+
+    try {
+      return await request();
+    } finally {
+      this.activeApiRequests -= 1;
+      this.apiRequestWaiters.shift()?.();
     }
   }
 
@@ -1357,7 +1479,6 @@ export class MercadoPublicoV2DurableSyncService {
         ? this.mercadoPublicoConfigService.getSettings().httpRetryBackoffMs
         : retryAfterSeconds * 1000;
 
-    // ponytail: serial requests protect provider quota; use delayed jobs if queue latency breaches SLO.
     await sleep(delayMs);
   }
 
@@ -1370,6 +1491,8 @@ export class MercadoPublicoV2DurableSyncService {
             observation_id = observation.id,
             error_stage = NULL,
             error_summary = NULL,
+            failure_class = NULL,
+            next_retry_at = NULL,
             updated_at = now()
         FROM mp.compra_agil current
         INNER JOIN mp.v2_observation observation
@@ -1454,6 +1577,8 @@ export class MercadoPublicoV2DurableSyncService {
             observation_id = $4,
             error_stage = NULL,
             error_summary = NULL,
+            failure_class = NULL,
+            next_retry_at = NULL,
             hydrated_at = now(),
             updated_at = now()
         WHERE id = $1
@@ -1472,6 +1597,7 @@ export class MercadoPublicoV2DurableSyncService {
     errorSummary: string,
     errorStage: 'hydrating' | 'projecting',
     rawApiPayloadId?: string,
+    nextRetryAt?: Date | null,
   ): Promise<void> {
     await this.coreDataSource.query(
       `
@@ -1480,10 +1606,19 @@ export class MercadoPublicoV2DurableSyncService {
             error_stage = $2,
             error_summary = $3,
             raw_api_payload_id = COALESCE($4, raw_api_payload_id),
+            failure_class = 'retryable_failed',
+            retry_count = retry_count + 1,
+            next_retry_at = $5,
             updated_at = now()
         WHERE id = $1
       `,
-      [itemId, errorStage, errorSummary, rawApiPayloadId ?? null],
+      [
+        itemId,
+        errorStage,
+        errorSummary,
+        rawApiPayloadId ?? null,
+        nextRetryAt ?? null,
+      ],
     );
   }
 
@@ -1504,20 +1639,41 @@ export class MercadoPublicoV2DurableSyncService {
     itemId: string,
     errorSummary: string,
     rawApiPayloadId?: string,
+    nextRetryAt?: Date | null,
+    failureClass = 'retryable_failed',
   ): Promise<void> {
     await this.setItemTerminalStatus(
       itemId,
       'deferred',
       errorSummary,
       rawApiPayloadId,
+      nextRetryAt,
+      failureClass,
+    );
+  }
+
+  private async markItemDeadLetter(
+    itemId: string,
+    errorSummary: string,
+    rawApiPayloadId?: string,
+  ): Promise<void> {
+    await this.setItemTerminalStatus(
+      itemId,
+      'dead_letter',
+      errorSummary,
+      rawApiPayloadId,
+      null,
+      'retryable_failed',
     );
   }
 
   private async setItemTerminalStatus(
     itemId: string,
-    status: 'failed' | 'deferred',
+    status: 'failed' | 'deferred' | 'dead_letter',
     errorSummary: string,
     rawApiPayloadId?: string,
+    nextRetryAt?: Date | null,
+    failureClass?: string,
   ): Promise<void> {
     await this.coreDataSource.query(
       `
@@ -1526,10 +1682,23 @@ export class MercadoPublicoV2DurableSyncService {
             error_stage = 'hydrating',
             error_summary = $3,
             raw_api_payload_id = COALESCE($4, raw_api_payload_id),
+            next_retry_at = $5,
+            failure_class = $6,
+            attempts = CASE
+              WHEN $6 = 'rate_limit' THEN GREATEST(attempts - 1, 0)
+              ELSE attempts
+            END,
             updated_at = now()
         WHERE id = $1
       `,
-      [itemId, status, errorSummary, rawApiPayloadId ?? null],
+      [
+        itemId,
+        status,
+        errorSummary,
+        rawApiPayloadId ?? null,
+        nextRetryAt ?? null,
+        failureClass ?? (status === 'failed' ? 'permanent_failed' : null),
+      ],
     );
   }
 
@@ -1879,7 +2048,7 @@ export class MercadoPublicoV2DurableSyncService {
             records_failed = (
               SELECT COUNT(*) FROM mp.sync_run_item
               WHERE sync_run_id = $1
-                AND status = 'failed'
+                AND status IN ('failed', 'dead_letter')
             ),
             records_deferred = (
               SELECT COUNT(*) FROM mp.sync_run_item

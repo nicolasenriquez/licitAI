@@ -19,6 +19,7 @@ export const MERCADO_PUBLICO_API_V2_COMPRA_AGIL_DETAIL_BY_CODIGO_ENDPOINT =
 
 export const MERCADO_PUBLICO_V2_SYNC_COMMAND_JOB_NAME =
   'mercado-publico-v2-sync-command';
+export const MERCADO_PUBLICO_V2_MAX_NORMAL_RETRIES = 2;
 
 export const MERCADO_PUBLICO_ERROR_SUMMARIES = [
   'param_error',

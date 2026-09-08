@@ -292,7 +292,7 @@ export class MercadoPublicoV2E2EReadModelSeedCommand extends CommandRunner {
           VALUES ($1, $2, $2)
           ON CONFLICT (workspace_id, user_workspace_id) DO NOTHING
         `,
-        [SEED_APPLE_WORKSPACE_ID, USER_WORKSPACE_DATA_SEED_IDS.TIM],
+        [SEED_APPLE_WORKSPACE_ID, USER_WORKSPACE_DATA_SEED_IDS.PHIL],
       );
 
       const verificationRows = await entityManager.query<SeedVerificationRow[]>(
@@ -325,7 +325,7 @@ export class MercadoPublicoV2E2EReadModelSeedCommand extends CommandRunner {
           WHERE process_type = 'compra_agil'
             AND process_code LIKE 'FIXTURE-CA-%'
         `,
-        [SEED_APPLE_WORKSPACE_ID, USER_WORKSPACE_DATA_SEED_IDS.TIM],
+        [SEED_APPLE_WORKSPACE_ID, USER_WORKSPACE_DATA_SEED_IDS.PHIL],
       );
       const verification = verificationRows[0];
 

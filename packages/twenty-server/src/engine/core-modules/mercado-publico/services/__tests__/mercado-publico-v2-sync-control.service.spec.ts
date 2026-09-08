@@ -87,7 +87,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
         { endpoint: '/compra-agil', httpStatus: 429, retryable: true },
       ],
     });
-    expect(query.mock.calls[0][0]).not.toContain('error_summary');
+    expect(query.mock.calls[0][0]).toContain('failure_class');
     expect(query.mock.calls[1][0]).toContain('core."userWorkspace"');
     expect(query.mock.calls[1][0]).toContain(
       'concat_ws(\' \', u."firstName", u."lastName")',
@@ -125,8 +125,14 @@ describe('MercadoPublicoV2SyncControlService', () => {
         safeSummary: null,
       }),
     ]);
-    expect(query.mock.calls[0][0]).toContain('id <> COALESCE');
-    expect(query.mock.calls[0][1]).toEqual(['workspace-1', 10]);
+    expect(query.mock.calls[0][0]).toContain(
+      'run.id IS DISTINCT FROM (SELECT id FROM latest_run)',
+    );
+    expect(query.mock.calls[0][1]).toEqual([
+      'workspace-1',
+      'api-v2-compra-agil',
+      10,
+    ]);
   });
 
   it('rejects resume for a discovery-incomplete cancellation', async () => {
@@ -256,7 +262,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       sql.includes('INSERT INTO mp.sync_run ('),
     );
 
-    const storedParams = JSON.parse(runInsert?.[1][1] as string) as Record<
+    const storedParams = JSON.parse(runInsert?.[1][3] as string) as Record<
       string,
       unknown
     >;
@@ -292,7 +298,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
       sql.includes('INSERT INTO mp.sync_run ('),
     );
 
-    const storedParams = JSON.parse(runInsert?.[1][1] as string) as Record<
+    const storedParams = JSON.parse(runInsert?.[1][3] as string) as Record<
       string,
       unknown
     >;
@@ -303,7 +309,7 @@ describe('MercadoPublicoV2SyncControlService', () => {
     });
     expect(storedParams).not.toHaveProperty('max_pages');
     expect(storedParams.cambio_desde).not.toBe(storedParams.cambio_hasta);
-    expect(runInsert?.[1][2]).toEqual(watermarkAt);
+    expect(runInsert?.[1][4]).toEqual(watermarkAt);
   });
 
   it('returns the saved result when an operator replays the same key and request', async () => {

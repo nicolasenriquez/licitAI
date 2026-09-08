@@ -5,7 +5,10 @@ import { MessageQueue } from 'src/engine/core-modules/message-queue/message-queu
 import { MessageQueueService } from 'src/engine/core-modules/message-queue/services/message-queue.service';
 import { Process } from 'src/engine/core-modules/message-queue/decorators/process.decorator';
 import { Processor } from 'src/engine/core-modules/message-queue/decorators/processor.decorator';
-import { MERCADO_PUBLICO_V2_SYNC_COMMAND_JOB_NAME } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
+import {
+  MERCADO_PUBLICO_V2_MAX_NORMAL_RETRIES,
+  MERCADO_PUBLICO_V2_SYNC_COMMAND_JOB_NAME,
+} from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
 import { MercadoPublicoV2SyncControlService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-sync-control.service';
 
@@ -31,7 +34,7 @@ export class MercadoPublicoV2SyncRecoveryCronJob {
     const settings = this.mercadoPublicoConfigService.getSettings();
     const staleHeartbeatMarginMs =
       (settings.httpTimeoutMs + settings.httpRetryBackoffMs) *
-        (settings.httpMaxRetries + 1) +
+        (MERCADO_PUBLICO_V2_MAX_NORMAL_RETRIES + 1) +
       RECOVERY_SAFETY_MARGIN_MS;
     const commandIds =
       await this.mercadoPublicoV2SyncControlService.recoverDispatches(
@@ -43,7 +46,7 @@ export class MercadoPublicoV2SyncRecoveryCronJob {
         MERCADO_PUBLICO_V2_SYNC_COMMAND_JOB_NAME,
         { commandId },
         {
-          retryLimit: settings.httpMaxRetries,
+          retryLimit: MERCADO_PUBLICO_V2_MAX_NORMAL_RETRIES,
           backoff: {
             type: 'fixed',
             delay: settings.httpRetryBackoffMs,

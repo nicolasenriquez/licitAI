@@ -141,7 +141,9 @@ test.describe('Mercado Publico V2 sync control for operators @operator', () => {
     await expect(
       page
         .getByRole('dialog')
-        .getByText('¿Confirmas iniciar una sincronización global incremental?'),
+        .getByText(
+          '¿Confirmas iniciar una actualización de cambios nuevos y actualizados?',
+        ),
     ).toBeVisible();
 
     await page

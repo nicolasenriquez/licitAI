@@ -44,8 +44,12 @@ describe('classifyFailure', () => {
     expect(classifyFailure(createAxiosError(429))).toBe('retryable_failed');
   });
 
-  it('should classify 500 as retryable_failed', () => {
-    expect(classifyFailure(createAxiosError(500))).toBe('retryable_failed');
+  it('should classify 500 as hard_fail', () => {
+    expect(classifyFailure(createAxiosError(500))).toBe('hard_fail');
+  });
+
+  it('should classify 502 as retryable_failed', () => {
+    expect(classifyFailure(createAxiosError(502))).toBe('retryable_failed');
   });
 
   it('should classify 503 as retryable_failed', () => {

@@ -206,9 +206,20 @@ describe('MercadoPublicoApiV2CompraAgilClientService', () => {
       expect(result.compraAgil).toHaveLength(0);
     });
 
-    it('should classify 500 as retryable_failed', async () => {
+    it('should classify 500 as hard_fail', async () => {
       mockHttpClient.get.mockResolvedValue({
         status: 500,
+        data: {},
+      });
+
+      const result = await service.getList({});
+
+      expect(result.errorSummary).toBe('hard_fail');
+    });
+
+    it('should classify 502 as retryable_failed', async () => {
+      mockHttpClient.get.mockResolvedValue({
+        status: 502,
         data: {},
       });
 

@@ -37,14 +37,23 @@ const mockedUseQuery = useQuery as unknown as jest.Mock;
 const makeRun = (
   overrides: Partial<{
     runId: string;
+    mode: 'incremental' | 'backfill';
+    scope: string;
     safeStatus: string;
     safeSummary: string | null;
     canResume: boolean;
     recordsDiscovered: number;
     recordsHydrated: number;
     recordsDeferred: number;
+    recordsRetryable: number;
+    recordsPermanentFailed: number;
     recordsFailed: number;
     recordsProjected: number;
+    nextRetryAt: string | null;
+    quotaResetAt: string | null;
+    canRetryFailedItems: boolean;
+    monitoringHealth: string;
+    dataFreshness: string;
     discoveryComplete: boolean;
     startedAt: string;
     updatedAt: string;
@@ -66,14 +75,23 @@ const makeRun = (
   }> = {},
 ) => ({
   runId: '8f2b91aa-0000-4000-8000-000000000000',
+  mode: 'incremental',
+  scope: 'global',
   safeStatus: 'hydrating',
   safeSummary: null,
   canResume: false,
   recordsDiscovered: 842,
   recordsHydrated: 537,
   recordsDeferred: 3,
+  recordsRetryable: 3,
+  recordsPermanentFailed: 0,
   recordsFailed: 0,
   recordsProjected: 421,
+  nextRetryAt: null,
+  quotaResetAt: null,
+  canRetryFailedItems: false,
+  monitoringHealth: 'fresh',
+  dataFreshness: 'partial',
   discoveryComplete: true,
   startedAt: '2026-08-28T18:42:00.000Z',
   updatedAt: '2026-08-28T18:44:00.000Z',
@@ -182,6 +200,7 @@ describe('MercadoPublicoV2RefreshControl', () => {
     expect(input).toEqual({
       idempotencyKey: expect.any(String),
       confirmed: true,
+      mode: 'incremental',
     });
     expect(input).not.toHaveProperty('maxPages');
   });
@@ -204,6 +223,7 @@ describe('MercadoPublicoV2RefreshControl', () => {
     expect(mockStartSync.mock.calls[0][0].variables.input).toEqual({
       idempotencyKey: expect.any(String),
       confirmed: true,
+      mode: 'incremental',
       maxPages: 10,
     });
   });

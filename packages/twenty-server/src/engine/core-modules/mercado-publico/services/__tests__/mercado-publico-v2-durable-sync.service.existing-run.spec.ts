@@ -138,6 +138,19 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
             : [],
         );
       }
+      if (
+        sql.includes('RETURNING id, codigo, attempts, status, max_attempts')
+      ) {
+        return Promise.resolve([
+          {
+            id: 'item-1',
+            codigo: 'FIXTURE-CA-001',
+            attempts: 1,
+            status: 'processing',
+            max_attempts: 3,
+          },
+        ]);
+      }
       if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
         return Promise.resolve([runRow]);
       }
@@ -723,6 +736,19 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
             : [],
         );
       }
+      if (
+        sql.includes('RETURNING id, codigo, attempts, status, max_attempts')
+      ) {
+        return Promise.resolve([
+          {
+            id: 'item-1',
+            codigo: 'FIXTURE-CA-001',
+            attempts: 1,
+            status: 'processing',
+            max_attempts: 3,
+          },
+        ]);
+      }
       if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
         return Promise.resolve([
           buildRunRow({ error_stage: 'hydrating', status: 'partial_failed' }),
@@ -871,6 +897,25 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
             : [],
         );
       }
+      if (
+        sql.includes('RETURNING id, codigo, attempts, status, max_attempts')
+      ) {
+        const attempts = pendingItemReads;
+
+        return Promise.resolve(
+          attempts <= 4
+            ? [
+                {
+                  id: 'item-1',
+                  codigo: 'FIXTURE-CA-001',
+                  attempts,
+                  status: 'processing',
+                  max_attempts: 3,
+                },
+              ]
+            : [],
+        );
+      }
       if (sql.includes('SELECT') && sql.includes('FROM mp.sync_run')) {
         return Promise.resolve([
           buildRunRow({ error_stage: 'hydrating', status: 'partial_failed' }),
@@ -906,11 +951,18 @@ describe('MercadoPublicoV2DurableSyncService existing-run execution', () => {
     expect(getByCodigo).toHaveBeenCalledTimes(4);
     expect(query).toHaveBeenCalledWith(
       expect.stringContaining("SET status = 'pending'"),
-      ['item-1', 'hydrating', 'retryable_failed', 'raw-payload-1'],
+      ['item-1', 'hydrating', 'retryable_failed', 'raw-payload-1', null],
     );
     expect(query).toHaveBeenCalledWith(
       expect.stringContaining('SET status = $2'),
-      ['item-1', 'deferred', 'retryable_failed', 'raw-payload-1'],
+      [
+        'item-1',
+        'dead_letter',
+        'retryable_failed',
+        'raw-payload-1',
+        null,
+        'retryable_failed',
+      ],
     );
   });
 

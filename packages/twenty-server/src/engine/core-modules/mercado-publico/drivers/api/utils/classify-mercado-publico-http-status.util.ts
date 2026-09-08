@@ -17,7 +17,7 @@ export const classifyMercadoPublicoHttpStatus = (
 
   if (
     httpStatus === 429 ||
-    httpStatus === 500 ||
+    httpStatus === 502 ||
     httpStatus === 503 ||
     httpStatus === 504
   ) {

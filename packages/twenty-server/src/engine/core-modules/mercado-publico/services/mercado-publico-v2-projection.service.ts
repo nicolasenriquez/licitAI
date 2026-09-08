@@ -710,14 +710,16 @@ export class MercadoPublicoV2ProjectionService {
     const appendArray = <Element>(
       arrayName: string,
       elements: Element[] | undefined,
-      providerKeyFor: (element: Element) => string | null,
+      providerKeyFor: (element: Element, ordinal: number) => string | null,
     ): void => {
       if (!Array.isArray(elements)) {
         return;
       }
 
       for (const element of elements) {
-        appendChild(arrayName, element, providerKeyFor(element));
+        const ordinal = nextOrdinalByArray.get(arrayName) ?? 0;
+
+        appendChild(arrayName, element, providerKeyFor(element, ordinal));
       }
     };
 
@@ -732,7 +734,9 @@ export class MercadoPublicoV2ProjectionService {
     appendArray(
       'proveedores_cotizando',
       record.proveedores_cotizando,
-      (provider) => coerceToNullableString(provider.id_cotizacion),
+      (provider, providerOrdinal) =>
+        coerceToNullableString(provider.id_cotizacion) ??
+        String(providerOrdinal),
     );
 
     if (Array.isArray(record.proveedores_cotizando)) {
@@ -747,6 +751,7 @@ export class MercadoPublicoV2ProjectionService {
         const providerIdentifier = coerceToNullableString(
           provider.id_cotizacion,
         );
+        const providerKey = providerIdentifier ?? String(providerOrdinal);
 
         for (const [
           productOrdinal,
@@ -755,7 +760,7 @@ export class MercadoPublicoV2ProjectionService {
           const productIdentifier = coerceToNullableString(
             product.codigo_producto,
           );
-          const nestedKey = `${providerIdentifier ?? providerOrdinal}:${productIdentifier ?? productOrdinal}`;
+          const nestedKey = `${providerKey}:${productIdentifier ?? productOrdinal}`;
 
           appendChild('productos_cotizados', product, nestedKey);
         }

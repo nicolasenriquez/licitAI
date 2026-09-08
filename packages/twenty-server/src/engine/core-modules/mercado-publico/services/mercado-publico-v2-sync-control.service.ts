@@ -11,6 +11,7 @@ import { MessageQueue } from 'src/engine/core-modules/message-queue/message-queu
 import { MessageQueueService } from 'src/engine/core-modules/message-queue/services/message-queue.service';
 import {
   MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
+  MERCADO_PUBLICO_V2_MAX_NORMAL_RETRIES,
   MERCADO_PUBLICO_V2_SYNC_COMMAND_JOB_NAME,
 } from 'src/engine/core-modules/mercado-publico/mercado-publico.constants';
 import { MercadoPublicoConfigService } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-config.service';
@@ -18,8 +19,13 @@ import {
   MercadoPublicoV2DurableSyncService,
   buildCompraAgilRequestParams,
 } from 'src/engine/core-modules/mercado-publico/services/mercado-publico-v2-durable-sync.service';
+import { normalizeMercadoPublicoV2SyncInput } from 'src/engine/core-modules/mercado-publico/services/utils/normalize-mercado-publico-v2-sync-input.util';
 
-export type MercadoPublicoV2SyncControlAction = 'start' | 'resume' | 'cancel';
+export type MercadoPublicoV2SyncControlAction =
+  | 'start'
+  | 'resume'
+  | 'cancel'
+  | 'retry_failed';
 
 export type MercadoPublicoV2ClaimCommandResult =
   | {
@@ -44,6 +50,10 @@ export type MercadoPublicoV2SubmitCommandInput = {
   idempotencyKey: string;
   confirmed?: boolean;
   maxPages?: number;
+  mode?: string;
+  publishedFrom?: string;
+  publishedTo?: string;
+  status?: string;
 };
 
 export type MercadoPublicoV2SubmitCommandResult = {
@@ -53,6 +63,8 @@ export type MercadoPublicoV2SubmitCommandResult = {
 
 export type MercadoPublicoV2LatestRun = {
   runId: string;
+  mode: 'incremental' | 'backfill';
+  scope: string;
   safeStatus: string;
   safeSummary: string | null;
   canResume: boolean;
@@ -60,7 +72,14 @@ export type MercadoPublicoV2LatestRun = {
   recordsHydrated: number;
   recordsFailed: number;
   recordsDeferred: number;
+  recordsRetryable: number;
+  recordsPermanentFailed: number;
   recordsProjected: number;
+  nextRetryAt: Date | null;
+  quotaResetAt: Date | null;
+  canRetryFailedItems: boolean;
+  monitoringHealth: 'fresh' | 'stale' | 'unavailable';
+  dataFreshness: 'current' | 'partial' | 'unknown';
   discoveryComplete: boolean;
   completionReason: string | null;
   startedAt: Date | null;
@@ -84,13 +103,22 @@ export type MercadoPublicoV2LatestRun = {
 export type MercadoPublicoV2SyncRunSummary = Pick<
   MercadoPublicoV2LatestRun,
   | 'runId'
+  | 'mode'
+  | 'scope'
   | 'safeStatus'
   | 'safeSummary'
   | 'recordsDiscovered'
   | 'recordsHydrated'
   | 'recordsFailed'
   | 'recordsDeferred'
+  | 'recordsRetryable'
+  | 'recordsPermanentFailed'
   | 'recordsProjected'
+  | 'nextRetryAt'
+  | 'quotaResetAt'
+  | 'canRetryFailedItems'
+  | 'monitoringHealth'
+  | 'dataFreshness'
   | 'completionReason'
   | 'startedAt'
   | 'updatedAt'
@@ -155,14 +183,34 @@ const getMaxPages = (value: number | undefined): number | undefined => {
 export const buildMercadoPublicoV2SyncCommandFingerprint = (
   input: Pick<
     MercadoPublicoV2SubmitCommandInput,
-    'action' | 'confirmed' | 'maxPages'
+    | 'action'
+    | 'confirmed'
+    | 'maxPages'
+    | 'mode'
+    | 'publishedFrom'
+    | 'publishedTo'
+    | 'status'
   >,
-): string =>
-  JSON.stringify({
+): string => {
+  const normalized =
+    input.action === 'start'
+      ? normalizeMercadoPublicoV2SyncInput(input)
+      : undefined;
+
+  return JSON.stringify({
     action: input.action,
-    confirmed: input.action === 'resume' ? undefined : input.confirmed,
+    confirmed:
+      input.action === 'resume' || input.action === 'retry_failed'
+        ? undefined
+        : input.confirmed,
     maxPages: input.action === 'start' ? input.maxPages : undefined,
+    mode: normalized?.mode,
+    scope: normalized?.scope,
+    publishedFrom: normalized?.publishedFrom,
+    publishedTo: normalized?.publishedTo,
+    status: normalized?.status,
   });
+};
 
 @Injectable()
 export class MercadoPublicoV2SyncControlService {
@@ -206,7 +254,10 @@ export class MercadoPublicoV2SyncControlService {
       );
     }
 
-    if (input.action !== 'resume' && input.confirmed !== true) {
+    if (
+      (input.action === 'start' || input.action === 'cancel') &&
+      input.confirmed !== true
+    ) {
       throw new Error(
         'Confirmation required for Mercado Publico V2 start and cancel commands',
       );
@@ -214,6 +265,7 @@ export class MercadoPublicoV2SyncControlService {
 
     if (input.action === 'start') {
       getMaxPages(input.maxPages);
+      normalizeMercadoPublicoV2SyncInput(input);
     }
 
     const fingerprint = buildMercadoPublicoV2SyncCommandFingerprint(input);
@@ -276,13 +328,21 @@ export class MercadoPublicoV2SyncControlService {
             ? await this.createRunOrReuse(entityManager, input, commandId)
             : input.action === 'cancel'
               ? await this.requestCancellation(entityManager, input, commandId)
-              : {
-                  state: 'queued' as const,
-                  syncRunId: await this.assertResumableRun(
-                    entityManager,
-                    input,
-                  ),
-                };
+              : input.action === 'retry_failed'
+                ? {
+                    state: 'queued' as const,
+                    syncRunId: await this.assertRetryFailedRun(
+                      entityManager,
+                      input,
+                    ),
+                  }
+                : {
+                    state: 'queued' as const,
+                    syncRunId: await this.assertResumableRun(
+                      entityManager,
+                      input,
+                    ),
+                  };
 
         await entityManager.query(
           `
@@ -427,8 +487,10 @@ export class MercadoPublicoV2SyncControlService {
       | 'cancelled';
     errorSummary?: string;
   }): Promise<void> {
-    const retryLimit =
-      this.mercadoPublicoConfigService.getSettings().httpMaxRetries;
+    const retryLimit = Math.min(
+      this.mercadoPublicoConfigService.getSettings().httpMaxRetries,
+      MERCADO_PUBLICO_V2_MAX_NORMAL_RETRIES,
+    );
     const canRetry =
       status === 'retryable_failed' && attemptNumber <= retryLimit;
     const commandState = canRetry
@@ -673,7 +735,13 @@ export class MercadoPublicoV2SyncControlService {
         SELECT id, codigo
         FROM mp.sync_run_item
         WHERE status = 'deferred'
-          AND updated_at <= now() - make_interval(secs => pow(2, LEAST(attempts, 12)) * $1)
+          AND (
+            next_retry_at <= now()
+            OR (
+              next_retry_at IS NULL
+              AND updated_at <= now() - make_interval(secs => pow(2, LEAST(attempts, 12)) * $1)
+            )
+          )
           AND NOT EXISTS (
             SELECT 1
             FROM mp.compra_agil current
@@ -697,7 +765,13 @@ export class MercadoPublicoV2SyncControlService {
           SET attempts = attempts + 1, updated_at = now()
           WHERE id = $1
             AND status = 'deferred'
-            AND updated_at <= now() - make_interval(secs => pow(2, LEAST(attempts, 12)) * $2)
+            AND (
+              next_retry_at <= now()
+              OR (
+                next_retry_at IS NULL
+                AND updated_at <= now() - make_interval(secs => pow(2, LEAST(attempts, 12)) * $2)
+              )
+            )
           RETURNING codigo
         `,
         [row.id, baseBackoffSeconds],
@@ -740,6 +814,8 @@ export class MercadoPublicoV2SyncControlService {
               observation_id = recovered.observation_id,
               error_stage = NULL,
               error_summary = NULL,
+              failure_class = NULL,
+              next_retry_at = NULL,
               hydrated_at = recovered.hydrated_at,
               updated_at = now()
           FROM mp.sync_run_item recovered
@@ -810,7 +886,7 @@ export class MercadoPublicoV2SyncControlService {
             SELECT
               COUNT(*) FILTER (WHERE hydrated_at IS NOT NULL)::integer
                 AS records_hydrated,
-              COUNT(*) FILTER (WHERE status = 'failed')::integer
+              COUNT(*) FILTER (WHERE status IN ('failed', 'dead_letter'))::integer
                 AS records_failed,
               COUNT(*) FILTER (WHERE status = 'deferred')::integer
                 AS records_deferred,
@@ -832,13 +908,20 @@ export class MercadoPublicoV2SyncControlService {
     const rows = await this.coreDataSource.query<
       {
         id: string;
+        intent: string;
+        scope: string;
         status: string;
         error_stage: string | null;
         records_discovered: string | null;
         records_hydrated: string | null;
         records_failed: string | null;
         records_deferred: string | null;
+        records_retryable: string | null;
+        records_permanent_failed: string | null;
         records_projected: string | null;
+        next_retry_at: Date | null;
+        quota_reset_at: Date | null;
+        can_retry_failed_items: boolean;
         discovery_complete: boolean;
         completion_reason: string | null;
         created_at: Date | null;
@@ -846,15 +929,54 @@ export class MercadoPublicoV2SyncControlService {
       }[]
     >(
       `
-        SELECT id, status, error_stage, records_discovered, records_hydrated,
-               records_failed, records_deferred, records_projected,
-               discovery_complete, completion_reason, created_at, updated_at
-        FROM mp.sync_run
-        WHERE control_workspace_id = $1
-        ORDER BY created_at DESC
+        SELECT run.id, run.intent, run.scope, run.status, run.error_stage,
+               run.records_discovered, run.records_hydrated,
+               run.records_failed, run.records_deferred, run.records_projected,
+               discovery_complete, completion_reason, run.created_at, run.updated_at,
+               (
+                 SELECT MIN(item.next_retry_at)
+                 FROM mp.sync_run_item item
+                 WHERE item.sync_run_id = run.id AND item.status = 'deferred'
+               ) AS next_retry_at,
+               (
+                 SELECT COUNT(*)
+                 FROM mp.sync_run_item item
+                 WHERE item.sync_run_id = run.id
+                   AND item.status IN ('failed', 'deferred', 'dead_letter')
+                   AND (
+                     item.failure_class IN ('retryable_failed', 'rate_limit')
+                     OR item.error_summary LIKE 'retryable_failed%'
+                   )
+               ) AS records_retryable,
+               (
+                 SELECT COUNT(*)
+                 FROM mp.sync_run_item item
+                 WHERE item.sync_run_id = run.id
+                   AND item.status IN ('failed', 'dead_letter')
+                   AND NOT (
+                     COALESCE(item.failure_class, '') IN ('retryable_failed', 'rate_limit')
+                     OR COALESCE(item.error_summary, '') LIKE 'retryable_failed%'
+                   )
+               ) AS records_permanent_failed,
+               EXISTS (
+                 SELECT 1
+                 FROM mp.sync_run_item item
+                 WHERE item.sync_run_id = run.id
+                   AND item.status IN ('failed', 'deferred', 'dead_letter')
+                   AND (
+                     item.failure_class IN ('retryable_failed', 'rate_limit')
+                     OR item.error_summary LIKE 'retryable_failed%'
+                   )
+               ) AS can_retry_failed_items,
+               quota.reset_at AS quota_reset_at
+        FROM mp.sync_run run
+        LEFT JOIN mp.gold_api_quota_usage quota
+          ON quota.source = $2
+        WHERE run.control_workspace_id = $1
+        ORDER BY run.created_at DESC
         LIMIT 1
       `,
-      [workspaceId],
+      [workspaceId, MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE],
     );
     const row = rows[0];
 
@@ -906,6 +1028,8 @@ export class MercadoPublicoV2SyncControlService {
 
     return {
       runId: row.id,
+      mode: row.intent === 'backfill' ? 'backfill' : 'incremental',
+      scope: row.scope,
       safeStatus: row.status,
       safeSummary: getMercadoPublicoV2SyncSafeSummary(
         row.status,
@@ -919,7 +1043,19 @@ export class MercadoPublicoV2SyncControlService {
       recordsHydrated: Number(row.records_hydrated ?? 0),
       recordsFailed: Number(row.records_failed ?? 0),
       recordsDeferred: Number(row.records_deferred ?? 0),
+      recordsRetryable: Number(row.records_retryable ?? 0),
+      recordsPermanentFailed: Number(row.records_permanent_failed ?? 0),
       recordsProjected: Number(row.records_projected ?? 0),
+      nextRetryAt: row.next_retry_at,
+      quotaResetAt: row.quota_reset_at,
+      canRetryFailedItems: row.can_retry_failed_items,
+      monitoringHealth: 'fresh',
+      dataFreshness:
+        row.status === 'succeeded'
+          ? 'current'
+          : row.status === 'partial_failed'
+            ? 'partial'
+            : 'unknown',
       discoveryComplete: row.discovery_complete,
       completionReason: row.completion_reason,
       startedAt: row.created_at,
@@ -949,13 +1085,20 @@ export class MercadoPublicoV2SyncControlService {
     const rows = await this.coreDataSource.query<
       {
         id: string;
+        intent: string;
+        scope: string;
         status: string;
         error_stage: string | null;
         records_discovered: string | null;
         records_hydrated: string | null;
         records_failed: string | null;
         records_deferred: string | null;
+        records_retryable: string | null;
+        records_permanent_failed: string | null;
         records_projected: string | null;
+        next_retry_at: Date | null;
+        quota_reset_at: Date | null;
+        can_retry_failed_items: boolean;
         completion_reason: string | null;
         created_at: Date | null;
         updated_at: Date | null;
@@ -969,20 +1112,61 @@ export class MercadoPublicoV2SyncControlService {
           ORDER BY created_at DESC
           LIMIT 1
         )
-        SELECT id, status, error_stage, records_discovered, records_hydrated,
-               records_failed, records_deferred, records_projected,
-               completion_reason, created_at, updated_at
-        FROM mp.sync_run
-        WHERE control_workspace_id = $1
-          AND id <> COALESCE((SELECT id FROM latest_run), '')
-        ORDER BY created_at DESC
-        LIMIT $2
+        SELECT run.id, run.intent, run.scope, run.status, run.error_stage,
+               run.records_discovered, run.records_hydrated,
+               run.records_failed, run.records_deferred, run.records_projected,
+               completion_reason, run.created_at, run.updated_at,
+               (
+                 SELECT MIN(item.next_retry_at)
+                 FROM mp.sync_run_item item
+                 WHERE item.sync_run_id = run.id AND item.status = 'deferred'
+               ) AS next_retry_at,
+               (
+                 SELECT COUNT(*)
+                 FROM mp.sync_run_item item
+                 WHERE item.sync_run_id = run.id
+                   AND item.status IN ('failed', 'deferred', 'dead_letter')
+                   AND (
+                     item.failure_class IN ('retryable_failed', 'rate_limit')
+                     OR item.error_summary LIKE 'retryable_failed%'
+                   )
+               ) AS records_retryable,
+               (
+                 SELECT COUNT(*)
+                 FROM mp.sync_run_item item
+                 WHERE item.sync_run_id = run.id
+                   AND item.status IN ('failed', 'dead_letter')
+                   AND NOT (
+                     COALESCE(item.failure_class, '') IN ('retryable_failed', 'rate_limit')
+                     OR COALESCE(item.error_summary, '') LIKE 'retryable_failed%'
+                   )
+               ) AS records_permanent_failed,
+               EXISTS (
+                 SELECT 1
+                 FROM mp.sync_run_item item
+                 WHERE item.sync_run_id = run.id
+                   AND item.status IN ('failed', 'deferred', 'dead_letter')
+                   AND (
+                     item.failure_class IN ('retryable_failed', 'rate_limit')
+                     OR item.error_summary LIKE 'retryable_failed%'
+                   )
+               ) AS can_retry_failed_items,
+               quota.reset_at AS quota_reset_at
+        FROM mp.sync_run run
+        LEFT JOIN mp.gold_api_quota_usage quota
+          ON quota.source = $2
+        WHERE run.control_workspace_id = $1
+          AND run.id IS DISTINCT FROM (SELECT id FROM latest_run)
+        ORDER BY run.created_at DESC
+        LIMIT $3
       `,
-      [workspaceId, limit],
+      [workspaceId, MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE, limit],
     );
 
     return rows.map((row) => ({
       runId: row.id,
+      mode: row.intent === 'backfill' ? 'backfill' : 'incremental',
+      scope: row.scope,
       safeStatus: row.status,
       safeSummary: getMercadoPublicoV2SyncSafeSummary(
         row.status,
@@ -992,7 +1176,19 @@ export class MercadoPublicoV2SyncControlService {
       recordsHydrated: Number(row.records_hydrated ?? 0),
       recordsFailed: Number(row.records_failed ?? 0),
       recordsDeferred: Number(row.records_deferred ?? 0),
+      recordsRetryable: Number(row.records_retryable ?? 0),
+      recordsPermanentFailed: Number(row.records_permanent_failed ?? 0),
       recordsProjected: Number(row.records_projected ?? 0),
+      nextRetryAt: row.next_retry_at,
+      quotaResetAt: row.quota_reset_at,
+      canRetryFailedItems: row.can_retry_failed_items,
+      monitoringHealth: 'fresh' as const,
+      dataFreshness:
+        row.status === 'succeeded'
+          ? ('current' as const)
+          : row.status === 'partial_failed'
+            ? ('partial' as const)
+            : ('unknown' as const),
       completionReason: row.completion_reason,
       startedAt: row.created_at,
       updatedAt: row.updated_at,
@@ -1055,6 +1251,75 @@ export class MercadoPublicoV2SyncControlService {
     return rows[0].id;
   }
 
+  private async assertRetryFailedRun(
+    entityManager: EntityManager,
+    input: MercadoPublicoV2SubmitCommandInput,
+  ): Promise<string> {
+    const rows = await entityManager.query<{ id: string }[]>(
+      `
+        SELECT id
+        FROM mp.sync_run
+        WHERE control_workspace_id = $1
+          AND status IN ('partial_failed', 'succeeded')
+          AND EXISTS (
+            SELECT 1
+            FROM mp.sync_run_item item
+            WHERE item.sync_run_id = mp.sync_run.id
+              AND item.status IN ('failed', 'deferred', 'dead_letter')
+              AND (
+                item.failure_class IN ('retryable_failed', 'rate_limit')
+                OR item.error_summary LIKE 'retryable_failed%'
+              )
+          )
+        ORDER BY created_at DESC
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [input.workspaceId],
+    );
+
+    if (rows[0] === undefined) {
+      throw new ConflictException(
+        '409 Conflict: there are no failed Mercado Publico V2 items to retry',
+      );
+    }
+
+    await entityManager.query(
+      `
+        UPDATE mp.sync_run_item
+        SET status = 'pending',
+            attempts = 0,
+            next_retry_at = NULL,
+            error_stage = NULL,
+            error_summary = NULL,
+            updated_at = now()
+        WHERE sync_run_id = $1
+          AND status IN ('failed', 'deferred', 'dead_letter')
+          AND (
+            failure_class IN ('retryable_failed', 'rate_limit')
+            OR error_summary LIKE 'retryable_failed%'
+          )
+      `,
+      [rows[0].id],
+    );
+    await entityManager.query(
+      `
+        UPDATE mp.sync_run
+        SET status = 'hydrating',
+            cancellation_requested_at = NULL,
+            error_stage = NULL,
+            error_retryable = NULL,
+            error_summary = NULL,
+            finished_at = NULL,
+            updated_at = now()
+        WHERE id = $1
+      `,
+      [rows[0].id],
+    );
+
+    return rows[0].id;
+  }
+
   private async findCommand(
     entityManager: EntityManager,
     workspaceId: string,
@@ -1083,7 +1348,7 @@ export class MercadoPublicoV2SyncControlService {
           idempotency_key, workspace_id, actor_user_workspace_id, action,
           intent, scope, request_fingerprint, request_payload, state
         )
-        VALUES ($1, $2, $3, $4, 'incremental', 'global', $5, $6::jsonb, 'pending')
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, 'pending')
         ON CONFLICT ON CONSTRAINT uq_mp_sync_command_workspace_idempotency_key
         DO NOTHING
         RETURNING id
@@ -1093,6 +1358,10 @@ export class MercadoPublicoV2SyncControlService {
         input.workspaceId,
         input.actorUserWorkspaceId,
         input.action,
+        input.mode === 'backfill' ? 'backfill' : 'incremental',
+        input.action === 'start'
+          ? normalizeMercadoPublicoV2SyncInput(input).scope
+          : 'global',
         fingerprint,
         JSON.stringify(input),
       ],
@@ -1133,8 +1402,15 @@ export class MercadoPublicoV2SyncControlService {
     input: MercadoPublicoV2SubmitCommandInput,
     commandId: string,
   ): Promise<MercadoPublicoV2SubmitCommandResult> {
-    const watermarkBefore = await this.readWatermark(entityManager, 'global');
-    const requestParams = buildCompraAgilRequestParams({}, watermarkBefore);
+    const normalized = normalizeMercadoPublicoV2SyncInput(input);
+    const watermarkBefore =
+      normalized.mode === 'backfill'
+        ? null
+        : await this.readWatermark(entityManager, normalized.scope);
+    const requestParams = buildCompraAgilRequestParams(
+      normalized.requestPayload,
+      watermarkBefore,
+    );
     const maxPages = getMaxPages(input.maxPages);
     const rows = await entityManager.query<{ id: string }[]>(
       `
@@ -1142,13 +1418,16 @@ export class MercadoPublicoV2SyncControlService {
           intent, source, scope, status, request_params, watermark_before,
           control_workspace_id, control_user_workspace_id
         )
-        VALUES ('incremental', $1, 'global', 'queued', $2::jsonb, $3, $4, $5)
+        VALUES ($1, $2, $3, 'queued', $4::jsonb, $5, $6, $7)
         ON CONFLICT DO NOTHING
         RETURNING id
       `,
       [
+        normalized.mode,
         MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE,
+        normalized.scope,
         JSON.stringify({
+          ...normalized.requestPayload,
           ...requestParams,
           ...(maxPages === undefined ? {} : { max_pages: maxPages }),
         }),
@@ -1173,7 +1452,10 @@ export class MercadoPublicoV2SyncControlService {
       return { state: 'queued', syncRunId };
     }
 
-    const activeRun = await this.findActiveRun(entityManager);
+    const activeRun = await this.findActiveRun(
+      entityManager,
+      normalizeMercadoPublicoV2SyncInput(input).scope,
+    );
 
     if (activeRun === undefined) {
       throw new Error('Unable to load the active Mercado Publico V2 sync run');
@@ -1222,6 +1504,7 @@ export class MercadoPublicoV2SyncControlService {
 
   private async findActiveRun(
     entityManager: EntityManager,
+    scope = 'global',
   ): Promise<{ id: string; control_workspace_id: string } | undefined> {
     const rows = await entityManager.query<
       { id: string; control_workspace_id: string }[]
@@ -1230,14 +1513,14 @@ export class MercadoPublicoV2SyncControlService {
         SELECT id, control_workspace_id
         FROM mp.sync_run
         WHERE source = $1
-          AND scope = 'global'
+          AND scope = $2
           AND status IN (${MERCADO_PUBLICO_V2_SYNC_ACTIVE_RUN_STATUSES.map(
             (status) => `'${status}'`,
           ).join(', ')})
         ORDER BY created_at DESC
         LIMIT 1
       `,
-      [MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE],
+      [MERCADO_PUBLICO_API_V2_COMPRA_AGIL_SOURCE, scope],
     );
 
     return rows[0];
@@ -1329,8 +1612,7 @@ export class MercadoPublicoV2SyncControlService {
         MERCADO_PUBLICO_V2_SYNC_COMMAND_JOB_NAME,
         { commandId },
         {
-          retryLimit:
-            this.mercadoPublicoConfigService.getSettings().httpMaxRetries,
+          retryLimit: MERCADO_PUBLICO_V2_MAX_NORMAL_RETRIES,
           backoff: {
             type: 'fixed',
             delay:

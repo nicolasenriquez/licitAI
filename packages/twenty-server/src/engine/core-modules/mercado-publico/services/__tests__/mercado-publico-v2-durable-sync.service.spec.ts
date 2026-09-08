@@ -337,6 +337,17 @@ describe('MercadoPublicoV2DurableSyncService', () => {
             : [],
         );
       }
+      if (sql.includes('RETURNING id, codigo')) {
+        return Promise.resolve([
+          {
+            id: 'item-1',
+            codigo: 'FIXTURE-CA-001',
+            attempts: 1,
+            status: 'processing',
+            max_attempts: 3,
+          },
+        ]);
+      }
 
       return Promise.resolve([]);
     });
@@ -384,7 +395,14 @@ describe('MercadoPublicoV2DurableSyncService', () => {
     });
     expect(query).toHaveBeenCalledWith(
       expect.stringContaining('SET status = $2'),
-      ['item-1', 'failed', 'soft_miss', 'raw-empty-detail'],
+      [
+        'item-1',
+        'failed',
+        'soft_miss',
+        'raw-empty-detail',
+        null,
+        'permanent_failed',
+      ],
     );
     const failureUpdate = query.mock.calls.find(
       ([sql]) =>
@@ -459,6 +477,17 @@ describe('MercadoPublicoV2DurableSyncService', () => {
       if (sql.includes('SELECT cancellation_requested_at')) {
         return Promise.resolve([
           { cancellation_requested_at: new Date('2026-08-12T00:05:00Z') },
+        ]);
+      }
+      if (sql.includes('RETURNING id, codigo')) {
+        return Promise.resolve([
+          {
+            id: 'item-1',
+            codigo: 'FIXTURE-CA-001',
+            attempts: 1,
+            status: 'processing',
+            max_attempts: 3,
+          },
         ]);
       }
 
@@ -661,6 +690,17 @@ describe('MercadoPublicoV2DurableSyncService', () => {
       if (sql.includes('FROM mp.gold_api_quota_usage')) {
         return Promise.resolve([{ reset_at: resetAt }]);
       }
+      if (sql.includes('RETURNING id, codigo')) {
+        return Promise.resolve([
+          {
+            id: 'item-1',
+            codigo: 'FIXTURE-CA-001',
+            attempts: 1,
+            status: 'processing',
+            max_attempts: 3,
+          },
+        ]);
+      }
 
       return Promise.resolve([]);
     });
@@ -701,7 +741,7 @@ describe('MercadoPublicoV2DurableSyncService', () => {
           ) => Promise<unknown>;
         }
       ).hydrate({ syncRunId: 'sync-run-1' }, 'job-run-1'),
-    ).rejects.toMatchObject({ retryable: true, retryAt: resetAt });
+    ).resolves.toBe('completed');
 
     expect(persistV2CompraAgilSnapshot).toHaveBeenCalledWith(
       expect.objectContaining({ snapshotKind: 'detail' }),
@@ -726,6 +766,17 @@ describe('MercadoPublicoV2DurableSyncService', () => {
               ]
             : [],
         );
+      }
+      if (sql.includes('RETURNING id, codigo')) {
+        return Promise.resolve([
+          {
+            id: 'item-1',
+            codigo: 'FIXTURE-CA-001',
+            attempts: 1,
+            status: 'processing',
+            max_attempts: 3,
+          },
+        ]);
       }
 
       return Promise.resolve([]);
@@ -763,6 +814,7 @@ describe('MercadoPublicoV2DurableSyncService', () => {
       'item-1',
       'hydrating',
       'retryable_failed: detail request failed: ECONNABORTED',
+      null,
       null,
     ]);
 
@@ -807,6 +859,17 @@ describe('MercadoPublicoV2DurableSyncService', () => {
               ]
             : [],
         );
+      }
+      if (sql.includes('RETURNING id, codigo')) {
+        return Promise.resolve([
+          {
+            id: 'item-1',
+            codigo: 'FIXTURE-CA-001',
+            attempts: 1,
+            status: 'processing',
+            max_attempts: 3,
+          },
+        ]);
       }
 
       return Promise.resolve([]);

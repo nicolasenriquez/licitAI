@@ -36,13 +36,22 @@ const REFRESH_STATUS_QUERY = gql`
       latestRun {
         safeStatus
         runId
+        mode
+        scope
         safeSummary
         canResume
         recordsDiscovered
         recordsHydrated
         recordsDeferred
+        recordsRetryable
+        recordsPermanentFailed
         recordsFailed
         recordsProjected
+        nextRetryAt
+        quotaResetAt
+        canRetryFailedItems
+        monitoringHealth
+        dataFreshness
         discoveryComplete
         startedAt
         updatedAt
@@ -64,13 +73,22 @@ const REFRESH_STATUS_QUERY = gql`
       }
       history(limit: 10) {
         runId
+        mode
+        scope
         safeStatus
         safeSummary
         recordsDiscovered
         recordsHydrated
         recordsFailed
         recordsDeferred
+        recordsRetryable
+        recordsPermanentFailed
         recordsProjected
+        nextRetryAt
+        quotaResetAt
+        canRetryFailedItems
+        monitoringHealth
+        dataFreshness
         completionReason
         startedAt
         updatedAt
@@ -107,6 +125,18 @@ const CANCEL_SYNC_MUTATION = gql`
   ) {
     mercadoPublicoV2SyncControl {
       cancel(input: $input) {
+        state
+      }
+    }
+  }
+`;
+
+const RETRY_FAILED_SYNC_MUTATION = gql`
+  mutation MercadoPublicoV2RetryFailedSync(
+    $input: MercadoPublicoV2RetryFailedSyncInput!
+  ) {
+    mercadoPublicoV2SyncControl {
+      retryFailed(input: $input) {
         state
       }
     }
@@ -158,14 +188,23 @@ type SyncTimelineEvent = {
 
 type LatestRun = {
   runId: string;
+  mode: 'incremental' | 'backfill';
+  scope: string;
   safeStatus: string;
   safeSummary?: string | null;
   canResume: boolean;
   recordsDiscovered: number;
   recordsHydrated: number;
   recordsDeferred: number;
+  recordsRetryable: number;
+  recordsPermanentFailed: number;
   recordsFailed: number;
   recordsProjected: number;
+  nextRetryAt?: string | null;
+  quotaResetAt?: string | null;
+  canRetryFailedItems: boolean;
+  monitoringHealth: string;
+  dataFreshness: string;
   discoveryComplete: boolean;
   startedAt?: string | null;
   updatedAt?: string | null;
@@ -184,13 +223,22 @@ type LatestRun = {
 
 type SyncRunSummary = {
   runId: string;
+  mode: 'incremental' | 'backfill';
+  scope: string;
   safeStatus: string;
   safeSummary?: string | null;
   recordsDiscovered: number;
   recordsHydrated: number;
   recordsFailed: number;
   recordsDeferred: number;
+  recordsRetryable: number;
+  recordsPermanentFailed: number;
   recordsProjected: number;
+  nextRetryAt?: string | null;
+  quotaResetAt?: string | null;
+  canRetryFailedItems: boolean;
+  monitoringHealth: string;
+  dataFreshness: string;
   completionReason?: string | null;
   startedAt?: string | null;
   updatedAt?: string | null;
@@ -226,6 +274,16 @@ type StartSyncVariables = {
     idempotencyKey: string;
     confirmed: boolean;
     maxPages?: number;
+    mode: 'incremental' | 'backfill';
+    publishedFrom?: string;
+    publishedTo?: string;
+    status?: string;
+  };
+};
+
+type RetryFailedMutation = {
+  mercadoPublicoV2SyncControl: {
+    retryFailed: { state: string };
   };
 };
 
@@ -560,6 +618,18 @@ const StyledPageLimitSelect = styled.select`
   width: 100%;
 `;
 
+const StyledDateInput = styled.input`
+  background: ${themeCssVariables.background.primary};
+  border: 1px solid ${themeCssVariables.border.color.medium};
+  border-radius: ${themeCssVariables.border.radius.md};
+  box-sizing: border-box;
+  color: ${themeCssVariables.font.color.primary};
+  font: inherit;
+  min-height: ${themeCssVariables.spacing[8]};
+  padding: 0 ${themeCssVariables.spacing[3]};
+  width: 100%;
+`;
+
 const StyledTimelineList = styled.ol`
   display: flex;
   flex-direction: column;
@@ -885,6 +955,10 @@ export const MercadoPublicoV2RefreshControl = () => {
   const [isCancelConfirmationVisible, setIsCancelConfirmationVisible] =
     useState(false);
   const [maxPages, setMaxPages] = useState<number | undefined>(undefined);
+  const [mode, setMode] = useState<'incremental' | 'backfill'>('incremental');
+  const [publishedFrom, setPublishedFrom] = useState('');
+  const [publishedTo, setPublishedTo] = useState('');
+  const [status, setStatus] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
 
   const {
@@ -911,6 +985,10 @@ export const MercadoPublicoV2RefreshControl = () => {
     CancelSyncMutation,
     { input: { idempotencyKey: string; confirmed: boolean } }
   >(CANCEL_SYNC_MUTATION, { client: apolloCoreClient });
+  const [retryFailedSync, { loading: isRetryingFailed }] = useMutation<
+    RetryFailedMutation,
+    { input: { idempotencyKey: string } }
+  >(RETRY_FAILED_SYNC_MUTATION, { client: apolloCoreClient });
   const effectiveData = data ?? previousData;
   const latestRun = effectiveData?.mercadoPublicoV2SyncControl.latestRun;
   const history = effectiveData?.mercadoPublicoV2SyncControl.history ?? [];
@@ -921,7 +999,8 @@ export const MercadoPublicoV2RefreshControl = () => {
   const isStatusUnavailable = error !== undefined && !hasKnownStatus;
   const isStatusStale = error !== undefined && hasKnownStatus;
   const isOperatorPermissionDenied = isSyncOperatorPermissionError(error);
-  const isCommandPending = isStarting || isResuming || isCancelling;
+  const isCommandPending =
+    isStarting || isResuming || isCancelling || isRetryingFailed;
   const isLive = isCommandPending || isActive;
   const displayedStatus =
     isCommandPending && !isActive ? 'queued' : latestRun?.safeStatus;
@@ -993,6 +1072,10 @@ export const MercadoPublicoV2RefreshControl = () => {
           input: {
             confirmed: true,
             idempotencyKey: crypto.randomUUID(),
+            mode,
+            ...(publishedFrom === '' ? {} : { publishedFrom }),
+            ...(publishedTo === '' ? {} : { publishedTo }),
+            ...(status === '' ? {} : { status }),
             ...(maxPages === undefined ? {} : { maxPages }),
           },
         },
@@ -1037,6 +1120,21 @@ export const MercadoPublicoV2RefreshControl = () => {
     } catch {
       setActionError(
         t`No se pudo cancelar la actualización. Reintenta cuando el servicio esté disponible.`,
+      );
+    }
+  };
+
+  const handleRetryFailed = async () => {
+    setActionError(null);
+
+    try {
+      await retryFailedSync({
+        variables: { input: { idempotencyKey: crypto.randomUUID() } },
+      });
+      await refetch();
+    } catch {
+      setActionError(
+        t`No se pudieron reintentar los pendientes. Revisa los errores o vuelve a intentarlo más tarde.`,
       );
     }
   };
@@ -1243,9 +1341,14 @@ export const MercadoPublicoV2RefreshControl = () => {
                       {t`Confirma esta actualización`}
                     </StyledPhaseTitle>
                     <StyledDescription>
+                      {mode === 'backfill'
+                        ? t`Se consultará el histórico del ${publishedFrom || 'inicio'} al ${publishedTo || 'fin'}.`
+                        : t`Se consultarán los cambios nuevos y actualizados.`}
+                    </StyledDescription>
+                    <StyledDescription>
                       {maxPages === undefined
-                        ? t`Se consultarán todas las páginas de fuente disponibles.`
-                        : t`Se consultarán hasta ${maxPages} páginas de fuente.`}
+                        ? t`Sin límite adicional de páginas.`
+                        : t`Hasta ${maxPages} páginas de fuente.`}
                     </StyledDescription>
                   </StyledPhase>
                 )}
@@ -1326,7 +1429,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                     {metrics}
                     {latestRun && (
                       <StyledSecondaryInfo>
-                        {t`${formatMetric(latestRun.recordsDeferred)} diferidos · ${formatMetric(latestRun.recordsFailed)} fallidos`}
+                        {t`${formatMetric(latestRun.recordsRetryable)} pendientes · ${formatMetric(latestRun.recordsPermanentFailed)} errores permanentes`}
                       </StyledSecondaryInfo>
                     )}
                   </>
@@ -1357,7 +1460,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                     />
                     {metrics}
                     <StyledSecondaryInfo>
-                      {t`${formatMetric(latestRun.recordsDeferred)} diferidos · ${formatMetric(latestRun.recordsFailed)} fallidos`}
+                      {t`${formatMetric(latestRun.recordsRetryable)} pendientes · ${formatMetric(latestRun.recordsPermanentFailed)} errores permanentes`}
                     </StyledSecondaryInfo>
                   </>
                 ) : (
@@ -1384,7 +1487,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                     />
                     {metrics}
                     <StyledSecondaryInfo>
-                      {t`${formatMetric(latestRun.recordsDeferred)} diferidos · ${formatMetric(latestRun.recordsFailed)} fallidos`}
+                      {t`${formatMetric(latestRun.recordsRetryable)} pendientes · ${formatMetric(latestRun.recordsPermanentFailed)} errores permanentes`}
                     </StyledSecondaryInfo>
                   </>
                 )}
@@ -1396,6 +1499,65 @@ export const MercadoPublicoV2RefreshControl = () => {
                         <StyledWorkspaceHeading id="refresh-settings-title">
                           {t`Configura esta actualización`}
                         </StyledWorkspaceHeading>
+                        <StyledSettingLabel htmlFor="mercado-publico-v2-refresh-mode">
+                          {t`Alcance`}
+                          <StyledPageLimitSelect
+                            id="mercado-publico-v2-refresh-mode"
+                            onChange={(event) =>
+                              setMode(
+                                event.target.value as
+                                  | 'incremental'
+                                  | 'backfill',
+                              )
+                            }
+                            value={mode}
+                          >
+                            <option value="incremental">
+                              {t`Cambios nuevos y actualizados`}
+                            </option>
+                            <option value="backfill">{t`Histórico por fecha`}</option>
+                          </StyledPageLimitSelect>
+                        </StyledSettingLabel>
+                        <StyledSettingLabel htmlFor="mercado-publico-v2-refresh-published-from">
+                          {t`Fecha desde`}
+                          <StyledDateInput
+                            id="mercado-publico-v2-refresh-published-from"
+                            onChange={(event) =>
+                              setPublishedFrom(event.target.value)
+                            }
+                            type="date"
+                            value={publishedFrom}
+                          />
+                        </StyledSettingLabel>
+                        <StyledSettingLabel htmlFor="mercado-publico-v2-refresh-published-to">
+                          {t`Fecha hasta`}
+                          <StyledDateInput
+                            id="mercado-publico-v2-refresh-published-to"
+                            onChange={(event) =>
+                              setPublishedTo(event.target.value)
+                            }
+                            type="date"
+                            value={publishedTo}
+                          />
+                        </StyledSettingLabel>
+                        <StyledSettingLabel htmlFor="mercado-publico-v2-refresh-status">
+                          {t`Estado del proceso`}
+                          <StyledPageLimitSelect
+                            id="mercado-publico-v2-refresh-status"
+                            onChange={(event) => setStatus(event.target.value)}
+                            value={status}
+                          >
+                            <option value="">{t`Todos los estados`}</option>
+                            <option value="publicada">{t`Publicada`}</option>
+                            <option value="cerrada">{t`Cerrada`}</option>
+                            <option value="desierta">{t`Desierta`}</option>
+                            <option value="cancelada">{t`Cancelada`}</option>
+                            <option value="proveedor_seleccionado">
+                              {t`Proveedor seleccionado`}
+                            </option>
+                            <option value="oc_emitida">{t`Orden emitida`}</option>
+                          </StyledPageLimitSelect>
+                        </StyledSettingLabel>
                         <StyledSettingLabel htmlFor="mercado-publico-v2-refresh-max-pages">
                           {t`Páginas de fuente por ejecución`}
                           <StyledPageLimitSelect
@@ -1422,6 +1584,11 @@ export const MercadoPublicoV2RefreshControl = () => {
                           {maxPages === undefined
                             ? t`Se consultarán todas las páginas de fuente disponibles.`
                             : t`Se consultarán hasta ${maxPages} páginas de fuente.`}
+                        </StyledSettingHint>
+                        <StyledSettingHint>
+                          {mode === 'backfill'
+                            ? t`El histórico no modifica la fecha de la actualización incremental.`
+                            : t`La actualización incremental usa el último checkpoint confirmado.`}
                         </StyledSettingHint>
                       </StyledWorkspaceSection>
                     )}
@@ -1553,7 +1720,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                                 : t`La ejecución está preparada.`)}
                       </StyledDescription>
                       <StyledSecondaryInfo>
-                        {t`${formatMetric(latestRun.recordsProjected)} preparados · ${formatMetric(latestRun.recordsFailed)} fallidos`}
+                        {t`${formatMetric(latestRun.recordsProjected)} preparados · ${formatMetric(latestRun.recordsRetryable)} pendientes · ${formatMetric(latestRun.recordsPermanentFailed)} errores permanentes`}
                       </StyledSecondaryInfo>
                     </StyledPhase>
                     <StyledWorkspaceSection aria-labelledby="observability-events-title">
@@ -1699,7 +1866,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                 <>
                   <Button
                     onClick={handleRetry}
-                    title={t`Reintentar`}
+                    title={t`Reconectar`}
                     type="button"
                   />
                   <Button
@@ -1759,6 +1926,21 @@ export const MercadoPublicoV2RefreshControl = () => {
                       type="button"
                     />
                   )}
+                  {latestRun?.canRetryFailedItems === true && (
+                    <Button
+                      disabled={isRetryingFailed}
+                      isLoading={isRetryingFailed}
+                      onClick={() => void handleRetryFailed()}
+                      title={t`Reintentar pendientes`}
+                      type="button"
+                    />
+                  )}
+                  <Button
+                    onClick={() => setActiveTab('observability')}
+                    title={t`Ver errores`}
+                    type="button"
+                    variant="tertiary"
+                  />
                   <Button
                     onClick={() => {
                       handleClose();

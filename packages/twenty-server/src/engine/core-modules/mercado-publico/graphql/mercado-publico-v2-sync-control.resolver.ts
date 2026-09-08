@@ -65,6 +65,12 @@ export class MercadoPublicoV2LatestRunDTO {
   runId!: string;
 
   @Field()
+  mode!: string;
+
+  @Field()
+  scope!: string;
+
+  @Field()
   safeStatus!: string;
 
   @Field(() => String, { nullable: true })
@@ -86,7 +92,28 @@ export class MercadoPublicoV2LatestRunDTO {
   recordsDeferred!: number;
 
   @Field(() => Int)
+  recordsRetryable!: number;
+
+  @Field(() => Int)
+  recordsPermanentFailed!: number;
+
+  @Field(() => Int)
   recordsProjected!: number;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  nextRetryAt!: Date | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  quotaResetAt!: Date | null;
+
+  @Field()
+  canRetryFailedItems!: boolean;
+
+  @Field()
+  monitoringHealth!: string;
+
+  @Field()
+  dataFreshness!: string;
 
   @Field()
   discoveryComplete!: boolean;
@@ -113,6 +140,12 @@ export class MercadoPublicoV2SyncRunSummaryDTO {
   runId!: string;
 
   @Field()
+  mode!: string;
+
+  @Field()
+  scope!: string;
+
+  @Field()
   safeStatus!: string;
 
   @Field(() => String, { nullable: true })
@@ -131,7 +164,28 @@ export class MercadoPublicoV2SyncRunSummaryDTO {
   recordsDeferred!: number;
 
   @Field(() => Int)
+  recordsRetryable!: number;
+
+  @Field(() => Int)
+  recordsPermanentFailed!: number;
+
+  @Field(() => Int)
   recordsProjected!: number;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  nextRetryAt!: Date | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  quotaResetAt!: Date | null;
+
+  @Field()
+  canRetryFailedItems!: boolean;
+
+  @Field()
+  monitoringHealth!: string;
+
+  @Field()
+  dataFreshness!: string;
 
   @Field(() => String, { nullable: true })
   completionReason!: string | null;
@@ -157,6 +211,18 @@ export class MercadoPublicoV2StartSyncInput {
   @Field()
   confirmed!: boolean;
 
+  @Field({ defaultValue: 'incremental' })
+  mode!: string;
+
+  @Field(() => String, { nullable: true })
+  publishedFrom?: string;
+
+  @Field(() => String, { nullable: true })
+  publishedTo?: string;
+
+  @Field(() => String, { nullable: true })
+  status?: string;
+
   @Field(() => Int, { nullable: true })
   maxPages?: number;
 }
@@ -172,6 +238,12 @@ export class MercadoPublicoV2CancelSyncInput {
 
 @InputType()
 export class MercadoPublicoV2ResumeSyncInput {
+  @Field()
+  idempotencyKey!: string;
+}
+
+@InputType()
+export class MercadoPublicoV2RetryFailedSyncInput {
   @Field()
   idempotencyKey!: string;
 }
@@ -247,6 +319,10 @@ export class MercadoPublicoV2SyncControlNamespaceResolver {
       idempotencyKey: input.idempotencyKey,
       confirmed: input.confirmed,
       maxPages: input.maxPages,
+      mode: input.mode,
+      publishedFrom: input.publishedFrom,
+      publishedTo: input.publishedTo,
+      status: input.status,
     });
 
     return { state: result.state };
@@ -287,6 +363,23 @@ export class MercadoPublicoV2SyncControlNamespaceResolver {
       workspaceId: workspace?.id ?? '',
       actorUserWorkspaceId: userWorkspaceId ?? '',
       action: 'resume',
+      idempotencyKey: input.idempotencyKey,
+    });
+
+    return { state: result.state };
+  }
+
+  @ResolveField(() => MercadoPublicoV2SyncCommandResultDTO)
+  async retryFailed(
+    @Args('input', { type: () => MercadoPublicoV2RetryFailedSyncInput })
+    input: MercadoPublicoV2RetryFailedSyncInput,
+    @AuthWorkspace() workspace?: WorkspaceEntity,
+    @AuthUserWorkspaceId() userWorkspaceId?: string,
+  ): Promise<MercadoPublicoV2SyncCommandResultDTO> {
+    const result = await this.mercadoPublicoV2SyncControlService.submitCommand({
+      workspaceId: workspace?.id ?? '',
+      actorUserWorkspaceId: userWorkspaceId ?? '',
+      action: 'retry_failed',
       idempotencyKey: input.idempotencyKey,
     });
 

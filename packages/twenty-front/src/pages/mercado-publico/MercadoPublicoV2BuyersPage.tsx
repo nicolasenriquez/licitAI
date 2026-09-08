@@ -135,6 +135,13 @@ const StyledSecondaryText = styled.div`
   overflow-wrap: anywhere;
 `;
 
+const StyledSectionHeading = styled.h1`
+  color: ${themeCssVariables.font.color.primary};
+  font-size: ${themeCssVariables.font.size.lg};
+  font-weight: ${themeCssVariables.font.weight.medium};
+  margin: 0;
+`;
+
 const StyledStateMessage = styled.div`
   align-items: center;
   color: ${themeCssVariables.font.color.secondary};
@@ -281,7 +288,8 @@ export const MercadoPublicoV2BuyersPage = () => {
   const connection = data?.mercadoPublicoV2.buyers;
 
   return (
-    <MercadoPublicoV2PageShell title={t`Mercado Público`}>
+    <MercadoPublicoV2PageShell title="Mercado Público">
+      <StyledSectionHeading>{t`Compradores`}</StyledSectionHeading>
       <MercadoPublicoV2FilterBar
         filters={state}
         sort={state.sort}
@@ -339,7 +347,7 @@ export const MercadoPublicoV2BuyersPage = () => {
               <thead>
                 <tr>
                   <StyledHeaderCell scope="col">{t`Comprador`}</StyledHeaderCell>
-                  <StyledHeaderCell scope="col">{t`Procesos`}</StyledHeaderCell>
+                  <StyledHeaderCell scope="col">Oportunidades</StyledHeaderCell>
                   <StyledHeaderCell scope="col">
                     {t`Última actualización`}
                   </StyledHeaderCell>
@@ -349,7 +357,14 @@ export const MercadoPublicoV2BuyersPage = () => {
                 {connection.edges.map(({ node }) => (
                   <tr key={node.buyerCode}>
                     <StyledCell data-label={t`Comprador`}>
-                      <StyledBuyerLink to={buildBuyerPath(node.buyerCode)}>
+                      <StyledBuyerLink
+                        aria-label={
+                          node.buyerName
+                            ? `${node.buyerName}, ${node.buyerCode}`
+                            : node.buyerCode
+                        }
+                        to={buildBuyerPath(node.buyerCode)}
+                      >
                         {node.buyerName ?? node.buyerCode}
                       </StyledBuyerLink>
                       {node.buyerName && (
@@ -358,7 +373,7 @@ export const MercadoPublicoV2BuyersPage = () => {
                         </StyledSecondaryText>
                       )}
                     </StyledCell>
-                    <StyledCell data-label={t`Procesos`}>
+                    <StyledCell data-label="Oportunidades">
                       {node.opportunityCount}
                     </StyledCell>
                     <StyledCell data-label={t`Última actualización`}>

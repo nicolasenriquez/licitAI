@@ -108,7 +108,7 @@ export class MercadoPublicoV2E2EFixtureCommand extends CommandRunner {
         VALUES ($1, $2, $2)
         ON CONFLICT (workspace_id, user_workspace_id) DO NOTHING
       `,
-      [SEED_APPLE_WORKSPACE_ID, USER_WORKSPACE_DATA_SEED_IDS.TIM],
+      [SEED_APPLE_WORKSPACE_ID, USER_WORKSPACE_DATA_SEED_IDS.PHIL],
     );
 
     this.logger.log(

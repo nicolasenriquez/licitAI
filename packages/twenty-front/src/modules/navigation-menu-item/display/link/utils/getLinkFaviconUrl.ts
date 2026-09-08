@@ -13,6 +13,15 @@ export const getLinkFaviconUrl = (
       : `https://${trimmed}`;
   try {
     const hostname = new URL(normalized).hostname;
+
+    if (
+      !trimmed.startsWith('http://') &&
+      !trimmed.startsWith('https://') &&
+      !hostname.includes('.')
+    ) {
+      return undefined;
+    }
+
     return getLogoUrlFromDomainName(hostname);
   } catch {
     return undefined;
