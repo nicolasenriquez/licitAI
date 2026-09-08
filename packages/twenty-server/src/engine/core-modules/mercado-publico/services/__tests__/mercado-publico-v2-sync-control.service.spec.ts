@@ -94,6 +94,41 @@ describe('MercadoPublicoV2SyncControlService', () => {
     );
   });
 
+  it('loads bounded historical runs without returning the current run', async () => {
+    const query = jest.fn().mockResolvedValue([
+      {
+        id: 'run-previous',
+        status: 'succeeded',
+        error_stage: null,
+        records_discovered: '8',
+        records_hydrated: '7',
+        records_failed: '0',
+        records_deferred: '1',
+        records_projected: '7',
+        completion_reason: 'completed',
+        created_at: new Date('2026-08-12T00:00:00.000Z'),
+        updated_at: new Date('2026-08-12T00:05:00.000Z'),
+      },
+    ]);
+    const service = new MercadoPublicoV2SyncControlService(
+      { query } as never,
+      { add: jest.fn() } as unknown as MessageQueueService,
+      queueConfig as never,
+      {} as never,
+    );
+
+    await expect(service.getRunHistory('workspace-1', 50)).resolves.toEqual([
+      expect.objectContaining({
+        runId: 'run-previous',
+        recordsDiscovered: 8,
+        recordsProjected: 7,
+        safeSummary: null,
+      }),
+    ]);
+    expect(query.mock.calls[0][0]).toContain('id <> COALESCE');
+    expect(query.mock.calls[0][1]).toEqual(['workspace-1', 10]);
+  });
+
   it('rejects resume for a discovery-incomplete cancellation', async () => {
     const latestRunQuery = jest
       .fn()

@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { getGraphqlRequestBody } from '../fixtures/mercado-publico.fixture';
+
 // Issue 22: Procesos navigation through URL and keyset (deep links, Back/Forward,
 // invalid cursor recovery). The flag is build-time (REACT_APP_MERCADO_PUBLICO_V2_ENABLED).
 
@@ -59,11 +61,14 @@ const mockGraphql = async (
     invalidCursorAfter?: string;
   } = {},
 ): Promise<void> => {
-  await page.route('**/metadata', async (route) => {
-    const requestBody = route.request().postDataJSON() as {
-      operationName?: string;
-      variables?: { after?: string };
-    };
+  await page.route('**/*', async (route) => {
+    const requestBody = getGraphqlRequestBody(route.request());
+
+    if (requestBody === undefined) {
+      await route.continue();
+
+      return;
+    }
 
     if (requestBody.operationName === 'MercadoPublicoV2ActiveOpportunities') {
       if (
@@ -73,7 +78,12 @@ const mockGraphql = async (
         await route.fulfill({
           contentType: 'application/json',
           body: JSON.stringify({
-            errors: [{ message: 'Mercado Publico V2 cursor is invalid' }],
+            errors: [
+              {
+                message: 'Mercado Publico V2 cursor is invalid',
+                extensions: { subCode: 'MP_V2_INVALID_CURSOR' },
+              },
+            ],
           }),
         });
 
@@ -155,10 +165,8 @@ test.describe('Mercado Publico V2 Procesos URL and keyset navigation', () => {
 
     await page.goto(ACTIVE_PATH, { waitUntil: 'domcontentloaded' });
 
-    await page
-      .getByLabel('Filtrar por estados')
-      .getByLabel('Publicada')
-      .check();
+    await page.getByRole('button', { name: 'Filtros' }).click();
+    await page.getByRole('checkbox', { name: 'Publicada Publicada' }).check();
     await page.getByLabel('Filtrar por región').selectOption('13');
     await page.getByRole('button', { name: 'Aplicar filtros' }).click();
 
@@ -168,13 +176,18 @@ test.describe('Mercado Publico V2 Procesos URL and keyset navigation', () => {
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/estado=publicada/);
     await expect(page).toHaveURL(/region=13/);
+    await page.getByRole('button', { name: 'Filtros (2)' }).click();
     await expect(page.getByLabel('Filtrar por región')).toHaveValue('13');
     await expect(
-      page.getByLabel('Filtrar por estados').getByLabel('Publicada'),
+      page.getByRole('checkbox', { name: 'Publicada Publicada' }),
     ).toBeChecked();
 
+    await page
+      .getByRole('button', { name: 'Cancelar filtros', exact: true })
+      .click();
     await page.goBack();
     await expect(page).toHaveURL(/\/mercado-publico$/);
+    await page.getByRole('button', { name: 'Filtros', exact: true }).click();
     await expect(page.getByLabel('Filtrar por región')).toHaveValue('');
   });
 
@@ -194,7 +207,8 @@ test.describe('Mercado Publico V2 Procesos URL and keyset navigation', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(page.getByText('Datos técnicos')).toBeVisible();
+    await page.getByTestId('tab-evidence').click();
+    await expect(page.getByText('Ver detalles técnicos')).toBeVisible();
   });
 
   test('Back closes the open panel before navigating the table', async ({
@@ -214,12 +228,13 @@ test.describe('Mercado Publico V2 Procesos URL and keyset navigation', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(page.getByText('Datos técnicos')).toBeVisible();
+    await page.getByTestId('tab-evidence').click();
+    await expect(page.getByText('Ver detalles técnicos')).toBeVisible();
     await expect(page).toHaveURL(/proceso=FIXTURE-CA-001/);
 
     await page.goBack();
 
-    await expect(page.getByText('Datos técnicos')).toBeHidden();
+    await expect(page.getByText('Ver detalles técnicos')).toBeHidden();
     await expect(page.getByRole('heading', { name: 'Procesos' })).toBeVisible();
     await expect(page).toHaveURL(/\/mercado-publico$/);
   });
@@ -245,9 +260,7 @@ test.describe('Mercado Publico V2 Procesos URL and keyset navigation', () => {
     await expect(page.getByRole('alert')).toContainText('Cursor inválido');
     await expect(page).toHaveURL(/\/mercado-publico$/);
     await expect(
-      page.getByRole('button', {
-        name: 'Abrir Servicio de mantención preventiva',
-      }),
+      page.getByRole('button', { name: `Abrir ${opportunity.title}` }),
     ).toBeVisible();
   });
 });

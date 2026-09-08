@@ -4,6 +4,8 @@ import { MemoryRouter } from 'react-router-dom';
 
 import {
   MERCADO_PUBLICO_CURSOR_HISTORY_KEY,
+  getMercadoPublicoV2QuickView,
+  getMercadoPublicoV2QuickViewFilters,
   getMercadoPublicoV2SectionSearch,
   parseMercadoPublicoV2UrlState,
   serializeMercadoPublicoV2Filters,
@@ -41,7 +43,55 @@ describe('Mercado Público V2 URL state', () => {
   it('falls back to default order for unknown URL order', () => {
     expect(
       parseMercadoPublicoV2UrlState(new URLSearchParams('orden=unknown')).sort,
-    ).toBe('CLOSING_AT_DESC');
+    ).toBe('CLOSING_AT_ASC');
+  });
+
+  it('maps quick views to the existing filter state without a new URL key', () => {
+    const today = '2026-09-07';
+    const activeFilters = getMercadoPublicoV2QuickViewFilters('active', today);
+    const todayFilters = getMercadoPublicoV2QuickViewFilters(
+      'closing-today',
+      today,
+    );
+    const nextThreeDaysFilters = getMercadoPublicoV2QuickViewFilters(
+      'closing-next-three-days',
+      today,
+    );
+    const allFilters = getMercadoPublicoV2QuickViewFilters('all', today);
+
+    expect(activeFilters).toEqual({
+      cohortStatus: 'active',
+      states: ['publicada'],
+      closingAtFrom: null,
+      closingAtTo: null,
+    });
+    expect(todayFilters).toEqual({
+      cohortStatus: 'active',
+      states: ['publicada'],
+      closingAtFrom: today,
+      closingAtTo: today,
+    });
+    expect(nextThreeDaysFilters).toEqual({
+      cohortStatus: 'active',
+      states: ['publicada'],
+      closingAtFrom: today,
+      closingAtTo: '2026-09-10',
+    });
+    expect(allFilters).toEqual({
+      cohortStatus: 'active',
+      states: [],
+      closingAtFrom: null,
+      closingAtTo: null,
+    });
+    expect(
+      getMercadoPublicoV2QuickView(
+        {
+          ...parseMercadoPublicoV2UrlState(new URLSearchParams()),
+          ...nextThreeDaysFilters,
+        },
+        today,
+      ),
+    ).toBe('closing-next-three-days');
   });
 
   it('serializes filters without empty values', () => {

@@ -13,7 +13,7 @@ export const authenticateAndSave = async (
 
   await loginPage.clickLoginWithEmailIfVisible();
   await loginPage.typeEmail(login ?? process.env.DEFAULT_LOGIN);
-  await loginPage.clickContinueButton();
+  await loginPage.clickContinueButtonIfRequired();
   await loginPage.typePassword(password ?? process.env.DEFAULT_PASSWORD);
   await loginPage.clickSignInButton();
   await expect(page).not.toHaveURL(/\/welcome(?:[/?#]|$)/);

@@ -41,3 +41,42 @@ export const formatMercadoPublicoFreshness = (
 
   return null;
 };
+
+export const formatMercadoPublicoFreshnessSummary = (
+  freshness: string,
+  asOf: string | null | undefined,
+  translate: Translate,
+  now = Date.now(),
+): string => {
+  if (freshness !== 'healthy' && freshness !== 'fresh') {
+    return translate({ message: 'Datos desactualizados · Revisar' });
+  }
+
+  if (!asOf) {
+    return translate({ message: 'Actualizado recientemente' });
+  }
+
+  const timestamp = new Date(asOf).getTime();
+
+  if (!Number.isFinite(timestamp)) {
+    return translate({ message: 'Actualizado recientemente' });
+  }
+
+  const ageMinutes = Math.max(0, Math.floor((now - timestamp) / 60000));
+
+  if (ageMinutes < 1) {
+    return translate({ message: 'Actualizado ahora' });
+  }
+
+  if (ageMinutes < 60) {
+    return translate({ message: `Actualizado hace ${ageMinutes} min` });
+  }
+
+  const ageHours = Math.floor(ageMinutes / 60);
+
+  if (ageHours < 24) {
+    return translate({ message: `Actualizado hace ${ageHours} h` });
+  }
+
+  return translate({ message: `Actualizado ${asOf}` });
+};

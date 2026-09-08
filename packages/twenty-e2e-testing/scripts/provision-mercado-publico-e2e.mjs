@@ -86,7 +86,9 @@ const runProcess = (
       : input === undefined
         ? 'inherit'
         : ['pipe', 'pipe', 'pipe'],
-    shell: process.platform === 'win32' && command === 'docker',
+    shell:
+      process.platform === 'win32' &&
+      (command === 'docker' || command === 'yarn'),
     maxBuffer: 50 * 1024 * 1024,
   });
 

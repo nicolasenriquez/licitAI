@@ -3,11 +3,71 @@ import { expect, test } from '@playwright/test';
 
 import {
   ACTIVE_PATH,
+  getGraphqlRequestBody,
   mockMercadoPublicoGraphql,
   trackHarnessDiagnostics,
 } from '../fixtures/mercado-publico.fixture';
 
 test.describe('Mercado Publico Procesos UI contract', () => {
+  test('quick views preserve filters, map to the cohort contract, and reset the cursor', async ({
+    page,
+  }) => {
+    const filtersSeen: Array<Record<string, unknown>> = [];
+    page.on('request', (request) => {
+      const requestBody = getGraphqlRequestBody(request);
+
+      if (
+        requestBody?.operationName === 'MercadoPublicoV2ActiveOpportunities' &&
+        requestBody.variables?.filter !== undefined
+      ) {
+        filtersSeen.push(
+          requestBody.variables.filter as Record<string, unknown>,
+        );
+      }
+    });
+
+    const diagnostics = trackHarnessDiagnostics(page);
+    await mockMercadoPublicoGraphql(page);
+    await page.goto(
+      `${ACTIVE_PATH}?q=computadores&buyer=69000100-1&docsMin=1&after=cursor-2`,
+      { waitUntil: 'domcontentloaded' },
+    );
+
+    await page.getByRole('button', { name: 'Cierra hoy' }).click();
+    await expect.poll(() => filtersSeen.length).toBeGreaterThan(1);
+
+    const todaySearch = new URL(page.url()).searchParams;
+    expect(todaySearch.get('q')).toBe('computadores');
+    expect(todaySearch.get('buyer')).toBe('69000100-1');
+    expect(todaySearch.get('docsMin')).toBe('1');
+    expect(todaySearch.get('cohorte')).toBe('active');
+    expect(todaySearch.get('estado')).toBe('publicada');
+    expect(todaySearch.get('desde')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(todaySearch.get('hasta')).toBe(todaySearch.get('desde'));
+    expect(todaySearch.get('after')).toBeNull();
+    expect(filtersSeen.at(-1)?.states).toEqual(['publicada']);
+    expect(filtersSeen.at(-1)?.cohortStatus).toBe('active');
+
+    await page.getByRole('button', { name: 'Todas' }).click();
+    await expect.poll(() => filtersSeen.length).toBeGreaterThan(2);
+
+    const allSearch = new URL(page.url()).searchParams;
+    expect(allSearch.get('q')).toBe('computadores');
+    expect(allSearch.get('buyer')).toBe('69000100-1');
+    expect(allSearch.get('docsMin')).toBe('1');
+    expect(allSearch.get('cohorte')).toBe('active');
+    expect(allSearch.get('estado')).toBeNull();
+    expect(allSearch.get('desde')).toBeNull();
+    expect(allSearch.get('hasta')).toBeNull();
+    expect(allSearch.get('after')).toBeNull();
+    expect(filtersSeen.at(-1)?.states).toBeUndefined();
+    expect(filtersSeen.at(-1)?.cohortStatus).toBe('active');
+    await expect(
+      page.getByRole('region', { name: 'Procesos en seguimiento' }),
+    ).toBeVisible();
+    diagnostics.assertClean();
+  });
+
   test('@extended passes responsive theme matrix and diagnostics', async ({
     page,
   }) => {
@@ -63,11 +123,13 @@ test.describe('Mercado Publico Procesos UI contract', () => {
       await expect(
         page.getByRole('heading', { name: 'Procesos' }),
       ).toBeVisible();
-      await expect(page.getByRole('columnheader')).toHaveCount(5);
+      await expect(page.getByRole('columnheader')).toHaveCount(4);
       await expect(
         page.getByText('Municipalidad de Ejemplo').first(),
       ).toBeVisible();
-      await expect(page.getByText('Documentos: 1')).toBeVisible();
+      await expect(
+        page.getByRole('columnheader', { name: 'Oportunidad' }),
+      ).toBeVisible();
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
       ).toBeLessThanOrEqual(viewport.width);
@@ -117,9 +179,10 @@ test.describe('Mercado Publico Procesos UI contract', () => {
     ).toBeGreaterThan(0);
 
     await opportunityButton.press('Enter');
-    await expect(page.getByText('Datos técnicos')).toBeVisible();
+    await page.getByTestId('tab-evidence').click();
+    await expect(page.getByText('Ver detalles técnicos')).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.getByText('Datos técnicos')).toBeHidden();
+    await expect(page.getByText('Ver detalles técnicos')).toBeHidden();
     await expect(opportunityButton).toBeFocused();
 
     expect(
@@ -134,7 +197,9 @@ test.describe('Mercado Publico Procesos UI contract', () => {
     await expect(
       page.getByText('Municipalidad de Ejemplo').first(),
     ).toBeVisible();
-    await expect(page.getByText('Documentos: 1')).toBeVisible();
+    await expect(
+      page.getByRole('columnheader', { name: 'Monto publicado' }),
+    ).toBeVisible();
 
     const zoomMetrics = await page
       .locator('[role="region"]')

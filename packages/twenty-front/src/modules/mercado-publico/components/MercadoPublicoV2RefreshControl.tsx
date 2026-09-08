@@ -4,7 +4,13 @@ import { type MessageDescriptor } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
 import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import {
+  type KeyboardEvent,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppPath } from 'twenty-shared/types';
 import { Loader } from 'twenty-ui/feedback';
@@ -55,6 +61,19 @@ const REFRESH_STATUS_QUERY = gql`
           retryable
           failureClass
         }
+      }
+      history(limit: 10) {
+        runId
+        safeStatus
+        safeSummary
+        recordsDiscovered
+        recordsHydrated
+        recordsFailed
+        recordsDeferred
+        recordsProjected
+        completionReason
+        startedAt
+        updatedAt
       }
     }
   }
@@ -126,6 +145,7 @@ const STAGE_INDEX = {
 
 const REFRESH_MODAL_ID = 'mercado-publico-v2-refresh-control';
 const REFRESH_MODAL_CLOSE_TEST_ID = 'mercado-publico-v2-refresh-close';
+const MAX_VISIBLE_HTTP_ATTEMPTS = 100;
 
 type RefreshStage = (typeof REFRESH_STAGES)[number];
 type RefreshStageState = 'completed' | 'current' | 'pending' | 'unverified';
@@ -162,9 +182,24 @@ type LatestRun = {
   }[];
 };
 
+type SyncRunSummary = {
+  runId: string;
+  safeStatus: string;
+  safeSummary?: string | null;
+  recordsDiscovered: number;
+  recordsHydrated: number;
+  recordsFailed: number;
+  recordsDeferred: number;
+  recordsProjected: number;
+  completionReason?: string | null;
+  startedAt?: string | null;
+  updatedAt?: string | null;
+};
+
 type RefreshStatusQuery = {
   mercadoPublicoV2SyncControl: {
     latestRun: LatestRun | null;
+    history: SyncRunSummary[];
   };
 };
 
@@ -273,6 +308,24 @@ const StyledDescription = styled.p`
   color: ${themeCssVariables.font.color.secondary};
   line-height: 1.5;
   margin: 0;
+`;
+
+const StyledHistoryList = styled.ol`
+  display: flex;
+  flex-direction: column;
+  gap: ${themeCssVariables.spacing[3]};
+  list-style: none;
+  margin: 0;
+  padding: 0;
+`;
+
+const StyledHistoryItem = styled.li`
+  border: 1px solid ${themeCssVariables.border.color.light};
+  border-radius: ${themeCssVariables.border.radius.sm};
+  display: flex;
+  flex-direction: column;
+  gap: ${themeCssVariables.spacing[1]};
+  padding: ${themeCssVariables.spacing[3]};
 `;
 
 const StyledMonitoringCluster = styled.div`
@@ -524,6 +577,10 @@ const StyledTimelineItem = styled.li`
   grid-template-columns: max-content auto minmax(0, 1fr) minmax(0, 0.75fr);
   min-width: 0;
 
+  &[data-layout='observability'] {
+    grid-template-columns: max-content auto minmax(0, 1fr);
+  }
+
   @media (max-width: 400px) {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -559,11 +616,7 @@ const StyledTimelineOperator = styled.span`
 const StyledObservabilityGrid = styled.div`
   display: grid;
   gap: ${themeCssVariables.spacing[5]};
-  grid-template-columns: minmax(180px, 0.8fr) minmax(0, 1.6fr);
-
-  @media (max-width: 700px) {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  grid-template-columns: minmax(0, 1fr);
 `;
 
 const StyledTableScroller = styled.div`
@@ -727,7 +780,10 @@ const RefreshProgressRail = ({
   );
 };
 
-const formatRunTime = (value: string | null | undefined): string => {
+const formatRunTime = (
+  value: string | null | undefined,
+  includeSeconds = false,
+): string => {
   if (value === null || value === undefined) {
     return '—';
   }
@@ -741,13 +797,46 @@ const formatRunTime = (value: string | null | undefined): string => {
   return new Intl.DateTimeFormat('es-CL', {
     dateStyle: 'medium',
     hourCycle: 'h23',
-    timeStyle: 'short',
+    timeStyle: includeSeconds ? 'medium' : 'short',
     timeZone: 'America/Santiago',
   }).format(date);
 };
 
+const formatRunDuration = (
+  startedAt: string | null | undefined,
+  updatedAt: string | null | undefined,
+): string => {
+  if (!startedAt || !updatedAt) return '—';
+
+  const durationMs =
+    new Date(updatedAt).getTime() - new Date(startedAt).getTime();
+
+  if (!Number.isFinite(durationMs) || durationMs < 0) return '—';
+
+  return `${Math.round(durationMs / 1000)} s`;
+};
+
 const formatMetric = (value: number): string =>
   new Intl.NumberFormat('es-CL').format(value);
+
+const formatStatusLabel = (
+  status: string,
+  translate: (message: MessageDescriptor) => string,
+): string => {
+  const labels: Record<string, MessageDescriptor> = {
+    succeeded: msg`Completada`,
+    partial_failed: msg`Incompleta`,
+    cancelled: msg`Cancelada`,
+    failed: msg`Fallida`,
+    queued: msg`En cola`,
+    discovering: msg`Buscando cambios`,
+    hydrating: msg`Descargando detalles`,
+    projecting: msg`Actualizando datos`,
+    reconciling: msg`Verificando`,
+  };
+
+  return translate(labels[status] ?? msg`Estado no disponible`);
+};
 
 const TIMELINE_EVENT_LABELS: Record<string, MessageDescriptor> = {
   command_created: msg`Solicitud creada`,
@@ -788,9 +877,9 @@ export const MercadoPublicoV2RefreshControl = () => {
   const triggerRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isActivityExpanded, setIsActivityExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState<'update' | 'observability'>(
-    'update',
-  );
+  const [activeTab, setActiveTab] = useState<
+    'update' | 'observability' | 'history'
+  >('update');
   const [isStartConfirmationVisible, setIsStartConfirmationVisible] =
     useState(false);
   const [isCancelConfirmationVisible, setIsCancelConfirmationVisible] =
@@ -824,6 +913,7 @@ export const MercadoPublicoV2RefreshControl = () => {
   >(CANCEL_SYNC_MUTATION, { client: apolloCoreClient });
   const effectiveData = data ?? previousData;
   const latestRun = effectiveData?.mercadoPublicoV2SyncControl.latestRun;
+  const history = effectiveData?.mercadoPublicoV2SyncControl.history ?? [];
   const isActive = isActiveStatus(latestRun?.safeStatus);
   const isSuccess = latestRun?.safeStatus === 'succeeded';
   const isIncomplete = isIncompleteStatus(latestRun?.safeStatus);
@@ -956,6 +1046,37 @@ export const MercadoPublicoV2RefreshControl = () => {
     setIsStartConfirmationVisible(true);
   };
 
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const tabOrder = ['update', 'observability', 'history'] as const;
+    const currentTabIndex = tabOrder.indexOf(activeTab);
+    let nextTabIndex: number | undefined;
+
+    switch (event.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        nextTabIndex = (currentTabIndex + 1) % tabOrder.length;
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        nextTabIndex =
+          (currentTabIndex - 1 + tabOrder.length) % tabOrder.length;
+        break;
+      case 'Home':
+        nextTabIndex = 0;
+        break;
+      case 'End':
+        nextTabIndex = tabOrder.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    const nextTab = tabOrder[nextTabIndex];
+    setActiveTab(nextTab);
+    document.getElementById(`mercado-publico-${nextTab}-tab`)?.focus();
+  };
+
   const stageLabels = [
     { id: 'discovery' as const, label: t`Buscar cambios` },
     { id: 'hydration' as const, label: t`Descargar detalles` },
@@ -1014,6 +1135,8 @@ export const MercadoPublicoV2RefreshControl = () => {
 
   const timeline = latestRun?.timeline ?? [];
   const visibleEvents = isActivityExpanded ? timeline : timeline.slice(-4);
+  const visibleHttpAttempts =
+    latestRun?.httpAttempts.slice(-MAX_VISIBLE_HTTP_ATTEMPTS) ?? [];
   const showConfiguration = !isLive && (latestRun === null || isSuccess);
 
   return (
@@ -1062,20 +1185,36 @@ export const MercadoPublicoV2RefreshControl = () => {
                   aria-selected={activeTab === 'update'}
                   id="mercado-publico-update-tab"
                   onClick={() => setActiveTab('update')}
+                  onKeyDown={handleTabKeyDown}
                   role="tab"
+                  tabIndex={activeTab === 'update' ? 0 : -1}
                   type="button"
                 >
-                  {t`Actualización`}
+                  {t`Progreso`}
                 </StyledTab>
                 <StyledTab
                   aria-controls="mercado-publico-observability-panel"
                   aria-selected={activeTab === 'observability'}
                   id="mercado-publico-observability-tab"
                   onClick={() => setActiveTab('observability')}
+                  onKeyDown={handleTabKeyDown}
                   role="tab"
+                  tabIndex={activeTab === 'observability' ? 0 : -1}
                   type="button"
                 >
                   {t`Observabilidad`}
+                </StyledTab>
+                <StyledTab
+                  aria-controls="mercado-publico-history-panel"
+                  aria-selected={activeTab === 'history'}
+                  id="mercado-publico-history-tab"
+                  onClick={() => setActiveTab('history')}
+                  onKeyDown={handleTabKeyDown}
+                  role="tab"
+                  tabIndex={activeTab === 'history' ? 0 : -1}
+                  type="button"
+                >
+                  {t`Historial`}
                 </StyledTab>
               </StyledTabs>
 
@@ -1281,8 +1420,8 @@ export const MercadoPublicoV2RefreshControl = () => {
                         </StyledSettingLabel>
                         <StyledSettingHint id="mercado-publico-v2-refresh-page-limit-hint">
                           {maxPages === undefined
-                            ? t`Sin límite de páginas configurado.`
-                            : t`Límite de ${maxPages} páginas para esta ejecución.`}
+                            ? t`Se consultarán todas las páginas de fuente disponibles.`
+                            : t`Se consultarán hasta ${maxPages} páginas de fuente.`}
                         </StyledSettingHint>
                       </StyledWorkspaceSection>
                     )}
@@ -1306,7 +1445,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                             >
                               {isActivityExpanded
                                 ? t`Mostrar menos`
-                                : t`Mostrar toda`}
+                                : t`Mostrar toda la actividad`}
                             </StyledDisclosureButton>
                           )}
                         </StyledSectionHeader>
@@ -1316,7 +1455,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                               key={`${event.eventType}-${event.at}-${index}`}
                             >
                               <StyledTimelineTime dateTime={event.at}>
-                                {formatRunTime(event.at)}
+                                {formatRunTime(event.at, true)}
                               </StyledTimelineTime>
                               <StyledTimelineMarker aria-hidden="true" />
                               <StyledTimelineCopy>
@@ -1354,6 +1493,42 @@ export const MercadoPublicoV2RefreshControl = () => {
               </div>
 
               <div
+                aria-labelledby="mercado-publico-history-tab"
+                hidden={activeTab !== 'history'}
+                id="mercado-publico-history-panel"
+                role="tabpanel"
+              >
+                <StyledWorkspace>
+                  <StyledWorkspaceSection aria-labelledby="refresh-history-title">
+                    <StyledWorkspaceHeading id="refresh-history-title">
+                      {t`Ejecuciones anteriores`}
+                    </StyledWorkspaceHeading>
+                    {history.length === 0 ? (
+                      <StyledDescription>
+                        {t`No hay ejecuciones anteriores registradas.`}
+                      </StyledDescription>
+                    ) : (
+                      <StyledHistoryList>
+                        {history.map((run) => (
+                          <StyledHistoryItem key={run.runId}>
+                            <StyledPhaseTitle>
+                              {formatStatusLabel(run.safeStatus, t)}
+                            </StyledPhaseTitle>
+                            <StyledDescription>
+                              {run.safeSummary ?? t`Sin resumen adicional.`}
+                            </StyledDescription>
+                            <StyledSecondaryInfo>
+                              {t`Iniciada ${formatRunTime(run.startedAt)} · Duración ${formatRunDuration(run.startedAt, run.updatedAt)}`}
+                            </StyledSecondaryInfo>
+                          </StyledHistoryItem>
+                        ))}
+                      </StyledHistoryList>
+                    )}
+                  </StyledWorkspaceSection>
+                </StyledWorkspace>
+              </div>
+
+              <div
                 aria-labelledby="mercado-publico-observability-tab"
                 hidden={activeTab !== 'observability'}
                 id="mercado-publico-observability-panel"
@@ -1365,6 +1540,22 @@ export const MercadoPublicoV2RefreshControl = () => {
                   </StyledDescription>
                 ) : (
                   <StyledObservabilityGrid>
+                    <StyledPhase>
+                      <StyledPhaseTitle>{t`Resumen de ejecución`}</StyledPhaseTitle>
+                      <StyledDescription>
+                        {latestRun.safeSummary ??
+                          (isLive
+                            ? phaseCopy.description
+                            : isSuccess
+                              ? t`La actualización se completó correctamente.`
+                              : isIncomplete
+                                ? t`La ejecución no se completó.`
+                                : t`La ejecución está preparada.`)}
+                      </StyledDescription>
+                      <StyledSecondaryInfo>
+                        {t`${formatMetric(latestRun.recordsProjected)} preparados · ${formatMetric(latestRun.recordsFailed)} fallidos`}
+                      </StyledSecondaryInfo>
+                    </StyledPhase>
                     <StyledWorkspaceSection aria-labelledby="observability-events-title">
                       <StyledWorkspaceHeading id="observability-events-title">
                         {t`Eventos`}
@@ -1380,10 +1571,11 @@ export const MercadoPublicoV2RefreshControl = () => {
                             .reverse()
                             .map((event, index) => (
                               <StyledTimelineItem
+                                data-layout="observability"
                                 key={`${event.eventType}-${event.at}-${index}`}
                               >
                                 <StyledTimelineTime dateTime={event.at}>
-                                  {formatRunTime(event.at)}
+                                  {formatRunTime(event.at, true)}
                                 </StyledTimelineTime>
                                 <StyledTimelineMarker aria-hidden="true" />
                                 <StyledTimelineCopy>
@@ -1420,7 +1612,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                               </tr>
                             </thead>
                             <tbody>
-                              {latestRun.httpAttempts.map((attempt, index) => {
+                              {visibleHttpAttempts.map((attempt, index) => {
                                 const outcome = attempt.retryable
                                   ? t`Reintento`
                                   : attempt.httpStatus !== null &&
@@ -1438,7 +1630,7 @@ export const MercadoPublicoV2RefreshControl = () => {
                                   <tr
                                     key={`${attempt.at}-${attempt.attemptNumber}-${index}`}
                                   >
-                                    <td>{formatRunTime(attempt.at)}</td>
+                                    <td>{formatRunTime(attempt.at, true)}</td>
                                     <td>{attempt.endpoint}</td>
                                     <td>{attempt.httpStatus ?? '—'}</td>
                                     <td>{t`${attempt.latencyMs} ms`}</td>

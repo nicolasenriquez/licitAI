@@ -97,6 +97,14 @@ export class LoginPage {
     await this.continueButton.click();
   }
 
+  async clickContinueButtonIfRequired() {
+    if (await this.passwordField.isVisible().catch(() => false)) {
+      return;
+    }
+
+    await this.clickContinueButton();
+  }
+
   async clickTermsLink() {
     await this.termsOfServiceLink.click();
   }

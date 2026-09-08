@@ -1,5 +1,5 @@
 import { type NavigationMenuItem } from '~/generated-metadata/graphql';
-import { NavigationMenuItemType } from 'twenty-shared/types';
+import { AppPath, NavigationMenuItemType } from 'twenty-shared/types';
 
 import { isLayoutCustomizationModeEnabledState } from '@/layout-customization/states/isLayoutCustomizationModeEnabledState';
 import { flattenNavigationMenuItemsWithFolderChildren } from '@/navigation-menu-item/common/utils/flattenNavigationMenuItemsWithFolderChildren';
@@ -20,7 +20,7 @@ const MERCADO_PUBLICO_NAVIGATION_ITEM: NavigationMenuItem = {
   type: NavigationMenuItemType.LINK,
   name: 'Mercado Público',
   link: '/mercado-publico',
-  icon: 'IconBuildingStore',
+  icon: 'IconBuildingBank',
   position: 3,
   createdAt: '',
   updatedAt: '',
@@ -29,6 +29,28 @@ const MERCADO_PUBLICO_NAVIGATION_ITEM: NavigationMenuItem = {
 export type NavigationMenuItemClickParams = {
   item: NavigationMenuItem;
   objectMetadataItem?: EnrichedObjectMetadataItem | null;
+};
+
+export const insertMercadoPublicoNavigationItem = (
+  items: NavigationMenuItem[],
+): NavigationMenuItem[] => {
+  if (items.some((item) => item.link === '/mercado-publico')) {
+    return items;
+  }
+
+  const opportunitiesIndex = items.findIndex(
+    (item) => item.link === AppPath.OpportunitiesPage,
+  );
+
+  if (opportunitiesIndex === -1) {
+    return [...items, MERCADO_PUBLICO_NAVIGATION_ITEM];
+  }
+
+  return [
+    ...items.slice(0, opportunitiesIndex + 1),
+    MERCADO_PUBLICO_NAVIGATION_ITEM,
+    ...items.slice(opportunitiesIndex + 1),
+  ];
 };
 
 export const useNavigationMenuItemSectionItems = (): NavigationMenuItem[] => {
@@ -57,7 +79,5 @@ export const useNavigationMenuItemSectionItems = (): NavigationMenuItem[] => {
     workspaceNavigationMenuItemsByFolder,
   );
 
-  return items.some((item) => item.link === '/mercado-publico')
-    ? items
-    : [...items, MERCADO_PUBLICO_NAVIGATION_ITEM];
+  return insertMercadoPublicoNavigationItem(items);
 };

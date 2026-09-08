@@ -263,6 +263,30 @@ describe('MercadoPublicoV2RefreshControl', () => {
     ).toBeInTheDocument();
   });
 
+  it('moves focus and selection with tablist arrow keys', async () => {
+    const user = userEvent.setup();
+
+    renderControl();
+    await user.click(screen.getByRole('button', { name: /Actualizar datos/ }));
+
+    const updateTab = screen.getByRole('tab', { name: 'Progreso' });
+    const observabilityTab = screen.getByRole('tab', {
+      name: 'Observabilidad',
+    });
+
+    updateTab.focus();
+    await user.keyboard('{ArrowRight}');
+
+    expect(observabilityTab).toHaveFocus();
+    expect(observabilityTab).toHaveAttribute('aria-selected', 'true');
+    expect(updateTab).toHaveAttribute('tabindex', '-1');
+
+    await user.keyboard('{ArrowLeft}');
+
+    expect(updateTab).toHaveFocus();
+    expect(updateTab).toHaveAttribute('aria-selected', 'true');
+  });
+
   it('keeps workspace mounted during background polling', async () => {
     const user = userEvent.setup();
     const knownData = makeData(makeRun());
@@ -389,6 +413,11 @@ describe('MercadoPublicoV2RefreshControl', () => {
     expect(
       screen.getByRole('option', { name: 'Sin límite de páginas' }),
     ).toBeVisible();
+    expect(
+      screen.getByText(
+        'Se consultarán todas las páginas de fuente disponibles.',
+      ),
+    ).toBeVisible();
   });
 
   it('shows four recent events and expands persisted activity', async () => {
@@ -426,7 +455,7 @@ describe('MercadoPublicoV2RefreshControl', () => {
     expect(activity).not.toHaveTextContent('unknown_event');
     await user.click(
       within(activity!).getByRole('button', {
-        name: 'Mostrar toda',
+        name: 'Mostrar toda la actividad',
       }),
     );
     expect(within(activity!).getAllByRole('listitem')).toHaveLength(5);
@@ -525,6 +554,7 @@ describe('MercadoPublicoV2RefreshControl', () => {
       ...queryResult,
       data: makeData(
         makeRun({
+          safeSummary: 'La ejecución terminó con advertencias.',
           httpAttempts: [
             {
               at: '2026-08-28T18:44:00.000Z',
@@ -546,6 +576,20 @@ describe('MercadoPublicoV2RefreshControl', () => {
 
     expect(screen.getByRole('columnheader', { name: 'HTTP' })).toBeVisible();
     expect(screen.getByText('/compra-agil')).toBeVisible();
+    expect(screen.getByText(/14:44:00/)).toBeVisible();
+    expect(
+      screen.getByRole('heading', { name: 'Resumen de ejecución' }),
+    ).toBeVisible();
+    expect(
+      screen.getByText('La ejecución terminó con advertencias.'),
+    ).toBeVisible();
+    const events = screen
+      .getByRole('heading', { name: 'Eventos' })
+      .closest('section');
+    expect(within(events!).getAllByRole('listitem')[0]).toHaveAttribute(
+      'data-layout',
+      'observability',
+    );
     expect(screen.getByText('Reintento')).toBeVisible();
 
     await user.click(screen.getByTestId('mercado-publico-v2-refresh-cancel'));
@@ -559,6 +603,32 @@ describe('MercadoPublicoV2RefreshControl', () => {
         input: { confirmed: true, idempotencyKey: expect.any(String) },
       },
     });
+  });
+
+  it('renders only the latest 100 HTTP attempts', async () => {
+    const user = userEvent.setup();
+    const httpAttempts = Array.from({ length: 101 }, (_, index) => ({
+      at: new Date(Date.UTC(2026, 7, 28, 18, 0, index)).toISOString(),
+      endpoint: `/attempt-${index}`,
+      httpStatus: 200,
+      latencyMs: 100,
+      attemptNumber: index + 1,
+      retryable: false,
+      failureClass: null,
+    }));
+
+    queryResult = {
+      ...queryResult,
+      data: makeData(makeRun({ httpAttempts })),
+    };
+
+    renderControl();
+    await user.click(screen.getByRole('button', { name: /Actualizando/ }));
+    await user.click(screen.getByRole('tab', { name: 'Observabilidad' }));
+
+    expect(screen.getAllByRole('row')).toHaveLength(101);
+    expect(screen.queryByText('/attempt-0')).not.toBeInTheDocument();
+    expect(screen.getByText('/attempt-100')).toBeVisible();
   });
 
   it('keeps synchronization out of Mercado Publico navigation', () => {

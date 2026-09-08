@@ -200,6 +200,7 @@ const runProcess = (command, arguments_, { capture = false } = {}) => {
     env: process.env,
     encoding: capture ? 'utf8' : undefined,
     stdio: capture ? 'pipe' : 'inherit',
+    shell: process.platform === 'win32' && command === 'yarn',
     maxBuffer: 50 * 1024 * 1024,
   });
 

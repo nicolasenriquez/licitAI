@@ -141,6 +141,22 @@ describe('MercadoPublicoV2SyncControlResolver', () => {
     });
     expect(controlService.getLatestRun).toHaveBeenCalledTimes(1);
   });
+
+  it('delegates bounded sync history to the control service', async () => {
+    const controlService = {
+      submitCommand: jest.fn(),
+      getLatestRun: jest.fn(),
+      getRunHistory: jest.fn().mockResolvedValue([{ runId: 'run-previous' }]),
+    } as unknown as jest.Mocked<MercadoPublicoV2SyncControlService>;
+    const resolver = new MercadoPublicoV2SyncControlNamespaceResolver(
+      controlService,
+    );
+
+    await expect(resolver.history(25)).resolves.toEqual([
+      { runId: 'run-previous' },
+    ]);
+    expect(controlService.getRunHistory).toHaveBeenCalledWith('', 25);
+  });
 });
 
 describe('MercadoPublicoV2SyncOperatorGuard', () => {

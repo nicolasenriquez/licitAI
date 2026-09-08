@@ -108,6 +108,42 @@ export class MercadoPublicoV2LatestRunDTO {
 }
 
 @ObjectType()
+export class MercadoPublicoV2SyncRunSummaryDTO {
+  @Field()
+  runId!: string;
+
+  @Field()
+  safeStatus!: string;
+
+  @Field(() => String, { nullable: true })
+  safeSummary!: string | null;
+
+  @Field(() => Int)
+  recordsDiscovered!: number;
+
+  @Field(() => Int)
+  recordsHydrated!: number;
+
+  @Field(() => Int)
+  recordsFailed!: number;
+
+  @Field(() => Int)
+  recordsDeferred!: number;
+
+  @Field(() => Int)
+  recordsProjected!: number;
+
+  @Field(() => String, { nullable: true })
+  completionReason!: string | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  startedAt!: Date | null;
+
+  @Field(() => GraphQLISODateTime, { nullable: true })
+  updatedAt!: Date | null;
+}
+
+@ObjectType()
 export class MercadoPublicoV2SyncCommandResultDTO {
   @Field()
   state!: string;
@@ -177,6 +213,17 @@ export class MercadoPublicoV2SyncControlNamespaceResolver {
   ): Promise<MercadoPublicoV2LatestRunDTO | null> {
     return this.mercadoPublicoV2SyncControlService.getLatestRun(
       workspace?.id ?? '',
+    );
+  }
+
+  @ResolveField(() => [MercadoPublicoV2SyncRunSummaryDTO])
+  history(
+    @Args('limit', { type: () => Int, defaultValue: 10 }) limit: number,
+    @AuthWorkspace() workspace?: WorkspaceEntity,
+  ): Promise<MercadoPublicoV2SyncRunSummaryDTO[]> {
+    return this.mercadoPublicoV2SyncControlService.getRunHistory(
+      workspace?.id ?? '',
+      limit,
     );
   }
 

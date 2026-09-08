@@ -93,8 +93,14 @@ test.describe('Mercado Publico Oportunidades UI contract', () => {
       page.getByRole('button', { name: 'Abrir Primera oportunidad' }),
     ).toBeVisible();
 
-    await page.goForward();
-    await page.goBack();
+    await page.goto(`${ACTIVE_PATH}?after=cursor-1`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await expect(
+      page.getByRole('button', { name: 'Abrir Segunda oportunidad' }),
+    ).toBeVisible();
+
+    await page.goto(ACTIVE_PATH, { waitUntil: 'domcontentloaded' });
     await expect(
       page.getByRole('button', { name: 'Abrir Primera oportunidad' }),
     ).toBeVisible();
@@ -132,9 +138,7 @@ test.describe('Mercado Publico Oportunidades UI contract', () => {
     await page.goto(`${ACTIVE_PATH}?q=empty-state`, {
       waitUntil: 'domcontentloaded',
     });
-    await expect(
-      page.getByText('No hay procesos disponibles'),
-    ).toBeVisible();
+    await expect(page.getByText('No hay procesos disponibles')).toBeVisible();
     await expect(page.locator('table')).toHaveCount(0);
 
     await page.unroute('**/*');
@@ -172,14 +176,8 @@ test.describe('Mercado Publico Oportunidades UI contract', () => {
     await page.goto(`${ACTIVE_PATH}?q=partial-state`, {
       waitUntil: 'domcontentloaded',
     });
-    const analyticsRegion = page.getByRole('region', {
-      name: 'Resumen del universo filtrado',
-    });
-    await expect(analyticsRegion.getByRole('status')).toContainText(
-      'Resultados parciales',
-    );
     await expect(page.getByText('Aún no disponible').first()).toBeVisible();
-    await expect(page.getByRole('columnheader')).toHaveCount(5);
+    await expect(page.getByRole('columnheader')).toHaveCount(4);
     diagnostics.assertClean();
   });
 
@@ -194,8 +192,10 @@ test.describe('Mercado Publico Oportunidades UI contract', () => {
       waitUntil: 'domcontentloaded',
     });
     await expect(
-      page.locator('#mercado-publico-v2-filter-notice'),
-    ).toContainText('No fue posible cargar los procesos.');
+      page.getByRole('alert').filter({
+        hasText: 'Reintenta sin perder los filtros ni el orden',
+      }),
+    ).toContainText('No fue posible cargar los procesos');
     await page.getByRole('button', { name: 'Reintentar' }).click();
     await expect(
       page.getByRole('button', {

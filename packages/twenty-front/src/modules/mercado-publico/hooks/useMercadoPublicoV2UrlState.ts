@@ -3,9 +3,17 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { MercadoPublicoV2OpportunitySort } from '~/generated/graphql';
 
+import { getMercadoPublicoChileDate } from '@/mercado-publico/utils/format-mercado-publico-display';
+
 export type MercadoPublicoV2Sort = MercadoPublicoV2OpportunitySort;
 
 export type MercadoPublicoV2CohortStatus = 'active' | 'terminal';
+
+export type MercadoPublicoV2QuickView =
+  | 'active'
+  | 'closing-today'
+  | 'closing-next-three-days'
+  | 'all';
 
 const MERCADO_PUBLICO_V2_SORT_VALUES: MercadoPublicoV2Sort[] = [
   MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC,
@@ -36,6 +44,89 @@ export type MercadoPublicoV2UrlState = MercadoPublicoV2Filters & {
   sort: MercadoPublicoV2Sort;
   after: string | null;
   proceso: string | null;
+};
+
+const addDaysToMercadoPublicoDate = (value: string, days: number): string => {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+
+  return date.toISOString().slice(0, 10);
+};
+
+export const getMercadoPublicoV2QuickView = (
+  filters: MercadoPublicoV2Filters,
+  today = getMercadoPublicoChileDate(),
+): MercadoPublicoV2QuickView | null => {
+  const isPublishedActiveCohort =
+    filters.cohortStatus === 'active' &&
+    filters.states.length === 1 &&
+    filters.states[0] === 'publicada';
+
+  if (
+    isPublishedActiveCohort &&
+    filters.closingAtFrom === null &&
+    filters.closingAtTo === null
+  ) {
+    return 'active';
+  }
+
+  if (
+    isPublishedActiveCohort &&
+    filters.closingAtFrom === today &&
+    filters.closingAtTo === today
+  ) {
+    return 'closing-today';
+  }
+
+  if (
+    isPublishedActiveCohort &&
+    filters.closingAtFrom === today &&
+    filters.closingAtTo === addDaysToMercadoPublicoDate(today, 3)
+  ) {
+    return 'closing-next-three-days';
+  }
+
+  if (
+    filters.cohortStatus === 'active' &&
+    filters.states.length === 0 &&
+    filters.closingAtFrom === null &&
+    filters.closingAtTo === null
+  ) {
+    return 'all';
+  }
+
+  return null;
+};
+
+export const getMercadoPublicoV2QuickViewFilters = (
+  quickView: MercadoPublicoV2QuickView,
+  today = getMercadoPublicoChileDate(),
+): Partial<MercadoPublicoV2Filters> => {
+  if (quickView === 'all') {
+    return {
+      cohortStatus: 'active',
+      states: [],
+      closingAtFrom: null,
+      closingAtTo: null,
+    };
+  }
+
+  const dates =
+    quickView === 'active'
+      ? { closingAtFrom: null, closingAtTo: null }
+      : {
+          closingAtFrom: today,
+          closingAtTo:
+            quickView === 'closing-today'
+              ? today
+              : addDaysToMercadoPublicoDate(today, 3),
+        };
+
+  return {
+    cohortStatus: 'active',
+    states: ['publicada'],
+    ...dates,
+  };
 };
 
 const EMPTY_FILTERS: MercadoPublicoV2Filters = {
@@ -81,7 +172,7 @@ const parseSort = (value: string | null): MercadoPublicoV2Sort =>
   value !== null &&
   MERCADO_PUBLICO_V2_SORT_VALUES.includes(value as MercadoPublicoV2Sort)
     ? (value as MercadoPublicoV2Sort)
-    : MercadoPublicoV2OpportunitySort.CLOSING_AT_DESC;
+    : MercadoPublicoV2OpportunitySort.CLOSING_AT_ASC;
 
 const toSearchParams = (params: URLSearchParams): URLSearchParams =>
   new URLSearchParams(params);

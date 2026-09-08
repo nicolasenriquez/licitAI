@@ -70,22 +70,15 @@ test.describe('Mercado Publico Procesos UI contract', () => {
 
     await page.goto(ACTIVE_PATH, { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: 'Procesos' })).toBeVisible();
-    await expect(
-      page.getByRole('heading', { name: 'Resumen del universo filtrado' }),
-    ).toBeVisible();
-    const analyticsRegion = page.getByRole('region', {
-      name: 'Resumen del universo filtrado',
-    });
-    await expect(analyticsRegion.getByRole('status')).toContainText(
-      'Resultados disponibles',
-    );
-    await expect(page.getByRole('columnheader')).toHaveCount(5);
+    await expect(page.getByRole('columnheader')).toHaveCount(4);
     await expect(
       page.getByText('No informado por fuente').first(),
     ).toBeVisible();
     await expect(page.getByText('Aún no disponible').first()).toBeVisible();
     await expect(page.getByText('No aplica').first()).toBeVisible();
-    await expect(page.getByText('Documentos: 0')).toBeVisible();
+    await expect(
+      page.getByRole('columnheader', { name: 'Oportunidad' }),
+    ).toBeVisible();
     await expect(
       page
         .getByRole('row')
@@ -105,7 +98,8 @@ test.describe('Mercado Publico Procesos UI contract', () => {
         name: 'Abrir Servicio de mantención preventiva',
       })
       .click();
-    await expect(page.getByText('Datos técnicos')).toBeVisible();
+    await page.getByTestId('tab-evidence').click();
+    await expect(page.getByText('Ver detalles técnicos')).toBeVisible();
 
     await page.keyboard.press('Escape');
     await expect(page.getByRole('heading', { name: 'Procesos' })).toBeVisible();
@@ -136,11 +130,13 @@ test.describe('Mercado Publico Procesos UI contract', () => {
     });
 
     await page.goto(ACTIVE_PATH, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('columnheader')).toHaveCount(5);
+    await expect(page.getByRole('columnheader')).toHaveCount(4);
     await expect(
       page.getByText('Municipalidad de Ejemplo').first(),
     ).toBeVisible();
-    await expect(page.getByText('Documentos: 1')).toBeVisible();
+    await expect(
+      page.getByRole('columnheader', { name: 'Monto publicado' }),
+    ).toBeVisible();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(390);

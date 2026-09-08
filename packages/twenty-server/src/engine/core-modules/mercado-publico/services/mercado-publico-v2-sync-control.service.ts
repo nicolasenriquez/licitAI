@@ -81,6 +81,21 @@ export type MercadoPublicoV2LatestRun = {
   }[];
 };
 
+export type MercadoPublicoV2SyncRunSummary = Pick<
+  MercadoPublicoV2LatestRun,
+  | 'runId'
+  | 'safeStatus'
+  | 'safeSummary'
+  | 'recordsDiscovered'
+  | 'recordsHydrated'
+  | 'recordsFailed'
+  | 'recordsDeferred'
+  | 'recordsProjected'
+  | 'completionReason'
+  | 'startedAt'
+  | 'updatedAt'
+>;
+
 const getMercadoPublicoV2SyncSafeSummary = (
   status: string,
   errorStage: string | null,
@@ -924,6 +939,64 @@ export class MercadoPublicoV2SyncControlService {
         failureClass: attempt.failure_class,
       })),
     };
+  }
+
+  async getRunHistory(
+    workspaceId: string,
+    requestedLimit = 10,
+  ): Promise<MercadoPublicoV2SyncRunSummary[]> {
+    const limit = Math.min(Math.max(Math.floor(requestedLimit), 1), 10);
+    const rows = await this.coreDataSource.query<
+      {
+        id: string;
+        status: string;
+        error_stage: string | null;
+        records_discovered: string | null;
+        records_hydrated: string | null;
+        records_failed: string | null;
+        records_deferred: string | null;
+        records_projected: string | null;
+        completion_reason: string | null;
+        created_at: Date | null;
+        updated_at: Date | null;
+      }[]
+    >(
+      `
+        WITH latest_run AS (
+          SELECT id
+          FROM mp.sync_run
+          WHERE control_workspace_id = $1
+          ORDER BY created_at DESC
+          LIMIT 1
+        )
+        SELECT id, status, error_stage, records_discovered, records_hydrated,
+               records_failed, records_deferred, records_projected,
+               completion_reason, created_at, updated_at
+        FROM mp.sync_run
+        WHERE control_workspace_id = $1
+          AND id <> COALESCE((SELECT id FROM latest_run), '')
+        ORDER BY created_at DESC
+        LIMIT $2
+      `,
+      [workspaceId, limit],
+    );
+
+    return rows.map((row) => ({
+      runId: row.id,
+      safeStatus: row.status,
+      safeSummary: getMercadoPublicoV2SyncSafeSummary(
+        row.status,
+        row.error_stage,
+      ),
+      recordsDiscovered: Number(row.records_discovered ?? 0),
+      recordsHydrated: Number(row.records_hydrated ?? 0),
+      recordsFailed: Number(row.records_failed ?? 0),
+      recordsDeferred: Number(row.records_deferred ?? 0),
+      recordsProjected: Number(row.records_projected ?? 0),
+      completionReason: row.completion_reason,
+      startedAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
   }
 
   private async assertResumableRun(

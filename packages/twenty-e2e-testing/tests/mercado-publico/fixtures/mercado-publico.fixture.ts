@@ -105,6 +105,9 @@ export const trackHarnessDiagnostics = (page: Page) => {
     'MercadoPublicoV2ActiveOpportunities',
     'MercadoPublicoV2Analytics',
     'MercadoPublicoV2Opportunity',
+    'MercadoPublicoV2Documents',
+    'MercadoPublicoV2History',
+    'MercadoPublicoV2RawPayload',
     'MercadoPublicoV2RefreshControl',
   ]);
 

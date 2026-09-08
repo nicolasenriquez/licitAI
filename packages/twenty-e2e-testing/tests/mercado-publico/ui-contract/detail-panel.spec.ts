@@ -67,16 +67,22 @@ const mockGraphql = async (
   {
     opportunities = [opportunity],
     detailFailures = 0,
+    documentAvailability = 'available',
+    documentFailures = 0,
+    documents: documentNodes = [
+      { id: '1', name: 'Bases administrativas' },
+      { id: '2', name: 'Especificaciones técnicas' },
+    ],
   }: {
     opportunities?: ReturnType<typeof buildOpportunity>[];
     detailFailures?: number;
+    documentAvailability?: 'available' | 'unavailable';
+    documentFailures?: number;
+    documents?: Array<{ id: string; name: string }>;
   } = {},
 ): Promise<{ documentAfterValues: Array<string | null> }> => {
-  const documents = [
-    { id: '1', name: 'Bases administrativas' },
-    { id: '2', name: 'Especificaciones técnicas' },
-  ];
   let detailRequestCount = 0;
+  let documentRequestCount = 0;
   const documentAfterValues: Array<string | null> = [];
 
   await page.route('**/*', async (route) => {
@@ -152,10 +158,31 @@ const mockGraphql = async (
     }
 
     if (requestBody.operationName === 'MercadoPublicoV2Documents') {
+      documentRequestCount += 1;
       documentAfterValues.push(
-        (
-          requestBody as { variables?: { after?: string | null } }
-        ).variables?.after ?? null,
+        (requestBody as { variables?: { after?: string | null } }).variables
+          ?.after ?? null,
+      );
+
+      if (documentRequestCount <= documentFailures) {
+        await route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify({
+            errors: [{ message: 'fixture documents failure' }],
+          }),
+        });
+
+        return;
+      }
+
+      const documentPage = buildRelationPage(
+        documentAvailability === 'available'
+          ? documentNodes.map((node, index) => ({
+              cursor: `document-cursor-${index + 1}`,
+              node,
+            }))
+          : [],
+        documentAvailability === 'available' ? documentNodes.length : 0,
       );
 
       await route.fulfill({
@@ -163,13 +190,28 @@ const mockGraphql = async (
         body: JSON.stringify({
           data: {
             mercadoPublicoV2: {
-              documents: buildRelationPage(
-                documents.map((node, index) => ({
-                  cursor: `document-cursor-${index + 1}`,
-                  node,
-                })),
-                documents.length,
-              ),
+              documents: {
+                ...documentPage,
+                availability: {
+                  ...documentPage.availability,
+                  availability: documentAvailability,
+                },
+              },
+            },
+          },
+        }),
+      });
+
+      return;
+    }
+
+    if (requestBody.operationName === 'MercadoPublicoV2History') {
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            mercadoPublicoV2: {
+              history: buildRelationPage([], 0),
             },
           },
         }),
@@ -217,7 +259,9 @@ test.describe('Mercado Publico V2 SidePanel structured detail', () => {
       'build has REACT_APP_MERCADO_PUBLICO_V2_ENABLED=false',
     );
 
-    const opportunity = buildOpportunity();
+    const opportunity = buildOpportunity({
+      cancelMotive: 'No cancelado',
+    });
 
     await mockGraphql(page, opportunity);
 
@@ -229,9 +273,12 @@ test.describe('Mercado Publico V2 SidePanel structured detail', () => {
     await expect(
       page.getByText('Mantención preventiva de ascensores'),
     ).toBeVisible();
-    await expect(page.getByText('Entrega')).toBeVisible();
+    await page.getByText('Entrega y presupuesto').click();
+    await expect(page.getByText('Entrega', { exact: true })).toBeVisible();
     await expect(page.getByText('Av. Central 123')).toBeVisible();
+    await page.getByText('Motivos y decisión').click();
     await expect(page.getByText('Motivo de cancelación')).toBeVisible();
+    await page.getByText('Ciclo de vida').click();
     await expect(page.getByText('Ciclo de vida')).toBeVisible();
     await expect(page.getByText('new_published')).toBeVisible();
   });
@@ -250,6 +297,7 @@ test.describe('Mercado Publico V2 SidePanel structured detail', () => {
       waitUntil: 'domcontentloaded',
     });
 
+    await page.getByTestId('tab-documents').click();
     const documentsSection = page.getByTestId('relation-documents');
 
     await expect(
@@ -257,6 +305,10 @@ test.describe('Mercado Publico V2 SidePanel structured detail', () => {
     ).toBeVisible();
     await expect(
       documentsSection.getByText('Especificaciones técnicas'),
+    ).toBeVisible();
+    await expect(documentsSection.locator('summary')).toHaveCount(0);
+    await expect(
+      documentsSection.getByText('Localizador no informado').first(),
     ).toBeVisible();
     await expect(
       documentsSection.getByRole('button', {
@@ -281,6 +333,9 @@ test.describe('Mercado Publico V2 SidePanel structured detail', () => {
       waitUntil: 'domcontentloaded',
     });
 
+    await page.getByTestId('tab-evidence').click();
+    await page.getByText('Payload técnico de fuente').click();
+
     const disclosureButton = page.getByRole('button', {
       name: 'Ver JSON sanitizado',
     });
@@ -293,7 +348,7 @@ test.describe('Mercado Publico V2 SidePanel structured detail', () => {
     );
   });
 
-  test('keeps three business tabs and a collapsed technical disclosure', async ({
+  test('keeps four business tabs and a collapsed technical disclosure', async ({
     page,
   }) => {
     test.skip(
@@ -308,13 +363,58 @@ test.describe('Mercado Publico V2 SidePanel structured detail', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(page.getByRole('tab')).toHaveCount(3);
-    await expect(page.getByText('Información técnica')).toBeVisible();
     await expect(
-      page.getByText(
-        'Monto publicado por la fuente. La factibilidad no está evaluada.',
-      ),
+      page.locator('[data-side-panel] [data-testid^="tab-"]:visible'),
+    ).toHaveCount(4);
+    await expect(page.getByTestId('tab-evidence')).toHaveText('Trazabilidad');
+    await page.getByTestId('tab-evidence').click();
+    await page.getByText('Payload técnico de fuente').click();
+    await expect(page.getByText('Ver detalles técnicos')).toBeVisible();
+    await expect(page.getByTestId('sanitized-payload')).toBeHidden();
+  });
+
+  test('documents expose empty, unavailable, and retry states without inventing links', async ({
+    page,
+  }) => {
+    test.skip(
+      !v2FlagOn,
+      'build has REACT_APP_MERCADO_PUBLICO_V2_ENABLED=false',
+    );
+
+    const opportunity = buildOpportunity();
+    await mockGraphql(page, opportunity, { documents: [] });
+    await page.goto(`${ACTIVE_PATH}?proceso=${opportunity.codigo}`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await page.getByTestId('tab-documents').click();
+    await expect(page.getByText('No hay documentos informados.')).toBeVisible();
+    await expect(
+      page.getByTestId('relation-documents').getByRole('link'),
+    ).toHaveCount(0);
+
+    await page.unroute('**/*');
+    await mockGraphql(page, opportunity, {
+      documentAvailability: 'unavailable',
+    });
+    await page.goto(`${ACTIVE_PATH}?proceso=${opportunity.codigo}`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await page.getByTestId('tab-documents').click();
+    await expect(
+      page.getByText('Documentos no disponibles desde la fuente.'),
     ).toBeVisible();
+
+    await page.unroute('**/*');
+    await mockGraphql(page, opportunity, { documentFailures: 1 });
+    await page.goto(`${ACTIVE_PATH}?proceso=${opportunity.codigo}`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await page.getByTestId('tab-documents').click();
+    await expect(
+      page.getByText('No fue posible cargar los documentos.'),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Reintentar documentos' }).click();
+    await expect(page.getByText('Bases administrativas')).toBeVisible();
   });
 
   test('keyboard disclosure returns focus to the button', async ({ page }) => {
@@ -330,6 +430,9 @@ test.describe('Mercado Publico V2 SidePanel structured detail', () => {
     await page.goto(`${ACTIVE_PATH}?proceso=${opportunity.codigo}`, {
       waitUntil: 'domcontentloaded',
     });
+
+    await page.getByTestId('tab-evidence').click();
+    await page.getByText('Payload técnico de fuente').click();
 
     const disclosureButton = page.getByRole('button', {
       name: 'Ver JSON sanitizado',
@@ -378,16 +481,18 @@ test.describe('Mercado Publico V2 SidePanel structured detail', () => {
     await expect(panel.getByText(firstOpportunity.title)).toBeVisible();
 
     await panel.getByTestId('tab-documents').click();
-    await panel.getByTestId('relation-documents').locator('summary').click();
     await expect(
       panel.getByRole('button', { name: 'Siguiente página de documentos' }),
     ).toBeVisible();
     await panel
       .getByRole('button', { name: 'Siguiente página de documentos' })
       .click();
-    await expect.poll(() => documentAfterValues.at(-1)).toBe('document-cursor-2');
+    await expect
+      .poll(() => documentAfterValues.at(-1))
+      .toBe('document-cursor-2');
 
-    await panel.getByTestId('tab-technical').click();
+    await panel.getByTestId('tab-evidence').click();
+    await panel.getByText('Payload técnico de fuente').click();
     await panel.getByRole('button', { name: 'Ver JSON sanitizado' }).click();
     await expect(panel.getByTestId('sanitized-payload')).toBeVisible();
 
@@ -397,9 +502,9 @@ test.describe('Mercado Publico V2 SidePanel structured detail', () => {
     await expect(panel.getByText(firstOpportunity.title)).toBeHidden();
     await expect(panel.getByTestId('tab-summary')).toHaveAttribute(
       'data-active',
-      'true',
     );
     await expect(panel.getByTestId('sanitized-payload')).toBeHidden();
+    await panel.getByTestId('tab-documents').click();
     await expect.poll(() => documentAfterValues.at(-1)).toBe(null);
   });
 

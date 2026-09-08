@@ -11,10 +11,20 @@ import {
   formatMercadoPublicoAvailability,
   formatMercadoPublicoFreshness,
 } from '@/mercado-publico/utils/format-mercado-publico-data-status';
+import {
+  formatMercadoPublicoAmount,
+  formatMercadoPublicoDate,
+  formatMercadoPublicoRegion,
+} from '@/mercado-publico/utils/format-mercado-publico-display';
 import { SidePanelPageComponentInstanceContext } from '@/side-panel/states/contexts/SidePanelPageComponentInstanceContext';
 import { TabList } from '@/ui/layout/tab-list/components/TabList';
 import { useComponentInstanceStateContext } from '@/ui/utilities/state/component-state/hooks/useComponentInstanceStateContext';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
+import {
+  MercadoPublicoV2HistoryDocument,
+  type MercadoPublicoV2HistoryQuery,
+  type MercadoPublicoV2HistoryQueryVariables,
+} from '~/generated/graphql';
 
 const MERCADO_PUBLICO_V2_OPPORTUNITY_QUERY = gql`
   query MercadoPublicoV2Opportunity($codigo: String!) {
@@ -377,10 +387,38 @@ const StyledCode = styled.div`
   font-size: ${themeCssVariables.font.size.sm};
 `;
 
+const StyledHeaderSummary = styled.dl`
+  display: grid;
+  gap: ${themeCssVariables.spacing[2]};
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+
+  @media (max-width: 420px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
 const StyledHistoryLink = styled(Link)`
   color: ${themeCssVariables.font.color.primary};
   font-size: ${themeCssVariables.font.size.md};
   text-underline-offset: 2px;
+`;
+
+const StyledHistoryList = styled.ol`
+  display: flex;
+  flex-direction: column;
+  gap: ${themeCssVariables.spacing[2]};
+  list-style: none;
+  margin: 0;
+  padding: 0;
+`;
+
+const StyledHistoryItem = styled.li`
+  border-top: 1px solid ${themeCssVariables.border.color.light};
+  display: flex;
+  flex-direction: column;
+  gap: ${themeCssVariables.spacing[1]};
+  padding-top: ${themeCssVariables.spacing[2]};
 `;
 
 const StyledSection = styled.section`
@@ -494,22 +532,121 @@ const StyledButton = styled.button`
   }
 `;
 
-const formatDate = (value: string | null): string => {
-  if (!value) return 'No informado por fuente';
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat('es-CL', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'America/Santiago',
-  }).format(date);
-};
-
 const valueOrFallback = (value: string | number | null): string | number =>
   value === null ? 'No informado por fuente' : value;
+
+const getDocumentType = (name: string | null | undefined): string => {
+  const extension = name?.split('.').at(-1)?.toUpperCase();
+
+  return extension && extension !== name?.toUpperCase() ? extension : 'Archivo';
+};
+
+const formatMercadoPublicoState = (
+  state: string | null,
+  t: ReturnType<typeof useLingui>['t'],
+): string => {
+  switch (state) {
+    case 'publicada':
+      return t({ message: 'Publicada' });
+    case 'cerrada':
+      return t({ message: 'Cerrada' });
+    case 'desierta':
+      return t({ message: 'Desierta' });
+    case 'cancelada':
+      return t({ message: 'Cancelada' });
+    case 'proveedor_seleccionado':
+      return t({ message: 'Proveedor seleccionado' });
+    case 'oc_emitida':
+      return t({ message: 'Orden de compra emitida' });
+    default:
+      return state ?? t({ message: 'No informado por fuente' });
+  }
+};
+
+const DocumentsSection = ({
+  connection,
+  error,
+  loading,
+  nextPageLabel,
+  onRetry,
+  onNext,
+  t,
+}: {
+  connection: RelationConnection | undefined;
+  error: Error | undefined;
+  loading: boolean;
+  nextPageLabel: string;
+  onRetry: () => void;
+  onNext: () => void;
+  t: ReturnType<typeof useLingui>['t'];
+}) => {
+  const nodes = connection?.edges.map(({ node }) => node) ?? [];
+  const availability = connection?.availability;
+
+  return (
+    <StyledSection data-testid="relation-documents">
+      <StyledHeading>{t({ message: 'Documentos' })}</StyledHeading>
+      {loading && (
+        <StyledStatus role="status">{t({ message: 'Cargando…' })}</StyledStatus>
+      )}
+      {error && (
+        <>
+          <StyledStatus>
+            {t({ message: 'No fue posible cargar los documentos.' })}
+          </StyledStatus>
+          <StyledButton type="button" onClick={onRetry}>
+            {t({ message: 'Reintentar documentos' })}
+          </StyledButton>
+        </>
+      )}
+      {!error && availability?.availability === 'unavailable' && (
+        <StyledStatus>
+          {t({ message: 'Documentos no disponibles desde la fuente.' })}
+        </StyledStatus>
+      )}
+      {!error &&
+        availability?.availability === 'available' &&
+        nodes.length === 0 && (
+          <StyledStatus>
+            {t({ message: 'No hay documentos informados.' })}
+          </StyledStatus>
+        )}
+      {nodes.length > 0 && (
+        <StyledRelation>
+          <StyledRelationList>
+            {nodes.map((node) => {
+              const documentName =
+                node.name ?? node.id ?? t({ message: 'Documento' });
+
+              return (
+                <StyledRelationItem
+                  key={`${node.ordinal}-${node.id ?? 'document'}`}
+                  aria-label={`${documentName} · ${getDocumentType(node.name)} · ${t({ message: 'Localizador no informado' })}`}
+                >
+                  {documentName} · {getDocumentType(node.name)}
+                  <StyledStatus>
+                    {t({ message: 'Localizador no informado' })}
+                  </StyledStatus>
+                </StyledRelationItem>
+              );
+            })}
+          </StyledRelationList>
+          {availability?.totalCount !== null &&
+            availability?.totalCount !== undefined && (
+              <StyledStatus>
+                {`${availability.totalCount} documentos · ${availability.sourceKind ?? 'fuente'}`}
+              </StyledStatus>
+            )}
+        </StyledRelation>
+      )}
+      {connection?.pageInfo.hasNextPage && (
+        <StyledButton type="button" onClick={onNext}>
+          {nextPageLabel}
+        </StyledButton>
+      )}
+    </StyledSection>
+  );
+};
 
 const RelationSection = ({
   label,
@@ -572,6 +709,8 @@ const RelationSection = ({
                   node.id ??
                   t({ message: 'Elemento' })}
                 {node.providerName ? ` · ${node.providerName}` : ''}
+                {testId === 'relation-documents' &&
+                  ` · ${getDocumentType(node.name)}`}
                 {node.quantity !== null && node.quantity !== undefined
                   ? ` · ${node.quantity}`
                   : ''}
@@ -612,7 +751,7 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
   const [payloadVisible, setPayloadVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
   const payloadButtonRef = useRef<HTMLButtonElement>(null);
-  const { data, error, loading } = useQuery<DetailQuery>(
+  const { data, error, loading, refetch } = useQuery<DetailQuery>(
     MERCADO_PUBLICO_V2_OPPORTUNITY_QUERY,
     {
       client: apolloCoreClient,
@@ -620,6 +759,14 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
       skip: codigo.length === 0,
     },
   );
+  const historyQuery = useQuery<
+    MercadoPublicoV2HistoryQuery,
+    MercadoPublicoV2HistoryQueryVariables
+  >(MercadoPublicoV2HistoryDocument, {
+    client: apolloCoreClient,
+    variables: { codigo, after: null, first: 10 },
+    skip: codigo.length === 0 || activeTab !== 'summary',
+  });
   const opportunity = data?.mercadoPublicoV2.opportunity;
   const observationId = opportunity?.observationId ?? undefined;
   const relationVariables = {
@@ -659,6 +806,15 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
   );
 
   useEffect(() => {
+    setDocumentAfter(null);
+    setItemAfter(null);
+    setOfferAfter(null);
+    setQuotedProductAfter(null);
+    setPayloadVisible(false);
+    setActiveTab('summary');
+  }, [codigo]);
+
+  useEffect(() => {
     if (!payloadVisible) return;
 
     const handleEscape = (event: KeyboardEvent): void => {
@@ -685,7 +841,10 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
 
     setPayloadVisible(true);
 
-    if (!payloadQuery.data && !payloadQuery.loading) {
+    if (
+      payloadQuery.data?.mercadoPublicoV2.rawPayload?.codigo !== codigo &&
+      !payloadQuery.loading
+    ) {
       void loadPayload({ variables: { codigo } });
     }
   };
@@ -699,10 +858,10 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
   if (error || !opportunity) {
     return (
       <StyledContent role="alert">
-        {t({
-          message:
-            'Detalle no disponible. Cierra y vuelve a abrir el proceso para reintentar.',
-        })}
+        <StyledStatus>{t({ message: 'Detalle no disponible.' })}</StyledStatus>
+        <StyledButton type="button" onClick={() => void refetch()}>
+          {t({ message: 'Reintentar' })}
+        </StyledButton>
       </StyledContent>
     );
   }
@@ -719,15 +878,44 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
         <StyledCode>{opportunity.codigo}</StyledCode>
       </div>
 
+      <StyledHeaderSummary aria-label={t({ message: 'Resumen del proceso' })}>
+        <StyledLabel>Estado</StyledLabel>
+        <StyledValue>
+          {formatMercadoPublicoState(opportunity.state, t)}
+        </StyledValue>
+        <StyledLabel>Cierre</StyledLabel>
+        <StyledValue>
+          {formatMercadoPublicoDate(opportunity.closingAt)}
+        </StyledValue>
+        <StyledLabel>Monto publicado</StyledLabel>
+        <StyledValue>
+          {formatMercadoPublicoAmount(
+            opportunity.amount,
+            opportunity.currency,
+            opportunity.amountClp,
+          )}
+        </StyledValue>
+        <StyledLabel>Comprador</StyledLabel>
+        <StyledValue>{valueOrFallback(opportunity.buyerName)}</StyledValue>
+        <StyledLabel>Región</StyledLabel>
+        <StyledValue>
+          {opportunity.region === null
+            ? t({ message: 'No informado por fuente' })
+            : formatMercadoPublicoRegion(opportunity.region)}
+        </StyledValue>
+        <StyledLabel>Código</StyledLabel>
+        <StyledValue>{opportunity.codigo}</StyledValue>
+      </StyledHeaderSummary>
+
       <TabList
         tabs={[
-          { id: 'summary', title: t({ message: 'Resumen' }) },
-          { id: 'relations', title: t({ message: 'Ítems y ofertas' }) },
-          { id: 'documents', title: t({ message: 'Documentos' }) },
-          { id: 'technical', title: t({ message: 'Datos técnicos' }) },
+          { id: 'summary', title: 'Resumen' },
+          { id: 'relations', title: 'Ítems' },
+          { id: 'documents', title: 'Documentos' },
+          { id: 'evidence', title: 'Trazabilidad' },
         ]}
         behaveAsLinks={false}
-        componentInstanceId="mercado-publico-v2-opportunity-tabs"
+        componentInstanceId={`mercado-publico-v2-opportunity-tabs-${codigo}`}
         isInSidePanel
         onChangeTab={setActiveTab}
       />
@@ -735,51 +923,37 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
       {activeTab === 'summary' && (
         <>
           <StyledSection>
-            <StyledHeading>{t({ message: 'Resumen' })}</StyledHeading>
+            <StyledHeading>Resumen</StyledHeading>
             <StyledDetailList>
-              <StyledLabel>{t({ message: 'Estado' })}</StyledLabel>
+              <StyledLabel>Estado</StyledLabel>
               <StyledValue>{valueOrFallback(opportunity.state)}</StyledValue>
-              <StyledLabel>{t({ message: 'Comprador' })}</StyledLabel>
+              <StyledLabel>Comprador</StyledLabel>
               <StyledValue>
                 {valueOrFallback(opportunity.buyerName)}
               </StyledValue>
-              <StyledLabel>{t({ message: 'Cierre' })}</StyledLabel>
-              <StyledValue>{formatDate(opportunity.closingAt)}</StyledValue>
-              <StyledLabel>{t({ message: 'Monto publicado' })}</StyledLabel>
+              <StyledLabel>Cierre</StyledLabel>
               <StyledValue>
-                {opportunity.amount === null
-                  ? t({ message: 'No informado por fuente' })
-                  : `${opportunity.currency ?? ''} ${opportunity.amount}`.trim()}
-                {opportunity.amountClp !== null &&
-                  opportunity.currency !== null &&
-                  opportunity.currency !== 'CLP' && (
-                    <StyledStatus>{`≈ CLP ${opportunity.amountClp}`}</StyledStatus>
-                  )}
+                {formatMercadoPublicoDate(opportunity.closingAt)}
               </StyledValue>
-              <StyledLabel>{t({ message: 'Región' })}</StyledLabel>
-              <StyledValue>{valueOrFallback(opportunity.region)}</StyledValue>
-              <StyledLabel>{t({ message: 'Llamado' })}</StyledLabel>
+              <StyledLabel>Monto publicado</StyledLabel>
+              <StyledValue>
+                {formatMercadoPublicoAmount(
+                  opportunity.amount,
+                  opportunity.currency,
+                  opportunity.amountClp,
+                )}
+              </StyledValue>
+              <StyledLabel>Región</StyledLabel>
+              <StyledValue>
+                {opportunity.region === null
+                  ? t({ message: 'No informado por fuente' })
+                  : formatMercadoPublicoRegion(opportunity.region)}
+              </StyledValue>
+              <StyledLabel>Llamado</StyledLabel>
               <StyledValue>{valueOrFallback(opportunity.llamado)}</StyledValue>
-              <StyledLabel>{t({ message: 'Descripción' })}</StyledLabel>
+              <StyledLabel>Descripción</StyledLabel>
               <StyledValue>
                 {valueOrFallback(opportunity.description)}
-              </StyledValue>
-            </StyledDetailList>
-          </StyledSection>
-
-          <StyledSection>
-            <StyledHeading>
-              {t({ message: 'Factibilidad financiera' })}
-            </StyledHeading>
-            <StyledDetailList>
-              <StyledLabel>{t({ message: 'Estado' })}</StyledLabel>
-              <StyledValue>{t({ message: 'No evaluada' })}</StyledValue>
-              <StyledLabel>{t({ message: 'Límite' })}</StyledLabel>
-              <StyledValue>
-                {t({
-                  message:
-                    'El monto publicado no representa por sí solo el capital necesario para ejecutar el proceso.',
-                })}
               </StyledValue>
             </StyledDetailList>
           </StyledSection>
@@ -789,9 +963,9 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
             opportunity.budgetType !== null ||
             opportunity.budgetEstimate !== null) && (
             <StyledDisclosure>
-              <summary>{t({ message: 'Entrega y presupuesto' })}</summary>
+              <summary>Entrega y presupuesto</summary>
               <StyledDetailList>
-                <StyledLabel>{t({ message: 'Entrega' })}</StyledLabel>
+                <StyledLabel>Entrega</StyledLabel>
                 <StyledValue>
                   {opportunity.deliveryAddress === null
                     ? t({ message: 'No informado por fuente' })
@@ -801,15 +975,11 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
                           : ` · ${opportunity.deliveryDays} días`
                       }`}
                 </StyledValue>
-                <StyledLabel>
-                  {t({ message: 'Tipo de presupuesto' })}
-                </StyledLabel>
+                <StyledLabel>Tipo de presupuesto</StyledLabel>
                 <StyledValue>
                   {valueOrFallback(opportunity.budgetType)}
                 </StyledValue>
-                <StyledLabel>
-                  {t({ message: 'Presupuesto estimado' })}
-                </StyledLabel>
+                <StyledLabel>Presupuesto estimado</StyledLabel>
                 <StyledValue>
                   {opportunity.budgetEstimate === null
                     ? t({ message: 'No informado por fuente' })
@@ -823,23 +993,17 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
             opportunity.desertedMotive !== null ||
             opportunity.selectionMotive !== null) && (
             <StyledDisclosure>
-              <summary>{t({ message: 'Motivos y decisión' })}</summary>
+              <summary>Motivos y decisión</summary>
               <StyledDetailList>
-                <StyledLabel>
-                  {t({ message: 'Motivo de cancelación' })}
-                </StyledLabel>
+                <StyledLabel>Motivo de cancelación</StyledLabel>
                 <StyledValue>
                   {valueOrFallback(opportunity.cancelMotive)}
                 </StyledValue>
-                <StyledLabel>
-                  {t({ message: 'Motivo de desierta' })}
-                </StyledLabel>
+                <StyledLabel>Motivo de desierta</StyledLabel>
                 <StyledValue>
                   {valueOrFallback(opportunity.desertedMotive)}
                 </StyledValue>
-                <StyledLabel>
-                  {t({ message: 'Motivo de selección' })}
-                </StyledLabel>
+                <StyledLabel>Motivo de selección</StyledLabel>
                 <StyledValue>
                   {valueOrFallback(opportunity.selectionMotive)}
                 </StyledValue>
@@ -848,39 +1012,89 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
           )}
 
           <StyledDisclosure>
-            <summary>{t({ message: 'Ciclo de vida' })}</summary>
+            <summary>Ciclo de vida</summary>
             <StyledDetailList>
-              <StyledLabel>{t({ message: 'Publicación' })}</StyledLabel>
-              <StyledValue>{formatDate(opportunity.publishedAt)}</StyledValue>
-              <StyledLabel>{t({ message: 'Razón' })}</StyledLabel>
+              <StyledLabel>Publicación</StyledLabel>
+              <StyledValue>
+                {formatMercadoPublicoDate(opportunity.publishedAt)}
+              </StyledValue>
+              <StyledLabel>Razón</StyledLabel>
               <StyledValue>
                 {valueOrFallback(opportunity.lifecycleReason)}
               </StyledValue>
-              <StyledLabel>{t({ message: 'Disponibilidad' })}</StyledLabel>
+              <StyledLabel>Disponibilidad</StyledLabel>
               <StyledValue>
                 {formatMercadoPublicoAvailability(opportunity.availability, t)}
               </StyledValue>
               {freshness && (
                 <>
-                  <StyledLabel>{t({ message: 'Frescura' })}</StyledLabel>
+                  <StyledLabel>Frescura</StyledLabel>
                   <StyledValue>{freshness}</StyledValue>
                 </>
               )}
             </StyledDetailList>
           </StyledDisclosure>
 
-          <StyledHistoryLink
-            to={`${AppPath.MercadoPublicoV2History}?codigo=${encodeURIComponent(opportunity.codigo)}&returnTo=${encodeURIComponent(`${location.pathname}${location.search}`)}`}
-          >
-            {t({ message: 'Ver historial' })}
-          </StyledHistoryLink>
+          <StyledSection>
+            <StyledHeading>Historial del proceso</StyledHeading>
+            {historyQuery.loading && (
+              <StyledStatus role="status">
+                {t({ message: 'Cargando historial…' })}
+              </StyledStatus>
+            )}
+            {historyQuery.error && (
+              <>
+                <StyledStatus>
+                  {t({ message: 'No fue posible cargar el historial.' })}
+                </StyledStatus>
+                <StyledButton
+                  type="button"
+                  onClick={() => void historyQuery.refetch()}
+                >
+                  {t({ message: 'Reintentar historial' })}
+                </StyledButton>
+              </>
+            )}
+            {!historyQuery.loading &&
+              !historyQuery.error &&
+              historyQuery.data?.mercadoPublicoV2.history.edges.length ===
+                0 && (
+                <StyledStatus>
+                  {t({ message: 'No hay cambios semánticos registrados.' })}
+                </StyledStatus>
+              )}
+            {!historyQuery.loading &&
+              !historyQuery.error &&
+              historyQuery.data?.mercadoPublicoV2.history.edges.length !==
+                0 && (
+                <StyledHistoryList>
+                  {historyQuery.data?.mercadoPublicoV2.history.edges.map(
+                    ({ node }) => (
+                      <StyledHistoryItem key={node.id}>
+                        <StyledValue>
+                          {formatMercadoPublicoDate(node.createdAt)}
+                        </StyledValue>
+                        <StyledStatus>
+                          {node.changedFields.length > 0
+                            ? t`Cambios: ${node.changedFields.join(', ')}`
+                            : t`Cambio registrado sin campos detallados`}
+                        </StyledStatus>
+                      </StyledHistoryItem>
+                    ),
+                  )}
+                </StyledHistoryList>
+              )}
+            <StyledHistoryLink
+              to={`${AppPath.MercadoPublicoV2History}?codigo=${encodeURIComponent(opportunity.codigo)}&returnTo=${encodeURIComponent(`${location.pathname}${location.search}`)}`}
+            >
+              {t({ message: 'Abrir historial completo' })}
+            </StyledHistoryLink>
+          </StyledSection>
         </>
       )}
 
       {activeTab === 'documents' && (
-        <RelationSection
-          label={t({ message: 'Documentos' })}
-          testId="relation-documents"
+        <DocumentsSection
           connection={documents.data?.mercadoPublicoV2.documents}
           error={documents.error}
           loading={documents.loading}
@@ -948,10 +1162,10 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
         </>
       )}
 
-      {activeTab === 'technical' && (
+      {activeTab === 'evidence' && (
         <>
           <StyledDisclosure>
-            <summary>{t({ message: 'Procedencia' })}</summary>
+            <summary>Ver detalles técnicos</summary>
             <StyledDetailList>
               <StyledLabel>{t({ message: 'Observación' })}</StyledLabel>
               <StyledValue>
@@ -972,7 +1186,9 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
               </StyledValue>
               <StyledLabel>{t({ message: 'Observado' })}</StyledLabel>
               <StyledValue>
-                {formatDate(opportunity.provenance?.observedAt ?? null)}
+                {formatMercadoPublicoDate(
+                  opportunity.provenance?.observedAt ?? null,
+                )}
               </StyledValue>
               <StyledLabel>
                 {t({ message: 'Disponibilidad técnica' })}
@@ -1000,7 +1216,7 @@ export const SidePanelMercadoPublicoV2OpportunityPage = () => {
           </StyledDisclosure>
 
           <StyledDisclosure>
-            <summary>{t({ message: 'Payload técnico de fuente' })}</summary>
+            <summary>Payload técnico de fuente</summary>
             <StyledButton
               ref={payloadButtonRef}
               type="button"

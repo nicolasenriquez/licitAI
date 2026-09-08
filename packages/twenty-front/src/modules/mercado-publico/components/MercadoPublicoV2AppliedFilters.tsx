@@ -4,6 +4,10 @@ import { Button } from 'twenty-ui/input';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 
 import { type MercadoPublicoV2Filters } from '@/mercado-publico/hooks/useMercadoPublicoV2UrlState';
+import {
+  formatMercadoPublicoDateInput,
+  formatMercadoPublicoRegion,
+} from '@/mercado-publico/utils/format-mercado-publico-display';
 
 type AppliedFilter = {
   key: keyof MercadoPublicoV2Filters;
@@ -33,6 +37,14 @@ export const MercadoPublicoV2AppliedFilters = ({
   onClear: () => void;
 }) => {
   const { t } = useLingui();
+  const stateLabels: Record<string, string> = {
+    publicada: t`Publicada`,
+    cerrada: t`Cerrada`,
+    desierta: t`Desierta`,
+    cancelada: t`Cancelada`,
+    proveedor_seleccionado: t`Proveedor seleccionado`,
+    oc_emitida: t`Orden de compra emitida`,
+  };
   const applied: AppliedFilter[] = [
     ...(filters.search.trim()
       ? [
@@ -59,7 +71,7 @@ export const MercadoPublicoV2AppliedFilters = ({
       ? [
           {
             key: 'region' as const,
-            label: t`Región ${filters.region}`,
+            label: t`Región: ${formatMercadoPublicoRegion(filters.region)}`,
             remove: { region: null },
           },
         ]
@@ -68,7 +80,7 @@ export const MercadoPublicoV2AppliedFilters = ({
       ? [
           {
             key: 'closingAtFrom' as const,
-            label: t`Cierre desde ${filters.closingAtFrom}`,
+            label: t`Cierre desde ${formatMercadoPublicoDateInput(filters.closingAtFrom)}`,
             remove: { closingAtFrom: null },
           },
         ]
@@ -77,7 +89,7 @@ export const MercadoPublicoV2AppliedFilters = ({
       ? [
           {
             key: 'closingAtTo' as const,
-            label: t`Cierre hasta ${filters.closingAtTo}`,
+            label: t`Cierre hasta ${formatMercadoPublicoDateInput(filters.closingAtTo)}`,
             remove: { closingAtTo: null },
           },
         ]
@@ -95,7 +107,7 @@ export const MercadoPublicoV2AppliedFilters = ({
       ? [
           {
             key: 'states' as const,
-            label: t`Estados: ${filters.states.join(', ')}`,
+            label: t`Estados: ${filters.states.map((state) => stateLabels[state] ?? state).join(', ')}`,
             remove: { states: [] },
           },
         ]
@@ -146,6 +158,7 @@ export const MercadoPublicoV2AppliedFilters = ({
       {applied.map((filter) => (
         <Button
           key={filter.key}
+          aria-label={t`Quitar ${filter.label}`}
           title={t`Quitar ${filter.label}`}
           type="button"
           size="small"
@@ -154,6 +167,7 @@ export const MercadoPublicoV2AppliedFilters = ({
         />
       ))}
       <Button
+        aria-label={t`Limpiar filtros aplicados`}
         title={t`Limpiar`}
         type="button"
         size="small"

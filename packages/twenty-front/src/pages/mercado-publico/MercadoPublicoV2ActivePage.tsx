@@ -3,6 +3,7 @@ import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
 import { useAtomValue } from 'jotai';
 import {
+  type CSSProperties,
   type ReactNode,
   useCallback,
   useEffect,
@@ -10,13 +11,13 @@ import {
   useState,
 } from 'react';
 import { Temporal } from 'temporal-polyfill';
-import { SidePanelPages } from 'twenty-shared/types';
+import { AppPath, SidePanelPages } from 'twenty-shared/types';
 import { MercadoPublicoV2ErrorCode } from 'twenty-shared/constants';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
 import { IconDotsVertical } from 'twenty-ui/icon';
 import { Button } from 'twenty-ui/input';
 import { Callout } from 'twenty-ui/feedback';
-import { Status } from 'twenty-ui/data-display';
+import { Link } from 'react-router-dom';
 
 import {
   MercadoPublicoV2FilterBar,
@@ -27,8 +28,14 @@ import { MercadoPublicoV2PageShell } from '@/mercado-publico/components/MercadoP
 import { MercadoPublicoV2RefreshControl } from '@/mercado-publico/components/MercadoPublicoV2RefreshControl';
 import {
   formatMercadoPublicoAvailability,
-  formatMercadoPublicoFreshness,
+  formatMercadoPublicoFreshnessSummary,
 } from '@/mercado-publico/utils/format-mercado-publico-data-status';
+import {
+  formatMercadoPublicoAmount,
+  formatMercadoPublicoDate,
+  formatMercadoPublicoRegion,
+  formatMercadoPublicoRelativeDate,
+} from '@/mercado-publico/utils/format-mercado-publico-display';
 import {
   useMercadoPublicoV2UrlState,
   type MercadoPublicoV2Filters,
@@ -38,8 +45,6 @@ import { useNavigateSidePanel } from '@/side-panel/hooks/useNavigateSidePanel';
 import { useSidePanelMenu } from '@/side-panel/hooks/useSidePanelMenu';
 import { isSidePanelOpenedState } from '@/side-panel/states/isSidePanelOpenedState';
 import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
-import { dateLocaleState } from '~/localization/states/dateLocaleState';
-import { formatDateISOStringToRelativeDate } from '~/modules/localization/utils/formatDateISOStringToRelativeDate';
 import { logError } from '~/utils/logError';
 import { isGraphqlErrorOfType } from '~/utils/is-graphql-error-of-type.util';
 import {
@@ -72,6 +77,24 @@ const StyledHeaderMeta = styled.span`
   gap: ${themeCssVariables.spacing[2]};
 `;
 
+const StyledBuyerContext = styled.div`
+  align-items: center;
+  background: ${themeCssVariables.background.secondary};
+  border: 1px solid ${themeCssVariables.border.color.light};
+  border-radius: ${themeCssVariables.border.radius.md};
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${themeCssVariables.spacing[2]};
+  justify-content: space-between;
+  padding: ${themeCssVariables.spacing[3]};
+`;
+
+const StyledContextLink = styled(Link)`
+  color: ${themeCssVariables.font.color.primary};
+  text-decoration: underline;
+  text-underline-offset: 2px;
+`;
+
 const StyledTableContainer = styled.div`
   border: 1px solid ${themeCssVariables.border.color.light};
   border-radius: ${themeCssVariables.border.radius.md};
@@ -87,16 +110,24 @@ const StyledTableContainer = styled.div`
 
 const StyledTable = styled.table`
   border-collapse: collapse;
-  min-width: 860px;
+  min-width: 720px;
   table-layout: fixed;
   width: 100%;
 
   th:nth-child(1) {
-    width: 42%;
+    width: 52%;
   }
 
   th:nth-child(2) {
-    width: 22%;
+    width: 15%;
+  }
+
+  th:nth-child(3) {
+    width: 20%;
+  }
+
+  th:nth-child(4) {
+    width: 13%;
   }
 
   tbody tr:focus-within {
@@ -153,22 +184,17 @@ const StyledTable = styled.table`
       order: 1;
     }
 
-    tbody td:nth-child(3) {
+    tbody td:nth-child(2) {
       order: 2;
     }
 
-    tbody td:nth-child(4) {
+    tbody td:nth-child(3) {
       order: 3;
     }
 
-    tbody td:nth-child(2) {
+    tbody td:nth-child(4) {
       grid-column: 1 / -1;
       order: 4;
-    }
-
-    tbody td:nth-child(5) {
-      grid-column: 1 / -1;
-      order: 5;
     }
   }
 `;
@@ -257,6 +283,28 @@ const StyledUrgency = styled.div`
   color: ${themeCssVariables.font.color.primary};
   font-weight: ${themeCssVariables.font.weight.medium};
   margin-bottom: ${themeCssVariables.spacing[1]};
+`;
+
+const StyledProcessStatus = styled.span`
+  align-items: center;
+  background: ${themeCssVariables.background.secondary};
+  border: 1px solid ${themeCssVariables.border.color.light};
+  border-radius: ${themeCssVariables.border.radius.pill};
+  color: ${themeCssVariables.font.color.primary};
+  display: inline-flex;
+  font-size: ${themeCssVariables.font.size.sm};
+  gap: ${themeCssVariables.spacing[1]};
+  max-width: 100%;
+  padding: 0 ${themeCssVariables.spacing[2]};
+
+  &::before {
+    background: var(--process-status-accent);
+    border-radius: ${themeCssVariables.border.radius.rounded};
+    content: '';
+    flex-shrink: 0;
+    height: ${themeCssVariables.spacing[1]};
+    width: ${themeCssVariables.spacing[1]};
+  }
 `;
 
 const StyledStateMessage = styled.div`
@@ -405,22 +453,6 @@ const DataValue = ({ value, availability, children }: DataValueProps) => {
   );
 };
 
-const formatDate = (value: string | null | undefined): string => {
-  if (!value) return 'No informado por fuente';
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat('es-CL', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'America/Santiago',
-  }).format(date);
-};
-
 type DateValueProps = {
   value: string | null | undefined;
   availability: string;
@@ -429,48 +461,59 @@ type DateValueProps = {
 const ProcessStatus = ({ state }: { state: string }) => {
   const { t } = useLingui();
 
+  let text = state;
+  let accent = themeCssVariables.color.gray;
+
   switch (state) {
     case 'publicada':
-      return <Status color="green" text={t`Publicada`} />;
+      text = t`Publicada`;
+      accent = themeCssVariables.color.green;
+      break;
     case 'cerrada':
-      return <Status color="gray" text={t`Cerrada`} />;
+      text = t`Cerrada`;
+      break;
     case 'desierta':
-      return <Status color="orange" text={t`Desierta`} />;
+      text = t`Desierta`;
+      accent = themeCssVariables.color.orange;
+      break;
     case 'cancelada':
-      return <Status color="red" text={t`Cancelada`} />;
+      text = t`Cancelada`;
+      accent = themeCssVariables.color.red;
+      break;
     case 'proveedor_seleccionado':
-      return <Status color="blue" text={t`Proveedor seleccionado`} />;
+      text = t`Proveedor seleccionado`;
+      accent = themeCssVariables.color.blue;
+      break;
     case 'oc_emitida':
-      return <Status color="turquoise" text={t`Orden de compra emitida`} />;
-    default:
-      return <Status color="gray" text={state} />;
+      text = t`Orden de compra emitida`;
+      accent = themeCssVariables.color.turquoise;
+      break;
   }
+
+  return (
+    <StyledProcessStatus
+      aria-label={text}
+      data-status-color={state}
+      style={{ '--process-status-accent': accent } as CSSProperties}
+    >
+      {text}
+    </StyledProcessStatus>
+  );
 };
 
 const DateValue = ({ value, availability }: DateValueProps) => {
   const { t } = useLingui();
-  const { localeCatalog } = useAtomValue(dateLocaleState.atom);
 
   if (value === null || value === undefined) {
     return <DataValue value={value} availability={availability} />;
   }
 
-  const formatted = formatDate(value);
-  let relative: string | null = null;
-
-  try {
-    relative = formatDateISOStringToRelativeDate({
-      isoDate: value,
-      localeCatalog,
-      timeZone: SANTIAGO_TIME_ZONE,
-    });
-  } catch {
-    relative = null;
-  }
+  const formatted = formatMercadoPublicoDate(value);
+  const relative = formatMercadoPublicoRelativeDate(value);
 
   return (
     <div>
-      {relative && <StyledUrgency>{relative}</StyledUrgency>}
+      <StyledUrgency>{relative}</StyledUrgency>
       <StyledDateValue
         aria-label={t`${formatted}; hora de Santiago; ISO ${value}`}
         dateTime={value}
@@ -499,6 +542,9 @@ export const MercadoPublicoV2ActivePage = () => {
   const [notice, setNotice] = useState<string | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const [openingOpportunityCode, setOpeningOpportunityCode] = useState<
+    string | null
+  >(null);
+  const [lastOpenedOpportunityCode, setLastOpenedOpportunityCode] = useState<
     string | null
   >(null);
 
@@ -555,7 +601,7 @@ export const MercadoPublicoV2ActivePage = () => {
       return;
     }
 
-    setNotice(t`No fue posible cargar los procesos.`);
+    setNotice('No fue posible cargar los procesos.');
   }, [error, setAfter, t]);
 
   useEffect(() => {
@@ -612,8 +658,39 @@ export const MercadoPublicoV2ActivePage = () => {
     state.proceso,
   ]);
 
+  useEffect(() => {
+    if (!isSidePanelOpened || !lastOpenedOpportunityCode) {
+      return undefined;
+    }
+
+    const handleEscape = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+
+      window.setTimeout(() => {
+        const currentOpportunityButton = Array.from(
+          document.querySelectorAll<HTMLButtonElement>(
+            '[data-mercado-publico-opportunity-code]',
+          ),
+        ).find(
+          (button) =>
+            button.dataset.mercadoPublicoOpportunityCode ===
+            lastOpenedOpportunityCode,
+        );
+
+        currentOpportunityButton?.focus();
+      }, 1000);
+    };
+
+    document.addEventListener('keydown', handleEscape, true);
+
+    return () => document.removeEventListener('keydown', handleEscape, true);
+  }, [isSidePanelOpened, lastOpenedOpportunityCode]);
+
   const openOpportunity = useCallback(
     (opportunity: Opportunity) => {
+      setLastOpenedOpportunityCode(opportunity.codigo);
       setOpeningOpportunityCode(opportunity.codigo);
       setProceso(opportunity.codigo);
 
@@ -652,6 +729,14 @@ export const MercadoPublicoV2ActivePage = () => {
 
   const opportunities = data?.mercadoPublicoV2.opportunities;
   const analytics = analyticsData?.mercadoPublicoV2.analytics;
+  const tableLabel =
+    state.cohortStatus === 'active' &&
+    state.states.length === 1 &&
+    state.states[0] === 'publicada'
+      ? 'Procesos publicados'
+      : state.cohortStatus === 'active' && state.states.length === 0
+        ? 'Procesos en seguimiento'
+        : 'Procesos filtrados';
 
   const goToNextPage = useCallback(() => {
     if (
@@ -679,7 +764,7 @@ export const MercadoPublicoV2ActivePage = () => {
 
   return (
     <MercadoPublicoV2PageShell
-      title={t`Mercado Público`}
+      title="Procesos"
       topBarRight={<MercadoPublicoV2RefreshControl />}
       tag={
         opportunities || analytics ? (
@@ -687,21 +772,27 @@ export const MercadoPublicoV2ActivePage = () => {
             {opportunities && (
               <StyledCount>{t`${opportunities.totalCount} procesos`}</StyledCount>
             )}
-            {analytics?.asOf && (
+            {analytics && (
               <StyledCount>
-                {t`Actualizado ${formatDate(analytics.asOf)}`}
+                {formatMercadoPublicoFreshnessSummary(
+                  analytics.freshness,
+                  analytics.asOf,
+                  t,
+                )}
               </StyledCount>
             )}
-            {analytics &&
-              formatMercadoPublicoFreshness(analytics.freshness, t) && (
-                <StyledCount>
-                  {formatMercadoPublicoFreshness(analytics.freshness, t)}
-                </StyledCount>
-              )}
           </StyledHeaderMeta>
         ) : undefined
       }
     >
+      {state.buyer.trim() !== '' && (
+        <StyledBuyerContext>
+          <span>{t`Comprador filtrado: ${state.buyer.trim()}`}</span>
+          <StyledContextLink to={AppPath.MercadoPublicoV2Buyers}>
+            {t`Volver a Compradores`}
+          </StyledContextLink>
+        </StyledBuyerContext>
+      )}
       <MercadoPublicoV2FilterBar
         filters={state}
         sort={state.sort}
@@ -721,14 +812,14 @@ export const MercadoPublicoV2ActivePage = () => {
       {loading && (
         <StyledTableContainer
           role="status"
-          aria-label={t`Cargando procesos…`}
+          aria-label="Cargando procesos…"
           aria-live="polite"
         >
           <StyledTable aria-hidden="true">
             <tbody>
               {[0, 1, 2, 3, 4].map((row) => (
                 <tr key={row}>
-                  {[0, 1, 2, 3, 4].map((column) => (
+                  {[0, 1, 2, 3].map((column) => (
                     <StyledSkeletonCell key={column} />
                   ))}
                 </tr>
@@ -741,10 +832,10 @@ export const MercadoPublicoV2ActivePage = () => {
         <StyledStateMessage role="alert">
           <Callout
             variant="error"
-            title={t`No fue posible cargar los procesos`}
-            description={t`Reintenta sin perder los filtros ni el orden actual.`}
+            title="No fue posible cargar los procesos"
+            description="Reintenta sin perder los filtros ni el orden actual."
             action={{
-              label: t`Reintentar`,
+              label: 'Reintentar',
               onClick: () => void refetchOpportunities(),
             }}
           />
@@ -754,8 +845,8 @@ export const MercadoPublicoV2ActivePage = () => {
         <StyledStateMessage role="status" aria-live="polite">
           <Callout
             variant="neutral"
-            title={t`No hay procesos disponibles`}
-            description={t`Ajusta los filtros o limpia la búsqueda para ampliar los resultados.`}
+            title="No hay procesos disponibles"
+            description="Ajusta los filtros o limpia la búsqueda para ampliar los resultados."
           />
         </StyledStateMessage>
       )}
@@ -764,35 +855,32 @@ export const MercadoPublicoV2ActivePage = () => {
         opportunities &&
         opportunities.edges.length > 0 && (
           <StyledTableContainer
-            aria-label={t`Procesos activos`}
+            aria-label={tableLabel}
             role="region"
             tabIndex={0}
           >
             <StyledTable>
               <StyledTableCaption>
-                {t`Procesos activos. Cinco columnas en escritorio; cada fila se apila en móvil.`}
+                Tabla de procesos. Cuatro columnas en escritorio; cada fila se
+                apila en móvil.
               </StyledTableCaption>
               <thead>
                 <tr>
-                  <StyledHeaderCell scope="col">{t`Proceso`}</StyledHeaderCell>
+                  <StyledHeaderCell scope="col">Oportunidad</StyledHeaderCell>
+                  <StyledHeaderCell scope="col">Estado</StyledHeaderCell>
+                  <StyledHeaderCell scope="col">Cierre</StyledHeaderCell>
                   <StyledHeaderCell scope="col">
-                    {t`Comprador / región`}
-                  </StyledHeaderCell>
-                  <StyledHeaderCell scope="col">{t`Cierre`}</StyledHeaderCell>
-                  <StyledHeaderCell scope="col">
-                    {t`Monto publicado`}
-                  </StyledHeaderCell>
-                  <StyledHeaderCell scope="col">
-                    {t`Documentos`}
+                    Monto publicado
                   </StyledHeaderCell>
                 </tr>
               </thead>
               <tbody>
                 {opportunities.edges.map(({ node }) => (
                   <tr key={node.codigo}>
-                    <StyledCell data-label={t`Proceso`}>
+                    <StyledCell data-label="Oportunidad">
                       <StyledOpportunityButton
                         aria-label={t`Abrir ${node.title ?? node.codigo}`}
+                        data-mercado-publico-opportunity-code={node.codigo}
                         onClick={() => openOpportunity(node)}
                         title={node.title ?? node.codigo}
                       >
@@ -801,10 +889,18 @@ export const MercadoPublicoV2ActivePage = () => {
                       <StyledSecondaryText>{node.codigo}</StyledSecondaryText>
                       <StyledOpportunityMeta>
                         <DataValue
-                          value={node.state}
+                          value={node.buyerName}
                           availability={node.availability}
                         >
-                          {node.state && <ProcessStatus state={node.state} />}
+                          {node.buyerName}
+                        </DataValue>
+                        <DataValue
+                          value={node.region}
+                          availability={node.availability}
+                        >
+                          {node.region === null || node.region === undefined
+                            ? null
+                            : formatMercadoPublicoRegion(node.region)}
                         </DataValue>
                         <DataValue
                           value={node.llamado}
@@ -832,52 +928,27 @@ export const MercadoPublicoV2ActivePage = () => {
                         </StyledSecondaryText>
                       )}
                     </StyledCell>
-                    <StyledCell data-label={t`Comprador / región`}>
+                    <StyledCell data-label="Estado">
                       <DataValue
-                        value={node.buyerName}
+                        value={node.state}
                         availability={node.availability}
                       >
-                        {node.buyerName}
+                        {node.state && <ProcessStatus state={node.state} />}
                       </DataValue>
-                      <StyledSecondaryText>
-                        <DataValue
-                          value={node.region}
-                          availability={node.availability}
-                        >
-                          {node.region === null
-                            ? null
-                            : t`Región ${node.region}`}
-                        </DataValue>
-                      </StyledSecondaryText>
                     </StyledCell>
-                    <StyledCell data-label={t`Cierre`}>
+                    <StyledCell data-label="Cierre">
                       <DateValue
                         value={node.closingAt}
                         availability={node.availability}
                       />
                     </StyledCell>
-                    <StyledCell data-label={t`Monto publicado`}>
+                    <StyledCell data-label="Monto publicado">
                       <DataValue
                         value={node.amount}
                         availability={node.availability}
                       >
-                        {node.currency
-                          ? `${node.currency} ${node.amount}`
-                          : node.amount}
+                        {formatMercadoPublicoAmount(node.amount, node.currency)}
                       </DataValue>
-                    </StyledCell>
-                    <StyledCell data-label={t`Documentos`}>
-                      <div>
-                        {t`Documentos`}:{' '}
-                        <DataValue
-                          value={node.documentCount}
-                          availability={node.availability}
-                        >
-                          {node.documentCount === null
-                            ? null
-                            : t`${node.documentCount}`}
-                        </DataValue>
-                      </div>
                     </StyledCell>
                   </tr>
                 ))}
@@ -886,7 +957,7 @@ export const MercadoPublicoV2ActivePage = () => {
           </StyledTableContainer>
         )}
       {!loading && !error && opportunities?.edges.length ? (
-        <StyledPagination aria-label={t`Paginación de procesos`}>
+        <StyledPagination aria-label="Paginación de procesos">
           <Button
             title={t`Anterior`}
             type="button"
